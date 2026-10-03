@@ -10,6 +10,7 @@ import * as d3 from 'd3'
 import { formatAngle } from 'src/utils/scale'
 import { throttle } from 'quasar'
 import { deg2fulldms } from 'src/utils/angles'
+import { onFrame } from 'src/utils/chartClock'
 // import { deg2fulldms } from 'src/utils/angles'
 export type DataPoint = Record<string, number | Date | undefined>
 
@@ -68,17 +69,22 @@ const paths: Record<string, d3.Selection<SVGPathElement, unknown, null, undefine
 // Live time charts scroll on a steady clock, not one step per record: records arrive about every 200 ms
 // but irregularly (p5-p95 150-250 ms, and now and then a 300-950 ms gap or two at once), so stepping per
 // record made the plot lurch. The visible window ends SCROLL_DELAY_MS behind the newest record and moves
-// with real time every animation frame; late or bunched records fill in off the right edge. The y range
-// eases to its new extent instead of snapping.
+// with real time on the shared redraw clock (chartClock, which adapts the rate to the PC); late or bunched
+// records fill in off the right edge.
+// The y range changes rarely and in one step (yRange): new y tick labels are the costliest thing a redraw can
+// do on a small PC, and easing the range redrew them every frame for a second whenever the data's extent moved.
 const SCROLL_DELAY_MS = 1000      // how far the right edge trails the newest record (covers the arrival jitter)
-const Y_EASE_MS = 250             // time constant for the y range to follow the data
-const FRAME_MS = 50               // redraw at most 20 times a second (the window moves ~17 px/s: under 1 px a frame)
+const Y_MARGIN = 0.05             // room above and below the data, as a share of its extent
+const Y_SHRINK = 0.6              // shrink the range only once the data fills less than this share of it
+let stopTicking: (() => void) | null = null   // leaves the shared redraw clock
+// Each new or restyled SVG element costs a style recalculation, which is slow on a small PC (N5105: ~0.25 ms an
+// element), so nothing is rebuilt or restyled unless it changed: the legend only when its lines change, the
+// statistics text only when it changes, and the axis colour once, when the chart is built.
+let legendKey = ''
+let statsText = ''
 let clockOffset: number | null = null   // data time (ms) minus performance.now() at the newest record
 let spanMs = 0                          // width of the visible window (ms)
-let yShown: [number, number] | null = null
-let yTarget: [number, number] = [0, 100]
-let rafId = 0
-let lastFrame = 0
+let yDomain: [number, number] | null = null    // the y range shown
 // The chart's width, read only when it is built or resized: reading clientWidth while drawing forces the
 // browser to lay the page out again right away (a forced reflow), once per chart per frame.
 let chartWidth = 500
@@ -87,7 +93,9 @@ let yAxisKey = ''                       // the y domain and zoom the y axis was 
 const isLive = () => props.x1Type === 'time'
 
 function initChart() {
-  chartWidth = chart.value?.clientWidth ?? 500
+  // never narrower than the margins: a chart built while its box is still collapsed (page load, a closed
+  // panel) would otherwise get a negative plot width (<rect> width "-15"); it is rebuilt when it resizes
+  chartWidth = Math.max(chart.value?.clientWidth ?? 500, margin.left + margin.right + 10)
   yAxisKey = ''
   const width = chartWidth
   const clipId = `plot-clip-${Math.random().toString(36).slice(2, 9)}`
@@ -123,8 +131,10 @@ function initChart() {
     .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
   gridY = g.append('g').attr('color', '#444')
 
-  gX = g.append('g').attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
-  gY = g.append('g')
+  gX = g.append('g').attr('transform', `translate(0,${height - margin.top - margin.bottom})`).style('color', '#aaa')
+  gY = g.append('g').style('color', '#aaa')
+  legendKey = ''
+  statsText = ''
 
   // Create paths dynamically for each line definition
   lineDefs.forEach(def => {
@@ -196,7 +206,8 @@ function updateChart() {
   const allYValues = lineDefs.flatMap(def =>
     props.data.map(d => d[def.key]).filter((v): v is number => typeof v === 'number')
   )
-  yTarget = [d3.min(allYValues) ?? 0, d3.max(allYValues) ?? 100]
+  yDomain = yRange(d3.min(allYValues) ?? 0, d3.max(allYValues) ?? 100, yDomain)
+  yScale.domain(yDomain)
 
   if (isLive()) {
     const times = props.data.map(d => (d.x1 as Date).getTime())
@@ -208,12 +219,10 @@ function updateChart() {
     else clockOffset += 0.05 * (offset - clockOffset)
     const full = Math.max(0, newest - (times[0] ?? newest) - SCROLL_DELAY_MS)
     spanMs = spanMs === 0 ? full : spanMs + 0.05 * (full - spanMs)
-    if (yShown === null) yShown = [...yTarget]
     ensureAnimating()
   } else {
     const x1 = props.data.map(d => d.x1 as number)
     xScale.domain([d3.min(x1) ?? 0, d3.max(x1) ?? 100])
-    yScale.domain(yTarget)
     render()
   }
 
@@ -228,7 +237,7 @@ function render() {
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
-  gX.call(d3.axisBottom(zx)).style('color', '#aaa')
+  gX.call(d3.axisBottom(zx))
   gridX.call(
     d3.axisBottom(zx)
       .tickSize(-(height - margin.top - margin.bottom))
@@ -247,32 +256,38 @@ function render() {
     else if (props.y1Type === 'hms') {
       yAxis.tickFormat(shortTickMarks((d: d3.NumberValue) => deg2fulldms(+d/15, 1, 'hr')))
     }
-    gY.call(yAxis).style('color', '#aaa')
+    gY.call(yAxis)
     drawGridY(zy, chartWidth)
   }
 
   drawLines(zx, zy)
 }
 
+function yRange(lo: number, hi: number, current: [number, number] | null): [number, number] {
+  // Keep the current range while the data fits it and fills a fair share of it; otherwise a new range with
+  // a margin around the data, rounded to tick-friendly ("nice") limits.
+  if (current) {
+    const [c0, c1] = current
+    if (lo >= c0 && hi <= c1 && hi - lo >= Y_SHRINK * (c1 - c0)) return current
+  }
+  const extent = Math.max(hi - lo, Math.abs(hi) * 1e-6, 1e-9)
+  const pad = Y_MARGIN * extent
+  const padded: [number, number] = [lo - pad, hi + pad]
+  const nice = d3.scaleLinear().domain(padded).nice().domain() as [number, number]
+  // rounding can widen the range; keep it only if the data still fills it comfortably (else the next update
+  // would shrink it straight away)
+  return extent >= (Y_SHRINK + 0.1) * (nice[1] - nice[0]) ? nice : padded
+}
+
 function frame(t: number) {
-  rafId = 0
   if (!svg || !isLive() || clockOffset === null) return
-  rafId = requestAnimationFrame(frame)
-  const dt = t - lastFrame
-  if (dt < FRAME_MS) return
-  lastFrame = t
   const end = t + clockOffset - SCROLL_DELAY_MS
   xScale.domain([new Date(end - spanMs), new Date(end)])
-  if (yShown) {
-    const k = 1 - Math.exp(-Math.min(dt, 500) / Y_EASE_MS)
-    yShown = [yShown[0] + k * (yTarget[0] - yShown[0]), yShown[1] + k * (yTarget[1] - yShown[1])]
-    yScale.domain(yShown)
-  }
   render()
 }
 
 function ensureAnimating() {
-  if (!rafId) rafId = requestAnimationFrame(frame)
+  if (!stopTicking) stopTicking = onFrame(frame)
 }
 
 
@@ -314,18 +329,22 @@ function drawStatistics(svg: d3.Selection<SVGSVGElement, unknown, null, undefine
     label = `σ(OP): ${formatAngle(stdevOP, 'deg', 2)}`
   }
 
-  svg.select('.stdev-label').text(label)
+  if (label !== statsText) {
+    statsText = label
+    svg.select('.stdev-label').text(label)
+  }
 }
 
 
 
 function drawLegend(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, width: number) {
-  // Remove any existing legend
-  svg.select('.legend').remove()
-
   const legendData = lineDefs.filter(def =>
     props.data.some(d => typeof d[def.key] === 'number')
   )
+  const key = legendData.map(def => def.key).join(',')
+  if (key === legendKey) return                 // same lines as last time: keep the legend as it is
+  legendKey = key
+  svg.select('.legend').remove()
 
   const legend = svg.append('g')
     .attr('class', 'legend')
@@ -406,8 +425,8 @@ const throttledUpdateChart = throttle(() => { updateChart()}, 100)
 watch(() => props.data, throttledUpdateChart, { deep: true })
 
 onBeforeUnmount(() => {
-  if (rafId) cancelAnimationFrame(rafId)
-  rafId = 0
+  stopTicking?.()
+  stopTicking = null
   d3.select(chart.value).select('svg').remove()
 })
 </script>
