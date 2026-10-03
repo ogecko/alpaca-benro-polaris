@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import * as d3 from 'd3'
 import { formatAngle } from 'src/utils/scale'
 import { throttle } from 'quasar'
@@ -64,10 +64,32 @@ let gridX: d3.Selection<SVGGElement, unknown, null, undefined>
 let gridY: d3.Selection<SVGGElement, unknown, null, undefined>
 const paths: Record<string, d3.Selection<SVGPathElement, unknown, null, undefined>> = {}
 
-const dlen = computed(() => props.data.length)
+
+// Live time charts scroll on a steady clock, not one step per record: records arrive about every 200 ms
+// but irregularly (p5-p95 150-250 ms, and now and then a 300-950 ms gap or two at once), so stepping per
+// record made the plot lurch. The visible window ends SCROLL_DELAY_MS behind the newest record and moves
+// with real time every animation frame; late or bunched records fill in off the right edge. The y range
+// eases to its new extent instead of snapping.
+const SCROLL_DELAY_MS = 1000      // how far the right edge trails the newest record (covers the arrival jitter)
+const Y_EASE_MS = 250             // time constant for the y range to follow the data
+const FRAME_MS = 50               // redraw at most 20 times a second (the window moves ~17 px/s: under 1 px a frame)
+let clockOffset: number | null = null   // data time (ms) minus performance.now() at the newest record
+let spanMs = 0                          // width of the visible window (ms)
+let yShown: [number, number] | null = null
+let yTarget: [number, number] = [0, 100]
+let rafId = 0
+let lastFrame = 0
+// The chart's width, read only when it is built or resized: reading clientWidth while drawing forces the
+// browser to lay the page out again right away (a forced reflow), once per chart per frame.
+let chartWidth = 500
+let yAxisKey = ''                       // the y domain and zoom the y axis was last drawn for
+
+const isLive = () => props.x1Type === 'time'
 
 function initChart() {
-  const width = chart.value?.clientWidth ?? 500
+  chartWidth = chart.value?.clientWidth ?? 500
+  yAxisKey = ''
+  const width = chartWidth
   const clipId = `plot-clip-${Math.random().toString(36).slice(2, 9)}`
   
   xScale = props.x1Type === 'time'
@@ -84,6 +106,12 @@ function initChart() {
 
   const g = svg.append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`)
+
+  // lines are clipped to the plot area (a live chart's newest second lies just past the right edge)
+  g.append('defs').append('clipPath').attr('id', clipId)
+    .append('rect')
+    .attr('width', width - margin.left - margin.right)
+    .attr('height', height - margin.top - margin.bottom)
 
   g.append('rect')
     .attr('width', width - margin.left - margin.right)
@@ -123,7 +151,8 @@ function initChart() {
     .on('zoom', (event) => {
       currentTransform = event.transform
       if (!currentTransform) return
-      updateChart()
+      if (isLive()) render()
+      else updateChart()
     })
 
   svg.call(zoom)
@@ -160,46 +189,90 @@ function shortTickMarks(fullFormat: (d: number) => string) {
 }
 
 function updateChart() {
+  // Called when the data changes (and on mount/resize): recompute ranges, legend and statistics.
   if (!props.data?.length || !svg) return
-  const width = chart.value?.clientWidth ?? 500
+  const width = chartWidth
 
   const allYValues = lineDefs.flatMap(def =>
     props.data.map(d => d[def.key]).filter((v): v is number => typeof v === 'number')
   )
-  const x1 = props.data.map(d => d.x1)
+  yTarget = [d3.min(allYValues) ?? 0, d3.max(allYValues) ?? 100]
 
-  const xDomain = props.x1Type === 'time'
-    ? [d3.min(x1 as Date[])!, d3.max(x1 as Date[])!]
-    : [d3.min(x1 as number[]) ?? 0, d3.max(x1 as number[]) ?? 100]
-  xScale.domain(xDomain)
+  if (isLive()) {
+    const times = props.data.map(d => (d.x1 as Date).getTime())
+    const newest = times[times.length - 1] ?? 0
+    const now = performance.now()
+    const offset = newest - now
+    // follow the data clock; jump only when far off (first data, a pause, a reconnect)
+    if (clockOffset === null || Math.abs(offset - clockOffset) > 3000) clockOffset = offset
+    else clockOffset += 0.05 * (offset - clockOffset)
+    const full = Math.max(0, newest - (times[0] ?? newest) - SCROLL_DELAY_MS)
+    spanMs = spanMs === 0 ? full : spanMs + 0.05 * (full - spanMs)
+    if (yShown === null) yShown = [...yTarget]
+    ensureAnimating()
+  } else {
+    const x1 = props.data.map(d => d.x1 as number)
+    xScale.domain([d3.min(x1) ?? 0, d3.max(x1) ?? 100])
+    yScale.domain(yTarget)
+    render()
+  }
 
-  const yDomain: [number, number] = [d3.min(allYValues) ?? 0, d3.max(allYValues) ?? 100]
-  yScale.domain(yDomain)
+  drawStatistics(svg)
+  drawLegend(svg, width)
+}
 
-  const tX = (dlen.value>140) ? gX.transition().duration(180).ease(d3.easeLinear) : gX
-  const tY = (dlen.value>140) ? gY.transition().duration(180).ease(d3.easeLinear) : gY
+function render() {
+  // Draw axes, gridlines and lines for the current xScale/yScale domains (no transitions).
+  // The time axis moves every frame; the y axis is redrawn only when its range (or the zoom) changes.
+  if (!props.data?.length || !svg) return
   const zx = currentTransform ? currentTransform.rescaleX(xScale) : xScale
   const zy = currentTransform ? currentTransform.rescaleY(yScale) : yScale
 
-  tX.call(d3.axisBottom(zx)).style('color', '#aaa')
-  const yAxis = d3.axisLeft(zy)
-  if (props.y1Type === 'dms') {
-    yAxis.tickFormat(shortTickMarks((d: d3.NumberValue) => deg2fulldms(+d, 1, 'deg')))
-  }
-  else if (props.y1Type === 'hms') {
-    yAxis.tickFormat(shortTickMarks((d: d3.NumberValue) => deg2fulldms(+d/15, 1, 'hr')))
-  }
-  tY.call(yAxis).style('color', '#aaa')
+  gX.call(d3.axisBottom(zx)).style('color', '#aaa')
+  gridX.call(
+    d3.axisBottom(zx)
+      .tickSize(-(height - margin.top - margin.bottom))
+      .tickFormat(() => '')
+  )
 
-  drawGridlines(zx, zy, width)
+  const [y0, y1] = zy.domain() as [number, number]
+  const tol = Math.abs(y1 - y0) * 1e-3                  // well under a pixel
+  const key = `${Math.round(y0 / (tol || 1))},${Math.round(y1 / (tol || 1))}`
+  if (key !== yAxisKey) {
+    yAxisKey = key
+    const yAxis = d3.axisLeft(zy)
+    if (props.y1Type === 'dms') {
+      yAxis.tickFormat(shortTickMarks((d: d3.NumberValue) => deg2fulldms(+d, 1, 'deg')))
+    }
+    else if (props.y1Type === 'hms') {
+      yAxis.tickFormat(shortTickMarks((d: d3.NumberValue) => deg2fulldms(+d/15, 1, 'hr')))
+    }
+    gY.call(yAxis).style('color', '#aaa')
+    drawGridY(zy, chartWidth)
+  }
+
   drawLines(zx, zy)
+}
 
-  // const stdevY1 = d3.deviation(props.data, d => d.y1 as number) ?? 0
-  // svg.select('.stdev-label')
-  //   .text(`σ(y₁): ${formatAngle(stdevY1, 'deg', 2)}`)
-  drawStatistics(svg)
+function frame(t: number) {
+  rafId = 0
+  if (!svg || !isLive() || clockOffset === null) return
+  rafId = requestAnimationFrame(frame)
+  const dt = t - lastFrame
+  if (dt < FRAME_MS) return
+  lastFrame = t
+  const end = t + clockOffset - SCROLL_DELAY_MS
+  xScale.domain([new Date(end - spanMs), new Date(end)])
+  if (yShown) {
+    const k = 1 - Math.exp(-Math.min(dt, 500) / Y_EASE_MS)
+    yShown = [yShown[0] + k * (yTarget[0] - yShown[0]), yShown[1] + k * (yTarget[1] - yShown[1])]
+    yScale.domain(yShown)
+  }
+  render()
+}
 
-  drawLegend(svg, width)
+function ensureAnimating() {
+  if (!rafId) rafId = requestAnimationFrame(frame)
 }
 
 
@@ -282,52 +355,25 @@ function drawLegend(svg: d3.Selection<SVGSVGElement, unknown, null, undefined>, 
 
 
 function drawLines(
-    zx = xScale, 
+    zx: d3.ScaleLinear<number, number> | d3.ScaleTime<number, number> = xScale,
     zy = yScale,
 ) {
-
   lineDefs.forEach(def => {
-  const line = d3.line<DataPoint>()
-    .defined(d => typeof d[def.key] === 'number')
-    .x(d => zx(props.x1Type === 'time' ? d.x1 as Date : d.x1 as number))
-    .y(d => zy(d[def.key] as number))
-
-  paths[def.key]?.attr('d', line(props.data))
-    .attr('transform', null) // reset any previous transform
-  })
-
-  let dx = 0
-  if (props.data.length >= 150) {
-    const x0 = props.x1Type === 'time' ? props.data[0]?.x1 as Date : props.data[0]?.x1 as number
-    const x1 = props.x1Type === 'time' ? props.data[1]?.x1 as Date : props.data[1]?.x1 as number
-    dx = zx(x1) - zx(x0)
-  }
-
-  lineDefs.forEach(def => {
-    const path = paths[def.key]
-    if (!path || dlen.value<140) return
-   
-    path.attr('transform', `translate(${dx},0)`)
-    path.transition().duration(175).ease(d3.easeLinear).attr('transform', `translate(0,0)`)
+    const line = d3.line<DataPoint>()
+      .defined(d => typeof d[def.key] === 'number')
+      .x(d => zx(props.x1Type === 'time' ? d.x1 as Date : d.x1 as number))
+      .y(d => zy(d[def.key] as number))
+    paths[def.key]?.attr('d', line(props.data))
   })
 }
 
 
 
-function drawGridlines(
-  zx: d3.ScaleLinear<number, number> | d3.ScaleTime<number, number>, 
+function drawGridY(
   zy: d3.ScaleLinear<number, number>,
   width: number,
 ) {
-  const tX = (dlen.value>140) ? gridX.transition().duration(180).ease(d3.easeLinear) : gridX
-  tX.call(
-    d3.axisBottom(zx)
-      .tickSize(-(height - margin.top - margin.bottom))
-      .tickFormat(() => '')
-  )
-
-  const tY = (dlen.value>140) ? gridY.transition().duration(180).ease(d3.easeLinear) : gridY
-  tY.call(
+  gridY.call(
     d3.axisLeft(zy)
       .tickSize(-(width - margin.left - margin.right))
       .tickFormat(() => '')
@@ -342,8 +388,7 @@ function drawGridlines(
           .attr("stroke-width", 3);
       }
     });
-
-  }
+}
 
 function onResize() {
   d3.select(chart.value).select('svg').remove()
@@ -357,10 +402,12 @@ onMounted(async () => {
   updateChart()
 })
 
-const throttledUpdateChart = throttle(() => { updateChart()}, 170) 
+const throttledUpdateChart = throttle(() => { updateChart()}, 100)
 watch(() => props.data, throttledUpdateChart, { deep: true })
 
 onBeforeUnmount(() => {
+  if (rafId) cancelAnimationFrame(rafId)
+  rafId = 0
   d3.select(chart.value).select('svg').remove()
 })
 </script>
