@@ -34,7 +34,7 @@
 - **[Goto Settle Time]** Reduce goto settle time by preventing Ki windup and false marking of completion.
 - **[PEC Guider Calibration]** PEC no longer learns PHD2/CCDciel calibration pulses as drift, so PEC can stay on while calibrating.
 - **[Worm Feed-Forward]** Experimental, off by default (`pec_worm_ff`): corrects each motor's 6 deg worm gear error from a profile learnt from your own logs (`utility/learn_worm.py`), with no lag. See kinematics.md, Periodic Error Correction.
-
+- **[Smooth Charts]** Live charts on the Analysis pages (PID, Kalman, PWM, Speed) now scroll smoothly instead of hiccuping now and then, and use less CPU in the browser.
 
 ## What's new in v2.2 Beta 6
 - **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
