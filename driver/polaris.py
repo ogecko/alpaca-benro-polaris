@@ -631,8 +631,7 @@ class Polaris:
             await self.start_tracking()
         test = WormCalibration(axis)
         self.logger.info(f"WORM GEAR TEST M{axis+1}: START, {len(test.positions)} positions, {test.step_deg} deg steps, "
-                         f"{test.syncs_per_step} plate solves each (the first after a step is discarded); waiting for "
-                         f"plate-solve syncs (about every 10-15 s), stops after {test.no_sync_timeout_s:.0f} s without one")
+                         f"Test requires plate-solve syncs every 10-15 s, stops after {test.no_sync_timeout_s:.0f} s without one")
         sm.worm_test = test
         try:
             shown = None
@@ -643,7 +642,7 @@ class Polaris:
                 if test.timed_out(time.monotonic()):
                     test.abort('no syncs')
                     self.logger.warning(f"WORM GEAR TEST M{axis+1}: no plate-solve sync for {test.no_sync_timeout_s:.0f} s "
-                                        f"-- run solve and sync about every 10-15 s while the test runs")
+                                        f"-- Rerun test while running continuous plate-solve and sync.")
                 await asyncio.sleep(0.5)
         finally:
             sm.worm_test = None
