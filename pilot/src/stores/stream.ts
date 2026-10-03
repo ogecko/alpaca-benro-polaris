@@ -5,6 +5,8 @@ import { useStatusStore } from 'src/stores/status';
 import { computed, ref } from 'vue'
 import { useConfigStore } from './config';
 
+export const MAX_RECORDS = 150     // records kept per topic (the driver's backlog per topic is the same, app_socket.py)
+
 export type LogMessage = { text: string }
 export type KalmanMessage = { 
   θ_meas: [number, number, number], θ_state: [number, number, number],
@@ -123,7 +125,6 @@ export const useStreamStore = defineStore('telemetry', () => {
         } else {
           if (!topics.value[topic]) topics.value[topic] = []
           topics.value[topic].push(record)
-          const MAX_RECORDS = 150
           if (topics.value[topic].length > MAX_RECORDS) {
             topics.value[topic].splice(0, topics.value[topic].length - MAX_RECORDS)
           }
