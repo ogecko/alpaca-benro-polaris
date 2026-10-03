@@ -412,3 +412,44 @@ def test_a_known_profile_for_a_motor_too_slow_to_fit_keeps_its_worm_out_of_the_o
     err = lambda p: np.abs(p.coef[:4] - TRUE[:4]).max()
     assert err(given) < 0.5 * err(alone)
     assert np.allclose(given.coef[8:], TRUE[8:])                                    # M3 taken from the known profile
+
+
+# ── shared-shape model: one amplitude for all motors, a phase each (pure 6 deg sine) ──
+
+def shared_coef(A, phases):
+    """WormProfile coefficients (harmonic 1 only) for e_i = A sin(phi_i + p_i)."""
+    p = np.radians(phases)
+    return np.column_stack([A * np.cos(p), A * np.sin(p)]).ravel()
+
+
+def test_shared_fit_recovers_the_amplitude_and_each_motors_phase():
+    from pe_analysis import fit_shared_worm
+    coef = shared_coef(55.0, (284.0, 102.0, 267.0))
+    parts = [part(100 + k, rates=(12.0, 8.0, 14.0), start=(30.0 + 40 * k, 25.0 + 10 * k, None),
+                  coef=np.r_[coef[0:2], 0, 0, coef[2:4], 0, 0, coef[4:6], 0, 0]) for k in range(2)]
+    prof = fit_shared_worm(parts)
+    assert prof.harmonics == (1,)
+    c = np.asarray(prof.coef).reshape(3, 2)
+    amp, ph = np.hypot(c[:, 0], c[:, 1]), np.degrees(np.arctan2(c[:, 1], c[:, 0])) % 360
+    assert np.allclose(amp, 55.0, atol=3.0)
+    assert np.all(np.abs((ph - [284, 102, 267] + 180) % 360 - 180) < 5)
+
+
+def test_a_motor_too_slow_to_fit_takes_its_phase_from_the_reference():
+    from pe_analysis import fit_shared_worm
+    coef = shared_coef(55.0, (284.0, 102.0, 267.0))
+    full = np.r_[coef[0:2], 0, 0, coef[2:4], 0, 0, coef[4:6], 0, 0]
+    p = part(110, rates=(12.0, 1.0, 14.0), coef=full)                               # M2 hardly turns
+    ref = WormProfile(coef, WORM_THETA, (1,))
+    with_ref = np.asarray(fit_shared_worm([p], reference=ref).coef).reshape(3, 2)
+    without = np.asarray(fit_shared_worm([p]).coef).reshape(3, 2)
+    assert np.allclose(with_ref[1], coef[2:4]) and np.allclose(without[1], 0.0)
+
+
+def test_shared_amplitude_is_a_compromise_when_motors_differ_a_little():
+    from pe_analysis import fit_shared_worm
+    p1, p3 = np.radians(284.0), np.radians(267.0)
+    full = np.r_[50 * np.cos(p1), 50 * np.sin(p1), 0, 0, 0, 0, 0, 0, 64 * np.cos(p3), 64 * np.sin(p3), 0, 0]
+    prof = fit_shared_worm([part(120, rates=(12.0, 1.0, 14.0), coef=full)])
+    c = np.asarray(prof.coef).reshape(3, 2)
+    assert 50.0 <= np.hypot(*c[0]) <= 64.0 and np.isclose(np.hypot(*c[0]), np.hypot(*c[2]))

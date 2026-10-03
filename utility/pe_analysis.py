@@ -602,6 +602,59 @@ def fit_worm_given(part, known, min_turns=2.0, **fit_kw):
     return WormProfile(coef, known.worm_theta, known.harmonics)
 
 
+def fit_shared_worm(parts, worm_theta=WORM_THETA, min_turns=2.0, reference=None, trend_degree=2, grid_s=60.0):
+    """Shared-shape worm model: every motor's error is e_i = A sin(phi_i + p_i) -- one amplitude for all three motors
+    and a phase per motor, a pure sine (the archive supports it: second harmonic ~1", one amplitude does as well out of
+    sample as three independent profiles, and two mounts agree). parts: list of (t, ra, dec, theta, lat). A motor
+    turning < min_turns worm turns in every part is taken from `reference` (a WormProfile; its 1st harmonic) if given,
+    else left at zero. Returns a WormProfile with harmonics (1,)."""
+    from scipy.optimize import least_squares
+    ref_c = (np.asarray(reference.coef, float).reshape(3, -1)[:, :2] if reference is not None else np.zeros((3, 2)))
+    turns_any = np.zeros(3)
+    rows = []
+    for t, ra, dec, theta, lat in parts:
+        t = np.asarray(t, float)
+        if t[-1] - t[0] < 4 * grid_s:
+            continue
+        tg = np.arange(t[0], t[-1], grid_s)
+        thg = np.column_stack([np.interp(tg, t, theta[:, i]) for i in range(3)])
+        turns = np.abs(np.diff(thg, axis=0)).sum(axis=0) / worm_theta
+        turns_any = np.maximum(turns_any, turns)
+        phi = 2 * np.pi * thg / worm_theta
+        S, Cc = np.sin(phi), np.cos(phi)
+        W = sky_weights(thg, lat)
+        deg = auto_trend_degree(thg, worm_theta, min_turns) if trend_degree == 'auto' else int(trend_degree)
+        x = 2 * (tg[1:] - tg[1]) / max(tg[-1] - tg[1], 1e-9) - 1
+        Q, _ = np.linalg.qr(np.polynomial.legendre.legvander(x, deg - 1))
+        proj = lambda M: M - Q @ (Q.T @ M)
+        for ax, y in enumerate((ra, dec)):
+            dS = np.diff(W[:, ax, :] * S, axis=0)                     # per motor: d/dt of sky effect of sin(phi)
+            dC = np.diff(W[:, ax, :] * Cc, axis=0)
+            dy = np.diff(np.interp(tg, t, y))
+            for m in range(3):
+                if turns[m] < min_turns:                              # not fitted here: reference (or nothing)
+                    dy = dy - dS[:, m] * ref_c[m, 0] - dC[:, m] * ref_c[m, 1]
+                    dS[:, m] = dC[:, m] = 0.0
+            rows.append((proj(dS), proj(dC), proj(dy[:, None])[:, 0]))
+    fitted = [m for m in range(3) if turns_any[m] >= min_turns]
+    coef = ref_c.copy() if reference is not None else np.zeros((3, 2))
+    if rows and fitted:
+        dS = np.vstack([r[0] for r in rows]); dC = np.vstack([r[1] for r in rows]); dy = np.concatenate([r[2] for r in rows])
+        X = np.column_stack([v for m in fitted for v in (dS[:, m], dC[:, m])])
+        ab = np.linalg.lstsq(X, dy, rcond=None)[0].reshape(-1, 2)    # unconstrained start
+        p0 = np.r_[np.mean(np.hypot(ab[:, 0], ab[:, 1])), np.arctan2(ab[:, 1], ab[:, 0])]
+
+        def resid(p):
+            A, ph = p[0], p[1:]
+            return dy - sum(A * (dS[:, m] * np.cos(q) + dC[:, m] * np.sin(q)) for m, q in zip(fitted, ph))
+        A, *ph = least_squares(resid, p0).x
+        if A < 0:
+            A, ph = -A, [q + np.pi for q in ph]
+        for m, q in zip(fitted, ph):
+            coef[m] = [A * np.cos(q), A * np.sin(q)]
+    return WormProfile(coef.ravel(), worm_theta, (1,))
+
+
 def _profile_rate(t, f):
     """arcsec/min of a profile series f at each sample, from the change since the previous sample."""
     out = np.zeros(len(t))
