@@ -30,7 +30,8 @@
 # angle_reference and the feed-forward evaluates it on MCU angles.
 #
 # The result (fit, checks and samples) is stored in the profile file's 'calibration' section for review; approving
-# the test row applies that motor's coefficients to the profile, rejecting restores the previous ones.
+# the test row applies that motor's coefficients to the profile, rejecting restores the previous ones. Every result
+# is also appended to 'calibration_history' (the last 15, all motors) to compare reruns at different pointings.
 # -----------------------------------------------------------------------------
 
 import datetime
@@ -207,7 +208,8 @@ class WormMixin:
         theta_raw = np.array(p._theta_raw, float)
         offset = getattr(p, '_zeta_raw_offset', None)
         angle = float(theta_raw[axis] - offset[axis]) if offset is not None else float(theta_raw[axis])
-        sample = {'t': round(time.monotonic(), 3), 'angle': round(angle, 5), 'err_arcsec': round(err_deg * 3600.0, 2),
+        sample = {'t': round(time.monotonic(), 3), 'time': datetime.datetime.now().isoformat(timespec='milliseconds'),
+                  'angle': round(angle, 5), 'err_arcsec': round(err_deg * 3600.0, 2),
                   'sensitivity': round(sens, 3), 'theta_raw': [round(float(x), 5) for x in theta_raw],
                   'zeta_offset': offset, 'theta_pv': [round(float(x), 5) for x in theta_pv],
                   'a_ra': a_ra, 'a_dec': a_dec, 'pv_ra': getattr(p, '_rightascension', None),
@@ -215,8 +217,12 @@ class WormMixin:
         step = test.on_sync(sample)
         if self.logger:
             kept = 'kept' if test.syncs_here == 0 else 'settling'
+            fmt = lambda v: '[' + ', '.join(f'{x:.5f}' for x in v) + ']'
+            zeta = fmt(theta_raw - np.asarray(offset, float)) if offset is not None else 'None'
             self.logger.info(f"WORM TEST M{axis + 1}: sync {kept} at {angle:.3f} deg, error {err_deg * 3600:.1f}\" "
-                             f"(sensitivity {sens:.2f}), position {test.index}/{len(test.positions)}")
+                             f"(sensitivity {sens:.2f}), position {test.index}/{len(test.positions)}, "
+                             f"solved ra {a_ra:.6f} h dec {a_dec:.5f} az {a_az:.5f} alt {a_alt:.5f}, "
+                             f"theta_raw {fmt(theta_raw)}, zeta {zeta}, theta_pv {fmt(theta_pv)}")
         if step:
             pid.step_motor_target(axis, step)
 
@@ -226,6 +232,7 @@ MOTORS = ('M1', 'M2', 'M3')
 MIN_SAMPLES = 12              # fewer kept syncs: NO DATA
 MIN_TURNS = 1.5               # worm turns covered for a fit to count
 MIN_SIGNIFICANCE = 4.0        # amplitude / its standard error
+CALIBRATION_HISTORY = 15      # test results kept in the profile's calibration_history (~5 per motor)
 
 
 class WormCalibration:
@@ -423,13 +430,18 @@ def _load_or_new(path):
 
 
 def store_calibration(path, axis, result):
-    """Keep a test's result (fit, checks, samples) in the profile file for review, without applying it."""
+    """Keep a test's result (fit, checks, samples) in the profile file for review, without applying it. The latest
+    result per motor is in 'calibration' (approve/reject act on it); every result also goes into
+    'calibration_history', the last CALIBRATION_HISTORY of them across all motors, for comparing reruns."""
     ff = _load_or_new(path)
     cal = dict(ff.meta.get('calibration', {}))
-    entry = {**result, 'created': datetime.datetime.now().isoformat(timespec='seconds'), 'applied': False,
-             'angles': 'zeta (517, MCU)'}
+    created = datetime.datetime.now().isoformat(timespec='seconds')
+    entry = {**result, 'created': created, 'applied': False, 'angles': 'zeta (517, MCU)'}
     cal[MOTORS[axis]] = entry
     ff.meta['calibration'] = cal
+    history = list(ff.meta.get('calibration_history', []))
+    history.append({'motor': MOTORS[axis], **result, 'created': created, 'angles': 'zeta (517, MCU)'})
+    ff.meta['calibration_history'] = history[-CALIBRATION_HISTORY:]
     ff.save(path)
 
 

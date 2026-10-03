@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 
 from control_worm import (WormCalibration, fit_worm_calibration, store_calibration, apply_calibration,
-                              revert_calibration)
+                              revert_calibration, CALIBRATION_HISTORY)
 from control_worm import WormFeedForward
 
 ARCSEC = 3600.0
@@ -145,6 +145,36 @@ def test_store_creates_the_profile_file_when_missing(tmp_path):
     ff = WormFeedForward.load(p)
     assert ff is not None and np.all(ff.coef == 0)
     assert ff.meta['calibration']['M1']['status'] == 'COMPLETED'
+
+
+def test_store_keeps_a_history_of_reruns_across_motors(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    store_calibration(p, 0, result(1.0, 2.0))
+    store_calibration(p, 0, result(3.0, 4.0))
+    store_calibration(p, 2, result(5.0, 6.0))
+    d = json.load(open(p))
+    assert [(h['motor'], h['coef']) for h in d['calibration_history']] == [('M1', [1.0, 2.0]), ('M1', [3.0, 4.0]),
+                                                                          ('M3', [5.0, 6.0])]
+    assert d['calibration_history'][0]['samples'][0]['err_arcsec'] == 2.0
+    assert d['calibration']['M1']['coef'] == [3.0, 4.0]             # the latest per motor is still the one to review
+
+
+def test_history_keeps_the_last_fifteen_results(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    for i in range(CALIBRATION_HISTORY + 3):
+        store_calibration(p, i % 3, result(float(i), 1.0))
+    h = json.load(open(p))['calibration_history']
+    assert len(h) == CALIBRATION_HISTORY == 15
+    assert [x['coef'][0] for x in h] == [float(i) for i in range(3, CALIBRATION_HISTORY + 3)]
+
+
+def test_history_survives_approval_and_rejection(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    shared_profile(p)
+    store_calibration(p, 2, result())
+    assert apply_calibration(p, 2) and revert_calibration(p, 2)
+    h = WormFeedForward.load(p).meta['calibration_history']
+    assert len(h) == 1 and h[0]['motor'] == 'M3' and 'applied' not in h[0]
 
 
 def test_approve_applies_the_motor_on_mcu_angles_and_reject_restores(tmp_path):
