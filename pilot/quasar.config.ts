@@ -14,6 +14,11 @@ import { defineConfig } from '#q-app';
 //   PILOT_API_PORT=8180
 // e.g. on Linux/WSL2 the driver can't bind port 80 without root
 // so its pilot override (data/config.pilot.json) moves alpaca_pilot_http_port to 8180
+// A driver with enable_https = true serves the Pilot on 443 and only redirects port 80 to it (which the
+// proxy can't follow), so point at 443 instead -- https is then used, accepting the driver's self-signed cert:
+//   PILOT_API_HOST=localhost
+//   PILOT_API_PORT=443
+// (PILOT_API_PROTO=https|http overrides the choice of protocol.)
 try {
   process.loadEnvFile('quasar.env.local');
 } catch {
@@ -22,6 +27,8 @@ try {
 
 const apiHost = process.env.PILOT_API_HOST ?? 'nina01';
 const apiPort = process.env.PILOT_API_PORT ?? '80';
+const apiProto = process.env.PILOT_API_PROTO ?? (apiPort === '443' ? 'https' : 'http');
+const apiTarget = `${apiProto}://${apiHost}:${apiPort}`;
 
 export default defineConfig((ctx) => {
   return {
@@ -118,17 +125,20 @@ export default defineConfig((ctx) => {
       open: false, // opens browser window automatically
       proxy: {
         '/proxy': {
-          target: `http://${apiHost}:${apiPort}`,    // Let Falcon web server proxy it to REST API port
+          target: apiTarget,                         // Let Falcon web server proxy it to REST API port
           changeOrigin: true,
+          secure: false,                             // the driver's HTTPS cert is self-signed
           ws: true,                                  // Let Falcon web server proxy ws to app_socket.py
         },
         '/version': {
-          target: `http://${apiHost}:${apiPort}`,    // Falcon web server port
+          target: apiTarget,                         // Falcon web server port
           changeOrigin: true,
+          secure: false,
         },
         '/alpaca_pilot_ca.crt': {
-          target: `http://${apiHost}:${apiPort}`,
+          target: apiTarget,
           changeOrigin: true,
+          secure: false,
         },
       }
     },
