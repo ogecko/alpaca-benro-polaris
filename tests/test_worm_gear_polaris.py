@@ -151,7 +151,7 @@ def test_no_syncs_times_out_as_no_data(tmp_path, cfg, monkeypatch, caplog):
     with caplog.at_level(logging.INFO, logger='test'):
         asyncio.run(asyncio.wait_for(Polaris.worm_gear_test(p, 1), 5))
     log = ' '.join(r.getMessage() for r in caplog.records)
-    assert 'waiting for plate-solve syncs' in log                # says what it needs at the start
+    assert 'requires plate-solve syncs' in log                   # says what it needs at the start
     assert 'None' not in log and 'nothing saved' in log          # and plainly why it ended
     assert p._cm.test_data['M2-WORM-GEAR']['test_status'] == 'NO DATA'
     assert p._sm.worm_test is None and p.calls == ['start_tracking', 'stop_tracking']
