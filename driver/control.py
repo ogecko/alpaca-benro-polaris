@@ -1229,11 +1229,15 @@ class PID_Controller():
     
     def worm_test_active(self):
         """An M#-WORM-GEAR calibration test is running (control_worm): PEC paused, syncs recorded not applied."""
-        return getattr(self.polaris._sm, 'worm_test', None) is not None
+        return self._worm_test() is not None
+
+    def _worm_test(self):
+        # Polaris builds the PID before its SyncManager, and the PID sets its mode while being built
+        return getattr(getattr(self.polaris, '_sm', None), 'worm_test', None)
 
     def interrupt_worm_test(self, reason):
         """Anything but the worm gear test's own steps moving the mount ends that test (control_worm)."""
-        test = getattr(self.polaris._sm, 'worm_test', None)
+        test = self._worm_test()
         if test is not None and not test.aborted:
             test.abort(reason)
             self.logger.warning(f"WORM GEAR TEST M{test.axis+1}: stopped by {reason}")

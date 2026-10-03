@@ -159,3 +159,13 @@ def test_the_tests_own_steps_and_tracking_do_not_abort_it(monkeypatch):
     tw.pid.step_motor_target(1, 0.5)
     tw.run(20)
     assert not test.aborted
+
+
+def test_pid_mode_changes_before_the_sync_manager_exists(monkeypatch):
+    """Polaris.__init__ builds the PID (which sets its mode) before the SyncManager: the worm test checks must cope."""
+    tw = Twin(monkeypatch, config=CONFIG)
+    sm = tw.polaris._sm
+    del tw.polaris._sm
+    tw.pid.set_pid_mode('IDLE')
+    assert not tw.pid.worm_test_active()
+    tw.polaris._sm = sm
