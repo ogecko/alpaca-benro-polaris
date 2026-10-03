@@ -339,3 +339,76 @@ def test_each_sample_knows_how_many_worm_turns_its_same_direction_pass_covers():
     assert p[t < 3 * 3600, 1].min() > 10                                        # the long descending pass
     assert 2.5 < p[t > 5 * 3600, 1].max() < 3.6                                 # the short ascending one (~3.3 turns)
     assert np.all(p[:, 0] == p[0, 0]) and p[0, 0] == pytest.approx(15 * 6 / 6.0, rel=0.02)
+
+
+# ── worm amplitude and phase through the night (sliding windows) ─────────
+
+def test_windowed_fit_tracks_a_steady_worm_at_its_true_amplitude_and_phase():
+    from pe_analysis import windowed_worm
+    t, ra, dec, th, lat = part(80, hours=4.0, rates=(14.0, 1.0, 16.0))
+    s = Segment('w', 'w', t, ra, dec, th)
+    w = windowed_worm(s, lat, window_s=5400, step_s=900)
+    m3 = w[(w['motor'] == 'M3') & w['fitted']]
+    assert len(m3) >= 8
+    true_amp, true_phase = np.hypot(TRUE[8], TRUE[9]), np.degrees(np.arctan2(TRUE[9], TRUE[8])) % 360
+    assert np.abs(m3['amp'] - true_amp).max() < 0.2 * true_amp
+    assert np.abs((m3['phase'] - true_phase + 180) % 360 - 180).max() < 15
+    assert not w.loc[w['motor'] == 'M2', 'fitted'].any()                       # M2 hardly turns
+
+
+def test_windowed_fit_separates_m1_from_m3_where_a_per_sample_split_mixes_them():
+    """Only M3 has a worm. Per sample, M1's estimate picks up M3's error (they move the star alike); fitted per
+    window, M1 comes out near zero because its worm repeats at a different rate."""
+    from pe_analysis import windowed_worm
+    coef = np.zeros_like(TRUE)
+    coef[8:12] = TRUE[8:12]
+    t, ra, dec, th, lat = part(81, hours=4.0, rates=(7.0, 1.0, 15.0), start=(30.0, 12.0, None), coef=coef)
+    mixed = motor_errors(ra - np.polyval(np.polyfit(t, ra, 2), t), dec - np.polyval(np.polyfit(t, dec, 2), t), th, lat)
+    assert np.nanstd(mixed[:, 0]) > 5                                           # the split leaks M3 into M1
+    w = windowed_worm(Segment('x', 'x', t, ra, dec, th), lat, window_s=5400, step_s=900)
+    m1 = w[(w['motor'] == 'M1') & w['fitted']]
+    assert len(m1) >= 5 and m1['amp'].max() < 5.0
+
+
+def test_windowed_fit_shows_a_worm_whose_amplitude_changes_through_the_night():
+    from pe_analysis import windowed_worm
+    t, ra, dec, th, lat = part(82, hours=5.0, rates=(14.0, 1.0, 16.0), coef=np.zeros_like(TRUE), noise=1.0)
+    grow = 10 + 60 * t / t[-1]                                                  # M3 worm amplitude 10" -> 70"
+    e3 = grow * np.sin(2 * np.pi * th[:, 2] / WORM_THETA)
+    w3 = sky_weights(th, lat)[:, :, 2]
+    s = Segment('g', 'g', t, ra + w3[:, 0] * e3, dec + w3[:, 1] * e3, th)
+    m3 = windowed_worm(s, lat, window_s=5400, step_s=900)
+    m3 = m3[(m3['motor'] == 'M3') & m3['fitted']].sort_values('t_min')
+    assert m3['amp'].iloc[-1] > 2.5 * m3['amp'].iloc[0]
+
+
+def test_windows_where_m1_and_m3_turn_at_about_the_same_speed_are_flagged():
+    """Then their worms repeat at nearly the same rate in time, and even a joint fit can't tell them apart."""
+    from pe_analysis import windowed_worm
+    t, ra, dec, th, lat = part(83, hours=3.0, rates=(-16.0, 1.0, 15.0))
+    w = windowed_worm(Segment('s', 's', t, ra, dec, th), lat)
+    assert set(w.columns) >= {'rate', 'm1_m3_separable'}
+    assert not w['m1_m3_separable'].any()
+    assert w.loc[w['motor'] == 'M1', 'rate'].iloc[0] == pytest.approx(-16.0, abs=0.5)
+    t, ra, dec, th, lat = part(84, hours=3.0, rates=(7.0, 1.0, 15.0))
+    assert windowed_worm(Segment('s', 's', t, ra, dec, th), lat)['m1_m3_separable'].all()
+
+
+# ── motors too slow to fit in a segment: use their profile from the other sessions ──
+
+def test_only_keeps_the_named_motors():
+    prof = WormProfile(TRUE, WORM_THETA, H)
+    m3 = prof.only(['M3'])
+    assert np.allclose(m3.coef[:8], 0.0) and np.allclose(m3.coef[8:], TRUE[8:])
+
+
+def test_a_known_profile_for_a_motor_too_slow_to_fit_keeps_its_worm_out_of_the_others():
+    """M3 turns < 2 worm turns, so the segment can't fit it -- but its worm is still in the data, and the fit pushes
+    it onto M1 (they move the star alike). With M3's profile from other sessions taken out first, M1 comes out right."""
+    from pe_analysis import fit_worm_given
+    t, ra, dec, th, lat = part(90, hours=2.0, rates=(14.0, 1.0, 4.5), start=(30.0, 15.0, None))
+    alone = fit_worm([(t, ra, dec, th, lat)], harmonics=H)
+    given = fit_worm_given((t, ra, dec, th, lat), WormProfile(TRUE, WORM_THETA, H), harmonics=H)
+    err = lambda p: np.abs(p.coef[:4] - TRUE[:4]).max()
+    assert err(given) < 0.5 * err(alone)
+    assert np.allclose(given.coef[8:], TRUE[8:])                                    # M3 taken from the known profile

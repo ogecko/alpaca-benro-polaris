@@ -475,6 +475,12 @@ class WormProfile:
         f = worm_features(theta, self.worm_theta, self.harmonics) * self.coef
         return f.reshape(len(f), 3, -1).sum(axis=2)
 
+    def only(self, motors):
+        """The profile with every motor but `motors` (e.g. ['M3']) zeroed."""
+        coef = np.asarray(self.coef, float).reshape(3, -1).copy()
+        coef[[m for m in range(3) if f'M{m + 1}' not in motors]] = 0.0
+        return WormProfile(coef.ravel(), self.worm_theta, self.harmonics)
+
     def drift(self, theta, lat):
         """(ra, dec) arcsec of drift the profile predicts at these motor angles."""
         rd = np.einsum('nij,nj->ni', sky_weights(theta, lat), self.motor_error(theta))
@@ -578,6 +584,22 @@ def fit_worm(parts, worm_theta=WORM_THETA, harmonics=(1, 2), grid_s=60.0, ridge=
     pen[:n_coef] = ridge * max(np.trace(A[:n_coef, :n_coef]) / n_coef, 1e-12) + 1e-9
     sol = np.linalg.lstsq(A + np.diag(pen), X.T @ Y, rcond=None)[0]
     return WormProfile(sol[:n_coef], worm_theta, tuple(harmonics))
+
+
+def fit_worm_given(part, known, min_turns=2.0, **fit_kw):
+    """Fit one segment (t, ra, dec, theta, lat), taking each motor that turns too little to fit (< min_turns worm turns)
+    from `known` (e.g. the profile learnt from other sessions) instead of leaving it out: its worm is still in the
+    drift, and left unmodelled it is pushed onto a motor that moves the star alike (M1 <-> M3). The returned profile
+    has the fitted motors from this segment and the others from `known`."""
+    t, ra, dec, theta, lat = part
+    fit_kw = {k: v for k, v in fit_kw.items() if k not in ('worm_theta', 'harmonics')}   # the known profile sets these
+    slow = [f'M{m + 1}' for m, n in enumerate(_grid_turns(t, theta, known.worm_theta)) if n < min_turns]
+    fixed = known.only(slow)
+    f_ra, f_dec = fixed.drift(theta, lat)
+    own = fit_worm([(t, np.asarray(ra, float) - f_ra, np.asarray(dec, float) - f_dec, theta, lat)],
+                   worm_theta=known.worm_theta, harmonics=known.harmonics, min_turns=min_turns, **fit_kw)
+    coef = np.asarray(own.coef, float) + np.asarray(fixed.coef, float)            # disjoint motors
+    return WormProfile(coef, known.worm_theta, known.harmonics)
 
 
 def _profile_rate(t, f):
@@ -726,3 +748,39 @@ def phase_consistency(phases_deg):
     z = np.exp(1j * ph).mean()
     R = float(abs(z))
     return {'n': n, 'mean': float(np.degrees(np.angle(z)) % 360), 'R': R, 'p': float(np.exp(-n * R ** 2))}
+
+
+def windowed_worm(seg, lat, window_s=5400.0, step_s=900.0, worm_theta=WORM_THETA, harmonics=(1,), min_turns=1.5,
+                  trend_degree=2, m1_m3_ratio=1.25):
+    """Each motor's worm amplitude (arcsec) and phase (deg, of e = A sin(worm phase + phase)) through a segment, from
+    joint fits over sliding windows (window_s long, every step_s). Fitting the motors together in a window separates
+    them by their different worm periods -- which a sample-by-sample split can't do for M1 and M3 -- so a real change
+    through the night (amplitude or phase) shows as a trend here, and leakage doesn't. One harmonic by default, to keep
+    each window's fit stable; a motor is fitted only in windows where it turns >= min_turns worm turns.
+    m1_m3_separable is False in windows where M1 and M3 turn within m1_m3_ratio of the same speed: their worms then
+    repeat at nearly the same rate in time and even a joint fit trades one for the other.
+    DataFrame: t_min (window centre, from the segment start), motor, turns, rate (deg/hr), amp, phase, fitted,
+    m1_m3_separable."""
+    t = np.asarray(seg.t, float)
+    rows = []
+    start = t[0]
+    while start + window_s <= t[-1] + 1e-9:
+        k = (t >= start) & (t <= start + window_s)
+        if k.sum() >= 20:
+            th = seg.theta[k]
+            prof = fit_worm([(t[k], seg.ra[k], seg.dec[k], th, lat)], worm_theta=worm_theta, harmonics=tuple(harmonics),
+                            min_turns=min_turns, trend_degree=trend_degree)
+            turns = np.abs(np.diff(th, axis=0)).sum(axis=0) / worm_theta
+            rate = np.polyfit(t[k] / 3600, th, 1)[0]                     # deg/hr
+            ratio = abs(rate[0]) / max(abs(rate[2]), 1e-9)
+            separable = bool(ratio < 1 / m1_m3_ratio or ratio > m1_m3_ratio)
+            per_motor = 2 * len(harmonics)
+            for m in range(3):
+                a, b = prof.coef[m * per_motor], prof.coef[m * per_motor + 1]
+                fitted = bool(turns[m] >= min_turns)
+                rows.append(dict(t_min=(start + window_s / 2 - t[0]) / 60, motor=f'M{m + 1}', turns=float(turns[m]),
+                                 rate=float(rate[m]), amp=float(np.hypot(a, b)) if fitted else np.nan,
+                                 phase=float(np.degrees(np.arctan2(b, a)) % 360) if fitted else np.nan, fitted=fitted,
+                                 m1_m3_separable=separable))
+        start += step_s
+    return pd.DataFrame(rows, columns=['t_min', 'motor', 'turns', 'rate', 'amp', 'phase', 'fitted', 'm1_m3_separable'])
