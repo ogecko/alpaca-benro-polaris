@@ -1,1 +1,0 @@
-import{t as e}from"./device-b3CVRHA9.js";var t=async()=>{await e().connectRestAPI()};export{t as default};
