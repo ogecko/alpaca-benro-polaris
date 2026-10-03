@@ -1,1 +1,0 @@
-import{t as e}from"./device-Dyn9qEgi.js";var t=async()=>{await e().connectRestAPI()};export{t as default};
