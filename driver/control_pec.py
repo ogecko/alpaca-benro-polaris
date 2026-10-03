@@ -1,40 +1,31 @@
 # -----------------------------------------------------------------------------
-# control_pec.py - PEC and drift modelling for SyncManager
+# control_pec.py - PEC: predictive drift correction for SyncManager
 # -----------------------------------------------------------------------------
 #
-# PecMixin holds SyncManager's PEC methods: guide corrections (sync guiding, or pulse guiding
-# when Config.advanced_pulse_pec_tuning) are ingested into a per-axis PecAxis drift model,
-# and apply_pec_drift_correction() feeds the predicted rate back every control tick.
+# PEC learns how fast the mount is drifting from the guide corrections it receives and applies that rate ahead of
+# the guider, so the guider only has to correct what is left.
 #
-# Guider calibration
-# ------------------
-# When PEC learns from pulse guiding, every pulse is treated as a guide correction of drift.
-# A guider's calibration (PHD2, CCDciel, ...) is not: it deliberately moves the mount tens of
-# pixels in each direction, and PEC learning those pulses fits a large false drift rate
-# (2026-09-29 session: RA fit -785 arcmin/hr after a PHD2 calibration, which guiding then had
-# to fight at +363"/min).
+#   PecMixin      SyncManager's PEC methods (mixed into control.SyncManager)
+#     learning      update_pec_model(): each sync guide residual (plate-solve sync), and ingest_pulse_for_pec(): each
+#                   pulse guide when Config.advanced_pulse_pec_tuning -- per axis (RA, Dec), as a running total of drift
+#     applying      apply_pec_drift_correction(), every control tick: the predicted rate becomes a feed-forward velocity
+#                   for the PID (omega_pec_B) and the same correction is folded into the sync guide correction, so the
+#                   PID treats the moved pointing as on target; each step is capped (pec_max_step_arcmin)
+#     gating        nothing is applied until an axis's model has converged: pec_min_observations, rmse below
+#                   pec_max_rmse_arcmin, R2 above pec_min_r2 (PecInhibit says why not); residuals above
+#                   pec_max_resid_arcmin are ignored; gotos, pans, rolls, tracking off and settings changes reset the
+#                   model (reset_pec_model)
+#     logging       PECCONFIG once per session, PECLOG per update (drift totals, model, inhibit, motor angles) for
+#                   utility/analyse_pec_delta.ipynb
+#   PecAxis       one axis's drift model, two interchangeable modes (Config.pec_mode, smoothing pec_tau_sec):
+#                   EMA  the observed drift rate, exponentially smoothed (default)
+#                   RLS  recursive least squares: a linear drift plus pec_n_harmonics harmonics of pec_T_sec
+#   GuiderCalibrationDetector
+#                 recognises a guider's calibration (PHD2, CCDciel) in the pulses, so PEC doesn't learn its large
+#                 deliberate moves as drift; what was learnt during it is rolled back (pec_ignore_guider_calibration)
 #
-# The driver only sees PulseGuide(direction, duration), so GuiderCalibrationDetector recognises
-# calibration by its signature: ONE axis at a time, ONE direction, and either IDENTICAL durations
-# (PHD2's steps, backlash clearing and recenters) or a RAMP where each pulse is exactly 1.5x the
-# previous one (CCDciel's internal guider grows its East pulse from its "initial calibration step"
-# until the star moves; cu_autoguider_internal.pas, durations rounded to whole ms). Guiding sends
-# RA and Dec pulses in the same frame with durations computed from the measured error, so neither
-# run of `run_length` (3) occurs while guiding: replaying 43,199 PHD2 guide pulses (2026-09-29)
-# gave 0 identical runs of 3 (but 59 runs of 2) and one 1.5x ramp of short pulses (79, 118, 176 ms),
-# so a ramp only triggers once its pulse reaches `ramp_min_ms` (300); CCDciel's 2,079 guide pulses
-# (2026-09-12) gave none.
-#
-# Because the first run_length-1 calibration pulses are only recognised in hindsight, the
-# verdict for the triggering pulse asks the caller to roll back what it learnt since the
-# start of the run (run_start marks where to snapshot). Once active, nothing is learnt until
-# no repeated (identical or ramp) pulse has been seen for `quiet_sec`. Recenter pulses, backlash
-# clearing and the Dec steps all repeat, so the whole calibration stays suppressed (CCDciel's single
-# West return pulse arrives a guide frame after the ramp); afterwards only the first `quiet_sec` of
-# guiding is skipped.
-#
-# The detector only ever withholds learning: a missed calibration behaves as before, and a
-# false trigger costs `quiet_sec` of PEC observations. Config.pec_ignore_guider_calibration.
+# The worm gear correction (pec_worm_ff, the M#-WORM-GEAR tests) is a separate, fixed correction: see control_worm.py.
+# PEC keeps working on whatever drift that leaves.
 # -----------------------------------------------------------------------------
 
 import copy
@@ -56,6 +47,35 @@ class PulseVerdict:
 
 
 class GuiderCalibrationDetector:
+    """
+    When PEC learns from pulse guiding, every pulse is treated as a guide correction of drift.
+    A guider's calibration (PHD2, CCDciel, ...) is not: it deliberately moves the mount tens of
+    pixels in each direction, and PEC learning those pulses fits a large false drift rate
+    (2026-09-29 session: RA fit -785 arcmin/hr after a PHD2 calibration, which guiding then had
+    to fight at +363"/min).
+
+    The driver only sees PulseGuide(direction, duration), so GuiderCalibrationDetector recognises
+    calibration by its signature: ONE axis at a time, ONE direction, and either IDENTICAL durations
+    (PHD2's steps, backlash clearing and recenters) or a RAMP where each pulse is exactly 1.5x the
+    previous one (CCDciel's internal guider grows its East pulse from its "initial calibration step"
+    until the star moves; cu_autoguider_internal.pas, durations rounded to whole ms). Guiding sends
+    RA and Dec pulses in the same frame with durations computed from the measured error, so neither
+    run of `run_length` (3) occurs while guiding: replaying 43,199 PHD2 guide pulses (2026-09-29)
+    gave 0 identical runs of 3 (but 59 runs of 2) and one 1.5x ramp of short pulses (79, 118, 176 ms),
+    so a ramp only triggers once its pulse reaches `ramp_min_ms` (300); CCDciel's 2,079 guide pulses
+    (2026-09-12) gave none.
+
+    Because the first run_length-1 calibration pulses are only recognised in hindsight, the
+    verdict for the triggering pulse asks the caller to roll back what it learnt since the
+    start of the run (run_start marks where to snapshot). Once active, nothing is learnt until
+    no repeated (identical or ramp) pulse has been seen for `quiet_sec`. Recenter pulses, backlash
+    clearing and the Dec steps all repeat, so the whole calibration stays suppressed (CCDciel's single
+    West return pulse arrives a guide frame after the ramp); afterwards only the first `quiet_sec` of
+    guiding is skipped.
+
+    The detector only ever withholds learning: a missed calibration behaves as before, and a
+    false trigger costs `quiet_sec` of PEC observations. Config.pec_ignore_guider_calibration.
+    """
     RAMP_FACTOR = 1.5            # CCDciel: CalibrationDuration := round(CalibrationDuration * 1.5)
 
     def __init__(self, run_length=3, quiet_sec=20.0, ramp_min_ms=300):

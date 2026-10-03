@@ -71,14 +71,15 @@ def test_loading_a_missing_or_malformed_profile_gives_none(tmp_path):
 import ast
 import logging
 from control import SyncManager
+import control_worm
 from test_sync_manager import Polaris, mock_config          # noqa: F401  (fixture)
 
 
 @pytest.fixture
-def ff_config(mock_config, tmp_path):
+def ff_config(mock_config, tmp_path, monkeypatch):
     profile(m2=(15.0, 5.0, 0.0, 0.0)).save(tmp_path / 'worm_profile.json')
     mock_config.pec_worm_ff = True
-    mock_config.pec_worm_profile = str(tmp_path / 'worm_profile.json')
+    monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'worm_profile.json')
     return mock_config
 
 
@@ -96,7 +97,7 @@ TH = np.array([123.0, 37.0, -21.3])
 def test_present_value_is_the_true_pose_when_the_feed_forward_is_on(ff_config):
     sm = SyncManager(logging.getLogger('test'), Polaris())
     cam, _ = sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
-    ff = WormFeedForward.load(ff_config.pec_worm_profile)
+    ff = WormFeedForward.load(control_worm.WORM_PROFILE_PATH)
     want = sm.alignQ_B2T * theta_to_q(*(TH + ff.error_deg(TH)))
     assert sep_arcsec(boresight(cam), boresight(want)) < 0.01
     plain = sm.alignQ_B2T * theta_to_q(*TH)
@@ -110,13 +111,13 @@ def test_calls_without_motor_angles_use_the_last_correction(ff_config):
     assert sep_arcsec(boresight(a), boresight(b)) < 1e-6
 
 
-def test_off_or_without_a_profile_the_present_value_is_unchanged(ff_config, tmp_path, caplog):
+def test_off_or_without_a_profile_the_present_value_is_unchanged(ff_config, tmp_path, caplog, monkeypatch):
     for setup in ('off', 'missing'):
         if setup == 'off':
             ff_config.pec_worm_ff = False
         else:
             ff_config.pec_worm_ff = True
-            ff_config.pec_worm_profile = str(tmp_path / 'none.json')
+            monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'none.json')
         sm = SyncManager(logging.getLogger('test'), Polaris())
         with caplog.at_level(logging.WARNING, logger='test'):
             cam, _ = sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
@@ -153,7 +154,7 @@ def test_logged_wff_is_the_worm_part_of_the_drift_the_analysis_model_predicts(ff
     ff_config.log_pec = True
     sm = SyncManager(logging.getLogger('test'), Polaris())
     lat = sm.polaris._sitelatitude
-    ff = WormFeedForward.load(ff_config.pec_worm_profile)
+    ff = WormFeedForward.load(control_worm.WORM_PROFILE_PATH)
     for th in (TH, np.array([200.0, 55.0, 30.0]), np.array([40.0, 25.0, -60.0])):
         sm.polaris._theta_raw = th
         sm.baseQ_to_topoQ(theta_to_q(*th), theta=th)

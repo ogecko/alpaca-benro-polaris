@@ -45,14 +45,14 @@ from config import Config, DATA_DIR
 from kinematics import theta_to_q, q_to_azaltroll, azalt_to_vector
 from quaternion import Q as Quaternion
 
+WORM_PROFILE_PATH = DATA_DIR / 'worm_profile.json'   # the worm gear correction profile, written when a test is approved
 
 # ── Worm feed-forward ─────────────────────────────────────────────────────────────────────────
 # Each motor's gear train after the motor has a periodic error: the true output angle = the MCU's motor angle + e_i,
 # where e_i(theta_i) = sum over harmonics h of a sin(h phi_i) + b cos(h phi_i), phi_i = 360 deg x theta_i / worm_theta.
-# The MCU only measures the motor shaft, so it never sees e. With a profile learnt offline from guide corrections on
-# raw motor angles (utility/learn_worm.py, utility/analyse_pec_theta.ipynb: the M2/M3 6.0 deg worm repeats night to
-# night), the driver builds its present value from theta + e instead of theta -- the true pointing -- and the PID,
-# alignment, guiding and PEC all work from that.
+# The MCU only measures the motor shaft, so it never sees e. With a profile measured by the M#-WORM-GEAR tests (the
+# worm repeats night to night on the MCU's angles), the driver builds its present value from theta + e instead of
+# theta -- the true pointing -- and the PID, alignment, guiding and PEC all work from that.
 
 @dataclass
 class WormFeedForward:
@@ -132,14 +132,13 @@ class WormMixin:
         """Create the worm state; called once from SyncManager.__init__."""
         self.corrQ_WFF = Quaternion()           # worm feed-forward: measured -> true pose, base frame (identity when off)
         self._worm_ff = None                    # WormFeedForward profile, loaded on first use
-        self._worm_ff_path = None               # path it was loaded from (reloads if Config.pec_worm_profile changes)
+        self._worm_ff_path = None               # path it was loaded from (None: reload on next use)
         self.worm_test = None                   # WormCalibration while an M#-WORM-GEAR test runs
 
     # ── worm feed-forward ────────────────────────────────────────────────────────────────────
     def worm_profile_path(self):
-        """The profile file (Config.pec_worm_profile, relative to the data folder)."""
-        path = getattr(Config, 'pec_worm_profile', 'worm_profile.json')
-        return path if os.path.isabs(path) else os.path.join(DATA_DIR, path)
+        """The profile file: worm_profile.json in the data folder."""
+        return str(WORM_PROFILE_PATH)
 
     def _worm_ff_profile(self):
         full = self.worm_profile_path()
@@ -148,7 +147,7 @@ class WormMixin:
             self._worm_ff = WormFeedForward.load(full)
             if self._worm_ff is None:
                 self.logger.warning(f"Worm feed-forward is on but there is no valid profile at {full} -- not applied "
-                                    f"(learn one with utility/learn_worm.py)")
+                                    f"(measure it with the Speed Calibration M1/M2/M3-WORM-GEAR tests and approve them)")
             else:
                 self.logger.info(f"Worm feed-forward profile loaded from {full}: worm {self._worm_ff.worm_theta:g} deg, "
                                  f"harmonics {list(self._worm_ff.harmonics)}, {self._worm_ff.meta.get('learnt_from', '')}")

@@ -21,6 +21,7 @@ from sim_digital_twin import Twin, LAT
 from sim_guider import SimGuider, SimPlateSolver, Worm, ARCSEC
 from kinematics import azaltroll_to_theta_ik
 from control_worm import WormFeedForward
+import control_worm
 
 POSE = (180.0, 50.0, 0.0)                 # M3 turns ~15 deg/hr: the 6 deg worm repeats every ~24 min
 WORM = Worm(amplitude_arcsec=(0.0, 30.0, 50.0), theta_deg=6.0, h2=0.35, seed=1)
@@ -90,7 +91,8 @@ def rms_since(g, minutes):
 
 @pytest.mark.slow
 def test_sync_guiding_with_the_feed_forward_no_longer_chases_the_worm(monkeypatch, profile_path):
-    cfg = {"advanced_pec": True, "pec_worm_profile": profile_path}
+    monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", profile_path)
+    cfg = {"advanced_pec": True}
     off, _ = guide(monkeypatch, 'sync', {**cfg, "pec_worm_ff": False}, minutes=50)
     on, _ = guide(monkeypatch, 'sync', {**cfg, "pec_worm_ff": True}, minutes=50)
     # twin 2026-10-03: off ~180", on ~11" (the no-worm level: 2" solve noise, near the pole)
@@ -99,7 +101,8 @@ def test_sync_guiding_with_the_feed_forward_no_longer_chases_the_worm(monkeypatc
 
 @pytest.mark.slow
 def test_pulse_guiding_with_the_feed_forward_has_less_error_and_guider_effort(monkeypatch, profile_path):
-    cfg = {"advanced_pec": False, "pec_worm_profile": profile_path}
+    monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", profile_path)
+    cfg = {"advanced_pec": False}
     off, _ = guide(monkeypatch, 'pulse', {**cfg, "pec_worm_ff": False}, minutes=50)
     on, _ = guide(monkeypatch, 'pulse', {**cfg, "pec_worm_ff": True}, minutes=50)
     effort = lambda g: sum(abs(c[2]) for c in g.corrections if c[0] - g.t0 >= 10 * 60)
