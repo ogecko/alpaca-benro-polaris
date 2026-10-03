@@ -367,7 +367,7 @@ While a test runs:
 -   Your syncs are used only as measurements. They don't change the pointing model.
 -   PEC and any existing worm gear correction pause.
 -   **Don't guide, slew, park or jog the mount.** Any of these stops the test.
--   If no Solve and Sync arrives for 2 minutes, the test stops with **NO DATA**.
+-   If no Solve and Sync arrives for 1 minute, the test stops with **NO DATA**.
 -   You can press **Stop** at any time. A test stopped part way still shows a result if it has enough data.
 
 **2. Review the result.** The row shows:

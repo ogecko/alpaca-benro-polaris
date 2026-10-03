@@ -231,7 +231,7 @@ MIN_SIGNIFICANCE = 4.0        # amplitude / its standard error
 class WormCalibration:
     """One M#-WORM-GEAR test: the step schedule and the syncs it keeps."""
 
-    def __init__(self, axis, step_deg=0.5, turns=2.0, worm_theta=6.0, syncs_per_step=2, no_sync_timeout_s=120.0,
+    def __init__(self, axis, step_deg=0.5, turns=2.0, worm_theta=6.0, syncs_per_step=2, no_sync_timeout_s=60.0,
                  now=None):
         self.axis = axis
         self.no_sync_timeout_s = no_sync_timeout_s

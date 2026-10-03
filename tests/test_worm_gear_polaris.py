@@ -144,11 +144,15 @@ def test_an_empty_run_keeps_the_previous_result(tmp_path, cfg):
     assert json.load(open(p._sm.path))['calibration']['M2']['coef'] == [1.0, 2.0]
 
 
-def test_no_syncs_times_out_as_no_data(tmp_path, cfg, monkeypatch):
+def test_no_syncs_times_out_as_no_data(tmp_path, cfg, monkeypatch, caplog):
     p = fake_polaris(tmp_path)
     monkeypatch.setattr(polaris_mod, 'WormCalibration',
-                        lambda axis: WormCalibration(axis, no_sync_timeout_s=0.3))   # 2 minutes, shortened
-    asyncio.run(asyncio.wait_for(Polaris.worm_gear_test(p, 1), 5))
+                        lambda axis: WormCalibration(axis, no_sync_timeout_s=0.3))   # 60 s, shortened
+    with caplog.at_level(logging.INFO, logger='test'):
+        asyncio.run(asyncio.wait_for(Polaris.worm_gear_test(p, 1), 5))
+    log = ' '.join(r.getMessage() for r in caplog.records)
+    assert 'waiting for plate-solve syncs' in log                # says what it needs at the start
+    assert 'None' not in log and 'nothing saved' in log          # and plainly why it ended
     assert p._cm.test_data['M2-WORM-GEAR']['test_status'] == 'NO DATA'
     assert p._sm.worm_test is None and p.calls == ['start_tracking', 'stop_tracking']
 

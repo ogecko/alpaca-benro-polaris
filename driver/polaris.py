@@ -631,7 +631,8 @@ class Polaris:
             await self.start_tracking()
         test = WormCalibration(axis)
         self.logger.info(f"WORM GEAR TEST M{axis+1}: START, {len(test.positions)} positions, {test.step_deg} deg steps, "
-                         f"{test.syncs_per_step} plate solves each (the first after a step is discarded)")
+                         f"{test.syncs_per_step} plate solves each (the first after a step is discarded); waiting for "
+                         f"plate-solve syncs (about every 10-15 s), stops after {test.no_sync_timeout_s:.0f} s without one")
         sm.worm_test = test
         try:
             shown = None
@@ -657,8 +658,12 @@ class Polaris:
             status = result['status']
         else:
             status = 'STOPPED'
-        self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status} {result.get('amplitude_arcsec')}\" @ "
-                         f"{result.get('phase_deg')} deg, checks {result['checks']} -> {path}")
+        if result['status'] == 'NO DATA':
+            why = 'no plate-solve syncs arrived' if not test.samples else f"only {len(test.samples)} positions measured"
+            self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status}, {why} -- nothing saved")
+        else:
+            self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status} {result['amplitude_arcsec']}\" @ "
+                             f"{result['phase_deg']} deg, checks {result['checks']} -> {path}")
         self._cm.addWormGearResult(axis, gear_row_fields(result, current, axis, worm_theta=test.worm_theta), status)
         self.lifecycle.reset()
 

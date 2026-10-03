@@ -301,10 +301,11 @@ def test_fit_worm_samples_adds_sensitivity_and_keeps_the_samples():
 
 # ── no syncs, interference ────────────────────────────────────────────────────────────────────
 def test_times_out_without_syncs():
-    wc = WormCalibration(1, now=0.0, no_sync_timeout_s=120.0)
-    assert not wc.timed_out(119.0) and wc.timed_out(121.0)
+    wc = WormCalibration(1, now=0.0)
+    assert wc.no_sync_timeout_s == 60.0                         # solves every 10-15 s: a minute without one is none
+    assert not wc.timed_out(59.0) and wc.timed_out(61.0)
     wc.on_sync({}, now=100.0)                                   # any sync, kept or settling, counts as activity
-    assert not wc.timed_out(219.0) and wc.timed_out(221.0)
+    assert not wc.timed_out(159.0) and wc.timed_out(161.0)
 
 
 def test_an_aborted_test_records_and_steps_no_more():
