@@ -51,7 +51,8 @@ from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_
 from control_pec import zeta_raw_offset
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
-from orbitals import restore_orbital_bodies_from_orbital_cache
+from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
+import tracking_restore
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
 
@@ -234,6 +235,7 @@ class Polaris:
         self._motorQ_state = None                   # The KF corrected C2B quaternion in B Frame
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
+        self._restore_checked = False               # tracking_restore: the start-up check ran (once per driver start)
         self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_pec.zeta_raw_offset
         self._zeta_theta_offset = None               # [theta1,theta2,theta3] - [zeta1,zeta2,zeta3], refreshed on each "517". The Benro
                                                       # Polaris firmware performs its own Single Point Alignment (Compass/Single Star),
@@ -1433,6 +1435,95 @@ class Polaris:
         s_lon = self._sitelongitude
         self.logger.info("Polaris communication init... done")
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
+        if not self._restore_checked:               # first connection since the driver started (not a reconnect)
+            self._restore_checked = True
+            self.lifecycle.create_task(self.restore_tracking_on_start(), name='TrackingRestore')
+
+
+# ── Tracking restore (tracking_restore.py) ─────────────────────────────────────────────────────
+
+    async def restore_tracking_on_start(self):
+        """Once, at the first connection after the driver starts: resume the saved tracking, or stop a mount still
+        running the last SLOW command from before the restart. Then keep the state saved (tracking_state_loop)."""
+        try:
+            if getattr(Config, 'restore_tracking_on_restart', False):
+                await self._restore_or_stop()
+        except Exception as e:
+            self.logger.warning(f"==STARTUP== Tracking restore failed: {e}")
+        await self.tracking_state_loop()
+
+    async def _restore_or_stop(self):
+        t0 = time.monotonic()
+        while (self._zeta_raw_offset is None or self._zeta_meas is None) and time.monotonic() - t0 < 30.0:
+            if self.lifecycle.should_stop():
+                return
+            await asyncio.sleep(0.5)                 # wait for the first positions (518 and 517)
+        zeta_before = list(self._zeta_meas) if self._zeta_meas is not None else None
+        state = tracking_restore.load()
+        target_alt = None
+        if state and state.get('tracking') and state.get('delta_sp'):
+            target_alt, _ = self.radec2altaz(state['delta_sp'][0] / 15, state['delta_sp'][1])
+        reason = tracking_restore.refuse_reason(
+            state, time.time(), self._zeta_raw_offset, self._pid.mode, self.atpark,
+            bool(Config.advanced_control and Config.advanced_tracking), target_alt)
+        if reason is None and state.get('trackingrate') == 3 and state.get('orbital') not in orbital_data:
+            reason = f"orbital target {state.get('orbital')!r} is not in the orbital cache"
+        if reason is None:
+            await self._restore_tracking(state)
+            return
+        self.logger.info(f"==STARTUP== Tracking not restored: {reason}")
+        await asyncio.sleep(tracking_restore.MOTION_WINDOW_S)
+        if self._tracking_in_benro:
+            self.logger.info("==STARTUP== The Polaris is tracking by itself (Benro tracking): left running")
+            return
+        if self._tracking or self._slewing or self._pid.mode not in ('IDLE',):
+            return                                   # something in this driver has started moving it meanwhile
+        if tracking_restore.is_moving(zeta_before, self._zeta_meas):
+            self.logger.warning("==STARTUP== The mount is moving (the last command from before the restart?): STOP")
+            for axis in range(3):
+                await self._motors[axis].stop()
+
+    async def _restore_tracking(self, state):
+        """Track the saved target again: TRACK from where the mount is, then the saved target -- the PID pulls the
+        mount back onto it."""
+        pid = self._pid
+        await self.start_tracking()
+        rate = int(state.get('trackingrate', 0))
+        if rate in (1, 2, 3):                        # Lunar, Solar, Custom: an orbital target
+            pid.reset_offsets()
+            pid.target_type = 'ORBITAL'
+            pid.orbital_sp_name = state.get('orbital') or ('Moon' if rate == 1 else 'Sun')
+            self.trackingrate = rate
+            what = pid.orbital_sp_name
+        else:
+            ra, dec, pa = state['delta_sp']
+            pid.set_delta_target({'ra': ra / 15, 'dec': dec, 'pa': pa})
+            for name in ('delta_offst', 'alpha_offst', 'gamma_offst'):
+                if state.get(name) is not None:
+                    getattr(pid, name)[:] = state[name]
+            what = f"RA {hr2hms(ra / 15)} Dec {deg2dms(dec)} PA {pa:.2f}"
+        age = time.time() - float(state['saved_at'])
+        self.logger.info(f"==STARTUP== Tracking restored: {what} (saved {age:.0f} s ago)")
+
+    async def tracking_state_loop(self):
+        """Keep data/tracking_state.json current: at once on any change (tracking on/off, target), and every
+        SAVE_EVERY_S while tracking. Only while connected: a long comms loss ages the state out."""
+        key, last, warned = None, 0.0, False
+        while not self.lifecycle.should_stop():
+            try:
+                if self._connected and self._zeta_raw_offset is not None:
+                    tracking = bool(self._tracking and self._pid.mode == 'TRACK'
+                                    and Config.advanced_control and Config.advanced_tracking)
+                    state = tracking_restore.capture(tracking, self._pid, self._trackingrate, self._zeta_raw_offset)
+                    k, now = tracking_restore.change_key(state), time.monotonic()
+                    if k != key or (tracking and now - last >= tracking_restore.SAVE_EVERY_S):
+                        tracking_restore.save(state)
+                        key, last = k, now
+            except Exception as e:
+                if not warned:
+                    self.logger.warning(f"Tracking state not saved: {e}")
+                    warned = True
+            await asyncio.sleep(1.0)
 
 
 # ── Alpaca Telescope Device State ─────────────────────────────────────────────────────────────
