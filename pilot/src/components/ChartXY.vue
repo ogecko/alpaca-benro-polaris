@@ -10,7 +10,7 @@ import * as d3 from 'd3'
 import { formatAngle } from 'src/utils/scale'
 import { throttle } from 'quasar'
 import { deg2fulldms } from 'src/utils/angles'
-import { onFrame } from 'src/utils/chartClock'
+import { onFrame } from 'src/utils/animationClock'
 import { MAX_RECORDS } from 'src/stores/stream'
 // import { deg2fulldms } from 'src/utils/angles'
 export type DataPoint = Record<string, number | Date | undefined>
@@ -76,7 +76,7 @@ let plotHeight = 0
 // Live time charts scroll on a steady clock, not one step per record: records arrive about every 200 ms
 // but irregularly (p5-p95 150-250 ms, and now and then a 300-950 ms gap or two at once), so stepping per
 // record made the plot lurch. The visible window ends SCROLL_DELAY_MS behind the newest record and moves
-// with real time on the shared redraw clock (chartClock, which adapts the rate to the PC); late or bunched
+// with real time on the shared redraw clock (animationClock, which adapts the rate to the PC); late or bunched
 // records fill in off the right edge.
 // The y range changes rarely and in one step (yRange): new y tick labels are the costliest thing a redraw can
 // do on a small PC, and easing the range redrew them every frame for a second whenever the data's extent moved.
