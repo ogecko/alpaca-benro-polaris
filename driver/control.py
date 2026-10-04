@@ -570,6 +570,12 @@ class MotorSpeedController:
             self.pending_update = (float(raw), ramp_duration, allow_PWM, tracking, now)
             self._condition.notify()
 
+    async def stop(self):
+        """Stop the motor, always sending the stop (Abort / Stop): a zero rate isn't resent once sent, but after a
+        driver restart the Polaris may still be running the last SLOW command from before it."""
+        self._messenger.last_slow_raw_rate = None
+        await self.set_motor_speed(0, "RAW")
+
     def _apply_pending_update(self, now):
         if not self.pending_update:
             return

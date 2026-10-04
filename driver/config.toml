@@ -80,6 +80,8 @@ advanced_orbitals = true                    # Enable Orbitals and non Sidereal T
 advanced_pec = false                        # Perform Periodic Error Correction Modelling
 coordinated_speed_control = true            # BETA: coordinated speed control - shared-level motor speed controller (driver/speed_controller.py),
                                             # planned goto trajectories, acceleration-shaped jogs and Ki freeze during gotos; switchable live
+restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing (saved < 10 min ago, same Polaris
+                                            # session); otherwise stop a mount still running its last command (tracking_restore.py)
 pec_mode = "ema"                            # PEC model: "ema" (rate tracking, default) or "rls" (linear + harmonics). EMA tau 5-10 min was best on the
                                             # archived logs (utility/analyse_pec_catalog.ipynb) and in the twin; RLS + harmonics was no better than no PEC
 pec_T_sec = 2040                            # PEC model worm period T (seconds, 34 min default) -- the basis every fitted harmonic is relative to (RLS only)

@@ -233,6 +233,30 @@ def test_zero_rate_without_hold_stops_the_axis(ctrl):
     assert len(mcu.log) == n, f"{len(mcu.log) - n} messages were sent to a stopped mount"
 
 
+def test_explicit_stop_is_sent_even_when_the_axis_is_believed_idle(ctrl):
+    """After a driver restart every axis starts IDLE while the Polaris may still run the last SLOW command it was
+    sent. A zero rate is a no-op then (no message to an idle axis), so Abort/Stop use stop(), which always sends."""
+    mcu = McuModel()
+    ctrl.set_speed(1, 0.0, now=0.0)
+    assert ctrl.tick(0.0) == [], "a zero rate to an idle axis sends nothing (unchanged)"
+    ctrl.stop(1)
+    out = ctrl.tick(0.05)
+    assert [a for a, _ in out] == [1] and ";state:0;" in out[0][1], f"stop() must send a SLOW stop, got {out}"
+    for _a, msg in out:
+        mcu.feed(0.05, msg)
+    assert mcu.state[1] == 0
+    assert ctrl.tick(0.1) == [], "one stop message, then silence"
+
+
+def test_explicit_stop_of_a_moving_axis(ctrl):
+    mcu = McuModel()
+    ctrl.set_speed(0, 0.01, now=0.0)
+    t = run(ctrl, mcu, 0.0, 2.0)
+    ctrl.stop(0)
+    run(ctrl, mcu, t, 1.0)
+    assert mcu.state[0] == 0 and ctrl.cmdstr(0).strip() == "IDLE"
+
+
 def test_hold_zero_averages_to_zero(ctrl):
     v = mean_velocity(ctrl, McuModel(), (0.0, 0.0, 0.0), hold=True)
     for axis in range(3):
@@ -451,6 +475,9 @@ class FakeMotor:
     def to_dps(self, rate, units):
         return rate * (2 if self.name == "new" else 1)
 
+    async def stop(self):
+        self.calls.append("stop")
+
     async def stop_disspatch_loop_task(self):
         self.calls.append("stopped")
 
@@ -473,7 +500,42 @@ def test_switchable_motor_routes_and_swaps():
     assert "stopped" in old.calls and "stopped" in new.calls, "shutdown must stop both controllers"
 
 
-DRIVER_INTERFACE = ("set_motor_speed", "rate_dps", "rate_raw", "get_cmdstr", "to_dps", "max_dps",
+def test_switchable_motor_stop_goes_to_the_active_controller():
+    old, new = FakeMotor("old"), FakeMotor("new")
+    m = SwitchableMotor(old, new, use_new=True)
+    asyncio.run(m.stop())
+    assert new.calls == ["stop"] and old.calls == []
+
+
+@pytest.mark.parametrize("use_new", [False, True], ids=["legacy", "v2"])
+def test_stop_after_a_restart_reaches_the_mount(use_new):
+    """A fresh controller (the driver just restarted) must send a stop when asked, though it never sent a move."""
+    import logging
+    from control import MotorSpeedController
+    cm = CalibrationManager(liveInstance=False)
+    cm.createTestDataFromBaseline()
+    cm.generateCalibrationFromBaselineAndTestData()
+    cm.generateInterpolatorsFromCalibrationData()
+    sent = []
+
+    async def send(msg):
+        sent.append(msg)
+
+    async def scenario():
+        rt = SpeedControllerRuntime({a: RateUnits(cm.baseline_data[a]) for a in range(3)}, send)
+        m = SwitchableMotor(MotorSpeedController(logging.getLogger("t"), cm, 1, send), rt.axis(1), use_new=use_new)
+        await m.stop()
+        await asyncio.sleep(0.2)
+        await m.stop()                                   # a second Stop is sent too: the mount may have been moved
+        await asyncio.sleep(0.2)
+        await m.stop_disspatch_loop_task()
+
+    asyncio.run(scenario())
+    stops = [msg for msg in sent if msg.startswith("1&533&3&") and ";state:0;" in msg]
+    assert len(stops) == 2, f"expected two SLOW stops for M2, sent {sent}"
+
+
+DRIVER_INTERFACE = ("set_motor_speed", "stop", "rate_dps", "rate_raw", "get_cmdstr", "to_dps", "max_dps",
                     "stop_disspatch_loop_task")
 
 
