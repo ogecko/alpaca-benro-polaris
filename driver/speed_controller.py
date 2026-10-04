@@ -216,6 +216,13 @@ class SpeedCoordinator:
             a.mode, a.dirty = 'SLOW', True
         a.target = dps
 
+    def stop(self, axis: int):
+        """Stop the axis whatever state it is believed to be in: always sends a SLOW stop (Abort / Stop). A zero rate
+        to an IDLE axis sends nothing, but after a driver restart every axis starts IDLE while the Polaris may still
+        be running the last SLOW command it was sent (SLOW persists; FAST has an MCU watchdog)."""
+        a = self._axes[axis]
+        a.mode, a.target, a.hold = 'STOP', 0.0, False
+
     def forget_sent(self, axis: int):
         """Force the next command for this axis to be sent (e.g. after a controller swap)."""
         self._axes[axis].sent = None
@@ -533,6 +540,11 @@ class AxisSpeedController:
     def max_dps(self) -> float:
         return self._rt.units[self.axis].max_dps
 
+    async def stop(self):
+        """Always send a stop (see SpeedCoordinator.stop)."""
+        self._rt.core.stop(self.axis)
+        self._rt._wake.set()
+
     def resync(self):
         self._rt.core.forget_sent(self.axis)
 
@@ -552,6 +564,10 @@ class SwitchableMotor:
 
     async def set_motor_speed(self, *args, **kwargs):
         await self.active.set_motor_speed(*args, **kwargs)
+
+    async def stop(self):
+        """Stop this motor, always sending the stop (Abort / Stop): see SpeedCoordinator.stop."""
+        await self.active.stop()
 
     @property
     def rate_dps(self):

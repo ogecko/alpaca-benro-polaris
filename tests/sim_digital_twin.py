@@ -85,6 +85,9 @@ class MotorShim:
         self.core.set_speed(self.axis, dps, self.clock.monotonic(), hold=tracking, ramp_duration=ramp_duration,
                             allow_pwm=allow_PWM)
 
+    async def stop(self):
+        self.core.stop(self.axis)
+
     @property
     def rate_dps(self):
         return self.core.rate_dps(self.axis)
@@ -113,6 +116,10 @@ class LegacyMotorShim:
     async def set_motor_speed(self, rate, rate_unit="DPS", ramp_duration=None, allow_PWM=True, tracking=False):
         raw = self.m._model.interpolate[rate_unit].toRAW(rate)
         self.m.pending_update = (float(raw), ramp_duration, allow_PWM, tracking, self.clock.monotonic())
+
+    async def stop(self):
+        self.m.msgr.last_slow_raw_rate = None          # the mirror's MoveAxisMessenger (sim_pid_loop.LegacyDriver)
+        await self.set_motor_speed(0, "RAW")
 
     @property
     def rate_dps(self):

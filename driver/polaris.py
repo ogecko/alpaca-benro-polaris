@@ -2486,9 +2486,8 @@ class Polaris:
             self.logger.info(f"Advanced Control: STOP all axes")
             self._pid.set_pid_mode("IDLE")
             self.markAllAsComplete()
-        await self._motors[0].set_motor_speed(0, "DPS")
-        await self._motors[1].set_motor_speed(0, "DPS")
-        await self._motors[2].set_motor_speed(0, "DPS")
+        for axis in range(3):
+            await self._motors[axis].stop()        # always sent: after a restart the mount may still be moving
 
     async def stop_astro_axis(self):
         self._sm.invalidate_sync_guiding()
@@ -2499,7 +2498,7 @@ class Polaris:
             self.logger.info(f"Advanced Control: STOP Astro axis")
             self._pid.set_pid_mode("IDLE")
             self.markAllAsComplete()
-        await self._motors[2].set_motor_speed(0, "DPS")
+        await self._motors[2].stop()
 
     async def stop_tracking(self):
         self._sm.clear_sync_guiding()
