@@ -32,7 +32,7 @@
 - **[Motion Planner v2]** Reduce drifting while rolling. Add improved motion planning v2 (plans motor speed profiles, slowing on tight "curves")
 - **[Ramped Jogging]** Reduce jogging overshoot by ramping "up to" and "down from" jogging speed changes.
 - **[Goto Settle Time]** Reduce goto settle time by preventing Ki windup and false marking of completion.
-- **[PEC Guider Calibration]** PEC no longer learns PHD2/CCDciel calibration pulses as drift, so PEC can stay on while calibrating.
+- **[PEC Guider Calibration]** PEC detects and ignores PHD2/CCDciel calibration pulses, so PEC can stay on while calibrating.
 - **[Smooth Charts]** Live charts on the Analysis pages (PID, Kalman, PWM, Speed) now scroll smoothly instead of hiccuping now and then, and use less CPU in the browser.
 - **[Restore Tracking]** Restore the previous tracking target when the driver restarts within 10 minutes.
   
