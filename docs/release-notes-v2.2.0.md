@@ -36,6 +36,7 @@
 - **[Smooth Charts]** Live charts on the Analysis pages (PID, Kalman, PWM, Speed) now scroll smoothly instead of hiccuping now and then, and use less CPU in the browser.
 - **[Restore Tracking]** Restore the previous tracking target when the driver restarts within 10 minutes.
 - **[Worm Feed-Forward]** Experimental, off by default (`pec_worm_ff`): corrects each motor's 6 deg worm gear error from a profile learnt from your own logs (`utility/learn_worm.py`), with no lag. See kinematics.md, Periodic Error Correction.
+- **[CCDciel Scripts]** New CCDciel scripts for Sync Guiding, Panoramas and Absolute/Relative slews on any axis (RA/Dec/PA, Az/Alt/Roll, galactic or motor), with a Windows installer (`utility/ccdciel/install.bat`). The CCDciel guide now covers autofocus, plate solving, scripting and pulse guiding.
   
 ## What's new in v2.2 Beta 6
 - **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
