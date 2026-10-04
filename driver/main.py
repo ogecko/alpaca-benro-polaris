@@ -204,7 +204,7 @@ async def run_all(logger, lifecycle: shr.LifecycleController):
         lifecycle.create_task(stellarium.synscan_api(logger, lifecycle), name='SynscanAPI')
     ]
 
-    if getattr(Config, "gps_auto_detect", True):
+    if getattr(Config, "gps_auto_detect", False):
         from gps_location import gps_background_listener
         tasks.append(lifecycle.create_task(gps_background_listener(polaris), name='GPS'))
 

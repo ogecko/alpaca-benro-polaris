@@ -1,125 +1,312 @@
-import logging
-import time
 import asyncio
-from typing import Optional, Tuple
+import json
+import logging
+import math
+from dataclasses import dataclass
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
-async def gps_background_listener(polaris):
-    """Runs indefinitely in the background until a GPS fix is found."""
-    from config import Config
-    
-    logger.info("GPS background listener started. Waiting for a GPS fix...")
-    while getattr(Config, "gps_auto_detect", True):
-        # Run the synchronous detection in a background thread to avoid blocking the event loop
-        gps_fix = await asyncio.to_thread(get_gps_location, timeout=10.0)
-        
-        if gps_fix:
-            gps_lat, gps_lon, gps_alt = gps_fix
-            changed = Config.apply_changes({
-                "site_latitude":  gps_lat,
-                "site_longitude": gps_lon,
-                "site_elevation": gps_alt,
-            })
-            if changed:
-                polaris.make_config_params_live(changed)
-                logger.info("GPS coordinates applied to live configuration.")
-            
-            # Mount is stationary; stop listening once we have a fix
-            break
-            
-        # Sleep before trying again
-        await asyncio.sleep(5.0)
+GPSD_HOST = "127.0.0.1"
+GPSD_PORT = 2947
+GPSD_LINE_LIMIT = 65536
+GPSD_CONNECT_TIMEOUT = 2.0
+GPSD_READ_TIMEOUT = 2.0
+GPSD_ATTEMPT_TIMEOUT = 10.0
+GPSD_FIX_SAMPLES = 3
+DEFAULT_GPS_MAX_ATTEMPTS = 20
+DEFAULT_GPS_RETRY_MAX_DELAY = 30.0
 
-def get_gps_location(timeout: float = 10.0) -> Optional[Tuple[float, float, float]]:
-    """Try to get GPS location, returning (lat, lon, alt) or None."""
-    
-    # 1. Try gpsd first (Linux standard)
-    loc = _try_gpsd(timeout=2.0)
-    if loc:
-        return loc
-        
-    # 2. Fallback to direct Serial NMEA parsing
-    loc = _try_serial_nmea(timeout=timeout)
-    if loc:
-        return loc
-        
-    return None
 
-def _try_gpsd(timeout: float) -> Optional[Tuple[float, float, float]]:
-    try:
-        from gpsdclient import GPSDClient
-    except ImportError:
-        logger.debug("gpsdclient not installed - skipping gpsd lookup")
-        return None
+@dataclass(frozen=True)
+class GPSFix:
+    latitude: float
+    longitude: float
+    altitude: Optional[float] = None
+    mode: int = 2
 
-    try:
-        with GPSDClient(host="127.0.0.1", port=2947) as client:
-            start_time = time.time()
-            for result in client.dict_stream(convert_datetime=True, filter=["TPV"]):
-                if time.time() - start_time > timeout:
-                    logger.debug("gpsd timeout waiting for fix")
-                    break
 
-                mode = result.get("mode", 0)
-                if mode < 2:
-                    continue
+def _monotonic() -> float:
+    return asyncio.get_running_loop().time()
 
-                lat = result.get("lat")
-                lon = result.get("lon")
-                alt = result.get("altMSL", result.get("alt", 0.0))
 
-                if lat is not None and lon is not None:
-                    logger.info("GPS fix acquired via gpsd: lat=%.6f lon=%.6f alt=%.1f m", lat, lon, alt or 0.0)
-                    return (float(lat), float(lon), float(alt or 0.0))
-    except Exception as ex:
-        logger.debug("gpsd query failed: %s", ex)
-        
-    return None
+async def _sleep(delay: float) -> None:
+    await asyncio.sleep(delay)
 
-def _try_serial_nmea(timeout: float) -> Optional[Tuple[float, float, float]]:
-    try:
-        import serial
-        import serial.tools.list_ports
-    except ImportError:
-        logger.debug("pyserial not installed - skipping serial GPS fallback")
-        return None
 
-    ports = serial.tools.list_ports.comports()
-    # Filter for likely USB serial devices
-    usb_ports = [p for p in ports if "USB" in (p.description or "").upper() or "USB" in (p.hwid or "").upper()]
-    
-    for port in usb_ports:
+def _configured_attempts(value) -> int:
+    if isinstance(value, bool):
+        attempts = DEFAULT_GPS_MAX_ATTEMPTS
+    else:
         try:
-            with serial.Serial(port.device, baudrate=9600, timeout=1) as ser:
-                start_time = time.time()
-                while time.time() - start_time < timeout:
-                    line = ser.readline().decode('ascii', errors='ignore').strip()
-                    if line.startswith("$GPGGA") or line.startswith("$GNGGA"):
-                        parts = line.split(',')
-                        # Example: $GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47
-                        if len(parts) >= 10 and parts[6] in ['1', '2'] and parts[2] and parts[4]:
-                            lat_raw = parts[2]
-                            lat_dir = parts[3]
-                            lon_raw = parts[4]
-                            lon_dir = parts[5]
-                            alt_raw = parts[9]
-                            
-                            # Convert DDMM.MMMM to DD.DDDD
-                            lat_deg = float(lat_raw[:2]) + float(lat_raw[2:]) / 60.0
-                            if lat_dir == 'S':
-                                lat_deg = -lat_deg
-                                
-                            lon_deg = float(lon_raw[:3]) + float(lon_raw[3:]) / 60.0
-                            if lon_dir == 'W':
-                                lon_deg = -lon_deg
-                                
-                            alt = float(alt_raw) if alt_raw else 0.0
-                            
-                            logger.info("GPS fix acquired via serial %s: lat=%.6f lon=%.6f alt=%.1f m", port.device, lat_deg, lon_deg, alt)
-                            return (lat_deg, lon_deg, alt)
-        except Exception as ex:
-            logger.debug("Failed to read from %s: %s", port.device, ex)
+            attempts = int(value)
+        except (TypeError, ValueError, OverflowError):
+            attempts = DEFAULT_GPS_MAX_ATTEMPTS
+
+    bounded_attempts = min(DEFAULT_GPS_MAX_ATTEMPTS, max(1, attempts))
+    if bounded_attempts != attempts:
+        logger.debug("Clamped gps_max_attempts from %r to %d", value, bounded_attempts)
+    return bounded_attempts
+
+
+def _configured_retry_max_delay(value) -> float:
+    try:
+        delay = float(value)
+    except (TypeError, ValueError, OverflowError):
+        delay = DEFAULT_GPS_RETRY_MAX_DELAY
+
+    if not math.isfinite(delay) or delay <= 0:
+        logger.debug("Invalid gps_retry_max_delay %r; using %.1f seconds", value, DEFAULT_GPS_RETRY_MAX_DELAY)
+        return DEFAULT_GPS_RETRY_MAX_DELAY
+    return delay
+
+
+def _retry_start_offsets(attempts: int, max_delay: float) -> tuple[float, ...]:
+    if attempts <= 1:
+        return (0.0,)
+
+    return tuple(
+        max_delay * retry_number * (retry_number + 1) / (2 * (attempts - 1))
+        for retry_number in range(attempts)
+    )
+
+
+def _finite_float(value) -> Optional[float]:
+    if isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _parse_tpv(report: dict) -> Optional[GPSFix]:
+    raw_mode = report.get("mode")
+    if isinstance(raw_mode, bool):
+        return None
+    try:
+        mode = int(raw_mode)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if isinstance(raw_mode, float) and not raw_mode.is_integer():
+        return None
+    if mode < 2:
+        return None
+
+    latitude = _finite_float(report.get("lat"))
+    longitude = _finite_float(report.get("lon"))
+    if latitude is None or longitude is None:
+        return None
+    if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
+        return None
+
+    altitude = None
+    if mode >= 3:
+        raw_altitude = report.get("altMSL")
+        if raw_altitude is None:
+            raw_altitude = report.get("alt")
+        altitude = _finite_float(raw_altitude)
+
+    return GPSFix(latitude, longitude, altitude, mode)
+
+
+def _average_fixes(fixes: list[GPSFix]) -> GPSFix:
+    if len(fixes) == 1:
+        return fixes[0]
+
+    latitude = sum(fix.latitude for fix in fixes) / len(fixes)
+    longitude_sine = sum(math.sin(math.radians(fix.longitude)) for fix in fixes)
+    longitude_cosine = sum(math.cos(math.radians(fix.longitude)) for fix in fixes)
+    if math.isclose(longitude_sine, 0.0, abs_tol=1e-12) and math.isclose(longitude_cosine, 0.0, abs_tol=1e-12):
+        longitude = fixes[-1].longitude
+    else:
+        longitude = math.degrees(math.atan2(longitude_sine, longitude_cosine))
+
+    altitudes = [fix.altitude for fix in fixes if fix.altitude is not None]
+    altitude = sum(altitudes) / len(altitudes) if altitudes else None
+    mode = max(fix.mode for fix in fixes)
+    return GPSFix(latitude, longitude, altitude, mode)
+
+
+async def gps_background_listener(polaris):
+    """Apply a 2D fix immediately and keep polling until 3D or timeout."""
+    from config import Config
+
+    attempts = _configured_attempts(getattr(Config, "gps_max_attempts", DEFAULT_GPS_MAX_ATTEMPTS))
+    retry_max_delay = _configured_retry_max_delay(
+        getattr(Config, "gps_retry_max_delay", DEFAULT_GPS_RETRY_MAX_DELAY)
+    )
+    if attempts > 1 and not math.isfinite(retry_max_delay * attempts / 2):
+        logger.debug("gps_retry_max_delay is too large; using %.1f seconds", DEFAULT_GPS_RETRY_MAX_DELAY)
+        retry_max_delay = DEFAULT_GPS_RETRY_MAX_DELAY
+
+    start_time = _monotonic()
+    attempt_offsets = _retry_start_offsets(attempts, retry_max_delay)
+    last_applied_fix = None
+
+    def apply_fix(gps_fix: GPSFix) -> None:
+        nonlocal last_applied_fix
+        changes = {
+            "site_latitude": gps_fix.latitude,
+            "site_longitude": gps_fix.longitude,
+            "location": "GPS Receiver",
+        }
+        if gps_fix.altitude is not None:
+            changes["site_elevation"] = round(gps_fix.altitude)
+
+        applied = Config.apply_changes(changes)
+        if applied:
+            polaris.make_config_params_live(applied)
+            logger.info("GPS coordinates applied to live configuration.")
+        last_applied_fix = gps_fix
+
+    def apply_2d_fix(gps_fix: GPSFix) -> None:
+        if last_applied_fix is None:
+            apply_fix(gps_fix)
+
+    for attempt_index, offset in enumerate(attempt_offsets):
+        attempt_start = start_time + offset
+        wait = attempt_start - _monotonic()
+        if wait > 0:
+            await _sleep(wait)
+
+        if attempt_index + 1 < attempts:
+            attempt_end = start_time + attempt_offsets[attempt_index + 1]
+        else:
+            attempt_end = attempt_start + GPSD_ATTEMPT_TIMEOUT
+        attempt_timeout = min(GPSD_ATTEMPT_TIMEOUT, attempt_end - _monotonic())
+        if attempt_timeout <= 0:
+            logger.debug("Skipping GPS attempt %d because its scheduled window elapsed", attempt_index + 1)
             continue
-            
-    return None
+
+        logger.debug("Starting GPS acquisition attempt %d of %d", attempt_index + 1, attempts)
+        try:
+            gps_fix = await get_gps_location(
+                timeout=attempt_timeout,
+                on_2d_fix=apply_2d_fix,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            logger.debug("GPS acquisition attempt %d failed: %s", attempt_index + 1, error)
+            gps_fix = None
+
+        if _monotonic() > attempt_end:
+            logger.debug("Discarding GPS fix returned after attempt %d expired", attempt_index + 1)
+            gps_fix = None
+
+        if gps_fix is None:
+            continue
+
+        if gps_fix != last_applied_fix:
+            apply_fix(gps_fix)
+        if gps_fix.mode >= 3:
+            return
+
+    if last_applied_fix is None:
+        logger.info("No GPS fix found after %d attempts.", attempts)
+    else:
+        logger.info("No 3D GPS fix found after %d attempts; keeping the 2D position.", attempts)
+
+
+async def get_gps_location(
+    timeout: float = GPSD_ATTEMPT_TIMEOUT,
+    on_2d_fix: Optional[Callable[[GPSFix], None]] = None,
+) -> Optional[GPSFix]:
+    """Read gpsd until a 3D fix or timeout, reporting 2D fixes as they arrive."""
+    return await _try_gpsd(timeout, on_2d_fix)
+
+
+async def _try_gpsd(
+    timeout: float,
+    on_2d_fix: Optional[Callable[[GPSFix], None]] = None,
+) -> Optional[GPSFix]:
+    timeout = _finite_float(timeout)
+    if timeout is None or timeout <= 0:
+        return None
+
+    deadline = _monotonic() + timeout
+    reader = None
+    writer = None
+    fixes: list[GPSFix] = []
+    seen_timestamps = set()
+    has_2d_fix = False
+
+    try:
+        connect_timeout = min(GPSD_CONNECT_TIMEOUT, deadline - _monotonic())
+        if connect_timeout <= 0:
+            return None
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(GPSD_HOST, GPSD_PORT, limit=GPSD_LINE_LIMIT),
+            timeout=connect_timeout,
+        )
+
+        writer.write(b'?WATCH={"enable":true,"json":true}\n')
+        drain_timeout = min(GPSD_CONNECT_TIMEOUT, deadline - _monotonic())
+        if drain_timeout <= 0:
+            return None
+        await asyncio.wait_for(writer.drain(), timeout=drain_timeout)
+
+        while True:
+            remaining = deadline - _monotonic()
+            if remaining <= 0:
+                break
+            try:
+                line = await asyncio.wait_for(
+                    reader.readline(), timeout=min(GPSD_READ_TIMEOUT, remaining)
+                )
+            except TimeoutError:
+                logger.debug("Timed out waiting for a gpsd report")
+                if _monotonic() >= deadline:
+                    break
+                continue
+            if not line:
+                break
+
+            try:
+                report = json.loads(line)
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                logger.debug("Ignoring malformed gpsd report")
+                await asyncio.sleep(0)
+                continue
+
+            if not isinstance(report, dict) or report.get("class") != "TPV":
+                await asyncio.sleep(0)
+                continue
+
+            fix = _parse_tpv(report)
+            if fix is None:
+                logger.debug("Ignoring gpsd TPV report without a valid position fix")
+                await asyncio.sleep(0)
+                continue
+
+            timestamp = report.get("time")
+            if timestamp is not None:
+                timestamp_key = str(timestamp)
+                if timestamp_key in seen_timestamps:
+                    if fix.mode >= 3:
+                        return fix
+                    await asyncio.sleep(0)
+                    continue
+                seen_timestamps.add(timestamp_key)
+
+            fixes.append(fix)
+            if len(fixes) > GPSD_FIX_SAMPLES:
+                fixes.pop(0)
+            if fix.mode == 2 and not has_2d_fix:
+                has_2d_fix = True
+                if on_2d_fix is not None:
+                    on_2d_fix(fix)
+            if fix.mode >= 3:
+                return _average_fixes(fixes)
+            await asyncio.sleep(0)
+    except asyncio.CancelledError:
+        raise
+    except (OSError, RuntimeError, TimeoutError, ValueError) as error:
+        logger.debug("gpsd query failed: %s", error)
+    finally:
+        if writer is not None:
+            writer.close()
+
+    return _average_fixes(fixes) if fixes else None

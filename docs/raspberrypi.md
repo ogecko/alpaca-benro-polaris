@@ -4,6 +4,7 @@
 [Versions](#which-pi-should-i-buy) | 
 [Image Creation](#install-the-raspberry-pi-os-image) | 
 [Alpaca Installation](#install-pre-requisites-and-the-alpaca-driver) | 
+[Optional GPS](#optional-gps) |
 [Setup.sh Reference](#setupsh-command-reference) | 
 [Troubleshooting](#troubleshooting-the-raspberry-pi)
 
@@ -109,10 +110,38 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
     Once you have completed compass and single star alignment, the Polaris should be ready to use.
 
+## Optional GPS
+
+You can also configure automatic location detection using a USB GPS Dongle. The driver relies on gpsd to read the location from the GPS Dongle. It has been tested with [this GPS dongle](https://amzn.eu/d/050xUKar). This option is disabled by default.
+
+1. Install gpsd and its status client either by running the setup script with `-g`:
+    ```Bash
+    ./setup.sh -g
+    ```
+2. Configure gpsd for the receiver's specific device. Find a stable USB path with `ls -l /dev/serial/by-id/`, then edit `/etc/default/gpsd` and set the device explicitly, for example:
+    ```Bash
+    DEVICES="/dev/serial/by-id/usb-your-receiver"
+    USBAUTO="false"
+    ```
+3. Enable the gpsd socket and check for a fix:
+    ```Bash
+    sudo systemctl enable --now gpsd.socket
+    sudo systemctl restart gpsd
+    cgps -s
+    ```
+    Exit `cgps` with **Ctrl+C** after confirming it reports a fix.
+4. In `driver/config.toml`, under `[server]`, set `gps_auto_detect = true` to opt in. The attempt count and retry gap can also be configured there; the defaults are `gps_max_attempts = 20` and `gps_retry_max_delay = 30.0`. Restart the driver to apply changes:
+    ```Bash
+    sudo systemctl restart polaris-driver
+    ```
+    Values in `data/config.pilot.json` override `config.toml`, so update or remove any saved GPS entries there if they conflict. The first valid 2D fix immediately updates the site coordinates and names the location **GPS Receiver**, while preserving the existing elevation. The listener continues polling through the configured retry schedule until a 3D fix arrives. A 3D fix updates the coordinates and stops polling; elevation changes only if the fix includes a measured altitude. If retries expire without a 3D fix, the 2D position and existing elevation are retained.
+
+Retry gaps increase gradually, so with the defaults the 20th attempt starts about five minutes after the first; its read can continue for up to 10 more seconds. If no 3D fix is found, the driver logs that and keeps any 2D position already applied; if no valid fix was found, the site remains unchanged. Restart the driver to try again.
+
 ## Setup.sh Command Reference
 You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
 ```
-Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
+Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-g] [-h] [branch]
 
 Options:
     -n <ssid>      Defines the network SSID for the Alpaca Station Mode Wifi connection. 
@@ -126,6 +155,9 @@ Options:
     -p <password>  Password for the network named by -a, min 8 chars for WPA2.
                    (default: keep the existing password on a re-run, otherwise prompted interactively,
                    or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+
+    -g             Install gpsd and gpsd-clients for optional GPS receivers.
+                   This does not enable GPS location updates in the driver.
 
     -h             Print this help and exit.
 
