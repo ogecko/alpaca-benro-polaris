@@ -99,20 +99,62 @@ In **Edit > Preferences > Slewing**, set the **Correction method** to **Mount sy
 In a sequence, enable the target option **Use astrometry to refine the position** to centre each target on arrival. In **Edit > Preferences > Sequence**, **Run astrometry on every image** solves every captured image and shows the result in the log; **Recenter sequence target that drift** then plans a recenter before the next exposure whenever the drift exceeds the value you set. CCDciel recommends this value is more than 1.5x the slew precision (and 2-3x any dithering).
 
 ## 5. Scripting
-CCDciel scripts are written in Python and edited with the script editor (**Display** menu). They can be run from the script tool, or as part of a sequence: when a target starts, at the start, middle or end of a plan step, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's [Script reference](https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference).
+CCDciel scripts are written in Python. Enable the Script tool from the **Display** menu, then open the **Capture** tab on the right of the screen: under **Run Script** you can select a script and run it, or use **Edit**, **New** and **Copy** to open the script editor. Scripts can be run from there, or as part of a sequence: when a target starts, as a step of a plan, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's [Script reference](https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference).
+
+### Alpaca Driver Scripts
+The [`utility/ccdciel`](../utility/ccdciel) folder provides scripts for the Alpaca Driver's most common extensions:
+
+| Script | Arguments | What it does |
+|---|---|---|
+| `PolarisSyncGuide` | settle seconds (optional, default 5) | Plate-solves the current image and syncs the mount, for [Sync Guiding](#sync-guiding) |
+| `PolarisPanoSlew` | panel number (optional) | Slews to the next [panorama](#panoramas) panel, or to the given panel |
+| `PolarisSlewAbsolute` | `key=value` coordinates | Slews to the given coordinates, see [Slewing](#slewing) |
+| `PolarisSlewRelative` | `key=value` offsets | Moves by the given offsets, see [Slewing](#slewing) |
+
+**Installing on Windows:** double-click [`utility/ccdciel/install.bat`](../utility/ccdciel/install.bat). It copies the scripts into CCDciel's folder (`%LOCALAPPDATA%\ccdciel`) as `.script` files, replacing any older versions; start CCDciel once before running it, and restart CCDciel afterwards if it was running.
+
+**Installing manually** (or on macOS/Linux): copy each `Polaris*.py` file into CCDciel's configuration folder, the folder holding `ccdciel.conf` and CCDciel's other `.script` files, renamed to end in `.script`, e.g. `PolarisSyncGuide.script`. Alternatively, click **New** under **Run Script**, give it the same name, replace the template with the file's contents and click **Save**.
+
+The scripts read the Alpaca Driver's address from CCDciel's mount settings (**ASCOM Alpaca** tab), so nothing needs editing. They use only standard Python, so they run with the Python included with CCDciel.
+
+**Using:** add a script step to a plan, with the script's name and its arguments, or test a script from **Run Script** on the **Capture** tab. Each script writes what it did to the CCDciel log, and fails the step if the action fails.
 
 ### Sync Guiding
 The Alpaca Driver treats a plate-solve **sync without a slew** as a guiding correction rather than a new alignment point (see [Guiding](./guiding.md)). The recommended workflow is to solve and sync every 1 to 3 minutes during your imaging sequence.
-
-In CCDciel this can be done with a plan step script that runs the `Astrometry_sync` command ("Plate solve the current image and sync the telescope"); no ready-made script is provided yet. Note:
-* Sync guiding has not yet been tested with CCDciel.
-* After a sync, the driver moves the mount back onto its target. If this disturbs the next exposure, add a short delay after the sync.
+* In Alpaca Pilot, enable **Multi-Point Alignment** and **Sync Guiding (Plate-solve)**.
+* Add a `PolarisSyncGuide` step to your plan after the light frames, so it runs every 1 to 3 minutes of imaging. It solves the image just taken (no extra exposure) with CCDciel's `Astrometry_sync` command.
+* After a goto, the first sync adds an alignment point and turns sync guiding on; the following syncs are used as guiding corrections (if within 3 degrees).
+* After a sync the driver moves the mount back onto its target, so the script waits a few seconds (the settle argument) before the next exposure.
+* Sync guiding with CCDciel is new: please report how it works for you.
 * Don't combine sync guiding with pulse guiding: the guider pulls each sync correction straight back to its lock position.
 
 ### Panoramas
-The Alpaca Driver's panorama workflow ([Pilot](./pilot.md#capturing-panoramas-with-the-alpaca-driver)) moves the mount between panels with the `Polaris:PanoSlew` device action. CCDciel can call it with the script [`utility/ccdciel/ccdciel_action.py`](../utility/ccdciel/ccdciel_action.py), which runs any Alpaca Driver device action:
-* Copy it into a new script in CCDciel's script editor, and set `host` and `port` at the top to your Alpaca Driver's address (port 5555 by default).
-* Run it from a plan step script with the arguments `Polaris:PanoSlew` to slew to the next panel, or `Polaris:PanoSlew, {"panel": 3}` to slew to a specific panel.
+The use the Alpaca Driver's [PanoGrid](./pilot.md#capturing-panoramas-with-the-alpaca-driver) for advanced panorama workflows. The `PolarisPanoSlew` script, allows you to move the mount between the defined panels.
+
+In CCDciel, add a `PolarisPanoSlew` step before each panel's light frames. With no argument, the script slews to the next panel, wrapping back to panel 1 after the last panel. You can also specify a panel number to slew directly to that panel. The step completes once the slew is finished.
+
+### Slewing
+To Slew to alternate coordinate reference frames supported by the Alpaca Driver, you can use the `PolarisSlewAbsolute` and `PolarisSlewRelative` scripts. Their arguments are one or more `key=value` pairs separated by spaces:
+
+| Key | Coordinate | Units |
+|---|---|---|
+| `ra` | Right Ascension | hours |
+| `dec` | Declination | degrees |
+| `pa` | Position Angle | degrees |
+| `az` | Azimuth | degrees |
+| `alt` | Altitude | degrees |
+| `roll` | Roll Angle | degrees |
+| `l` | Galactic Longitude | degrees |
+| `b` | Galactic Latitude | degrees |
+| `gpa` | Galactic Position Angle | degrees |
+| `m1`, `m2`, `m3` | Motor angles (the θ values on the Alpaca Pilot PID pages) | degrees |
+
+* Values are decimal (`dec=-59.5`), or hours/degrees, minutes and seconds (`ra=10:45:03`, `dec=-59:41:04`, `ra=10h45m03s`).
+* **`PolarisSlewAbsolute`** slews to the coordinates given; coordinates not given keep their current value, e.g. `az=240 alt=45 roll=0` or `ra=10:45:03 dec=-59:41:04 pa=90`.
+* **`PolarisSlewRelative`** adds each value to the current target, e.g. `alt=0.5 roll=-10` or `ra=0:00:30`.
+* Mix any of the coordinate keys in one step, but not with the motor keys `m1`, `m2`, `m3`.
+* The driver keeps every slew within the Benro Polaris limits (Altitude 0-70°, Roll ±60°, see [Control](./control.md)).
+* The step finishes when the slew is complete.
 
 ## 6. Pulse Guiding
 CCDciel's **Internal guider** uses a guide camera to watch a guide star and sends pulse guide commands to the mount, which the Alpaca Driver turns into small corrections of the M1-M3 motor speeds. It has been tested with the Alpaca Driver.
