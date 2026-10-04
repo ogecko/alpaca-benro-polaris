@@ -105,7 +105,7 @@
 
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { throttle } from 'quasar'
 import { scaleLinear } from 'd3-scale'
 import { axisBottom } from 'd3-axis'
@@ -223,6 +223,8 @@ const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 
 const throttledRenderScale = throttle(renderScale, 20)
 onMounted(throttledRenderScale)
+onMounted(() => document.addEventListener('visibilitychange', onVisibilityChange))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisibilityChange))
 
 watch(renderKey, throttledRenderScale)
 
@@ -782,7 +784,24 @@ function renderCircularScale() {
 }
 
 // Dispatches rendering based on scale type (linear or circular)
+// Not drawn while the tab is hidden: each render starts d3 transitions, whose timers only run on animation frames,
+// which a hidden tab doesn't get. Renders while hidden queued another set on every tick, label and arc, and on return
+// d3 started them all, each scanning the others on its element -- after hours away a black, frozen tab at 100% CPU
+// (profiled: d3-transition's start). A hidden tab only notes that a render is due and draws once when shown again.
+let renderPending = false
+
+function onVisibilityChange() {
+	if (!document.hidden && renderPending) {
+		renderPending = false
+		renderScale()
+	}
+}
+
 function renderScale() {
+	if (document.hidden) {
+		renderPending = true
+		return
+	}
 	if (isLinear.value) {
 		renderLinearScale()
 	} else if (isCircular.value) {
