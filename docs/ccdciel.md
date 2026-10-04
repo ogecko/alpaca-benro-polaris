@@ -38,12 +38,11 @@ The **Preferences Dialog** can be accessed from the **Edit > Preferences** dropd
 * **Slewing:** Set correction method to **Mount Sync** and enable **Sync the Rotator**
 * **Meridian:** Choose **Do nothing** as we are using an Az/Alt mount
 * **Autoguiding:** Choose **Internal** autoguiding if you have a guide camera
-* **Sequence:** Enable **Run astrometry on every image** for sync guiding
+* **Sequence:** Enable **Run astrometry on every image** and **Recenter sequence target that drift** to keep targets centred (see [Plate-Solving](#4-plate-solving))
 
 ![Preferences](images/ccd-pref-01.png)
 
 ## 2. Main CCDciel Window
-While Ninas Sky Atlas is good for when you dont have an internet connection, other options you may want to consider include:
 
 ### Devices Connection and Preview
 On the main CCDciel window, use the **Devices Connection Tool** in the upper-right corner to connect all configured equipment by clicking **Connect**. You can also connect or disconnect individual devices by clicking their abbreviated device names. You can use the Preview panel to **Preview** a single image, or **Loop** to continuously preview.
@@ -66,14 +65,70 @@ The **Rotator Controls** allow you to control the Benro Polaris Mount as well.
 
 
 ## 3. Auto-Focus
-### Calibration
+CCDciel can drive a connected focuser to find the best focus, measuring the HFD (Half Flux Diameter) of the stars in each image: the smaller the better. A focused lens is also needed before plate-solving will work.
 
-## 4. Plate-Solving 
+### Manual Focus
+Point the camera at the sky and use the **Preview** panel in **Loop** mode. Start with 10-15 second exposures while stars are out-of-focus disks, then reduce to about 1 second as focus improves. Double-click a star near the image centre, check it is not saturated, and enable **Manual focus aid** on the **Focus** tab to magnify it. Adjust the focuser until the star is as small and bright as possible.
+
+### Calibration
+Before using autofocus, run **Tools > Focuser calibration** with a focused, centred star field. Set the exposure, preferred move direction, step size and backlash (if known). CCDciel then moves the focuser in one direction and back, measuring the star diameter, to find the minimum HFD. If the forward and reverse curves don't line up, cancel, adjust the backlash and restart. When finished, the focuser is left at the minimum HFD and the recommended parameters are shown; click **Save** to store them in the auto-focus preferences.
+
+### Autofocus
+In **Edit > Preferences > Auto-focus**, choose the **Dynamic** method (it fits a curve through the HFD measurements). Test the calibrated parameters with the **Autofocus** button on the **Focus** tab. In a sequence, each plan step has its own autofocus settings.
+
+## 4. Plate-Solving
+CCDciel supports ASTAP, astrometry.net and PlateSolve2/3 to identify where your camera points in the sky. We recommend [ASTAP](https://www.hnsky.org/astap.htm), which is fast and works on Windows, macOS, Linux and Raspberry Pi.
+
+The Alpaca Driver aligns the Benro Polaris to the solved coordinates whenever you perform a **Sync**. The more plate-solve syncs you perform, the more accurate the alignment. This can remove the need for a compass alignment or manually aligning a first star with the Benro app.
+
 ### Installing ASTAP
+* Download ASTAP from [hnsky.org/astap.htm](https://www.hnsky.org/astap.htm) and install the **G17** star database alongside it.
+* In **Edit > Preferences > Astrometry**, select **ASTAP** and set its program folder (typically `c:\Program Files\astap` on Windows, `/Applications/astap.app/Contents/MacOS` on macOS, `/opt/astap` on Linux).
+* Set the **Maximum search radius** large enough to cover how far off the mount may be pointing (above 180° solves blind, but slowly).
+* For images over 3000 pixels wide, set ASTAP **Binning** to 2 (2-3 for about 5000 pixels).
+* Set the camera **pixel size** (camera preferences) and the lens **focal length** (astrometry preferences) correctly, or solving will likely fail.
+
+ASTAP needs about 30 focused stars; 5-10 second exposures are usually enough.
+
+### Solving and Syncing
+Take a **Preview** image, right-click it and choose **Resolve**. If it fails, right-click and choose **View last resolver log** to see why.
+
+In **Edit > Preferences > Slewing**, set the **Correction method** to **Mount sync**. Each goto that uses astrometry then takes a control exposure, plate-solves it, sends a **Sync** to the mount and slews again, until within the **precision** you set or the maximum number of tries is reached. Every sync also refines the Alpaca Driver's alignment. Enable **Sync the rotator** to sync the driver's rotator to the solved position angle at each slew.
+
+### Recentering Targets
+In a sequence, enable the target option **Use astrometry to refine the position** to centre each target on arrival. In **Edit > Preferences > Sequence**, **Run astrometry on every image** solves every captured image and shows the result in the log; **Recenter sequence target that drift** then plans a recenter before the next exposure whenever the drift exceeds the value you set. CCDciel recommends this value is more than 1.5x the slew precision (and 2-3x any dithering).
 
 ## 5. Scripting
+CCDciel scripts are written in Python and edited with the script editor (**Display** menu). They can be run from the script tool, or as part of a sequence: when a target starts, at the start, middle or end of a plan step, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's [Script reference](https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference).
+
 ### Sync Guiding
+The Alpaca Driver treats a plate-solve **sync without a slew** as a guiding correction rather than a new alignment point (see [Guiding](./guiding.md)). The recommended workflow is to solve and sync every 1 to 3 minutes during your imaging sequence.
+
+In CCDciel this can be done with a plan step script that runs the `Astrometry_sync` command ("Plate solve the current image and sync the telescope"); no ready-made script is provided yet. Note:
+* Sync guiding has not yet been tested with CCDciel.
+* After a sync, the driver moves the mount back onto its target. If this disturbs the next exposure, add a short delay after the sync.
+* Don't combine sync guiding with pulse guiding: the guider pulls each sync correction straight back to its lock position.
+
 ### Panoramas
+The Alpaca Driver's panorama workflow ([Pilot](./pilot.md#capturing-panoramas-with-the-alpaca-driver)) moves the mount between panels with the `Polaris:PanoSlew` device action. CCDciel can call it with the script [`utility/ccdciel/ccdciel_action.py`](../utility/ccdciel/ccdciel_action.py), which runs any Alpaca Driver device action:
+* Copy it into a new script in CCDciel's script editor, and set `host` and `port` at the top to your Alpaca Driver's address (port 5555 by default).
+* Run it from a plan step script with the arguments `Polaris:PanoSlew` to slew to the next panel, or `Polaris:PanoSlew, {"panel": 3}` to slew to a specific panel.
 
 ## 6. Pulse Guiding
+CCDciel's **Internal guider** uses a guide camera to watch a guide star and sends pulse guide commands to the mount, which the Alpaca Driver turns into small corrections of the M1-M3 motor speeds. It has been tested with the Alpaca Driver.
+
+### Setup
+* Connect the **Guide Camera** in the Devices Setup dialog.
+* In **Edit > Preferences > Auto-guiding**, choose **Internal guider** (or **PHD2**, with its host and port, if you guide with PHD2).
+* In Alpaca Pilot, **Sidereal Tracking** must be enabled, with the tracking rate set to **Sidereal**.
+* The **Guide Rate** is set on the Alpaca Pilot **Settings** page. The default **1.0x** works well; reduce it (e.g. 0.75x) if the guider pushes the mount around too much.
+
 ### Calibration
+Calibrate once before guiding. Set the guide exposure to 3-5 seconds with the stars in focus, point at least 45 degrees away from the celestial pole, and click **Calibration**. The guider sends pulses in four directions and measures how the star moves; this takes a few minutes. The results are shown on the **Advanced** tab, where the East/West and North/South values should match.
+
+For the Benro Polaris:
+* **Calibrate at your imaging target**, at the same position angle you will image at. RA/Dec guide pulses become a mix of motor movements that changes across the sky, so avoid large slews or position angle changes after calibrating.
+* **Disable PEC while calibrating**: let PEC converge, disable it, calibrate, then re-enable it, so PEC doesn't learn the calibration pulses as drift.
+
+### Guiding
+Click **Guide** to start guiding. The **Guider** tab shows the corrections and lets you adjust the RA and Dec **Gain** and **Hysteresis**. You can monitor the pulse guide commands and the RA/Dec setpoint changes on the Alpaca Pilot **PID Tuning** page.
