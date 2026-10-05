@@ -5,8 +5,8 @@ Each motor's gear train after the motor has a periodic error the MCU can't see: 
 angle + e_i(theta_i), a 6.0 deg worm (60 teeth, 960:1 = 16 x 60). utility/analyse_pec_theta.ipynb shows the M2 and
 M3 profiles repeat night to night on the raw motor angles, so a profile fitted on past sessions applies to future
 ones. This fits it in motor space on RA and Dec drift jointly (pe_analysis.fit_worm) over the segments with raw motor
-angles, and writes it where the driver reads it (worm_profile.json in the data folder); turn it on with
-Config.pec_worm_ff.
+angles, and writes it where the driver reads it (worm_profile.json in the data folder). The driver applies a profile
+whenever there is one, so writing it turns the correction on (from the next driver start).
 
 The fitted profile is the physical gear error, same sign and scale (tests/test_pec_twin_worm_ff.py).
 
@@ -113,7 +113,7 @@ def main():
         print('\n--dry-run: nothing written')
         return
     ff.save(a.out)
-    print(f"\nwrote {a.out} -- turn it on with pec_worm_ff = true (config.toml)")
+    print(f"\nwrote {a.out} -- the driver applies it from its next start")
 
 
 if __name__ == '__main__':

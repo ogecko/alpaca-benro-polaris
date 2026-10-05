@@ -28,16 +28,16 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2 Beta 7
-- **[Speed Controller v2]** Improve tracking at low alt/zero roll. Improve response to guiding corrections. Add motor speed control v2 based on new SLOW (532/533/534) protocol understanding.
-- **[Motion Planner v2]** Reduce drifting while rolling. Add improved motion planning v2 (plans motor speed profiles, slowing on tight "curves")
-- **[Ramped Jogging]** Reduce jogging overshoot by ramping "up to" and "down from" jogging speed changes.
-- **[Goto Settle Time]** Reduce goto settle time by preventing Ki windup and false marking of completion.
-- **[PEC Guider Calibration]** PEC detects and ignores PHD2/CCDciel calibration pulses, so PEC can stay on while calibrating.
-- **[Smooth Charts]** Live charts on the Analysis pages (PID, Kalman, PWM, Speed) now scroll smoothly instead of hiccuping now and then, and use less CPU in the browser.
-- **[Restore Tracking]** Restore the previous tracking target when the driver restarts within 10 minutes.
-- **[Worm Feed-Forward]** Experimental, off by default (`pec_worm_ff`): corrects each motor's 6 deg worm gear error from a profile learnt from your own logs (`utility/learn_worm.py`), with no lag. See kinematics.md, Periodic Error Correction.
-- **[CCDciel Scripts]** New CCDciel scripts for Sync Guiding, Panoramas and Absolute/Relative slews on any axis (RA/Dec/PA, Az/Alt/Roll, galactic or motor), with a Windows installer (`utility/ccdciel/install.bat`). The CCDciel guide now covers autofocus, plate solving, scripting and pulse guiding.
-  
+- **[Speed Controller v2]** Better tracking at low altitude and zero roll, and a better response to guiding, from a new motor speed controller.
+- **[Motion Planner v2]** Less drift while rolling: motor speed profiles are planned, slowing on tight curves.
+- **[Ramped Jogging]** Less jogging overshoot: jog speed changes are ramped.
+- **[Goto Settle Time]** Gotos settle faster, without Ki windup or completing too early.
+- **[PEC Drift]** PEC learns the remaining drift as a 7.5 minute moving average (the harmonic model is removed), and ignores PHD2/CCDciel calibration pulses, so it can stay on while calibrating.
+- **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. Applied whenever there is a profile.
+- **[Restore Tracking]** Tracking resumes after a driver restart within 10 minutes.
+- **[Smooth Charts]** Live charts on the Analysis pages scroll smoothly and use less CPU.
+- **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
+
 ## What's new in v2.2 Beta 6
 - **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
 - **[Raspberry Pi Install]** major refresh of Raspberry Pi installation with setup.sh. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also performs network setup (join Wifi, no driver build, Bluetooth auto-enabled) and setups up auto startup.

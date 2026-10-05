@@ -21,7 +21,7 @@ from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
-from control_pec import PecMixin, PecAxis, PecMode, PecInhibit   # PecAxis/PecMode/PecInhibit re-exported for notebooks
+from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
 from control_worm import WormMixin
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -264,20 +264,20 @@ class CalibrationManager:
             return False
         self.test_data[name].update(test_status='PENDING', test_result='', test_change='', test_stdev='')
         if self.liveInstance:
-            self.logTestData([name])
+            self.publishTestData()
         return True
 
     def setWormGearProgress(self, axis, done, total):
         name = self.wormGearName(axis)
         self.test_data[name]['test_status'] = f'PENDING {done}/{total}'
         if self.liveInstance:
-            self.logTestData([name])
+            self.publishTestData()
 
     def addWormGearResult(self, axis, fields, status):
         name = self.wormGearName(axis)
         self.test_data[name].update(fields, test_status=status)
         if self.liveInstance:
-            self.logTestData([name])
+            self.publishTestData()
             self.saveTestDataToFile()
 
     def _wormGearApproval(self, testName, approved):
@@ -322,7 +322,7 @@ class CalibrationManager:
             name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
         if self.liveInstance:
-            self.logTestData([name])
+            self.publishTestData()
             self.saveTestDataToFile()
 
     def stopTests(self):
@@ -335,7 +335,7 @@ class CalibrationManager:
                 self.test_data[testName]['test_change'] = ''
                 self.test_data[testName]['test_stdev'] = ''
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
 
 
     def pendingTests(self, axis, testNameList):
@@ -352,7 +352,7 @@ class CalibrationManager:
                 raw = testData.get('raw',0)
                 tests.append(raw)
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
         return tests
 
     def approveTests(self, testNameList):
@@ -366,7 +366,7 @@ class CalibrationManager:
                     continue
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
             self.updateCalibrationAndInterpolators()
 
     def rejectTests(self, testNameList):
@@ -380,7 +380,7 @@ class CalibrationManager:
                     continue
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
             self.updateCalibrationAndInterpolators()
 
     def toggleApproval(self, axis, testNameList):
@@ -399,15 +399,16 @@ class CalibrationManager:
                         continue
                     self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
             self.updateCalibrationAndInterpolators()
 
-    def logTestData(self, testNameList):
+    def publishTestData(self):
+        """Send the whole Speed Calibration table to Pilot (the 'cm' socket topic), one message per row in table
+        order. Always the whole table, whichever rows changed: the topic keeps only the last 150 messages (driver
+        backlog and Pilot), and a running test updates its row many times (a worm gear test ~50), so sending only the
+        changed rows soon pushed the other rows out of what a page receives."""
         cm_logger = logging.getLogger('cm')
-        if not testNameList:
-            testNameList = self.test_data.keys()
-        for testName in testNameList:
-            testData = self.test_data.get(testName, {})
+        for testData in self.test_data.values():
             cm_logger.info(testData)
 
     def updateCalibrationAndInterpolators(self):

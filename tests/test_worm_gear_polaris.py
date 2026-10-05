@@ -58,7 +58,7 @@ def fake_polaris(tmp_path):
 
 @pytest.fixture
 def cfg(monkeypatch):
-    for k, v in dict(advanced_control=True, advanced_tracking=True, advanced_alignment=True, pec_worm_ff=False).items():
+    for k, v in dict(advanced_control=True, advanced_tracking=True, advanced_alignment=True).items():
         monkeypatch.setattr(polaris_mod.Config, k, v, raising=False)
 
 

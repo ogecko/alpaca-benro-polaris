@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 sys.path.insert(0, os.path.dirname(__file__))
 
 import control                                                           # noqa: E402
+import control_worm                                                      # noqa: E402
 from config import Config, CONFIG_TOML_PATH                             # noqa: E402
 from control import PID_Controller, SyncManager, KalmanFilter           # noqa: E402
 from kinematics import theta_to_q, q_to_theta, q_to_azaltroll, calc_parallactic_angle, wrap360, THETA2_MIN_MEAS  # noqa: E402
@@ -183,6 +184,10 @@ class Twin:
         shim = types.SimpleNamespace(datetime=_Datetime, timedelta=_dt.timedelta)
         monkeypatch.setattr(control, "datetime", shim)
         monkeypatch.setattr(control.time, "monotonic", self.clock.monotonic)
+        if control_worm.WORM_PROFILE_PATH == control_worm.DATA_DIR / 'worm_profile.json':
+            # the worm gear correction applies whenever there is a worm_profile.json: a developer's own must not change
+            # the twin (a test that wants a profile sets control_worm.WORM_PROFILE_PATH before creating the twin)
+            monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", control_worm.DATA_DIR / 'twin_has_no_worm_profile.json')
         monkeypatch.setattr(ephem, "now", lambda: ephem.Date(self.clock.utc()))
         self.rng = np.random.default_rng(seed)
         self.logger = logging.getLogger("twin")

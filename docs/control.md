@@ -10,7 +10,7 @@
 [Coordinated Speed](#coordinated-speed-control) | 
 [PID Controller](#pid-controller-and-performance-tuning) | 
 [Orbitals](#orbitals-and-non-sidereal-tracking) | 
-[Dev: API Testing](#developer-automated-pidpec-testing-via-alpaca-api) | 
+[Dev: API Testing](#developer-automated-pid-testing-via-alpaca-api) | 
 [Dev: PID Tuning Utility](#developer-pid-tuning-utility) 
 
 # Challenges with existing Control
@@ -773,9 +773,9 @@ Artificial satellites present unique challenges due to their speed.
 
 ---
 
-# Developer: Automated PID/PEC Testing via Alpaca API
+# Developer: Automated PID Testing via Alpaca API
 
-This section documents how to control the driver programmatically for regression-testing the PID controller and PEC (Periodic Error Correction).
+This section documents how to control the driver programmatically for regression-testing the PID controller.
 
 ## 1. Running the Driver Natively (WSL2/Linux/macOS)
 
@@ -875,7 +875,7 @@ curl -s -X PUT "$BASE/action" \
   -d 'Parameters={"configNames":["advanced_pec","advanced_sync_guiding","advanced_alignment"]}' \
   -d 'ClientID=1' -d 'ClientTransactionID=4'
 
-# Enable Multi-Point Alignment, PEC, and Sync Guiding (all required for the PEC test below)
+# Enable Multi-Point Alignment, PEC, and Sync Guiding
 curl -s -X PUT "$BASE/action" \
   -d 'Action=Polaris:ConfigUpdate' \
   -d 'Parameters={"advanced_alignment":true,"advanced_pec":true,"advanced_sync_guiding":true}' \
@@ -899,97 +899,6 @@ curl -s -X PUT "$BASE/action" \
 ```
 
 **Roll gotcha:** the Rotator device's `position`/`moveabsolute` properties operate on **Position Angle**, not Roll Angle (see § Roll Angle vs. Position Angle, above) — moving `moveabsolute` to `0` will *not* set Roll to `0` except by coincidence. To target Roll Angle directly, either pass `roll` to `Polaris:SlewAbsolute` as above, or use the Rotator device's `movemechanical`/`mechanicalposition` endpoints, which operate on Roll Angle directly.
-
-## 4. Running a PEC Convergence Test
-
-PEC learns from **Sync** corrections (the same "RA Sync Test Case" buttons on the PID Tuning page — see `pilot/src/pages/AnalysePID.vue`'s `runTestCase()`). To drive it from a script, repeatedly nudge the mount's believed RA by a small, realistic offset via `synctocoordinates`:
-
-**Prerequisites** -- without these, the `synctocoordinates` calls below are just plain position
-syncs and PEC never sees them:
-- `Tracking` must be on.
-- `advanced_sync_guiding` and `advanced_pec` must both be enabled. Both are read live at each
-  call site (`Config.advanced_pec`/`Config.advanced_sync_guiding`, not cached at startup), so
-  flipping them via `Polaris:ConfigUpdate` takes effect immediately -- **no config.toml edit or
-  driver restart needed**:
-  ```bash
-  curl -s -X PUT "$BASE/action" \
-    -d 'Action=Polaris:ConfigUpdate' \
-    -d 'Parameters={"advanced_sync_guiding": true, "advanced_pec": true}' \
-    -d 'ClientID=1' -d 'ClientTransactionID=1'
-  ```
-  Only do this via `config.toml` (which needs a restart to load) if you want the setting to
-  survive past this session; for a one-off test, the live update above is both sufficient and
-  less disruptive.
-
-```bash
-# Repeat ~5x, spaced ~5s apart. testVal ≈ 20" is realistic; going much larger/faster
-# (e.g. 80"@4s) can visibly destabilize the real mount -- seen firsthand this session.
-RA=$(curl -s "$BASE/rightascension?ClientID=1&ClientTransactionID=1" | python3 -c "import json,sys;print(json.load(sys.stdin)['Value'])")
-DEC=$(curl -s "$BASE/declination?ClientID=1&ClientTransactionID=2" | python3 -c "import json,sys;print(json.load(sys.stdin)['Value'])")
-NEWRA=$(python3 -c "print($RA + 20/3600/15)")   # +20 arcsec of RA, in hours
-curl -s -X PUT "$BASE/synctocoordinates" -d "RightAscension=$NEWRA" -d "Declination=$DEC" \
-  -d "ClientID=1" -d "ClientTransactionID=3"
-```
-
-Watch the driver's `PECLOG` log lines for convergence. Each line is a dict, one entry per
-guide-sync cycle (same convention as `KFLOG`/`PIDLOG` -- parse with `ast.literal_eval`, see
-`utility/analyse_pec.ipynb`): `inhibit` is `[ra, dec]` status (`TOO_FEW_OBS` → `LOW_R2` →
-`VALID`), `r2` should climb above `0.5`, and `fit_rate` (arcmin/hr) reflects the fitted drift
-as of the last ingest (frozen between syncs).
-
-`pec_active` is `ra.converged() or dec.converged()` -- *either* axis reaching `inhibit==VALID`,
-not both. It's the gate that lets `apply_pec_drift_correction()` proceed past its early-return
-at all, but it is **not** per-axis: `pec_active=True` does not mean a given axis's motor is
-being corrected. Each axis's `eval_correction()` still independently checks that *axis's own*
-`inhibit==VALID` before applying anything -- so to know whether RA (or Dec) specifically is
-being corrected, check `inhibit[0]` (or `[1]`), not `pec_active`. A common case: one axis (often
-Dec, if it's received no real residual yet) converges trivially and flips `pec_active` true
-while the axis that actually matters is still `LOW_R2`/`TOO_FEW_OBS` and applying nothing.
-`fit_rate`/`ra_model`/`dec_model` are the fitted rate regardless of inhibit state either way.
-
-`applied_rate`/`pec_accum` are what was actually pushed to the motors. Reading zero right after
-an axis's `inhibit` flips to `VALID` is expected, not a bug: that axis becomes `VALID` at this
-entry's own ingest (which runs before this line is logged), so every control tick *since the
-previous* entry necessarily still saw it as not-yet-converged and correctly applied nothing --
-the first ticks that can apply anything land between this entry and the next one. Genuine
-staleness looks different: `applied_rate`/`pec_accum` lagging `fit_rate` for more than one
-PECLOG entry *after* `inhibit` has already been `VALID` for a while, which points at 518
-telemetry arriving as a backlog-catchup batch (only the last 518 in a batch triggers a control
-tick) or `apply_pec_drift_correction()`'s own `dt > 5s` guard skipping a tick after a dropout --
-check `age_518` on the same line first, since a large value there means this PECLOG entry itself
-landed amid a telemetry gap.
-
-`theta_raw` is the motor angles [M1, M2, M3] (degrees) derived from 518 at the time of the entry, as SGLOG logs at
-each sync. 518 is the firmware's box attitude times the MCU motor angles, so `theta_raw` M1 includes the session's
-compass / Single Point Alignment heading. `zeta` is the MCU's own motor angles from the last 517 (polled about once a
-minute), `zeta_offset` is `theta_raw - zeta` at that 517 and `zeta_age` its age in seconds: `theta_raw - zeta_offset`
-is the motor angle at every entry, the same reference every session. A worm error belongs to one motor and repeats
-with that angle, so per-motor analysis (`utility/analyse_pec_theta.ipynb`) uses these rather than `az`/`alt`/`roll`,
-which include the session's alignment.
-
-`wff` is the worm feed-forward currently applied (`pec_worm_ff`), split along the RA and Dec axes (arcmin, the
-guide-correction convention). With it on, the guide corrections -- and so `total_accum` -- no longer contain what it
-corrects, so the mount's drift is `total_accum + wff` (`utility/extract_segments.py` adds it back).
-
-`resid` is the raw residual reported by each sync -- this is the one that should shrink as PEC
-gets better. `total_accum` is *not* "remaining error": it's `resid` + `pec_accum` accumulated
-across every sync since the PEC model was last reset, i.e. what the total drift would have
-been since then if PEC had done nothing. It deliberately does not shrink as PEC improves (that
-would mean the fit is training on an already-partially-corrected signal and would underestimate
-the true periodic error). "Last reset" means `init_pec_model()` ran via `reset_pec_model()` --
-triggered by a goto/slew, any Rotator move, an axis jog/stop, starting orbital tracking,
-stopping Tracking, or a live PEC-related config change (`invalidate_sync_guiding()`/
-`clear_sync_guiding()` in `polaris.py`) -- *not* on every sync-guide, so `total_accum` normally
-spans many syncs. `pec_accum` is the PEC-only piece of that -- total correction actually
-applied to the motors *since the previous PECLOG entry only*, not a running total; it resets to
-0.0 every guide-sync (a much shorter span than `total_accum`'s reset).
-
-Units throughout: arcminutes for position/error fields (`rmse`, `total_accum`, `pec_accum`,
-`resid`), arcmin/hour for rate fields (`fit_rate`, `applied_rate`, `ra_model`/`dec_model`),
-degrees for `az`/`alt`/`roll`, seconds for `age_518`.
-
-**Getting a clean baseline before each test run matters:** don't rely on `Polaris:RestartDriver` to reset PEC — it reloads persisted `q_syncguide_B` guide-correction state from `data/sync_points.json`, which can carry over contamination from a previous test. Instead, toggle `Tracking` off/on (calls `clear_sync_guiding()`, which resets both the PEC model and `q_syncguide_B` to identity in-memory) or perform a small GOTO to the current position.
-
 
 # Developer: PID tuning utility
 

@@ -78,7 +78,6 @@ from test_sync_manager import Polaris, mock_config          # noqa: F401  (fixtu
 @pytest.fixture
 def ff_config(mock_config, tmp_path, monkeypatch):
     profile(m2=(15.0, 5.0, 0.0, 0.0)).save(tmp_path / 'worm_profile.json')
-    mock_config.pec_worm_ff = True
     monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'worm_profile.json')
     return mock_config
 
@@ -111,24 +110,20 @@ def test_calls_without_motor_angles_use_the_last_correction(ff_config):
     assert sep_arcsec(boresight(a), boresight(b)) < 1e-6
 
 
-def test_off_or_without_a_profile_the_present_value_is_unchanged(ff_config, tmp_path, caplog, monkeypatch):
-    for setup in ('off', 'missing'):
-        if setup == 'off':
-            ff_config.pec_worm_ff = False
-        else:
-            ff_config.pec_worm_ff = True
-            monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'none.json')
-        sm = SyncManager(logging.getLogger('test'), Polaris())
-        with caplog.at_level(logging.WARNING, logger='test'):
-            cam, _ = sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
-        assert sep_arcsec(boresight(cam), boresight(sm.alignQ_B2T * theta_to_q(*TH))) < 1e-6
-    assert any('worm' in r.getMessage().lower() for r in caplog.records)      # missing profile is reported
+def test_without_a_profile_the_present_value_is_unchanged(ff_config, tmp_path, caplog, monkeypatch):
+    monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'none.json')
+    sm = SyncManager(logging.getLogger('test'), Polaris())
+    with caplog.at_level(logging.INFO, logger='test'):
+        cam, _ = sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+    assert sep_arcsec(boresight(cam), boresight(sm.alignQ_B2T * theta_to_q(*TH))) < 1e-6
+    assert any('worm' in r.getMessage().lower() for r in caplog.records)      # "worm correction off" is reported
 
 
-def test_switching_it_off_at_runtime_takes_effect_on_the_next_update(ff_config):
+def test_removing_the_profile_takes_effect_on_the_next_reload(ff_config, tmp_path, monkeypatch):
     sm = SyncManager(logging.getLogger('test'), Polaris())
     sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
-    ff_config.pec_worm_ff = False
+    monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'none.json')
+    sm.reload_worm_ff()
     cam, _ = sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
     assert sep_arcsec(boresight(cam), boresight(sm.alignQ_B2T * theta_to_q(*TH))) < 1e-6
 

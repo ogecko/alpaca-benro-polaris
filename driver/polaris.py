@@ -676,8 +676,7 @@ class Polaris:
         done = apply_calibration(path, axis) if approved else revert_calibration(path, axis)
         if done:
             self._sm.reload_worm_ff()
-            self.logger.info(f"WORM GEAR M{axis+1}: {'applied to' if approved else 'reverted in'} {path}"
-                             + ('' if Config.pec_worm_ff else ' (pec_worm_ff is off: not used until it is on)'))
+            self.logger.info(f"WORM GEAR M{axis+1}: {'applied to' if approved else 'reverted in'} {path}")
         else:
             self.logger.warning(f"WORM GEAR M{axis+1}: nothing to {'apply' if approved else 'revert'} in {path}")
         return done

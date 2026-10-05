@@ -152,18 +152,17 @@ class WormMixin:
             self._worm_ff_path = full
             self._worm_ff = WormFeedForward.load(full)
             if self._worm_ff is None:
-                self.logger.warning(f"Worm feed-forward is on but there is no valid profile at {full} -- not applied "
-                                    f"(measure it with the Speed Calibration M1/M2/M3-WORM-GEAR tests and approve them)")
+                self.logger.info(f"No worm gear profile at {full}: worm correction off (measure it with the Speed "
+                                 f"Calibration WORM-GEAR tests and approve them)")
             else:
                 self.logger.info(f"Worm feed-forward profile loaded from {full}: worm {self._worm_ff.worm_theta:g} deg, "
                                  f"harmonics {list(self._worm_ff.harmonics)}, {self._worm_ff.meta.get('learnt_from', '')}")
         return self._worm_ff
 
     def update_worm_ff(self, theta):
-        """Refresh the worm feed-forward rotation for the current motor angles (deg); identity when off, or while a
-        worm calibration test measures the uncorrected worm."""
-        on = getattr(Config, 'pec_worm_ff', False) and self.worm_test is None
-        prof = self._worm_ff_profile() if on else None
+        """Refresh the worm feed-forward rotation for the current motor angles (deg): applied whenever there is a
+        worm gear profile (worm_profile.json), except while a worm calibration test measures the uncorrected worm."""
+        prof = self._worm_ff_profile() if self.worm_test is None else None
         offset = getattr(self.polaris, '_zeta_raw_offset', None)
         self.corrQ_WFF = prof.correction_q(theta, zeta_offset=offset) if prof is not None else Quaternion()
 

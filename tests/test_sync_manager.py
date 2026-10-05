@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import numpy as np
 from control import SyncManager
+import control_worm
 from kinematics import calc_parallactic_angle, calc_equatorial_axes_B, radec_to_altaz, azalt_to_radec
 from kinematics import quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
 from shr import format_timestamp
@@ -21,7 +22,10 @@ DEFAULT_LAT    = -33.86
 DEFAULT_LON    = 151.12
 
 @pytest.fixture
-def mock_config():
+def mock_config(tmp_path, monkeypatch):
+    # the worm gear correction applies whenever there is a worm_profile.json: start without one (a developer's own
+    # data/worm_profile.json must not change these tests); a test that wants one points WORM_PROFILE_PATH at its own
+    monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'no_worm_profile.json')
     defaults = {
         "advanced_alignment":       True,
         "advanced_align_lga":       False,
@@ -33,14 +37,10 @@ def mock_config():
         "advanced_pec":             True,
         "log_quest_model":          False,
         "log_pec":                  False,
-        "pec_forgetting_factor":    0.98,
         "pec_min_observations":     3,
         "pec_max_step_arcmin":      0.5,
-        "pec_max_covariance":       0.01,
         "pec_max_rmse_arcmin":      6.0,
         "pec_max_resid_arcmin":     10.0,
-        "pec_forget_horiz":         35*60,
-        "pec_interv_alpha":         0.3,
         "pec_min_r2":               0.5,
         "m3_tilt_dm1":              0, 
         "m3_tilt_dm2":              0, 

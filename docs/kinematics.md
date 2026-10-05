@@ -253,13 +253,13 @@ Traditionally, the Polaris suffers from **periodic error (PEC)**, mechanical osc
 #### **II. The Mechanism: From Sync to Pulse Guide**
 The core of this feature lies in how the Alpaca Driver interprets synchronization commands. When a user performs a **plate-solve sync without slewing the telescope**, the driver no longer treats it a new position to add to the QUEST model.
 
-Instead, the driver interprets the resulting residual error as a **guiding correction**. Each of these guiding corrections feed into a recursive least squares model to predict the instantaneous local RA and Dec drift rates. The PID Controller then applies these drift rates every 200ms as a continuously refining quaternion correction. This integrated model addresses both local alignment issues and the long-term periodic error cycle simultaneously, ensuring the mount's "Present Value" is continuously refined to match the true sky, even between each plate-solve.
+Instead, the driver interprets the resulting residual error as a **guiding correction**. Each of these guiding corrections feed into PEC's drift model (an exponential moving average of the drift rate) to predict the local RA and Dec drift rates. The PID Controller then applies these drift rates every 200ms as a continuously refining quaternion correction. This integrated model addresses both local alignment issues and the long-term periodic error cycle simultaneously, ensuring the mount's "Present Value" is continuously refined to match the true sky, even between each plate-solve.
 
 #### **III. Integration with QUEST and PID Control**
 This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to function at its highest potential. 
 *   **Dynamic Refinement:** By feeding the model fresh "ground-truth" data every few minutes, any local errors can be corrected for dynamically. 
 *   **Drift Reduction:** The residual data is fed into the **PID Controller**, which automatically adjusts motor speeds to "kill" the drift. 
-*   **Reduced Star Trails:** By proactively correcting for the 35-minute PEC cycle and inherent drift, exposures remain sharp even during lengthy imaging sessions.
+*   **Reduced Star Trails:** By proactively correcting for the worm gear error and inherent drift, exposures remain sharp even during lengthy imaging sessions.
 
 #### **IV. Recommended Workflow: The Plate-Solve/Sync Guiding**
 To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
@@ -312,20 +312,22 @@ For a comprehensive guide on hardware selection and software configuration, plea
 ### **2.6 Periodic Error Correction (PEC)**
 
 #### **I. What it is and What it Solves**
-**Periodic Error Correction (PEC)** is a specialized technique used to mitigate systematic tracking drift and periodic errors that change over time. These errors typically stem from mechanical imperfections in the mount’s drive system, such as irregularities in the worm gear teeth or motor inconsistencies. In the Benro Polaris, this manifests as a sinusoidal cyclic tracking error in Right Ascension (RA) and Declination (Dec) with a primary period of approximately **35 minutes** and a magnitude of **14+ arc minutes**.
+**Periodic Error Correction (PEC)** reduces the tracking errors the mount cannot see itself. On the Benro Polaris they have two parts:
+*   **Slow drift:** the alignment and pointing model are never perfect, so the target drifts slowly away in RA and Dec, at a rate that changes gradually across the sky and through the night.
+*   **Worm gear error:** each motor drives its axis through a worm gear whose small irregularities make the pointing wobble by about **30-150 arc seconds**, repeating every **6 degrees** of that motor's rotation. How often that is in time depends on how fast the motor turns at the current pose: every few minutes for a fast motor, hours for a slow one.
 
-Without correction, these mechanical oscillations lead to irregular star shapes and trails, severely limiting effective exposure lengths. PEC solves this by "learning" these repeating patterns and applying proactive, fine-grained corrections every **200ms** to ensure smooth sidereal tracking.
+Without correction, both lead to irregular star shapes and trails, and limit exposure lengths. The driver corrects them in two layers, both applied every **200ms**: the **worm gear correction** (section VI), a fixed correction measured once per mount, and **PEC**, which learns the drift that is left from your guiding.
 
 #### **II. Implementation: Dual Guiding Support**
 Unlike simpler implementations, the Alpaca Driver’s PEC is layered on top of auto-guiding corrections and **supports both primary guiding techniques**:
 *   **Pulse Guiding:** PEC monitors corrections sent from external applications like **PHD2**.
 *   **Sync Guiding:** PEC learns from the residuals generated during periodic **plate-solve syncs**.
 
-As corrections are received, PEC develops a **recursive least squares model** to estimate the current instantaneous drift rates for both RA and Dec. This allows the system to anticipate mechanical movement and counteract it before the error becomes visible in your image.
+As corrections are received, PEC learns the current drift rate for both RA and Dec, smoothed over about 7.5 minutes (an exponential moving average, `pec_tau_sec`). This allows the system to anticipate the drift and counteract it before the error becomes visible in your image.
 
 #### **III. The Predictive Model and Convergence**
 To ensure high-fidelity tracking, the PEC system filters incoming data and only applies corrections once the model has mathematically converged. 
-*   **Filtering Logic:** The system ignores any corrections larger than **10 arc minutes** to prevent the model from being "poisoned" by bad data, and it employs a "forget horizon" of **35 minutes** to keep the model relevant to the current gear cycle.
+*   **Filtering Logic:** The system ignores any corrections larger than **10 arc minutes** to prevent the model from being "poisoned" by bad data, and its smoothing (about **7.5 minutes**) keeps the rate current as the drift changes.
 *   **Convergence Requirements:** The model will only begin applying corrections to sidereal tracking once it meets three strict statistical criteria:
     1.  **Observations:** A minimum of **3 corrections** received.
     2.  **Accuracy:** A root mean square error (RMSE) below **6 arc minutes**.
@@ -341,10 +343,10 @@ While software like PHD2 offers its own "Predictive PEC," the Alpaca Driver's im
     *   **Warmup/Adapt:** Insufficient or high-variance data.
     *   **RMSE/Poor:** High model error or low quality.
     *   **Active (Numeric Value):** When the model is being applied, it displays a value between 0 and 1, where values closer to 1 indicate a near-perfect fit.
-4. **PEC Analysis:** The utilities folder includes a Jupyter Notebook to analyse a log file's PEC data. This can show the accumulated drift error and how well the PEC fitted it. It also shows the Instantaneous PEC Rate and its various components, the R2 quality and rmse plots.
+4. **PEC Analysis:** `utility/analyse_tracking.ipynb` analyses a session's log: who corrected the drift (the guider, sync guiding, PEC or the worm gear correction), the drift rate against PEC's rate, and PEC's R² and rmse.
 ![PEC Corrections](images/abp-pec-analysis.png)
 
-#### **VI. Worm Gear Correction (experimental, off by default)**
+#### **VI. Worm Gear Correction**
 Each of the Polaris's three motors drives its axis through a worm gear. Small irregularities in that gear make the
 pointing wobble slightly as the motor turns, by about +/-50-65 arc seconds, and the wobble repeats every **6 degrees**
 of that axis' rotation. The mount measures its position at the motor, before the gear, so it cannot see this wobble
@@ -382,14 +384,40 @@ The full details of each test are kept in `worm_profile.json` in the driver's da
 **3. Approve it.** Press **Approve** on the row to store that motor's correction. Pressing it again rejects the test
 and restores the previous correction.
 
-**4. Turn the correction on** with `pec_worm_ff = true` in `config.toml`, before aligning and slewing for the night.
-Turning it on or off while guiding shifts the pointing once, by up to the wobble's size.
+**4. It applies straight away.** The worm gear correction is applied whenever there is a profile with an approved
+motor, so approve before aligning and slewing for the night: approving or rejecting while guiding shifts the pointing
+once, by up to the wobble's size. To run without it, reject the rows, or move `worm_profile.json` aside.
 
 **5. Check it.** Compare guiding (PHD2 RMS, or the size of the sync guide corrections) on the same target with the
 correction on and off. With it on, the slow, regular wave in the guide corrections should be gone.
 
 #### **VII. Important Considerations**
 PEC is designed exclusively for **sidereal tracking** of Deep Sky Objects (DSOs) and stars. It is not suitable for tracking Lunar, Solar, or custom orbital targets. Additionally, while PEC is a powerful tool for fine mechanical correction, it cannot compensate for gross mechanical failures such as cable drag, tripod instability, or wind effects.
+
+#### **VIII. PEC Logging (for analysis and development)**
+With `log_pec` on, the driver logs a `PECCONFIG` line once per session (`tau_sec`, `min_dt_sec`) and a `PECLOG` line at
+every guide update: a Python dict (read it with `ast.literal_eval`), paired fields as `[ra, dec]`.
+
+*   `inhibit` is each axis's status (`TOO_FEW_OBS` → `LOW_R2`/`HIGH_RMSE` → `VALID`); `r2` and `rmse` (arcmin) are the
+    fit quality that drives it. `pec_active` is true when *either* axis is `VALID`; whether a given axis is corrected
+    is its own `inhibit`.
+*   `fit_rate` is PEC's drift rate as of this update, `applied_rate` the rate last applied to the motors (arcmin/hr).
+    `applied_rate` reads zero on the entry where an axis first becomes `VALID`: it is applied from the next tick.
+*   `resid` is this update's guide correction (arcmin): the one that should shrink as PEC improves. `pec_accum` is the
+    correction PEC applied since the previous entry, and `total_accum` is `resid` + `pec_accum` summed since PEC was
+    last reset (a goto, rotate, jog, tracking off or settings change): the drift PEC would have left, so it does not
+    shrink as PEC improves.
+*   `wff` is the worm gear correction currently applied, split along RA and Dec (arcmin, the same convention). The
+    guide corrections no longer contain what it corrects, so the mount's drift is `total_accum + wff`.
+*   `theta_raw` is the motor angles [M1, M2, M3] from 518, whose M1 includes the session's compass / Single Point
+    Alignment heading; `zeta` the MCU's own motor angles from the last 517, `zeta_offset` = `theta_raw - zeta` at that
+    517 and `zeta_age` its age (s). `theta_raw - zeta_offset` is each motor's angle on the same reference every
+    session: what per-motor worm analysis uses.
+*   `az`/`alt`/`roll` are the pose (degrees), and `age_518` the seconds since the last 518 (large: the entry landed in
+    a telemetry gap).
+
+To start a test from a clean PEC state, toggle Tracking off and on (it resets PEC and the sync guide correction)
+rather than restarting the driver, which restores the saved sync guide correction from `data/sync_points.json`.
 
 > For exactly how a sync guide residual reaches `q_syncguide_B`, how a PID tick evaluates the PEC rate, and how the next `518` message folds that correction into `theta_pv`, see [§4. Kinemtaics Flows](#4-kinemtaics-flows), sections 4.4–4.6.
 
@@ -837,7 +865,7 @@ theta_state        KF-smoothed motor angles
 motorQ_state       = theta_to_q(*theta_state)                  raw C→B quaternion, uncorrected
     │
     ▼  SyncManager.baseQ_to_topoQ(motorQ_state, theta=theta_state)
-    │     motorQ_C2B_pv = corrQ_WFF · motorQ_state                     [WFF]  ← worm feed-forward (pec_worm_ff)
+    │     motorQ_C2B_pv = corrQ_WFF · motorQ_state                     [WFF]  ← worm feed-forward (when there is a worm gear profile)
     │     motorQ_C2B_pv = corrQ_RBC · motorQ_C2B_pv                    [MAC]
     │     motorQ_C2B_pv = q_syncguide_B · motorQ_C2B_pv                [SGC]  ← sync guide + PEC land here
     │     motorQ_C2B_pv = q_pulseguide_B · motorQ_C2B_pv               [PGC]

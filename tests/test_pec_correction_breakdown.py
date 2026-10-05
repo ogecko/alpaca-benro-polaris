@@ -31,7 +31,7 @@ def peclog_df(n_s=3600, dt=10.0, reset_at=None):
         rows.append(dict(timestamp=t0 + pd.Timedelta(seconds=float(t)), t_sec=float(t), n=n,
                          resid_1=np.nan if r1 is None else r1, resid_2=np.nan if r2 is None else r2,
                          pec_accum_1=pec1, pec_accum_2=pec2, total_accum_1=acc[0], total_accum_2=acc[1],
-                         fit_rate_1=12.0, fit_rate_2=0.0, ra_model_1=9.0, dec_model_1=0.0,
+                         fit_rate_1=12.0, fit_rate_2=0.0,
                          applied_rate_1=12.0, applied_rate_2=0.0, inhibit_1='VALID', inhibit_2='LOW_R2'))
         n += 1
     return pd.DataFrame(rows)
@@ -69,12 +69,10 @@ def test_rates_sum_to_the_drift_rate():
     assert np.allclose(x['drift_rate'], x['pulse_guide_rate'] + x['sync_guide_rate'] + x['pec_applied_rate'], atol=1e-9)
 
 
-def test_pec_rate_terms_are_signed_contributions():
+def test_pec_model_rate_and_active_per_axis():
     b = correction_breakdown(peclog_df())
     x = b['ra']
     assert x['pec_model_rate'].iloc[-1] == pytest.approx(12.0)
-    assert x['pec_steady_term'].iloc[-1] == pytest.approx(9.0)
-    assert x['pec_harmonic_term'].iloc[-1] == pytest.approx(3.0)        # model rate - steady term
     assert bool(x['pec_active'].iloc[-1]) and not bool(b['dec']['pec_active'].iloc[-1])
 
 

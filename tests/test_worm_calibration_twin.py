@@ -19,7 +19,7 @@ from control_worm import WormCalibration, fit_worm_calibration
 
 POSE = (180.0, 50.0, 0.0)
 CONFIG = {"coordinated_speed_control": True, "advanced_sync_guiding": True, "advanced_alignment": True,
-          "advanced_pec": True, "pec_worm_ff": False}
+          "advanced_pec": True}
 
 
 def true_azalt(tw, worm):
@@ -97,7 +97,7 @@ def test_step_motor_target_moves_only_that_motor(monkeypatch):
 
 
 def test_worm_test_pauses_pec_and_the_worm_feed_forward(monkeypatch):
-    tw = Twin(monkeypatch, config={**CONFIG, "pec_worm_ff": True})
+    tw = Twin(monkeypatch, config=CONFIG)
     tw.place(azaltroll_to_theta_ik(*POSE))
     sm = tw.polaris._sm
     from control_worm import WormFeedForward

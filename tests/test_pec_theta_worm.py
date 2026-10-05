@@ -19,7 +19,7 @@ import pytest
 from pe_analysis import (WORM_THETA, worm_features, sky_weights, motor_errors, fit_worm, WormProfile,
                          replay_worm_pec_rate, causal_worm_pec_rate, replay_pec_rate, rate_scores, PecModel, Segment)
 
-EMA = PecModel('EMA 7.5m', 'dema', 0, 450, k=0.0)          # plain EMA (same as PecAxis EMA, faster to replay)
+EMA = PecModel('EMA 7.5m', 450)
 H = (1, 2)
 LAT = -33.65
 TRUE = np.zeros(3 * 2 * len(H))

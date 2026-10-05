@@ -263,6 +263,31 @@ from control import CalibrationManager
 from control_worm import gear_row_fields, fit_worm_samples, WormCalibration as _WC
 
 
+def test_every_row_stays_in_the_last_150_messages_through_a_worm_gear_test(monkeypatch):
+    """Pilot builds the Speed Calibration table from the last 150 'cm' messages (driver backlog and its own store), so
+    every update publishes the whole table: a worm gear test's ~50 progress updates must not push the other rows out
+    (M3-WORM-GEAR went missing after the M1 and M2 tests when only the changed row was sent)."""
+    import logging
+    sent = []
+    handler = logging.Handler()
+    handler.emit = lambda record: sent.append(record.msg['name'])
+    logger = logging.getLogger('cm')
+    logger.addHandler(handler)
+    monkeypatch.setattr(logger, 'level', logging.INFO)
+    try:
+        cm = CalibrationManager(False)
+        cm.createTestDataFromBaseline()
+        cm.liveInstance = True                                  # publish on updates (not saved: no results added)
+        cm.publishTestData()
+        for axis in (0, 1):
+            for done in range(50):
+                cm.setWormGearProgress(axis, done, 49)
+    finally:
+        logger.removeHandler(handler)
+    assert set(sent[-150:]) == set(cm.test_data)                # every row, M3-WORM-GEAR included
+    assert sent[-len(cm.test_data):] == list(cm.test_data)      # in table order
+
+
 def test_gear_rows_exist_alongside_the_speed_rows():
     cm = CalibrationManager(False)
     cm.createTestDataFromBaseline()

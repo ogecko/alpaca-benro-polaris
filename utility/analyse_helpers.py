@@ -224,15 +224,14 @@ def find_site_location(log_filenames, log_dir='.'):
 
 
 def parse_pecconfig(line):
-    """Extract the PECCONFIG line emitted once per session, if present."""
-    m = re.search(
-        r'PECCONFIG mode,(\w+),n_harmonics,(\d+),T,([\d.]+),tau_sec,([\d.]+),min_dt_sec,([\d.]+)',
-        line
-    )
+    """The PECCONFIG line emitted once per session: {'tau', 'min_dt'} (seconds), or None. Logs from before v2.2 Beta 7
+    also name the model ('mode' rls/ema, harmonics, period); RLS has since been removed, so only EMA sessions replay
+    as they ran."""
+    m = re.search(r'PECCONFIG (?:mode,(\w+),n_harmonics,\d+,T,[\d.]+,)?tau_sec,([\d.]+),min_dt_sec,([\d.]+)', line)
     if not m:
         return None
-    mode, H, T, tau, min_dt = m.groups()
-    return dict(mode=mode, H=int(H), T=float(T), tau=float(tau), min_dt=float(min_dt))
+    mode, tau, min_dt = m.groups()
+    return dict(mode=mode or 'ema', tau=float(tau), min_dt=float(min_dt))
 
 
 def _finalize_log_df(rows):
@@ -1776,9 +1775,6 @@ def correction_breakdown(df, rate_half_window_s=300.0):
                      nights the guide corrections lack what it corrected, so mount drift adds it back (0 when off)
       *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min; drift_rate = sum of the others
       pec_model_rate   = the rate the driver's PEC model gave (fit_rate), arcsec/min (= arcmin/hr)
-      pec_steady_term  = its steady-drift (DC) part (ra_model[0] / dec_model[0])
-      pec_harmonic_term = pec_model_rate - pec_steady_term: the signed contribution of the harmonics at that moment
-                          (0 for EMA, which has no harmonics)
       pec_applied_logged_rate = the rate PEC actually applied (0 while inhibited); pec_active = inhibit == VALID
     A sync-guide row carries both axes' residuals, a pulse-guide row only one; pec_accum is counted only on that
     axis's own rows (it is logged on every row but folded into the model only when that axis is ingested).
@@ -1788,7 +1784,7 @@ def correction_breakdown(df, rate_half_window_s=300.0):
     is_sync = d['resid_1'].notna() & d['resid_2'].notna()
     resets = d.loc[np.r_[False, np.diff(d['n'].values) < 0], 'timestamp'].reset_index(drop=True)
     out = {'resets': resets}
-    for ax, i, model_col in (('ra', 1, 'ra_model_1'), ('dec', 2, 'dec_model_1')):
+    for ax, i in (('ra', 1), ('dec', 2)):
         own = d[f'resid_{i}'].notna()
         x = d.loc[own, ['timestamp', 't_sec']].copy()
         resid = d.loc[own, f'resid_{i}'] * 60
@@ -1807,8 +1803,6 @@ def correction_breakdown(df, rate_half_window_s=300.0):
             name = 'drift_rate' if col == 'mount_drift' else f'{col}_rate'
             x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s)
         x['pec_model_rate'] = d.loc[own, f'fit_rate_{i}'].values if f'fit_rate_{i}' in d else np.nan
-        x['pec_steady_term'] = d.loc[own, model_col].values if model_col in d else x['pec_model_rate']
-        x['pec_harmonic_term'] = x['pec_model_rate'] - x['pec_steady_term']
         x['pec_applied_logged_rate'] = d.loc[own, f'applied_rate_{i}'].values if f'applied_rate_{i}' in d else np.nan
         x['pec_active'] = (d.loc[own, f'inhibit_{i}'] == 'VALID').values if f'inhibit_{i}' in d else True
         out[ax] = x.reset_index(drop=True)

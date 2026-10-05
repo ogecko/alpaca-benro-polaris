@@ -267,7 +267,7 @@ def attach_publisher_to_logger(topic: str, level=logging.INFO):
 # ── Server entry point ────────────────────────────────────────────────────────
 
 async def alpaca_socket_httpd(logger, lifecycle: LifecycleController, polaris):
-    polaris._cm.logTestData(polaris._cm.test_data.keys())
+    polaris._cm.publishTestData()
     socket_server = None
     try:
         PublishLogTopic.start_senders()
