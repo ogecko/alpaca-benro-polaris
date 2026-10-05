@@ -22,7 +22,7 @@ from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reacha
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
-from control_worm import WormMixin
+from control_worm import WormMixin, PROFILE_TEST
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -228,63 +228,55 @@ class CalibrationManager:
         self.test_data = {}
         self.calibration_data = {}
         self.interpolator_data = {0:{}, 1:{}, 2:{}}
-        self.on_worm_gear_approval = None   # fn(axis, approved) -> bool: apply/revert an M#-WORM-GEAR result (Polaris)
+        self.on_worm_profile_approval = None   # fn(approved) -> bool: apply/revert the pooled worm profile (Polaris)
         if self.liveInstance:
             self.initialiseCalibrationData()
 
     def initialiseCalibrationData(self):
         if not self.loadTestDataFromFile():
             self.createTestDataFromBaseline()
-        self.ensureWormGearRows()
+        self.ensureWormProfileRow()
         self.updateCalibrationAndInterpolators()
 
-    # ── M#-WORM-GEAR rows: worm gear calibration tests (control_worm), not speeds ──────────────
+    # ── the worm profile row: the worm profile test (control_worm), not a speed ──────────────────
     @staticmethod
-    def wormGearName(axis):
-        return f'M{axis+1}-WORM-GEAR'
+    def isWormProfile(testName):
+        return testName == PROFILE_TEST
 
-    @staticmethod
-    def isWormGear(testName):
-        return str(testName).endswith('-WORM-GEAR')
+    def ensureWormProfileRow(self):
+        """Add the worm profile row (on M1) if missing and put it first (top of the Speed Calibration table); drop the
+        per-motor M#-WORM-GEAR rows of earlier versions."""
+        row = self.test_data.get(PROFILE_TEST) or dict(
+            name=PROFILE_TEST, axis=0, raw=0, ascom=0.0, dps=0.0,
+            test_result='', test_change='', test_stdev='', test_status='UNTESTED')
+        rest = {k: v for k, v in self.test_data.items() if k != PROFILE_TEST and not str(k).endswith('-WORM-GEAR')}
+        self.test_data = {PROFILE_TEST: row, **rest}
 
-    def ensureWormGearRows(self):
-        """Add the M#-WORM-GEAR rows if missing, and put them first (top of the Speed Calibration table)."""
-        gear = {}
-        for axis in range(3):
-            name = self.wormGearName(axis)
-            gear[name] = self.test_data.get(name) or dict(
-                name=name, axis=axis, raw=0, ascom=0.0, dps=0.0,
-                test_result='', test_change='', test_stdev='', test_status='UNTESTED')
-        self.test_data = {**gear, **{k: v for k, v in self.test_data.items() if k not in gear}}
-
-    def pendingWormGearTest(self, axis, testNameList):
-        """True (and the row PENDING) if this axis's worm gear row is among the selected tests -- never for 'all'."""
-        name = self.wormGearName(axis)
-        if not testNameList or name not in testNameList or name not in self.test_data:
+    def pendingWormProfileTest(self, testNameList):
+        """True (and the row PENDING) if the worm profile row is among the selected tests -- never for 'all'."""
+        if not testNameList or PROFILE_TEST not in testNameList or PROFILE_TEST not in self.test_data:
             return False
-        self.test_data[name].update(test_status='PENDING', test_result='', test_change='', test_stdev='')
+        self.test_data[PROFILE_TEST].update(test_status='PENDING', test_result='', test_change='', test_stdev='')
         if self.liveInstance:
             self.publishTestData()
         return True
 
-    def setWormGearProgress(self, axis, done, total):
-        name = self.wormGearName(axis)
-        self.test_data[name]['test_status'] = f'PENDING {done}/{total}'
+    def setWormProfileProgress(self, done, total):
+        self.test_data[PROFILE_TEST]['test_status'] = f'PENDING {done}/{total}'
         if self.liveInstance:
             self.publishTestData()
 
-    def addWormGearResult(self, axis, fields, status):
-        name = self.wormGearName(axis)
-        self.test_data[name].update(fields, test_status=status)
+    def addWormProfileResult(self, fields, status):
+        self.test_data[PROFILE_TEST].update(fields, test_status=status)
         if self.liveInstance:
             self.publishTestData()
             self.saveTestDataToFile()
 
-    def _wormGearApproval(self, testName, approved):
-        """Apply (approved) or revert a worm gear result through on_worm_gear_approval. False: leave the status."""
-        if self.on_worm_gear_approval is None:
+    def _wormProfileApproval(self, approved):
+        """Apply (approved) or revert the pooled worm profile through on_worm_profile_approval. False: leave the status."""
+        if self.on_worm_profile_approval is None:
             return True
-        return bool(self.on_worm_gear_approval(self.test_data[testName]['axis'], approved))
+        return bool(self.on_worm_profile_approval(approved))
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -299,7 +291,7 @@ class CalibrationManager:
                     self.test_data[name] = dict(
                         name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
                         test_result= '', test_change= '', test_stdev= '', test_status= 'UNTESTED')
-        self.ensureWormGearRows()
+        self.ensureWormProfileRow()
 
     def addTestResult(self, axis, raw, result, stdev, status):
         cmd = 'SLOW' if raw<=5 else 'FAST'
@@ -344,7 +336,7 @@ class CalibrationManager:
         tests=[]
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
-            if testData and testData.get('axis')==axis and not self.isWormGear(testName):
+            if testData and testData.get('axis')==axis and not self.isWormProfile(testName):
                 self.test_data[testName]['test_status'] = 'PENDING'
                 self.test_data[testName]['test_result'] = ''
                 self.test_data[testName]['test_change'] = ''
@@ -362,7 +354,7 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
             if status in ['COMPLETED', 'REJECTED']:
-                if self.isWormGear(testName) and not self._wormGearApproval(testName, True):
+                if self.isWormProfile(testName) and not self._wormProfileApproval(True):
                     continue
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
@@ -376,7 +368,7 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
             if status in ['COMPLETED', 'APPROVED']:
-                if self.isWormGear(testName) and status == 'APPROVED' and not self._wormGearApproval(testName, False):
+                if self.isWormProfile(testName) and status == 'APPROVED' and not self._wormProfileApproval(False):
                     continue
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
@@ -391,11 +383,11 @@ class CalibrationManager:
             if testData and testData.get('axis')==axis:
                 status = testData.get('test_status','')
                 if status in ['COMPLETED', 'REJECTED']:
-                    if self.isWormGear(testName) and not self._wormGearApproval(testName, True):
+                    if self.isWormProfile(testName) and not self._wormProfileApproval(True):
                         continue
                     self.test_data[testName]['test_status'] = 'APPROVED'
                 elif status in ['APPROVED']:
-                    if self.isWormGear(testName) and not self._wormGearApproval(testName, False):
+                    if self.isWormProfile(testName) and not self._wormProfileApproval(False):
                         continue
                     self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
@@ -420,7 +412,7 @@ class CalibrationManager:
     def generateCalibrationFromBaselineAndTestData(self):
         self.calibration_data = copy.deepcopy(self.baseline_data)
         for testName in self.test_data.keys():
-            if self.test_data[testName].get('test_status','')=='APPROVED' and not self.isWormGear(testName):
+            if self.test_data[testName].get('test_status','')=='APPROVED' and not self.isWormProfile(testName):
                 axis = self.test_data[testName].get('axis',0)
                 raw = self.test_data[testName].get('raw',0)
                 dps = float(self.test_data[testName].get('test_result',0))
@@ -1235,7 +1227,7 @@ class PID_Controller():
         self.set_pid_mode('TRACK')
     
     def worm_test_active(self):
-        """An M#-WORM-GEAR calibration test is running (control_worm): PEC paused, syncs recorded not applied."""
+        """The worm profile test is running (control_worm): PEC paused, syncs recorded not applied."""
         return self._worm_test() is not None
 
     def _worm_test(self):
@@ -1243,18 +1235,17 @@ class PID_Controller():
         return getattr(getattr(self.polaris, '_sm', None), 'worm_test', None)
 
     def interrupt_worm_test(self, reason):
-        """Anything but the worm gear test's own steps moving the mount ends that test (control_worm)."""
+        """Anything but the worm profile test's own steps moving the mount ends that test (control_worm)."""
         test = self._worm_test()
         if test is not None and not test.aborted:
             test.abort(reason)
-            self.logger.warning(f"WORM GEAR TEST M{test.axis+1}: stopped by {reason}")
+            self.logger.warning(f"WORM PROFILE TEST: stopped by {reason}")
 
-    def step_motor_target(self, axis, step_deg):
-        """Move the tracked target so one motor turns step_deg and the others stay put (M#-WORM-GEAR calibration): the
-        target's RA/Dec/PA is replaced by the pose of the current motor target with that motor stepped -- as orbital
+    def step_motor_targets(self, step_deg):
+        """Move the tracked target so each motor turns by step_deg (deg, per motor) (the worm profile test): the
+        target's RA/Dec/PA is replaced by the pose of the current motor target with the motors stepped -- as orbital
         tracking replaces delta_sp -- and sidereal tracking then holds it."""
-        theta = np.array(self.theta_ref, dtype=float)
-        theta[axis] += step_deg
+        theta = np.array(self.theta_ref, dtype=float) + np.asarray(step_deg, dtype=float)
         alpha = np.array(q_to_azaltroll(self.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta))), dtype=float)
         self.reset_offsets()                       # theta_ref already includes any offsets
         self.alpha_sp = alpha
@@ -1925,8 +1916,8 @@ class PID_Controller():
                 if (np.max(np.abs(self.error_signal)) < 1.0 and np.max(np.abs(self.omega_op)) < 0.5) if settle_all else (abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10):
                     self.clear_theta_ref_cache()
         test = self._worm_test()
-        if test is not None:                               # M#-WORM-GEAR test: has the step settled?
-            test.track_settle(self.error_signal[test.axis] * 3600.0)
+        if test is not None:                               # worm profile test: has the step settled (every motor)?
+            test.track_settle(float(np.max(np.abs(self.error_signal))) * 3600.0)
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
         self.is_axis_deviating = np.abs(self.error_signal) > tollerance

@@ -168,8 +168,8 @@ const rows = computed<TableRow[]>(() => {
   for (const test of testdata) {
     consolidated.set(test.name, test)
   }
-  // worm gear test (M#-WORM-GEAR) first, then the speed tests in the order the driver sent them
-  const isGear = (r: TableRow) => r.name.endsWith('-WORM-GEAR')
+  // the worm profile test first, then the speed tests in the order the driver sent them
+  const isGear = (r: TableRow) => r.name.endsWith('-WORM-PROFILE')
   const all = Array.from(consolidated.values())
   return [...all.filter(isGear), ...all.filter(r => !isGear(r))]
 })

@@ -25,7 +25,7 @@
 #                 recognises a guider's calibration (PHD2, CCDciel) in the pulses, so PEC doesn't learn its large
 #                 deliberate moves as drift; what was learnt during it is rolled back (pec_ignore_guider_calibration)
 #
-# The worm gear correction (applied whenever there is a worm gear profile, from the WORM-GEAR tests) is a separate,
+# The worm gear correction (applied whenever there is a worm gear profile, from the worm profile test) is a separate,
 # fixed correction: see control_worm.py.
 # PEC keeps working on whatever drift that leaves.
 # -----------------------------------------------------------------------------

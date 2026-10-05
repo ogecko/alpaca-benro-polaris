@@ -1699,9 +1699,9 @@ class action:
             logger.info(f'SpeedTestStart {parameters}')
             axis = parameters.get('axis', 0)
             testNames = parameters.get('testNames', -1)
-            if polaris._cm.pendingWormGearTest(axis, testNames):
-                # M#-WORM-GEAR selected: run the worm gear test only (it holds the pointing, the speed tests don't)
-                lifecycle.create_task(polaris.worm_gear_test(axis), name="SpeedTest")
+            if polaris._cm.pendingWormProfileTest(testNames):
+                # worm profile row selected: run the worm profile test only (it holds the pointing, the speed tests don't)
+                lifecycle.create_task(polaris.worm_profile_test(), name="SpeedTest")
             else:
                 rates = polaris._cm.pendingTests(axis, testNames)
                 lifecycle.create_task(polaris.moveaxis_speed_test(axis, rates), name="SpeedTest")

@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# control_worm.py - worm gear periodic error: feed-forward and calibration tests
+# control_worm.py - worm gear periodic error: feed-forward and the worm profile test
 # -----------------------------------------------------------------------------
 #
 # Each motor's gear train after the motor has a periodic error the MCU can't see (a 6.0 deg worm, 60 teeth:
@@ -8,35 +8,35 @@
 #   WormFeedForward      the profile (per motor, per harmonic) and the base-frame correction it implies
 #   zeta_raw_offset      theta_raw (518) - zeta (517): MCU motor angles from 518 angles (PECLOG, the profile)
 #   WormMixin            SyncManager's worm methods: the feed-forward (WFF) in the forward kinematics, and recording
-#                        plate-solve syncs during an M#-WORM-GEAR calibration test
-#   WormCalibration      an M#-WORM-GEAR test's step schedule; fit_worm_calibration, store/apply/revert_calibration
+#                        plate-solve syncs during the worm profile test
+#   WormProfileTest      the M1-M2-M3-WORM-PROFILE test's schedule and the syncs it keeps
+#   fit_worm_profile     all three motors' worms from one or more tests (2-D joint fit)
+#   store_profile_test, apply_profile, revert_profile   the tests kept in the profile file, and the pooled profile
 #
-# M#-WORM-GEAR calibration tests (Speed Calibration page)
-# --------------------------------------------------
-# Measures one motor's worm from plate solves, instead of learning it from guided nights (utility/learn_worm.py):
-# the motor is stepped through its worm while sidereal tracking holds the sky, and each plate-solve sync is recorded
-# as that motor's angle error rather than applied.
+# The worm profile test (Speed Calibration page, M1 row)
+# -----------------------------------------------------
+# Measures all three motors' worms at once from plate solves. The tracked target is stepped so that each motor turns
+# its own schedule (POSITIONS: different step sizes and reversal points per motor, so their worm phases and their
+# backlash separate), while sidereal tracking holds the sky; each plate-solve sync is recorded, not applied.
 #
-# Stop and go, driven by the syncs: plate solving while the motor turns would smear the stars and turn the solve's
-# latency (unknown, 1-3 s jitter) into error at the motor's rate. So the motor steps step_deg, tracking holds, and the
-# test steps again at the next kept sync. The driver can't know when the solve's exposure started (Nina's exposure,
-# solve time and wait are its own), so it watches the step settle instead: once the motor has held within
-# SETTLE_ARCSEC of its target for SETTLE_HOLD_S, a sync is kept and the motor steps at once. A sync before that is
-# discarded ('moving'); so is a kept-looking one whose error jumps more than JUMP_ARCSEC from the last kept sample
-# (an exposure that caught the move: a Nina retry, a slow reversal) -- the sync after it was exposed after a settled
-# sync, so it is kept. Set Nina's wait between solves to at least the settle time the log shows (~10 s) and every
-# solve is kept: one solve per position. The positions sweep `turns` worm
-# turns forward and back, centred on where the mount was pointed (0 -> +half -> -half -> 0, so the field stays within
-# +/- 3 deg x turns of the chosen patch of sky): a slow drift in time (the other motors' worms as tracking turns them,
-# the alignment model) separates from the worm in angle, and the two directions show the backlash.
+# Stop and go, driven by the syncs: plate solving while the motors turn would smear the stars and turn the solve's
+# latency into error. So the motors step, tracking holds, and the test steps again at the next kept sync. The driver
+# can't know when the solve's exposure started, so it watches the step settle instead: once every motor has held
+# within SETTLE_ARCSEC of its target for SETTLE_HOLD_S, a sync is kept and the motors step at once. A sync before that
+# is discarded ('moving'); so is one whose error jumps more than JUMP_ARCSEC from the last kept sample (an exposure
+# that caught the move) -- the sync after it was exposed after a settled sync, so it is kept. With Nina's wait between
+# solves at least the settle time (~9-10 s), every solve is kept: one solve per position.
 #
-# Angles are the MCU's (517 zeta: theta_raw - zeta_raw_offset), which are the same every session; M1's 518 angle
-# carries each session's compass / SPA heading. A profile motor calibrated here is marked 'zeta' in the profile's
-# angle_reference and the feed-forward evaluates it on MCU angles.
+# Each sync gives the 2-D pointing error (solved minus predicted, in a tangent frame at the prediction) and each
+# motor's 2-D effect on the pointing there. fit_worm_profile fits every motor's worm (1st and 2nd harmonic) to that,
+# next to each motor's backlash and, per test, an offset, a drift in time and a trend across the pointing. Motors are
+# told apart by their different schedules and by the direction each moves the field: at Roll 0 M1 and M3 move it the
+# same way (they separate by about the roll angle), so the test first rotates to Roll +-ROLL_TARGET_DEG when |Roll| is
+# below ROLL_MIN_DEG, keeping Az/Alt, and back when it has finished -- see motor_separation().
 #
-# The result (fit, checks and samples) is stored in the profile file's 'calibration' section for review; approving
-# the test row applies that motor's coefficients to the profile, rejecting restores the previous ones. Every result
-# is also appended to 'calibration_history' (the last 15, all motors) to compare reruns at different pointings.
+# Angles are the MCU's (517 zeta: theta_raw - zeta_raw_offset), the same every session. Every test is kept in the
+# profile file's calibration_history (the last CALIBRATION_HISTORY, with their samples); approving the row applies
+# the profile pooled over the last POOL_TESTS completed tests, rejecting restores the previous one.
 # -----------------------------------------------------------------------------
 
 import datetime
@@ -56,7 +56,7 @@ WORM_PROFILE_PATH = DATA_DIR / 'worm_profile.json'   # the worm gear correction 
 # ── Worm feed-forward ─────────────────────────────────────────────────────────────────────────
 # Each motor's gear train after the motor has a periodic error: the true output angle = the MCU's motor angle + e_i,
 # where e_i(theta_i) = sum over harmonics h of a sin(h phi_i) + b cos(h phi_i), phi_i = 360 deg x theta_i / worm_theta.
-# The MCU only measures the motor shaft, so it never sees e. With a profile measured by the M#-WORM-GEAR tests (the
+# The MCU only measures the motor shaft, so it never sees e. With a profile measured by the worm profile test (the
 # worm repeats night to night on the MCU's angles), the driver builds its present value from theta + e instead of
 # theta -- the true pointing -- and the PID, alignment, guiding and PEC all work from that.
 
@@ -67,7 +67,7 @@ class WormFeedForward:
     coef: np.ndarray = None                   # (3, 2 x len(harmonics)) arcsec: per motor, per harmonic, sin then cos
     meta: dict = field(default_factory=dict)  # provenance: sessions learnt from, angle reference, date, ...
     angle_reference: dict = field(default_factory=dict)   # {'M1': 'zeta'}: that motor's coef are on MCU angles (517,
-                                                          # M#-WORM-GEAR test); otherwise on theta_raw (518)
+                                                          # the worm profile test); otherwise on theta_raw (518)
 
     def __post_init__(self):
         n = 2 * len(self.harmonics)
@@ -132,14 +132,14 @@ def zeta_raw_offset(theta_raw, zeta):
 
 
 class WormMixin:
-    """Worm methods of SyncManager (see control.SyncManager): the feed-forward and the M#-WORM-GEAR test's syncs."""
+    """Worm methods of SyncManager (see control.SyncManager): the feed-forward and the worm profile test's syncs."""
 
     def init_worm(self):
         """Create the worm state; called once from SyncManager.__init__."""
         self.corrQ_WFF = Quaternion()           # worm feed-forward: measured -> true pose, base frame (identity when off)
         self._worm_ff = None                    # WormFeedForward profile, loaded on first use
         self._worm_ff_path = None               # path it was loaded from (None: reload on next use)
-        self.worm_test = None                   # WormCalibration while an M#-WORM-GEAR test runs
+        self.worm_test = None                   # WormProfileTest while the worm profile test runs
 
     # ── worm feed-forward ────────────────────────────────────────────────────────────────────
     def worm_profile_path(self):
@@ -153,7 +153,7 @@ class WormMixin:
             self._worm_ff = WormFeedForward.load(full)
             if self._worm_ff is None:
                 self.logger.info(f"No worm gear profile at {full}: worm correction off (measure it with the Speed "
-                                 f"Calibration WORM-GEAR tests and approve them)")
+                                 f"Calibration {PROFILE_TEST} test and approve it)")
             else:
                 self.logger.info(f"Worm feed-forward profile loaded from {full}: worm {self._worm_ff.worm_theta:g} deg, "
                                  f"harmonics {list(self._worm_ff.harmonics)}, {self._worm_ff.meta.get('learnt_from', '')}")
@@ -181,94 +181,121 @@ class WormMixin:
         c = np.linalg.solve(np.column_stack(axes), np.asarray(q.axis) * q.degrees)
         return [round(float(c[0] * 60), 5), round(float(c[1] * 60), 5)]
 
-    # ── M#-WORM-GEAR calibration test ─────────────────────────────────────────────────────────────
+    # ── worm profile test ────────────────────────────────────────────────────────────────────
     def _boresight_T(self, theta):
         az, alt, _ = q_to_azaltroll(self.pvQ_to_topoQ(theta_to_q(*theta)))
         return np.asarray(azalt_to_vector(az, alt), float)
 
-    def motor_error_from_azalt(self, axis, theta, a_az, a_alt, eps_deg=0.01):
-        """The angle error (deg) of motor `axis` that best explains a plate solve at a_az/a_alt when the driver's present
-        value is the motor angles theta (theta_pv space): the solved pointing minus the present one, projected on the
-        direction that motor moves the boresight. Also returns that motor's sensitivity: boresight deg per motor deg
-        (near 0 = the motor barely moves the field, e.g. M3 close to the line of sight)."""
+    def pointing_jacobian(self, theta, eps_deg=0.01):
+        """At motor angles theta (theta_pv space): the predicted boresight (topocentric unit vector), two tangent axes
+        there (t1 horizontal, t2 up), and each motor's effect on the pointing along them (3 x 2, arcsec of sky per
+        arcsec of motor angle)."""
         theta = np.asarray(theta, float)
-        e = np.zeros(3)
-        e[axis] = eps_deg
-        s = (self._boresight_T(theta + e) - self._boresight_T(theta - e)) / (2 * eps_deg)   # rad per deg
-        dv = np.asarray(azalt_to_vector(a_az, a_alt), float) - self._boresight_T(theta)
-        ss = float(s @ s)
-        if ss < 1e-12:
-            return 0.0, 0.0
-        return float(s @ dv / ss), float(np.sqrt(ss) / np.radians(1.0))
+        b0 = self._boresight_T(theta)
+        t1 = np.cross([0.0, 0.0, 1.0], b0)
+        t1 /= max(np.linalg.norm(t1), 1e-12)
+        t2 = np.cross(b0, t1)
+        J = np.zeros((3, 2))
+        for m in range(3):
+            e = np.zeros(3)
+            e[m] = eps_deg
+            d = (self._boresight_T(theta + e) - self._boresight_T(theta - e)) / (2 * eps_deg) * (180.0 / np.pi)
+            J[m] = [d @ t1, d @ t2]
+        return b0, t1, t2, J
+
+    def motor_separation(self, theta):
+        """(angle between the directions M1 and M3 move the field, deg; each motor's sensitivity): near 0 deg (Roll 0)
+        their worms can't be told apart at this pose."""
+        _, _, _, J = self.pointing_jacobian(theta)
+        sens = np.linalg.norm(J, axis=1)
+        cos13 = abs(J[0] @ J[2]) / max(sens[0] * sens[2], 1e-12)
+        return float(np.degrees(np.arccos(min(1.0, cos13)))), [round(float(x), 3) for x in sens]
 
     def record_worm_sync(self, a_ra, a_dec, a_az, a_alt):
-        """A plate-solve sync while a worm calibration test runs: record it as the test motor's angle error (not applied
-        to any model) and step the motor when the test asks for it."""
+        """A plate-solve sync while the worm profile test runs: record it (not applied to any model) and step the motors
+        when the test asks for it."""
         test, p = self.worm_test, self.polaris
         pid = p._pid
-        axis = test.axis
         theta_pv = np.array(pid.theta_pv, float)
-        err_deg, sens = self.motor_error_from_azalt(axis, theta_pv, a_az, a_alt)
+        b0, t1, t2, J = self.pointing_jacobian(theta_pv)
+        dv = np.asarray(azalt_to_vector(a_az, a_alt), float) - b0
+        res = np.array([dv @ t1, dv @ t2]) * ARCSEC_PER_RAD
         theta_raw = np.array(p._theta_raw, float)
         offset = getattr(p, '_zeta_raw_offset', None)
-        angle = float(theta_raw[axis] - offset[axis]) if offset is not None else float(theta_raw[axis])
+        zeta = theta_raw - np.asarray(offset, float) if offset is not None else theta_raw
+        r5 = lambda v: [round(float(x), 5) for x in v]
         sample = {'t': round(time.monotonic(), 3), 'time': datetime.datetime.now().isoformat(timespec='milliseconds'),
-                  'angle': round(angle, 5), 'err_arcsec': round(err_deg * 3600.0, 2),
-                  'sensitivity': round(sens, 3), 'theta_raw': [round(float(x), 5) for x in theta_raw],
-                  'zeta_offset': offset, 'theta_pv': [round(float(x), 5) for x in theta_pv],
-                  'a_ra': a_ra, 'a_dec': a_dec, 'pv_ra': getattr(p, '_rightascension', None),
-                  'pv_dec': getattr(p, '_declination', None)}
+                  'zeta': r5(zeta), 'res': [round(float(x), 2) for x in res], 'J': [r5(row) for row in J],
+                  'theta_raw': r5(theta_raw), 'zeta_offset': offset, 'theta_pv': r5(theta_pv),
+                  'a_ra': a_ra, 'a_dec': a_dec, 'a_az': a_az, 'a_alt': a_alt}
         step = test.on_sync(sample)
         if self.logger:
-            fmt = lambda v: '[' + ', '.join(f'{x:.5f}' for x in v) + ']'
-            zeta = fmt(theta_raw - np.asarray(offset, float)) if offset is not None else 'None'
             if test.last_outcome == 'kept':
                 k = test.samples[-1]
                 timing = (f"settled {k['settle_s']} s after the step, " if k['settle_s'] is not None else '') + \
                          f"{k['since_settle_s']} s before this sync"
             elif test.last_outcome == 'moving':
-                timing = 'motor not settled: discarded'
+                timing = 'motors not settled: discarded'
             else:
                 timing = f'error jumped > {JUMP_ARCSEC:.0f}" from the last sample: discarded'
-            self.logger.info(f"WORM TEST M{axis + 1}: sync {test.last_outcome} at {angle:.3f} deg, error {err_deg * 3600:.1f}\" "
-                             f"(sensitivity {sens:.2f}), position {test.index}/{len(test.positions)}, {timing}, "
-                             f"solved ra {a_ra:.6f} h dec {a_dec:.5f} az {a_az:.5f} alt {a_alt:.5f}, "
-                             f"theta_raw {fmt(theta_raw)}, zeta {zeta}, theta_pv {fmt(theta_pv)}")
-        if step:
-            pid.step_motor_target(axis, step)
+            self.logger.info(f"WORM PROFILE TEST: sync {test.last_outcome}, error {res[0]:.1f}\" {res[1]:.1f}\", "
+                             f"position {test.index}/{len(test.positions)}, {timing}, solved ra {a_ra:.6f} h dec "
+                             f"{a_dec:.5f} az {a_az:.5f} alt {a_alt:.5f}, zeta {sample['zeta']}, theta_pv {sample['theta_pv']}")
+        if step is not None:
+            pid.step_motor_targets(step)
 
 
-# ── M#-WORM-GEAR calibration test ──────────────────────────────────────────────────────────────────
+# ── worm profile test ──────────────────────────────────────────────────────────────────────────────
+PROFILE_TEST = 'M1-M2-M3-WORM-PROFILE'
 MOTORS = ('M1', 'M2', 'M3')
-MIN_SAMPLES = 12              # fewer kept syncs: NO DATA
-MIN_TURNS = 1.5               # worm turns covered for a fit to count
-MIN_SIGNIFICANCE = 4.0        # amplitude / its standard error
-SETTLE_ARCSEC = 10.0          # a step has settled when the motor holds within this of its target ...
+ARCSEC_PER_RAD = 206264.806
+HARMONICS = (1, 2)
+MIN_POSITIONS = 16            # fewer kept positions (after the start): NO DATA
+MIN_SIGNIFICANCE = 4.0        # a motor's 1st harmonic amplitude / its standard error, for COMPLETED
+MIN_H2_SIGNIFICANCE = 3.0     # a 2nd harmonic is applied only when at least this significant
+MIN_SEPARATION_DEG = 10.0     # warn when M1 and M3 move the field within this angle (Roll ~0): their worms are less certain
+ROLL_MIN_DEG = 20.0           # the test first rotates to ROLL_TARGET_DEG when |Roll| is below this (M1 and M3 separate
+ROLL_TARGET_DEG = 25.0        # by about the roll angle), and back afterwards
+SETTLE_ARCSEC = 10.0          # a step has settled when every motor holds within this of its target ...
 SETTLE_HOLD_S = 1.0           # ... for this long
-JUMP_ARCSEC = 300.0           # error change from the last kept sample that means the exposure caught the 0.5 deg move
-CALIBRATION_HISTORY = 15      # test results kept in the profile's calibration_history (~5 per motor)
+JUMP_ARCSEC = 300.0           # 2-D error change from the last kept sample that means the exposure caught the move
+CALIBRATION_HISTORY = 15      # tests kept in the profile's calibration_history (with their samples)
+POOL_TESTS = 5                # the applied profile pools the last this many completed tests
 
 
-class WormCalibration:
-    """One M#-WORM-GEAR test: the step schedule, the step settling and the syncs it keeps."""
+def _legs(step_deg, pattern):
+    out, x = [0.0], 0.0
+    for sign, n in pattern:
+        for _ in range(n):
+            x += sign * step_deg
+            out.append(x)
+    return out
 
-    def __init__(self, axis, step_deg=0.5, turns=2.0, worm_theta=6.0, no_sync_timeout_s=60.0, now=None):
-        self.axis = axis
+
+# Motor offsets (deg) from the start at each of the 33 positions: each motor its own step and reversal points, so their
+# worm phases advance at different rates (36, 27, 22.5 deg a step) and their backlash (direction) patterns differ. The
+# steps avoid simple ratios between one motor's 1st harmonic and another's 2nd: with 0.75 and 0.375 deg steps, M3's
+# 2nd harmonic advanced exactly as fast as M1's 1st and, where M1 and M3 move the field the same way (Roll 0), the
+# two could not be told apart (worst-case 1st harmonic error 21" -> 7.5" with these steps, on synthetic data).
+POSITIONS = np.array([_legs(0.6, [(+1, 8), (-1, 16), (+1, 8)]),           # M1 +-4.8 deg, reverses at 8 and 24
+                      _legs(0.45, [(-1, 12), (+1, 20)]),                  # M2 -5.4 .. +3.6 deg, reverses at 12
+                      _legs(0.375, [(+1, 16), (-1, 16)])]).T              # M3 0 .. +6 deg, reverses at 16
+
+
+class WormProfileTest:
+    """The worm profile test: the step schedule (all motors), the step settling and the syncs it keeps."""
+
+    def __init__(self, positions=POSITIONS, worm_theta=6.0, no_sync_timeout_s=60.0, now=None):
+        self.positions = np.asarray(positions, float)
+        self.worm_theta = worm_theta
         self.no_sync_timeout_s = no_sync_timeout_s
         self.last_sync = time.monotonic() if now is None else now   # start, then the last sync (kept or discarded)
         self.abort_reason = None                   # why the test was cut short (goto, jog, pulse guide, no syncs ...)
-        self.step_deg = step_deg
-        self.worm_theta = worm_theta
-        n = int(round(turns * worm_theta / 2 / step_deg))
-        k = range(1, n + 1)
-        # motor offsets (deg) from the start, centred on it: 0 -> +half -> -half -> 0 (turns worm turns each way)
-        self.positions = ([0.0] + [i * step_deg for i in k] + [(n - i) * step_deg for i in range(1, 2 * n + 1)]
-                          + [(i - n) * step_deg for i in k])
         self.index = 0                             # position the mount is at (or moving to)
         self.samples = []
-        self.step_at = None                        # when the motor was told to step to this position (None: the start)
-        self.settled_at = None                     # when it settled there (None: still moving)
-        self._within_since = None                  # since when it has been within SETTLE_ARCSEC (not yet held long enough)
+        self.step_at = None                        # when the motors were told to step to this position (None: start)
+        self.settled_at = None                     # when they settled there (None: still moving)
+        self._within_since = None                  # since when every motor has been within SETTLE_ARCSEC
         self.clean_next = False                    # a sync arrived after settling: the next one's exposure is clean
         self.last_outcome = None                   # the last sync: 'kept', 'moving' or 'jump'
         self.discarded = {'moving': 0, 'jump': 0}
@@ -291,11 +318,12 @@ class WormCalibration:
         return now - self.last_sync > self.no_sync_timeout_s
 
     def direction(self, i):
-        return 0 if i == 0 else int(np.sign(self.positions[i] - self.positions[i - 1]))
+        """Each motor's direction of travel arriving at position i (+1, -1; 0 at the start)."""
+        return [0, 0, 0] if i == 0 else [int(x) for x in np.sign(self.positions[i] - self.positions[i - 1])]
 
     def track_settle(self, err_arcsec, now=None):
-        """The test motor's PID error (arcsec) each control tick: marks the position settled once it has held within
-        SETTLE_ARCSEC for SETTLE_HOLD_S (settled_at = when it got there)."""
+        """The largest of the motors' PID errors (arcsec) each control tick: marks the position settled once every
+        motor has held within SETTLE_ARCSEC for SETTLE_HOLD_S (settled_at = when they got there)."""
         if self.settled_at is not None or self.done or self.aborted:
             return
         now = time.monotonic() if now is None else now
@@ -310,21 +338,24 @@ class WormCalibration:
                 self.settle_times.append(round(self.settled_at - self.step_at, 2))
 
     def on_sync(self, sample, now=None):
-        """Record a sync (dict) at the current position. Returns the step (deg) to make now, or None (sync discarded
-        -- see last_outcome -- or the test is finished or aborted)."""
+        """Record a sync (dict with 'res', the 2-D error) at the current position. Returns the step (deg, per motor)
+        to make now, or None (sync discarded -- see last_outcome -- or the test is finished or aborted)."""
         if self.done or self.aborted:
             return None
         now = time.monotonic() if now is None else now
         self.last_sync = now
         if self.settled_at is None:
             return self._discard('moving')
-        err, last = sample.get('err_arcsec'), (self.samples[-1].get('err_arcsec') if self.samples else None)
-        if not self.clean_next and err is not None and last is not None and abs(err - last) > JUMP_ARCSEC:
+        res = sample.get('res')
+        last = self.samples[-1].get('res') if self.samples else None
+        if (not self.clean_next and res is not None and last is not None
+                and np.hypot(*(np.asarray(res) - np.asarray(last))) > JUMP_ARCSEC):
             self.clean_next = True
             return self._discard('jump')
         settle_s = None if self.step_at is None else round(self.settled_at - self.step_at, 2)
-        self.samples.append({**sample, 'position': self.positions[self.index], 'direction': self.direction(self.index),
-                             'settle_s': settle_s, 'since_settle_s': round(now - self.settled_at, 2)})
+        self.samples.append({**sample, 'offset': [round(float(x), 4) for x in self.positions[self.index]],
+                             'direction': self.direction(self.index), 'settle_s': settle_s,
+                             'since_settle_s': round(now - self.settled_at, 2)})
         self.last_outcome = 'kept'
         self.index += 1
         self.step_at, self.settled_at, self._within_since, self.clean_next = now, None, None, False
@@ -344,196 +375,165 @@ class WormCalibration:
                 'settle_max_s': round(float(np.max(st)), 1) if st else None, 'discarded': dict(self.discarded)}
 
 
-# ── calibration fit ───────────────────────────────────────────────────────────────────────────
-def _design(angle, t, direction, worm_theta, harmonics=(1,)):
-    phi = 2 * np.pi * angle / worm_theta
-    cols = [f(h * phi) for h in harmonics for f in (np.sin, np.cos)]
-    nw = len(cols)
-    cols += [(direction > 0).astype(float), (direction < 0).astype(float)]       # offset per direction (backlash)
-    ts = (t - t.mean()) / max(np.ptp(t), 1e-9)
-    xs = (angle - angle.mean()) / max(np.ptp(angle), 1e-9)
-    cols += [ts, ts ** 2, xs, xs ** 2]                                           # slow drift in time and in pointing
-    return np.column_stack(cols), nw
-
-
-def _lstsq(X, y):
-    beta, *_ = np.linalg.lstsq(X, y, rcond=None)
-    r = y - X @ beta
-    dof = max(len(y) - X.shape[1], 1)
-    return beta, r, float(r @ r) / dof
-
-
+# ── the fit ───────────────────────────────────────────────────────────────────────────────────
 def _phase(a, b):
     return float(np.degrees(np.arctan2(b, a)) % 360)
 
 
-def fit_worm_calibration(angle, err, t, direction, worm_theta=6.0):
-    """Fit the worm to a calibration sweep: err (arcsec, the motor's angle error) at MCU angles `angle` (deg), times t
-    (s) and directions (+1/-1; 0 = before the first step, left out) -- A sin(360 angle / worm_theta + phase) next to a
-    per-direction offset and a quadratic trend in time and in angle. Returns a dict: status, amplitude_arcsec,
-    phase_deg, coef [a, b] (a sin + b cos, the profile's first harmonic), checks."""
-    angle, err, t, direction = (np.asarray(x, float) for x in (angle, err, t, direction))
-    keep = direction != 0
-    angle, err, t, direction = angle[keep], err[keep], t[keep], direction[keep]
-    n = len(err)
-    turns = float(np.ptp(angle) / worm_theta) if n else 0.0
-    out = {'status': 'NO DATA', 'amplitude_arcsec': None, 'phase_deg': None, 'coef': None,
-           'checks': {'n': n, 'turns': round(turns, 2)}}
-    if n < MIN_SAMPLES:
+def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
+    """Every motor's worm from the samples of one or more worm profile tests (a list of sample lists). Each sample's
+    2-D error is fitted as sum over motors of J_m (the motor's effect on the pointing) x [its worm, a sin + b cos per
+    harmonic of 360 x zeta_m / worm_theta, + its backlash when moving forward], plus, per test, a 2-D offset, a
+    quadratic drift in time and a linear trend in each motor's offset (the pointing model across the field).
+    Returns a dict: status (COMPLETED / POOR FIT / NO DATA), motors {M#: amplitude, phase, se, coef (applied: a, b per
+    harmonic, a 2nd harmonic only when significant), h2_amplitude, h2_se, significance, backlash}, checks."""
+    tests = [[s for s in t if any(s.get('direction', [0, 0, 0]))] for t in tests]
+    tests = [t for t in tests if t]
+    n_pos = sum(len(t) for t in tests)
+    out = {'status': 'NO DATA', 'motors': {}, 'checks': {'positions': n_pos, 'tests': len(tests)}}
+    if not tests or max(len(t) for t in tests) < MIN_POSITIONS:
         return out
-
-    X, nw = _design(angle, t, direction, worm_theta)
-    beta, r, s2 = _lstsq(X, err)
+    nw = 3 * 2 * len(harmonics)
+    n_nuis = 2 + 4 + 6 + 3                      # per test: offset, time drift, pointing trend, backlash
+    rows, y = [], []
+    for k, t in enumerate(tests):
+        tt = np.array([s['t'] for s in t], float)
+        ts = (tt - tt.mean()) / max(np.ptp(tt), 1e-9)
+        off = np.array([s['offset'] for s in t], float)
+        offs = (off - off.mean(0)) / np.maximum(np.ptp(off, 0), 1e-9)
+        base = nw + n_nuis * k
+        for i, s in enumerate(t):
+            J = np.asarray(s['J'], float)
+            ph = 2 * np.pi * np.asarray(s['zeta'], float) / worm_theta
+            for a in range(2):
+                r = np.zeros(nw + n_nuis * len(tests))
+                for m in range(3):
+                    for j, h in enumerate(harmonics):
+                        c = (m * len(harmonics) + j) * 2
+                        r[c], r[c + 1] = J[m, a] * np.sin(h * ph[m]), J[m, a] * np.cos(h * ph[m])
+                r[base + a] = 1.0
+                r[base + 2 + 2 * a], r[base + 3 + 2 * a] = ts[i], ts[i] ** 2
+                for m in range(3):
+                    r[base + 6 + 2 * m + a] = offs[i, m]
+                    r[base + 12 + m] = J[m, a] * (s['direction'][m] > 0)
+                rows.append(r)
+                y.append(float(s['res'][a]))
+    X, y = np.array(rows), np.array(y)
+    beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+    r = y - X @ beta
+    dof = max(len(y) - X.shape[1], 1)
+    s2 = float(r @ r) / dof
     cov = s2 * np.linalg.pinv(X.T @ X)
-    a, b = beta[:2]
-    A = float(np.hypot(a, b))
-    se_A = float(np.sqrt(max((a * a * cov[0, 0] + b * b * cov[1, 1] + 2 * a * b * cov[0, 1]) / max(A * A, 1e-12),
-                             1e-12)))
-    checks = out['checks']
-    checks['rms_arcsec'] = round(float(np.sqrt(s2)), 2)
-    checks['significance'] = round(A / se_A, 1)
-    both = (direction > 0).any() and (direction < 0).any()
-    checks['backlash_arcsec'] = round(float(beta[nw] - beta[nw + 1]), 1) if both else None
-
-    # pure sine? the 2nd harmonic relative to the 1st
-    X2, _ = _design(angle, t, direction, worm_theta, harmonics=(1, 2))
-    b2, _, _ = _lstsq(X2, err)
-    checks['harmonic2_ratio'] = round(float(np.hypot(*b2[2:4]) / max(np.hypot(*b2[:2]), 1e-9)), 3)
-
-    # 6 deg? the worm period that fits best
-    periods = np.arange(5.0, 7.5 + 1e-9, 0.02)
-    rss = [_lstsq(_design(angle, t, direction, p)[0], err)[2] for p in periods]
-    checks['best_worm_theta'] = round(float(periods[int(np.argmin(rss))]), 2)
-
-    # the same worm both ways? phase from each direction on its own
-    for name, sel in (('phase_fwd_deg', direction > 0), ('phase_rev_deg', direction < 0)):
-        if sel.sum() >= MIN_SAMPLES // 2:
-            phi = 2 * np.pi * angle[sel] / worm_theta
-            ts = (t[sel] - t[sel].mean()) / max(np.ptp(t[sel]), 1e-9)
-            Xd = np.column_stack([np.sin(phi), np.cos(phi), np.ones(sel.sum()), ts, ts ** 2])
-            bd, _, _ = _lstsq(Xd, err[sel])
-            checks[name] = round(_phase(*bd[:2]), 1)
-        else:
-            checks[name] = None
-    if checks['phase_fwd_deg'] is not None and checks['phase_rev_deg'] is not None:
-        checks['phase_split_deg'] = round(float((checks['phase_rev_deg'] - checks['phase_fwd_deg'] + 180) % 360 - 180), 1)
-    else:
-        checks['phase_split_deg'] = None
-
-    good = turns >= MIN_TURNS and A / se_A >= MIN_SIGNIFICANCE
-    out.update(status='COMPLETED' if good else 'POOR FIT', amplitude_arcsec=round(A, 2), phase_deg=round(_phase(a, b), 1),
-               coef=[round(float(a), 4), round(float(b), 4)])
+    J = np.array([s['J'] for t in tests for s in t], float)
+    cos13 = np.abs(np.sum(J[:, 0] * J[:, 2], axis=1)) / np.maximum(np.linalg.norm(J[:, 0], axis=1) * np.linalg.norm(J[:, 2], axis=1), 1e-12)
+    sep = np.degrees(np.arccos(np.clip(cos13, 0.0, 1.0)))
+    good = True
+    for m in range(3):
+        cm = []
+        info = {}
+        for j, h in enumerate(harmonics):
+            c = (m * len(harmonics) + j) * 2
+            a, b = float(beta[c]), float(beta[c + 1])
+            A = float(np.hypot(a, b))
+            se = float(np.sqrt(max((cov[c, c] + cov[c + 1, c + 1]) / 2, 0.0)))
+            if h == 1:
+                info.update(amplitude=round(A, 2), phase=round(_phase(a, b), 1), se=round(se, 2),
+                            significance=round(A / max(se, 1e-9), 1))
+                good &= A / max(se, 1e-9) >= MIN_SIGNIFICANCE
+                cm += [a, b]
+            else:
+                info.update(h2_amplitude=round(A, 2), h2_phase=round(_phase(a, b), 1), h2_se=round(se, 2))
+                cm += [a, b] if A / max(se, 1e-9) >= MIN_H2_SIGNIFICANCE else [0.0, 0.0]
+        bl = [float(beta[nw + n_nuis * k + 12 + m]) for k in range(len(tests))]
+        info['backlash'] = round(float(np.mean(bl)), 1)
+        info['coef'] = [round(float(x), 4) for x in cm]
+        out['motors'][MOTORS[m]] = info
+    out['checks'].update(rms_arcsec=round(float(np.sqrt(s2)), 2),
+                         separation_deg=[round(float(sep.min()), 1), round(float(sep.max()), 1)])
+    out['status'] = 'COMPLETED' if good else 'POOR FIT'
     return out
 
 
-def fit_worm_samples(samples, worm_theta=6.0):
-    """fit_worm_calibration on a test's kept syncs (WormCalibration.samples), adding the mean sensitivity to the checks
-    and the samples themselves, ready for store_calibration."""
-    col = lambda k: [x[k] for x in samples]
-    r = fit_worm_calibration(col('angle'), col('err_arcsec'), col('t'), col('direction'), worm_theta=worm_theta)
-    sens = [x['sensitivity'] for x in samples if x.get('sensitivity') is not None]
-    r['checks']['sensitivity'] = round(float(np.mean(sens)), 2) if sens else None
-    r['samples'] = samples
-    return r
-
-
-# warnings on the Speed Calibration row: (check, test, label)
-GEAR_WARNINGS = (
-    ('harmonic2_ratio', lambda v, w: v > 0.3, lambda v, w: f'2nd harm {v:.2f}'),
-    ('best_worm_theta', lambda v, w: abs(v - w) > 0.2, lambda v, w: f'period {v:.2f}°'),
-    ('phase_split_deg', lambda v, w: abs(v) > 30, lambda v, w: f'fwd/rev {v:+.0f}°'),
-    ('sensitivity', lambda v, w: v < 0.3, lambda v, w: f'sensitivity {v:.2f}'),
-)
-
-
-def _profile_h1(ff, axis):
-    """(amplitude, phase) of a profile's first harmonic for one motor, or None if it has none."""
-    if ff is None or 1 not in ff.harmonics:
-        return None
-    i = 2 * list(ff.harmonics).index(1)
-    a, b = ff.coef[axis, i:i + 2]
-    return (float(np.hypot(a, b)), _phase(a, b)) if np.hypot(a, b) > 0 else None
-
-
-def gear_row_fields(result, current, axis, worm_theta=6.0):
-    """The M#-WORM-GEAR row's columns from a fit: dps (baseline) = the current profile's amplitude for that motor,
-    test_result = amplitude @ phase, test_change = against the current profile (or 'new') plus any failed check,
-    test_stdev = residual rms and kept syncs. `current`: the WormFeedForward in use before this test (or None)."""
-    checks = result.get('checks', {})
-    n = checks.get('n', 0)
-    now = _profile_h1(current, axis)
-    fields = {'dps': round(now[0], 2) if now else 0.0, 'test_result': '', 'test_change': '', 'test_stdev': f'n{n}'}
-    A, p = result.get('amplitude_arcsec'), result.get('phase_deg')
-    if A is None:
+def profile_row_fields(latest, pooled, current):
+    """The worm profile row's columns: test_result = the pooled profile per motor (amplitude @ phase), test_change =
+    the latest test and what applying the pooled profile would change, test_stdev = residual rms and positions.
+    `current`: the WormFeedForward in use (or None)."""
+    def h1(info):
+        return f'{info["amplitude"]:.0f}"@{info["phase"]:.0f}' if info else '-'
+    res = pooled if pooled.get('motors') else latest
+    fields = {'dps': 0.0, 'test_result': ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
+              'test_change': '', 'test_stdev': ''}
+    if not latest.get('motors'):
         return fields
-    fields['test_result'] = f'{A:.1f}" @ {p:.1f}°'
-    change = 'new' if now is None else f'{A - now[0]:+.1f}" / {(p - now[1] + 180) % 360 - 180:+.1f}°'
-    warn = [label(checks[k], worm_theta) for k, bad, label in GEAR_WARNINGS
-            if checks.get(k) is not None and bad(checks[k], worm_theta)]
-    fields['test_change'] = change + (' ⚠ ' + ', '.join(warn) if warn else '')
-    fields['test_stdev'] = f'{checks.get("rms_arcsec", 0):.1f}" rms n{n}'
+    change = []
+    for m_i, m in enumerate(MOTORS):
+        new = np.asarray(res['motors'][m]['coef'][:2], float)
+        old = np.zeros(2) if current is None or 1 not in current.harmonics else \
+            np.asarray(current.coef[m_i][2 * list(current.harmonics).index(1):][:2], float)
+        change.append(f'{m} {np.hypot(*(new - old)):+.0f}"')
+    warn = ' ⚠ poor fit' if latest['status'] != 'COMPLETED' else ''
+    if latest['checks'].get('separation_deg', [90, 90])[1] < MIN_SEPARATION_DEG:
+        warn += ' ⚠ low separation (Roll ~0)'
+    fields['test_change'] = ('pooled ' + str(pooled['checks'].get('tests', 1)) + ' tests: ' if pooled.get('motors') else '') \
+        + ' '.join(change) + warn
+    fields['test_stdev'] = f'{latest["checks"].get("rms_arcsec", 0):.1f}" rms n{latest["checks"].get("positions", 0)}'
     return fields
 
 
 # ── profile file ──────────────────────────────────────────────────────────────────────────────
 def _load_or_new(path):
     ff = WormFeedForward.load(path) if os.path.exists(path) else None
-    return ff if ff is not None else WormFeedForward(worm_theta=6.0, harmonics=(1,))
+    return ff if ff is not None else WormFeedForward(worm_theta=6.0, harmonics=HARMONICS)
 
 
-def store_calibration(path, axis, result):
-    """Keep a test's result (fit, checks, samples) in the profile file for review, without applying it. The latest
-    result per motor is in 'calibration' (approve/reject act on it); every result also goes into
-    'calibration_history', the last CALIBRATION_HISTORY of them across all motors, for comparing reruns."""
+def store_profile_test(path, samples, result, timing=None):
+    """Keep a test (its fit, timing and samples) in the profile file's calibration_history, without applying it."""
     ff = _load_or_new(path)
-    cal = dict(ff.meta.get('calibration', {}))
-    created = datetime.datetime.now().isoformat(timespec='seconds')
-    entry = {**result, 'created': created, 'applied': False, 'angles': 'zeta (517, MCU)'}
-    cal[MOTORS[axis]] = entry
-    ff.meta['calibration'] = cal
-    history = list(ff.meta.get('calibration_history', []))
-    history.append({'motor': MOTORS[axis], **result, 'created': created, 'angles': 'zeta (517, MCU)'})
-    ff.meta['calibration_history'] = history[-CALIBRATION_HISTORY:]
+    entry = {'test': PROFILE_TEST, 'created': datetime.datetime.now().isoformat(timespec='seconds'),
+             'status': result['status'], 'result': {k: v for k, v in result.items() if k != 'status'},
+             'timing': timing, 'samples': samples}
+    ff.meta['calibration_history'] = (list(ff.meta.get('calibration_history', [])) + [entry])[-CALIBRATION_HISTORY:]
     ff.save(path)
 
 
-def apply_calibration(path, axis):
-    """Put a stored calibration's coefficients into the profile for that motor (on MCU angles), keeping the previous
-    ones to restore. False if there is no usable stored result."""
+def pooled_profile(path, worm_theta=6.0):
+    """fit_worm_profile over the last POOL_TESTS completed tests in the profile file (each with its own offset, drift
+    and trend), or a NO DATA result if there are none."""
     ff = _load_or_new(path)
-    m = MOTORS[axis]
-    entry = ff.meta.get('calibration', {}).get(m)
-    if not entry or not entry.get('coef'):
+    tests = [e['samples'] for e in ff.meta.get('calibration_history', [])
+             if e.get('test') == PROFILE_TEST and e.get('status') == 'COMPLETED' and e.get('samples')][-POOL_TESTS:]
+    return fit_worm_profile(tests, worm_theta=worm_theta)
+
+
+def apply_profile(path):
+    """Put the pooled profile into the worm profile file (all motors, 1st and 2nd harmonic, on MCU angles), keeping
+    the previous one to restore. False if there is no usable result."""
+    pooled = pooled_profile(path)
+    if pooled['status'] != 'COMPLETED':
         return False
-    if not entry.get('applied'):
-        entry['previous'] = {'coef': [float(v) for v in ff.coef[axis]], 'angle_reference': ff.angle_reference.get(m)}
-    coef = np.zeros(ff.coef.shape[1])
-    i1 = list(ff.harmonics).index(1) if 1 in ff.harmonics else None
-    if i1 is None:                                                  # profile without a 1st harmonic: start afresh
-        ff = WormFeedForward(worm_theta=ff.worm_theta, harmonics=(1,), coef=np.zeros((3, 2)), meta=ff.meta,
-                             angle_reference=ff.angle_reference)
-        coef, i1 = np.zeros(2), 0
-    coef[2 * i1:2 * i1 + 2] = entry['coef']
-    ff.coef[axis] = coef
-    ff.angle_reference[m] = 'zeta'
-    entry['applied'] = True
-    ff.save(path)
+    ff = _load_or_new(path)
+    previous = ff.meta.get('applied_profile', {}).get('previous') if ff.meta.get('applied_profile') else None
+    if previous is None:
+        previous = {'harmonics': list(ff.harmonics), 'motors': {m: [float(v) for v in ff.coef[i]] for i, m in enumerate(MOTORS)},
+                    'angle_reference': dict(ff.angle_reference)}
+    coef = np.array([pooled['motors'][m]['coef'] for m in MOTORS], float)
+    new = WormFeedForward(worm_theta=ff.worm_theta, harmonics=HARMONICS, coef=coef, meta=ff.meta,
+                          angle_reference={m: 'zeta' for m in MOTORS})
+    new.meta['applied_profile'] = {'created': datetime.datetime.now().isoformat(timespec='seconds'),
+                                   'tests': pooled['checks']['tests'], 'motors': pooled['motors'], 'previous': previous}
+    new.save(path)
     return True
 
 
-def revert_calibration(path, axis):
-    """Undo apply_calibration for that motor. False if it was not applied."""
+def revert_profile(path):
+    """Undo apply_profile: restore the profile in use before it. False if none was applied."""
     ff = _load_or_new(path)
-    m = MOTORS[axis]
-    entry = ff.meta.get('calibration', {}).get(m)
-    if not entry or not entry.get('applied'):
+    applied = ff.meta.get('applied_profile')
+    if not applied or not applied.get('previous'):
         return False
-    prev = entry.get('previous', {})
-    ff.coef[axis] = np.asarray(prev.get('coef', np.zeros(ff.coef.shape[1])), float)
-    if prev.get('angle_reference'):
-        ff.angle_reference[m] = prev['angle_reference']
-    else:
-        ff.angle_reference.pop(m, None)
-    entry['applied'] = False
-    ff.save(path)
+    prev = applied['previous']
+    coef = np.array([prev['motors'][m] for m in MOTORS], float)
+    meta = {k: v for k, v in ff.meta.items() if k != 'applied_profile'}
+    WormFeedForward(worm_theta=ff.worm_theta, harmonics=tuple(prev['harmonics']), coef=coef, meta=meta,
+                    angle_reference=prev.get('angle_reference') or {}).save(path)
     return True

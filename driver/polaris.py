@@ -48,8 +48,9 @@ from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, byte
 from kinematics import THETA2_MIN_MEAS
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
-from control_worm import zeta_raw_offset, WormCalibration, WormFeedForward, fit_worm_samples, gear_row_fields
-from control_worm import store_calibration, apply_calibration, revert_calibration
+from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
+from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, MIN_SEPARATION_DEG
+from control_worm import ROLL_MIN_DEG, ROLL_TARGET_DEG
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
@@ -237,6 +238,7 @@ class Polaris:
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
         self._restore_checked = False               # tracking_restore: the start-up check ran (once per driver start)
+        self._worm_test_rolling = False             # the worm profile test is rotating to / from its roll: ignore syncs
         self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_worm.zeta_raw_offset
         self._zeta_theta_offset = None               # [theta1,theta2,theta3] - [zeta1,zeta2,zeta3], refreshed on each "517". The Benro
                                                       # Polaris firmware performs its own Single Point Alignment (Compass/Single Star),
@@ -249,7 +251,7 @@ class Polaris:
         self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._omega_meas = None                     # The latest calculated Polaris motor axis angular velocity [omega1, omega2, omega3] measured from 6 sample history
         self._cm = CalibrationManager()
-        self._cm.on_worm_gear_approval = self.worm_gear_approval
+        self._cm.on_worm_profile_approval = self.worm_profile_approval
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         # Legacy per-axis controllers and the shared-level v2 controller (BETA) run side by side;
         # each self._motors[axis] routes to one of them, chosen by Config.coordinated_speed_control
@@ -617,68 +619,109 @@ class Polaris:
         return abs(measured_dps), abs(rate_raw), stdev, status
 
 
-    async def worm_gear_test(self, axis):
-        """M#-WORM-GEAR calibration test (control_worm): step motor `axis` through 2 worm turns each way around the
-        current pointing while sidereal tracking holds the sky, recording each plate-solve sync after a step has settled
-        as that motor's angle error and stepping again at once. The fit, its checks and the samples go into the worm profile file for review."""
+    async def worm_profile_test(self):
+        """The worm profile test (control_worm): step all three motors through their worm schedule around the current
+        pointing while sidereal tracking holds the sky, recording each plate-solve sync after the step has settled and
+        stepping again at once. The fit, its timing and the samples go into the worm profile file's history; the row
+        shows the profile pooled over the recent tests, which Approve applies."""
         self.lifecycle.start()
         sm = self._sm
         if not (Config.advanced_control and Config.advanced_tracking):
-            self.logger.warning("WORM GEAR TEST: needs advanced control and advanced tracking")
-            self._cm.addWormGearResult(axis, {}, 'NO DATA')
+            self.logger.warning("WORM PROFILE TEST: needs advanced control and advanced tracking")
+            self._cm.addWormProfileResult({}, 'NO DATA')
             self.lifecycle.reset()
             return
         was_tracking = self._tracking
         if not was_tracking:
             await self.start_tracking()
-        test = WormCalibration(axis)
-        self.logger.info(f"WORM GEAR TEST M{axis+1}: START, {len(test.positions)} positions, {test.step_deg} deg steps, "
-                         f"requires plate-solve syncs, one per position after the step settles (~10 s: set the wait between "
-                         f"solves to the settle time logged), stops after {test.no_sync_timeout_s:.0f} s without a sync")
+        roll_before = await self._worm_test_roll(ROLL_TARGET_DEG)
+        if roll_before is False:                             # the roll move didn't finish: stopped, or timed out
+            self._cm.addWormProfileResult({}, 'STOPPED')
+            if not was_tracking:
+                await self.stop_tracking()
+            self.lifecycle.reset()
+            return
+        test = WormProfileTest()
+        sep, sens = sm.motor_separation(np.array(self._pid.theta_pv, float))
+        self.logger.info(f"WORM PROFILE TEST: START, {len(test.positions)} positions, all motors; requires plate-solve "
+                         f"syncs, one per position after the step settles (~9-10 s: set the wait between solves to the "
+                         f"settle time logged), stops after {test.no_sync_timeout_s:.0f} s without a sync. M1-M3 "
+                         f"separation {sep:.0f} deg, sensitivity {sens}")
+        if sep < MIN_SEPARATION_DEG:
+            self.logger.warning(f"WORM PROFILE TEST: M1 and M3 move the view in nearly the same direction here "
+                                f"({sep:.0f} deg apart, Roll near 0): their worms may not separate -- a pose with Roll "
+                                f"15-30 deg either way is better")
         sm.worm_test = test
         try:
             shown = None
             while not test.done and not test.aborted and not self.lifecycle.should_stop():
                 if test.index != shown:
                     shown = test.index
-                    self._cm.setWormGearProgress(axis, shown, len(test.positions))
+                    self._cm.setWormProfileProgress(shown, len(test.positions))
                 if test.timed_out(time.monotonic()):
                     test.abort('no syncs')
-                    self.logger.warning(f"WORM GEAR TEST M{axis+1}: no plate-solve sync for {test.no_sync_timeout_s:.0f} s "
+                    self.logger.warning(f"WORM PROFILE TEST: no plate-solve sync for {test.no_sync_timeout_s:.0f} s "
                                         f"-- Rerun test while running continuous plate-solve and sync.")
                 await asyncio.sleep(0.5)
         finally:
             sm.worm_test = None
+            if test.done and roll_before is not None:        # finished: back to the framing it started with
+                await self._worm_test_roll(roll_before)
             if not was_tracking:
                 await self.stop_tracking()
-        result = fit_worm_samples(test.samples, worm_theta=test.worm_theta)
-        result['timing'] = test.timing()
+        result = fit_worm_profile([test.samples], worm_theta=test.worm_theta)
         path = sm.worm_profile_path()
-        current = WormFeedForward.load(path)
-        if result['status'] != 'NO DATA':
-            store_calibration(path, axis, result)        # too little data: keep whatever was there for review
-        if result['status'] != 'NO DATA' or test.abort_reason == 'no syncs':
-            status = result['status']
-        else:
-            status = 'STOPPED'
         if result['status'] == 'NO DATA':
+            status = 'NO DATA' if test.abort_reason == 'no syncs' else 'STOPPED'
             why = 'no plate-solve syncs arrived' if not test.samples else f"only {len(test.samples)} positions measured"
-            self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status}, {why} -- nothing saved")
-        else:
-            self.logger.info(f"WORM GEAR TEST M{axis+1}: END {status} {result['amplitude_arcsec']}\" @ "
-                             f"{result['phase_deg']} deg, checks {result['checks']}, timing {result['timing']} -> {path}")
-        self._cm.addWormGearResult(axis, gear_row_fields(result, current, axis, worm_theta=test.worm_theta), status)
+            self.logger.info(f"WORM PROFILE TEST: END {status}, {why} -- nothing saved")
+            self._cm.addWormProfileResult({}, status)
+            self.lifecycle.reset()
+            return
+        store_profile_test(path, test.samples, result, timing=test.timing())
+        pooled = pooled_profile(path, worm_theta=test.worm_theta)
+        self.logger.info(f"WORM PROFILE TEST: END {result['status']} {result['motors']}, checks {result['checks']}, "
+                         f"timing {test.timing()}; pooled over {pooled['checks'].get('tests', 0)} tests: "
+                         f"{pooled.get('motors')} -> {path}")
+        self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path)), result['status'])
         self.lifecycle.reset()
 
-    def worm_gear_approval(self, axis, approved):
-        """Approve: put the stored M#-WORM-GEAR result into the worm profile; reject: restore the previous one."""
+    async def _worm_test_roll(self, target, timeout_s=120.0):
+        """Rotate to a roll that separates M1 and M3 (or back to `target`, the roll before the test), keeping Az/Alt.
+        Going to the test pose, `target` is ROLL_TARGET_DEG, used with the sign of the current roll and only when |Roll|
+        is below ROLL_MIN_DEG. Returns the roll before the move (None: no move needed), or False if the move didn't
+        finish (the test was stopped, or it timed out)."""
+        roll = float(self._pid.alpha_pv[2])
+        if target == ROLL_TARGET_DEG:
+            if abs(roll) >= ROLL_MIN_DEG:
+                return None
+            target = ROLL_TARGET_DEG if roll >= 0 else -ROLL_TARGET_DEG
+            self.logger.info(f"WORM PROFILE TEST: rotating Roll {roll:.1f} -> {target:.0f} deg (M1 and M3 separate "
+                             f"with roll; back to {roll:.1f} afterwards)")
+        else:
+            self.logger.info(f"WORM PROFILE TEST: rotating Roll back to {target:.1f} deg")
+        self._worm_test_rolling = True                       # syncs while rotating are ignored (sync_telescope)
+        try:
+            self.slew_axis({'roll': target})
+            await asyncio.wait_for(self.wait_for_goto_complete(), timeout_s)
+        except asyncio.TimeoutError:
+            self.logger.warning(f"WORM PROFILE TEST: the roll move didn't finish in {timeout_s:.0f} s")
+            return False
+        finally:
+            self._worm_test_rolling = False
+        if self.lifecycle.should_stop():
+            return False
+        return roll
+
+    def worm_profile_approval(self, approved):
+        """Approve: put the profile pooled over the recent tests into use; reject: restore the previous one."""
         path = self._sm.worm_profile_path()
-        done = apply_calibration(path, axis) if approved else revert_calibration(path, axis)
+        done = apply_profile(path) if approved else revert_profile(path)
         if done:
             self._sm.reload_worm_ff()
-            self.logger.info(f"WORM GEAR M{axis+1}: {'applied to' if approved else 'reverted in'} {path}")
+            self.logger.info(f"WORM PROFILE: {'applied to' if approved else 'reverted in'} {path}")
         else:
-            self.logger.warning(f"WORM GEAR M{axis+1}: nothing to {'apply' if approved else 'revert'} in {path}")
+            self.logger.warning(f"WORM PROFILE: nothing to {'apply' if approved else 'revert'} in {path}")
         return done
 
 
@@ -2411,8 +2454,12 @@ class Polaris:
             self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
             return
 
+        if self._worm_test_rolling:
+            # the worm profile test is rotating: an exposure taken while moving must not become an alignment point
+            self.logger.info("->> Polaris: SYNC ignored: the worm profile test is rotating to or from its roll")
+            return
         if self._sm.worm_test is not None:
-            # M#-WORM-GEAR test: a measurement of the motor's gear error, not applied to any model
+            # worm profile test: a measurement of the motors' gear error, not applied to any model
             self._sm.record_worm_sync(a_ra, a_dec, a_az, a_alt)
             return
 
@@ -2684,9 +2731,9 @@ class Polaris:
 
     def pulse_guide(self, direction: int, duration: int):
         if self._sm.worm_test is not None:
-            # a guider moving the mount would corrupt the worm gear test: end it, and drop this pulse
+            # a guider moving the mount would corrupt the worm profile test: end it, and drop this pulse
             self._sm.worm_test.abort('pulse guide')
-            self.logger.warning(f"WORM GEAR TEST: stopped by a pulse guide (dropped: direction {direction}, {duration}ms)")
+            self.logger.warning(f"WORM PROFILE TEST: stopped by a pulse guide (dropped: direction {direction}, {duration}ms)")
             return
         if Config.advanced_pulse_guiding and Config.advanced_control:
             if Config.log_pulse_guiding:

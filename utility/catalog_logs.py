@@ -14,7 +14,8 @@ pose (az/alt/roll start/end/mean) and its source (KFLOG theta, SGLOG theta, or P
 through the inverse kinematics), each motor's rate and travel, record counts (PECLOG/SGLOG/KFLOG),
 PEC state, worm gear correction (feed-forward) state, sync-guide count and median interval, pulse-guiding evidence,
 battery, and the session's notes from the session registry (sessions.toml). The span of a worm gear test (Speed
-Calibration M#-WORM-GEAR, which steps a motor back and forth) is left out.
+Calibration M1-M2-M3-WORM-PROFILE, or the earlier per-motor M#-WORM-GEAR, which step the motors back and forth) is
+left out.
 """
 import argparse
 import ast
@@ -41,7 +42,7 @@ _GOTO_RADEC_RE = re.compile(r"GOTO Observed\s+RA (\d+)h(\d+)m([\d.]+)s\s+Dec ([+
 _CONFIG_RE = re.compile(r"'Action': 'Polaris:ConfigUpdate', 'Parameters': (\{[^}]*\})")
 _BATTERY_RE = re.compile(r"BATTERY status changed: 778 \{'capacity': '(\d+)'")
 _ROTATE_RE = re.compile(r"Rotate Absolute Observed\s+RollAngle ([+-])(\d+)d(\d+)'([\d.]+)\"")
-_WORM_TEST_RE = re.compile(r"WORM GEAR TEST M\d: (START|END)")
+_WORM_TEST_RE = re.compile(r"WORM (?:PROFILE TEST|GEAR TEST M\d): (START|END)")      # current, and earlier logs
 _SLEWABS_ROLL_RE = re.compile(r"Polaris:SlewAbsolute \{[^}]*'roll': (-?[\d.]+)")
 
 _MOVES = ('slewtocoordinatesasync', 'slewtoaltazasync', 'Polaris:SlewAbsolute', 'Polaris:SlewRelative',

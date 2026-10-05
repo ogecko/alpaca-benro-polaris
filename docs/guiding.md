@@ -55,7 +55,7 @@ Version 2.2 incoporates a significant step forward in tracking accuracy when you
 *   **Proactive Modeling:** While guiding is reactive (fixing errors after they happen), PEC learns the mount's current drift rate from the guide corrections, smoothed over about 7.5 minutes (an exponential moving average, `pec_tau_sec`). This allows the driver to **anticipate** the drift and apply fine-grained corrections every **200ms**, leaving the guider only what is left.
 *   **Dual Support:** PEC learns from whichever guiding data is available. It monitors the "pulses" from PHD2 or the "residuals" from Plate-Solve Syncs.
 *   **Convergence:** The PEC model only begins applying proactive corrections once it meets statistical criteria: enough observations, a low **rmse**, and an **R² value** indicating good fit.
-*   **Worm Gear Correction:** Each motor's 6° worm gear error is corrected separately, from a profile measured with the Speed Calibration WORM-GEAR tests. It applies whenever a profile has been approved, with or without guiding, and PEC then learns whatever drift is left.
+*   **Worm Gear Correction:** Each motor's 6° worm gear error is corrected separately, from a profile measured with the Speed Calibration worm profile test. It applies whenever a profile has been approved, with or without guiding, and PEC then learns whatever drift is left.
 *   **Integration:** This implementation is fully integrated into the **PID control loop**, enabling the Benro Polaris to maintain pinpoint stars even during long exposures by effectively "killing" the periodic error before it manifests.
 
 <br>
