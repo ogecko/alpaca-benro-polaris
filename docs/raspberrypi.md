@@ -114,10 +114,11 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
 You can also configure automatic location detection using a USB GPS Dongle. The driver relies on gpsd to read the location from the GPS Dongle. It has been tested with [this GPS dongle](https://amzn.eu/d/050xUKar). This option is disabled by default.
 
-1. Install gpsd and its status client either by running the setup script with `-g`:
+1. Run the setup script with `-g` to install gpsd and its status client:
     ```Bash
     ./setup.sh -g
     ```
+    After installing dependencies, setup creates `data/config.pilot.json` with `"gps_auto_detect": true` if the file does not exist. If it already exists, setup leaves it unchanged and prints a reminder to add or set the GPS option.
 2. Configure gpsd for the receiver's specific device. Find a stable USB path with `ls -l /dev/serial/by-id/`, then edit `/etc/default/gpsd` and set the device explicitly, for example:
     ```Bash
     DEVICES="/dev/serial/by-id/usb-your-receiver"
@@ -130,11 +131,11 @@ You can also configure automatic location detection using a USB GPS Dongle. The 
     cgps -s
     ```
     Exit `cgps` with **Ctrl+C** after confirming it reports a fix.
-4. In `driver/config.toml`, under `[server]`, set `gps_auto_detect = true` to opt in. The attempt count and retry gap can also be configured there; the defaults are `gps_max_attempts = 20` and `gps_retry_max_delay = 30.0`. Restart the driver to apply changes:
+4. If you already have a customised config, add or set `"gps_auto_detect": true` in `data/config.pilot.json`, preserving other entries, otherwise it's created automatically if you used the -g option in the setup. The attempt count and retry gap can be configured in `driver/config.toml`; the defaults are `gps_max_attempts = 20` and `gps_retry_max_delay = 30.0`. Restart the driver to apply changes:
     ```Bash
     sudo systemctl restart polaris-driver
     ```
-    Values in `data/config.pilot.json` override `config.toml`, so update or remove any saved GPS entries there if they conflict. The first valid 2D fix immediately updates the site coordinates and names the location **GPS Receiver**, while preserving the existing elevation. The listener continues polling through the configured retry schedule until a 3D fix arrives. A 3D fix updates the coordinates and stops polling; elevation changes only if the fix includes a measured altitude. If retries expire without a 3D fix, the 2D position and existing elevation are retained.
+    The first valid 2D fix immediately updates the site coordinates and names the location **GPS Receiver**, while preserving the existing elevation. The listener continues polling through the configured retry schedule until a 3D fix arrives. A 3D fix updates the coordinates and stops polling; elevation changes only if the fix includes a measured altitude. If retries expire without a 3D fix, the 2D position and existing elevation are retained.
 
 Retry gaps increase gradually, so with the defaults the 20th attempt starts about five minutes after the first; its read can continue for up to 10 more seconds. If no 3D fix is found, the driver logs that and keeps any 2D position already applied; if no valid fix was found, the site remains unchanged. Restart the driver to try again.
 
@@ -157,7 +158,7 @@ Options:
                    or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
 
     -g             Install gpsd and gpsd-clients for optional GPS receivers.
-                   This does not enable GPS location updates in the driver.
+                   Automatically enables GPS location on fresh config; otherwise prints a reminder.
 
     -h             Print this help and exit.
 
