@@ -1,6 +1,6 @@
 """
 Tests for utility/pe_analysis.py -- per-motor periodic-error analysis over the extracted segment
-datasets (utility/extract_segments.py): worm-angle scan and forecast skill of candidate models.
+datasets (utility/extract_segments.py): worm-angle and time scans.
 
 Synthetic segments carry a known worm error on one motor (period THETA of that motor's angle) at
 different motor rates, so a per-motor angle period and a fixed time period can be told apart.
@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pe_analysis import Segment, theta_scan, time_scan, best_theta, forecast_skill, rolling_forecast, load_segments
+from pe_analysis import Segment, theta_scan, time_scan, load_segments
 
 THETA = 6.0
 
@@ -42,7 +42,7 @@ def segs():
 
 def test_scan_peaks_at_the_worm_angle_of_the_motor_carrying_it(segs):
     scan = theta_scan(segs, np.arange(3.0, 12.01, 0.25))
-    best = best_theta(scan)
+    best = {m: float(scan[m].idxmax()) for m in ('M1', 'M3')}
     assert best['M3'] == pytest.approx(THETA, abs=0.3)
     assert best['M1'] == pytest.approx(THETA, abs=0.3)
 
@@ -83,20 +83,6 @@ def test_a_worm_signal_scores_higher_on_its_motor_angle_scan_than_the_time_scan(
     assert angle['M3'].max() > 1.5 * time['power'].max()
 
 
-def test_forecast_prefers_the_worm_model_on_worm_data(segs):
-    thetas = {'M1': THETA, 'M2': THETA, 'M3': THETA}
-    res = pd.DataFrame([forecast_skill(s, thetas) for s in segs])
-    assert (res['worm'] < res['trend']).mean() >= 0.8
-    assert res['worm'].median() < 0.5 * res['trend'].median()
-    assert res['worm'].median() < res['time_34_17'].median()
-
-
-def test_forecast_reports_holdout_rms_for_every_model(segs):
-    r = forecast_skill(segs[0], {'M1': THETA, 'M2': THETA, 'M3': THETA})
-    assert set(r) >= {'segment', 'trend', 'time_34_17', 'worm', 'worm_h2', 'fast_motors'}
-    assert r['fast_motors'] == ['M3']
-
-
 def test_load_segments_reads_the_extracted_datasets(tmp_path):
     t = np.arange(0, 4000, 20.0)
     d = pd.DataFrame({'timestamp': pd.Timestamp('2026-09-01') + pd.to_timedelta(t, 's'), 't_sec': t,
@@ -110,25 +96,6 @@ def test_load_segments_reads_the_extracted_datasets(tmp_path):
     assert [s.name for s in segs] == ['alpaca.a#1']
     assert segs[0].rates == pytest.approx([1.0, 0.0, 10.0], abs=1e-6)
 
-
-def test_rolling_forecast_favours_the_worm_on_worm_data(segs):
-    thetas = {'M1': THETA, 'M2': THETA, 'M3': THETA}
-    res = pd.DataFrame([rolling_forecast(s, thetas) for s in segs])
-    assert (res['worm'] < 0.6 * res['trend']).all()
-    assert (res['worm'] < res['time_34_17']).mean() >= 0.8
-
-
-def test_rolling_forecast_on_pure_drift_gives_the_models_nothing_to_gain():
-    t = np.arange(0, 3 * 3600, 30.0)
-    rng = np.random.default_rng(1)
-    theta = np.column_stack([10 + 2 * t / 3600, 10 + 3 * t / 3600, 10 + 13 * t / 3600])
-    s = Segment('d', 'd', t, 10 * t / 60 + rng.normal(0, 3, len(t)), -4 * t / 60 + rng.normal(0, 3, len(t)), theta)
-    r = rolling_forecast(s, {'M1': THETA, 'M2': THETA, 'M3': THETA})
-    assert r['worm'] == pytest.approx(r['trend'], rel=0.25)
-    assert r['n_windows'] >= 10
-
-
-# ── data quality: rapid-solve bursts and duplicate captures ──────────────
 
 def write_segment(dirpath, session, k, t, ra, dec=None):
     th = np.column_stack([10 + t / 3600, 20 + 3 * t / 3600, 30 + 10 * t / 3600])

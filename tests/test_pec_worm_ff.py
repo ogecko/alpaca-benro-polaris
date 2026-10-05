@@ -1,7 +1,7 @@
 """
 Tests for the worm feed-forward (control_worm.WormFeedForward): each motor's gear periodic error e_i(theta_i) -- the
-true output angle is the MCU's motor angle + e_i, which the MCU can't see -- from a profile learnt offline
-(utility/learn_worm.py), applied as a base-frame rotation so the driver's present value is the true pointing.
+true output angle is the MCU's motor angle + e_i, which the MCU can't see -- from a profile measured by the worm
+profile test, applied as a base-frame rotation so the driver's present value is the true pointing.
 """
 import json
 import os

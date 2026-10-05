@@ -2,7 +2,7 @@
 Worm feed-forward on the digital twin (tests/sim_digital_twin.py) with a gear worm the driver cannot see
 (tests/sim_guider.Worm: true output angle = MCU angle + error, 6.0 deg worm on M2 and M3):
 
-  * a profile fitted from the guide corrections (utility/pe_analysis.fit_worm, as utility/learn_worm.py does) is the
+  * a profile fitted from the guide corrections (utility/pe_analysis.fit_worm) is the
     physical gear error -- same sign and scale -- so it can be written to the profile file as it is
   * with the profile, sync guiding (plate solve every 2 min) no longer chases the worm between solves
   * with the profile, pulse guiding (PHD2-like) has less error and the guider corrects less
