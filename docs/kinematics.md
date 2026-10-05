@@ -7,9 +7,10 @@
 [QUEST](#21-quest-alignment-optimisation) |
 [SCC](#22-slew--center-correction) |
 [MAC](#23-mechanical-alignment-corrections) |
-[PEC](#26-predictive-error-correction-pec) |
 [Sync Guiding](#24-plate-solvedsync-guiding) |
 [Pulse Guiding](#25-pulse-guiding) |
+[PEC](#26-periodic-error-correction-pec) |
+[Envelope](#27-reachable-altitude-and-roll-envelope) |
 [Base Frame](#31-base-frame-b---representations-and-conversions) | 
 [Topo Frame](#32-topocentric-frame-t---representations-and-conversions) | 
 [Equatorial Frame](#33-equatorial-frame-e---representations) | 
@@ -42,7 +43,8 @@ The document also outlines the principal mitigation techniques used to reduce tr
 | Guiding Errors  | Tracking Drift          | Drift During Exposure                          | Tracking drift accumulates during longer exposures due to Periodic Error, RA/Dec drift, and residual alignment errors. Long exposures require correction while active.                | Pulse Guiding (v2.0) with Guide Camera and PHD2 or equivalent                 |
 | Guiding Errors  | Tracking Drift          | Drift of Celestrial Pole                          | In v2.0 Guide Pulses changed target setpoints (SP), causing the PID to track a different RA/Dec location, effectively drifting the celestrial pole. In v2.2 all auto-guiding commands now change the target's present values (PV) instead.                  | Pulse Guiding (v2.2)                 |
 | Guiding Errors  | Tracking Drift          | Drift Between Plate Solves         | Tracking drift accumulates even further over extended imaging sessions, potentially losing the target as it drift out of frame.                                              | Sync Guiding (v2.2) no guide-camera needed                                     |
-| Guiding Errors  | Periodic Error          | Worm Gear Imperfections                        | Sinusoidal cyclic tracking error in RA and Dec with a period matching the worm gear cycle (~35 min). Can also include accumulated residual tracking errors.                  | Periodic Error Correction (PEC v2.2)                    |
+| Guiding Errors  | Periodic Error          | Slow Changing Drift                            | The alignment and pointing model are never perfect, so the target drifts slowly in RA and Dec; the drift rate changes as the mount moves across the sky and the night progresses. | PEC Drift Correction (v2.2): an exponential moving average of the drift rate (about 7.5 min) learnt from Pulse or Sync Guiding corrections |
+| Guiding Errors  | Periodic Error          | Worm Gear Imperfections                        | Each motor's worm gear (6 degree, 60 teeth) wobbles its axis by about 30-150 arc seconds, repeating every 6 degrees of that motor's rotation: a few minutes for a fast-moving motor, hours for a slow one. Its phase is fixed to the motor angles, so it repeats night to night. | PEC Worm Gear Correction (v2.2): a fixed per-motor profile measured by the M1-M2-M3-WORM-PROFILE calibration test, applied without guiding |
 | Optical Errors  | Focus Drift             | Temperature / Mechanical Changes               | Temperature or mechanical changes alter optical focus during imaging, degrading star shape and plate solve reliability.                                  | NINA Hocus Focus Plugin                            |
 | Optical Errors  | Lens Tilt             | Sensor / Lens Plane Non-Parallelism              | A tilt between the camera sensor plane and the optical focal plane causes uneven focus across the image and elongated or bloated stars in the corners                                  | Aluminium Foil Tape                            |
 
