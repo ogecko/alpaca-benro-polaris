@@ -315,7 +315,7 @@ def test_listener_rounds_3d_altitude(monkeypatch):
     assert applied_changes[0]["location"] == "GPS Receiver"
 
 
-def test_listener_exhaustion_uses_configured_attempts_and_logs_once(monkeypatch, caplog):
+def test_listener_exhaustion_uses_configured_attempts_and_logs_each_attempt(monkeypatch, caplog):
     clock = SimpleNamespace(value=0.0)
     monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
     monkeypatch.setattr(Config, "gps_max_attempts", 3, raising=False)
@@ -352,5 +352,9 @@ def test_listener_exhaustion_uses_configured_attempts_and_logs_once(monkeypatch,
     assert attempt_starts == pytest.approx([0.0, 2.0, 6.0])
     assert sleep_delays == pytest.approx([1.0, 2.0])
     assert apply_changes == []
-    assert len(info_records) == 1
-    assert "No GPS fix" in info_records[0].message
+    assert [record.getMessage() for record in info_records] == [
+        "==GPS== Starting acquisition attempt 1 of 3",
+        "==GPS== Starting acquisition attempt 2 of 3",
+        "==GPS== Starting acquisition attempt 3 of 3",
+        "==GPS== No fix found after 3 attempts.",
+    ]

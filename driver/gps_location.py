@@ -45,7 +45,7 @@ def _configured_attempts(value) -> int:
 
     bounded_attempts = min(DEFAULT_GPS_MAX_ATTEMPTS, max(1, attempts))
     if bounded_attempts != attempts:
-        logger.debug("Clamped gps_max_attempts from %r to %d", value, bounded_attempts)
+        logger.debug("==GPS== Clamped gps_max_attempts from %r to %d", value, bounded_attempts)
     return bounded_attempts
 
 
@@ -56,7 +56,7 @@ def _configured_retry_max_delay(value) -> float:
         delay = DEFAULT_GPS_RETRY_MAX_DELAY
 
     if not math.isfinite(delay) or delay <= 0:
-        logger.debug("Invalid gps_retry_max_delay %r; using %.1f seconds", value, DEFAULT_GPS_RETRY_MAX_DELAY)
+        logger.debug("==GPS== Invalid gps_retry_max_delay %r; using %.1f seconds", value, DEFAULT_GPS_RETRY_MAX_DELAY)
         return DEFAULT_GPS_RETRY_MAX_DELAY
     return delay
 
@@ -138,7 +138,7 @@ async def gps_background_listener(polaris):
         getattr(Config, "gps_retry_max_delay", DEFAULT_GPS_RETRY_MAX_DELAY)
     )
     if attempts > 1 and not math.isfinite(retry_max_delay * attempts / 2):
-        logger.debug("gps_retry_max_delay is too large; using %.1f seconds", DEFAULT_GPS_RETRY_MAX_DELAY)
+        logger.debug("==GPS== gps_retry_max_delay is too large; using %.1f seconds", DEFAULT_GPS_RETRY_MAX_DELAY)
         retry_max_delay = DEFAULT_GPS_RETRY_MAX_DELAY
 
     start_time = _monotonic()
@@ -158,7 +158,7 @@ async def gps_background_listener(polaris):
         applied = Config.apply_changes(changes)
         if applied:
             polaris.make_config_params_live(applied)
-            logger.info("GPS coordinates applied to live configuration.")
+            logger.info("==GPS== Coordinates applied to live configuration.")
         last_applied_fix = gps_fix
 
     def apply_2d_fix(gps_fix: GPSFix) -> None:
@@ -177,10 +177,10 @@ async def gps_background_listener(polaris):
             attempt_end = attempt_start + GPSD_ATTEMPT_TIMEOUT
         attempt_timeout = min(GPSD_ATTEMPT_TIMEOUT, attempt_end - _monotonic())
         if attempt_timeout <= 0:
-            logger.debug("Skipping GPS attempt %d because its scheduled window elapsed", attempt_index + 1)
+            logger.debug("==GPS== Skipping attempt %d because its scheduled window elapsed", attempt_index + 1)
             continue
 
-        logger.debug("Starting GPS acquisition attempt %d of %d", attempt_index + 1, attempts)
+        logger.info("==GPS== Starting acquisition attempt %d of %d", attempt_index + 1, attempts)
         try:
             gps_fix = await get_gps_location(
                 timeout=attempt_timeout,
@@ -189,11 +189,11 @@ async def gps_background_listener(polaris):
         except asyncio.CancelledError:
             raise
         except Exception as error:
-            logger.debug("GPS acquisition attempt %d failed: %s", attempt_index + 1, error)
+            logger.info("==GPS== Acquisition attempt %d failed: %s", attempt_index + 1, error)
             gps_fix = None
 
         if _monotonic() > attempt_end:
-            logger.debug("Discarding GPS fix returned after attempt %d expired", attempt_index + 1)
+            logger.debug("==GPS== Discarding fix returned after attempt %d expired", attempt_index + 1)
             gps_fix = None
 
         if gps_fix is None:
@@ -205,9 +205,9 @@ async def gps_background_listener(polaris):
             return
 
     if last_applied_fix is None:
-        logger.info("No GPS fix found after %d attempts.", attempts)
+        logger.info("==GPS== No fix found after %d attempts.", attempts)
     else:
-        logger.info("No 3D GPS fix found after %d attempts; keeping the 2D position.", attempts)
+        logger.info("==GPS== No 3D fix found after %d attempts; keeping the 2D position.", attempts)
 
 
 async def get_gps_location(
@@ -257,7 +257,7 @@ async def _try_gpsd(
                     reader.readline(), timeout=min(GPSD_READ_TIMEOUT, remaining)
                 )
             except TimeoutError:
-                logger.debug("Timed out waiting for a gpsd report")
+                logger.debug("==GPS== Timed out waiting for a gpsd report")
                 if _monotonic() >= deadline:
                     break
                 continue
@@ -267,7 +267,7 @@ async def _try_gpsd(
             try:
                 report = json.loads(line)
             except (json.JSONDecodeError, UnicodeDecodeError):
-                logger.debug("Ignoring malformed gpsd report")
+                logger.debug("==GPS== Ignoring malformed gpsd report")
                 await asyncio.sleep(0)
                 continue
 
@@ -277,7 +277,7 @@ async def _try_gpsd(
 
             fix = _parse_tpv(report)
             if fix is None:
-                logger.debug("Ignoring gpsd TPV report without a valid position fix")
+                logger.debug("==GPS== Ignoring gpsd TPV report without a valid position fix")
                 await asyncio.sleep(0)
                 continue
 
@@ -304,7 +304,7 @@ async def _try_gpsd(
     except asyncio.CancelledError:
         raise
     except (OSError, RuntimeError, TimeoutError, ValueError) as error:
-        logger.debug("gpsd query failed: %s", error)
+        logger.info("==GPS== gpsd query failed: %s", error)
     finally:
         if writer is not None:
             writer.close()
