@@ -380,33 +380,28 @@ def _phase(a, b):
     return float(np.degrees(np.arctan2(b, a)) % 360)
 
 
-def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
-    """Every motor's worm from the samples of one or more worm profile tests (a list of sample lists). Each sample's
-    2-D error is fitted as sum over motors of J_m (the motor's effect on the pointing) x [its worm, a sin + b cos per
-    harmonic of 360 x zeta_m / worm_theta, + its backlash when moving forward], plus, per test, a 2-D offset, a
-    quadratic drift in time and a linear trend in each motor's offset (the pointing model across the field).
-    Returns a dict: status (COMPLETED / POOR FIT / NO DATA), motors {M#: amplitude, phase, se, coef (applied: a, b per
-    harmonic, a 2nd harmonic only when significant), h2_amplitude, h2_se, significance, backlash}, checks."""
+N_NUISANCE = 2 + 4 + 6 + 3      # per test: 2-D offset, quadratic drift in time, linear pointing trend, backlash
+
+
+def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
+    """The joint fit's design: (X, y, tests) with two rows (the tangent axes) per sample of each test (samples before the
+    first step left out). Columns: per motor and harmonic, J_m x sin and cos of the worm phase; then per test N_NUISANCE
+    columns (offset, drift in time, pointing trend, and each motor's backlash moving forward)."""
     tests = [[s for s in t if any(s.get('direction', [0, 0, 0]))] for t in tests]
     tests = [t for t in tests if t]
-    n_pos = sum(len(t) for t in tests)
-    out = {'status': 'NO DATA', 'motors': {}, 'checks': {'positions': n_pos, 'tests': len(tests)}}
-    if not tests or max(len(t) for t in tests) < MIN_POSITIONS:
-        return out
     nw = 3 * 2 * len(harmonics)
-    n_nuis = 2 + 4 + 6 + 3                      # per test: offset, time drift, pointing trend, backlash
     rows, y = [], []
     for k, t in enumerate(tests):
         tt = np.array([s['t'] for s in t], float)
         ts = (tt - tt.mean()) / max(np.ptp(tt), 1e-9)
         off = np.array([s['offset'] for s in t], float)
         offs = (off - off.mean(0)) / np.maximum(np.ptp(off, 0), 1e-9)
-        base = nw + n_nuis * k
+        base = nw + N_NUISANCE * k
         for i, s in enumerate(t):
             J = np.asarray(s['J'], float)
             ph = 2 * np.pi * np.asarray(s['zeta'], float) / worm_theta
             for a in range(2):
-                r = np.zeros(nw + n_nuis * len(tests))
+                r = np.zeros(nw + N_NUISANCE * len(tests))
                 for m in range(3):
                     for j, h in enumerate(harmonics):
                         c = (m * len(harmonics) + j) * 2
@@ -418,7 +413,24 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
                     r[base + 12 + m] = J[m, a] * (s['direction'][m] > 0)
                 rows.append(r)
                 y.append(float(s['res'][a]))
-    X, y = np.array(rows), np.array(y)
+    return np.array(rows), np.array(y), tests
+
+
+def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
+    """Every motor's worm from the samples of one or more worm profile tests (a list of sample lists). Each sample's
+    2-D error is fitted as sum over motors of J_m (the motor's effect on the pointing) x [its worm, a sin + b cos per
+    harmonic of 360 x zeta_m / worm_theta, + its backlash when moving forward], plus, per test, a 2-D offset, a
+    quadratic drift in time and a linear trend in each motor's offset (the pointing model across the field)
+    (profile_design). Returns a dict: status (COMPLETED / POOR FIT / NO DATA), motors {M#: amplitude, phase, se, coef
+    (applied: a, b per harmonic, a 2nd harmonic only when significant), h2_amplitude, h2_se, significance, backlash},
+    checks."""
+    X, y, tests = profile_design(tests, worm_theta, harmonics)
+    n_pos = sum(len(t) for t in tests)
+    out = {'status': 'NO DATA', 'motors': {}, 'checks': {'positions': n_pos, 'tests': len(tests)}}
+    if not tests or max(len(t) for t in tests) < MIN_POSITIONS:
+        return out
+    nw = 3 * 2 * len(harmonics)
+    n_nuis = N_NUISANCE
     beta, *_ = np.linalg.lstsq(X, y, rcond=None)
     r = y - X @ beta
     dof = max(len(y) - X.shape[1], 1)
