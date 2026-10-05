@@ -196,15 +196,14 @@ def test_try_gpsd_reports_2d_fix_while_waiting_for_timeout(monkeypatch):
     assert writer.closed
 
 
-def test_retry_schedule_places_default_final_attempt_at_five_minutes():
-    offsets = gps_location._retry_start_offsets(20, 30.0)
-    gaps = [offsets[index] - offsets[index - 1] for index in range(1, len(offsets))]
+def test_retry_delay_doubles_to_configured_maximum():
+    delays = [
+        gps_location._retry_delay_after_attempt(index, gps_location.DEFAULT_GPS_RETRY_MAX_DELAY)
+        for index in range(gps_location.DEFAULT_GPS_MAX_ATTEMPTS - 1)
+    ]
 
-    assert offsets[0] == 0
-    assert offsets[-1] == pytest.approx(300.0)
-    assert gaps[0] < gaps[-1] == 30.0
-    assert gaps == sorted(gaps)
-    assert gps_location._retry_start_offsets(1, 30.0) == (0.0,)
+    assert delays == [1.0, 2.0, 4.0, 8.0, 16.0, 32.0] + [60.0] * 13
+    assert gps_location._retry_delay_after_attempt(2, 4.0) == 4.0
 
 
 def test_listener_applies_fix_once_and_preserves_elevation_for_2d(monkeypatch):
@@ -244,9 +243,10 @@ def test_listener_continues_after_2d_until_3d_fix(monkeypatch):
     monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
     monkeypatch.setattr(Config, "gps_max_attempts", 2, raising=False)
     monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
-    monkeypatch.setattr(gps_location, "_monotonic", lambda: clock.value)
+    sleep_delays = []
 
     async def fake_sleep(delay):
+        sleep_delays.append(delay)
         clock.value += delay
 
     monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
@@ -275,7 +275,8 @@ def test_listener_continues_after_2d_until_3d_fix(monkeypatch):
 
     asyncio.run(gps_location.gps_background_listener(polaris))
 
-    assert attempt_starts == pytest.approx([0.0, 4.0])
+    assert attempt_starts == pytest.approx([0.0, 1.0])
+    assert sleep_delays == pytest.approx([1.0])
     assert applied_changes == [
         {
             "site_latitude": 51.5,
@@ -322,9 +323,9 @@ def test_listener_exhaustion_uses_configured_attempts_and_logs_each_attempt(monk
     monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
     monkeypatch.setattr(Config, "gps_max_attempts", 3, raising=False)
     monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
-    monkeypatch.setattr(gps_location, "_monotonic", lambda: clock.value)
     sleep_delays = []
     attempt_starts = []
+    attempt_timeouts = []
 
     async def fake_sleep(delay):
         sleep_delays.append(delay)
@@ -332,6 +333,7 @@ def test_listener_exhaustion_uses_configured_attempts_and_logs_each_attempt(monk
 
     async def no_fix(timeout, on_2d_fix=None):
         attempt_starts.append(clock.value)
+        attempt_timeouts.append(timeout)
         clock.value += timeout / 2
         return None
 
@@ -351,14 +353,17 @@ def test_listener_exhaustion_uses_configured_attempts_and_logs_each_attempt(monk
         record for record in caplog.records
         if record.name == "gps_location" and record.levelno == logging.INFO
     ]
-    assert attempt_starts == pytest.approx([0.0, 2.0, 6.0])
+    assert attempt_starts == pytest.approx([0.0, 6.0, 13.0])
+    assert attempt_timeouts == [gps_location.GPSD_ATTEMPT_TIMEOUT] * 3
     assert sleep_delays == pytest.approx([1.0, 2.0])
     assert apply_changes == []
     assert [record.getMessage() for record in info_records] == [
         "==GPS== Starting acquisition attempt 1 of 3",
         "==GPS== Attempt 1 of 3: no fix.",
+        "==GPS== Waiting 1.0 seconds before the next acquisition attempt.",
         "==GPS== Starting acquisition attempt 2 of 3",
         "==GPS== Attempt 2 of 3: no fix.",
+        "==GPS== Waiting 2.0 seconds before the next acquisition attempt.",
         "==GPS== Starting acquisition attempt 3 of 3",
         "==GPS== Attempt 3 of 3: no fix.",
         "==GPS== No fix found after 3 attempts.",

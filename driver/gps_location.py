@@ -15,7 +15,7 @@ GPSD_READ_TIMEOUT = 2.0
 GPSD_ATTEMPT_TIMEOUT = 10.0
 GPSD_FIX_SAMPLES = 3
 DEFAULT_GPS_MAX_ATTEMPTS = 20
-DEFAULT_GPS_RETRY_MAX_DELAY = 30.0
+DEFAULT_GPS_RETRY_MAX_DELAY = 60.0
 
 
 @dataclass(frozen=True)
@@ -61,14 +61,8 @@ def _configured_retry_max_delay(value) -> float:
     return delay
 
 
-def _retry_start_offsets(attempts: int, max_delay: float) -> tuple[float, ...]:
-    if attempts <= 1:
-        return (0.0,)
-
-    return tuple(
-        max_delay * retry_number * (retry_number + 1) / (2 * (attempts - 1))
-        for retry_number in range(attempts)
-    )
+def _retry_delay_after_attempt(attempt_index: int, max_delay: float) -> float:
+    return min(2.0 ** attempt_index, max_delay)
 
 
 def _finite_float(value) -> Optional[float]:
@@ -137,12 +131,7 @@ async def gps_background_listener(polaris):
     retry_max_delay = _configured_retry_max_delay(
         getattr(Config, "gps_retry_max_delay", DEFAULT_GPS_RETRY_MAX_DELAY)
     )
-    if attempts > 1 and not math.isfinite(retry_max_delay * attempts / 2):
-        logger.debug("==GPS== gps_retry_max_delay is too large; using %.1f seconds", DEFAULT_GPS_RETRY_MAX_DELAY)
-        retry_max_delay = DEFAULT_GPS_RETRY_MAX_DELAY
 
-    start_time = _monotonic()
-    attempt_offsets = _retry_start_offsets(attempts, retry_max_delay)
     last_applied_fix = None
 
     def apply_fix(gps_fix: GPSFix) -> None:
@@ -165,21 +154,8 @@ async def gps_background_listener(polaris):
         if last_applied_fix is None:
             apply_fix(gps_fix)
 
-    for attempt_index, offset in enumerate(attempt_offsets):
-        attempt_start = start_time + offset
-        wait = attempt_start - _monotonic()
-        if wait > 0:
-            await _sleep(wait)
-
-        if attempt_index + 1 < attempts:
-            attempt_end = start_time + attempt_offsets[attempt_index + 1]
-        else:
-            attempt_end = attempt_start + GPSD_ATTEMPT_TIMEOUT
-        attempt_timeout = min(GPSD_ATTEMPT_TIMEOUT, attempt_end - _monotonic())
-        if attempt_timeout <= 0:
-            logger.debug("==GPS== Skipping attempt %d because its scheduled window elapsed", attempt_index + 1)
-            continue
-
+    for attempt_index in range(attempts):
+        attempt_timeout = GPSD_ATTEMPT_TIMEOUT
         logger.info("==GPS== Starting acquisition attempt %d of %d", attempt_index + 1, attempts)
         try:
             gps_fix = await get_gps_location(
@@ -192,20 +168,20 @@ async def gps_background_listener(polaris):
             logger.info("==GPS== Acquisition attempt %d failed: %s", attempt_index + 1, error)
             gps_fix = None
 
-        if _monotonic() > attempt_end:
-            logger.debug("==GPS== Discarding fix returned after attempt %d expired", attempt_index + 1)
-            gps_fix = None
-
         if gps_fix is None:
             logger.info("==GPS== Attempt %d of %d: no fix.", attempt_index + 1, attempts)
-            continue
+        else:
+            if gps_fix != last_applied_fix:
+                apply_fix(gps_fix)
+            fix_dimension = "3D" if gps_fix.mode >= 3 else "2D"
+            logger.info("==GPS== Attempt %d of %d: found a %s fix.", attempt_index + 1, attempts, fix_dimension)
+            if gps_fix.mode >= 3:
+                return
 
-        if gps_fix != last_applied_fix:
-            apply_fix(gps_fix)
-        fix_dimension = "3D" if gps_fix.mode >= 3 else "2D"
-        logger.info("==GPS== Attempt %d of %d: found a %s fix.", attempt_index + 1, attempts, fix_dimension)
-        if gps_fix.mode >= 3:
-            return
+        if attempt_index + 1 < attempts:
+            retry_delay = _retry_delay_after_attempt(attempt_index, retry_max_delay)
+            logger.info("==GPS== Waiting %.1f seconds before the next acquisition attempt.", retry_delay)
+            await _sleep(retry_delay)
 
     if last_applied_fix is None:
         logger.info("==GPS== No fix found after %d attempts.", attempts)

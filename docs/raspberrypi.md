@@ -131,13 +131,13 @@ You can also configure automatic location detection using a USB GPS Dongle. The 
     cgps -s
     ```
     Exit `cgps` with **Ctrl+C** after confirming it reports a fix.
-4. If you already have a customised config, add or set `"gps_auto_detect": true` in `data/config.pilot.json`, preserving other entries, otherwise it's created automatically if you used the -g option in the setup. The attempt count and retry gap can be configured in `driver/config.toml`; the defaults are `gps_max_attempts = 20` and `gps_retry_max_delay = 30.0`. Restart the driver to apply changes:
+4. If you already have a customised config, add or set `"gps_auto_detect": true` in `data/config.pilot.json`, preserving other entries, otherwise it's created automatically if you used the -g option in the setup. The attempt count and maximum retry delay can be configured in `driver/config.toml`; the defaults are `gps_max_attempts = 20` and `gps_retry_max_delay = 60.0`. Restart the driver to apply changes:
     ```Bash
     sudo systemctl restart polaris-driver
     ```
     The first valid 2D fix immediately updates the site coordinates and names the location **GPS Receiver**, while preserving the existing elevation. The listener continues polling through the configured retry schedule until a 3D fix arrives. A 3D fix updates the coordinates and stops polling; elevation changes only if the fix includes a measured altitude. If retries expire without a 3D fix, the 2D position and existing elevation are retained.
 
-Retry gaps increase gradually, so with the defaults the 20th attempt starts about five minutes after the first; its read can continue for up to 10 more seconds. If no 3D fix is found, the driver logs that and keeps any 2D position already applied; if no valid fix was found, the site remains unchanged. Restart the driver to try again.
+Retry delay start from 1s and increase exponentially after each attempt, up to the configured `gps_retry_max_delay`.
 
 ## Setup.sh Command Reference
 You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
