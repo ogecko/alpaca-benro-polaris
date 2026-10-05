@@ -197,10 +197,13 @@ async def gps_background_listener(polaris):
             gps_fix = None
 
         if gps_fix is None:
+            logger.info("==GPS== Attempt %d of %d: no fix.", attempt_index + 1, attempts)
             continue
 
         if gps_fix != last_applied_fix:
             apply_fix(gps_fix)
+        fix_dimension = "3D" if gps_fix.mode >= 3 else "2D"
+        logger.info("==GPS== Attempt %d of %d: found a %s fix.", attempt_index + 1, attempts, fix_dimension)
         if gps_fix.mode >= 3:
             return
 

@@ -292,7 +292,7 @@ def test_listener_continues_after_2d_until_3d_fix(monkeypatch):
     assert live_changes == applied_changes
 
 
-def test_listener_rounds_3d_altitude(monkeypatch):
+def test_listener_rounds_3d_altitude(monkeypatch, caplog):
     monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
     monkeypatch.setattr(Config, "gps_max_attempts", 20, raising=False)
     monkeypatch.setattr(Config, "gps_retry_max_delay", 30.0, raising=False)
@@ -309,10 +309,12 @@ def test_listener_rounds_3d_altitude(monkeypatch):
     monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
     polaris = SimpleNamespace(make_config_params_live=lambda changes: None)
 
-    asyncio.run(gps_location.gps_background_listener(polaris))
+    with caplog.at_level(logging.INFO, logger="gps_location"):
+        asyncio.run(gps_location.gps_background_listener(polaris))
 
     assert applied_changes[0]["site_elevation"] == 36
     assert applied_changes[0]["location"] == "GPS Receiver"
+    assert "==GPS== Attempt 1 of 20: found a 3D fix." in caplog.messages
 
 
 def test_listener_exhaustion_uses_configured_attempts_and_logs_each_attempt(monkeypatch, caplog):
@@ -354,7 +356,10 @@ def test_listener_exhaustion_uses_configured_attempts_and_logs_each_attempt(monk
     assert apply_changes == []
     assert [record.getMessage() for record in info_records] == [
         "==GPS== Starting acquisition attempt 1 of 3",
+        "==GPS== Attempt 1 of 3: no fix.",
         "==GPS== Starting acquisition attempt 2 of 3",
+        "==GPS== Attempt 2 of 3: no fix.",
         "==GPS== Starting acquisition attempt 3 of 3",
+        "==GPS== Attempt 3 of 3: no fix.",
         "==GPS== No fix found after 3 attempts.",
     ]
