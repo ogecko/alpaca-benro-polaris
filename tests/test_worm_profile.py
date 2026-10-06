@@ -21,9 +21,9 @@ import numpy as np
 import pytest
 
 from control import CalibrationManager
-from control_worm import (POSITIONS, PROFILE_TEST, CALIBRATION_HISTORY, POOL_TESTS, SETTLE_HOLD_S, JUMP_ARCSEC,
+from control_worm import (POSITIONS, PROFILE_TEST, CALIBRATION_HISTORY, POOL_TESTS, SETTLE_HOLD_S, JUMP_ARCSEC, BACKLASH_DEG,
                           WormProfileTest, WormFeedForward, fit_worm_profile, store_profile_test, pooled_profile,
-                          apply_profile, revert_profile, profile_row_fields)
+                          apply_profile, revert_profile, profile_row_fields, row_status)
 
 WORM = 6.0
 TRUE = {'M1': [24.2, 25.3, 3.0, -2.0], 'M2': [-60.0, 0.3, -6.0, -6.0], 'M3': [-40.2, -29.7, 1.0, 1.5]}   # a1 b1 a2 b2
@@ -106,6 +106,46 @@ def test_syncs_before_settling_or_jumping_are_discarded():
     assert test.discarded == {'moving': 1, 'jump': 1}
 
 
+
+# ── backlash: every position is approached in each motor's tracking direction ────────────────────
+TRACK = np.array([-1, -1, 1])                      # the tracking direction of each motor (sign of its rate)
+
+
+def test_a_step_against_a_motors_tracking_direction_overshoots_then_approaches_with_tracking():
+    """Tracking then keeps turning each motor the way it arrived: no backlash to take up after the step (on the real
+    mount, ~350" of drift over 25 s after every step that reversed M3)."""
+    test = WormProfileTest(now=0.0)
+    settle(test, 0.0)
+    step = np.asarray(test.on_sync({'res': [0.0, 0.0]}, now=5.0, track_dir=TRACK))
+    want = POSITIONS[1] - POSITIONS[0]                                       # M1 +, M2 -, M3 +
+    assert np.allclose(step, want + np.array([BACKLASH_DEG, 0.0, 0.0]))      # M1 steps against its tracking (-)
+    assert test.settled_at is None
+    approach = None
+    for t in np.arange(6.0, 9.0, 0.2):                                       # the overshoot settles: approach
+        approach = test.track_settle(0.0, now=t) if approach is None else approach
+    assert np.allclose(approach, [-BACKLASH_DEG, 0.0, 0.0]) and test.settled_at is None
+    for t in np.arange(9.0, 12.0, 0.2):
+        assert test.track_settle(0.0, now=t) is None
+    assert test.settled_at is not None                                       # settled only after the approach
+    test.on_sync({'res': [0.0, 0.0]}, now=20.0, track_dir=TRACK)
+    assert test.samples[-1]['direction'] == [-1, -1, 1]                      # every motor arrived as it tracks
+
+
+def test_with_every_step_along_the_tracking_direction_there_is_no_approach():
+    test = WormProfileTest(now=0.0)
+    settle(test, 0.0)
+    step = test.on_sync({'res': [0.0, 0.0]}, now=5.0, track_dir=np.sign(POSITIONS[1] - POSITIONS[0]))
+    assert np.allclose(step, POSITIONS[1] - POSITIONS[0])
+    assert all(test.track_settle(0.0, now=t) is None for t in np.arange(6.0, 9.0, 0.2))
+    assert test.settled_at is not None
+
+
+def test_a_motor_that_is_not_tracking_needs_no_approach():
+    test = WormProfileTest(now=0.0)
+    settle(test, 0.0)
+    step = test.on_sync({'res': [0.0, 0.0]}, now=5.0, track_dir=np.array([0, 0, 0]))
+    assert np.allclose(step, POSITIONS[1] - POSITIONS[0])
+
 def test_times_out_and_aborts():
     test = WormProfileTest(now=0.0)
     assert not test.timed_out(59.0) and test.timed_out(61.0)
@@ -163,9 +203,9 @@ def test_several_tests_pool_with_their_own_offset_and_drift():
 
 
 # ── the profile file ──────────────────────────────────────────────────────────────────────────
-def stored(path, n, status='COMPLETED'):
+def stored(path, n, status='COMPLETED', noise=2.0):
     for k in range(n):
-        s = synthetic_test(seed=k)
+        s = synthetic_test(seed=k, noise=noise)
         r = fit_worm_profile([s])
         r['status'] = status
         store_profile_test(path, s, r, timing={'settle_median_s': 7.0})
@@ -180,11 +220,26 @@ def test_tests_are_kept_with_their_samples_up_to_the_history_limit(tmp_path):
     assert WormFeedForward.load(p).coef.sum() == 0                     # kept, not applied
 
 
-def test_the_pooled_profile_uses_the_last_completed_tests(tmp_path):
+def test_the_pooled_profile_uses_the_last_tests_with_a_clean_fit(tmp_path):
     p = str(tmp_path / 'worm_profile.json')
     stored(p, POOL_TESTS + 2)
-    stored(p, 1, status='POOR FIT')
     assert pooled_profile(p)['checks']['tests'] == POOL_TESTS
+
+
+def test_tests_too_uncertain_on_their_own_pool_but_a_bad_fit_does_not(tmp_path):
+    """Real mount 2026-10-06: a clean test (12" rms) was POOR FIT on significance alone (3.3 sigma) -- pooled with a
+    few more it passes; tests spoiled by backlash take-up (33" rms) must stay out."""
+    p = str(tmp_path / 'worm_profile.json')
+    stored(p, 2, status='POOR FIT')                           # clean fits (synthetic, ~2" rms), each short of 4 sigma
+    stored(p, 1, status='POOR FIT', noise=60.0)               # a bad fit: residual well above POOL_MAX_RMS_ARCSEC
+    pooled = pooled_profile(p)
+    assert pooled['checks']['tests'] == 2 and pooled['status'] == 'COMPLETED'
+
+
+def test_the_row_shows_completed_when_the_pooled_profile_passes():
+    assert row_status({'status': 'POOR FIT'}, {'status': 'COMPLETED', 'motors': {'M1': {}}}) == 'COMPLETED'
+    assert row_status({'status': 'POOR FIT'}, {'status': 'NO DATA', 'motors': {}}) == 'POOR FIT'
+    assert row_status({'status': 'COMPLETED'}, {'status': 'POOR FIT', 'motors': {'M1': {}}}) == 'COMPLETED'
 
 
 def test_approve_applies_the_pooled_profile_on_mcu_angles_and_reject_restores(tmp_path):
@@ -203,10 +258,10 @@ def test_approve_applies_the_pooled_profile_on_mcu_angles_and_reject_restores(tm
     assert not revert_profile(p)
 
 
-def test_apply_without_a_completed_test_does_nothing(tmp_path):
+def test_apply_without_a_clean_test_does_nothing(tmp_path):
     p = str(tmp_path / 'worm_profile.json')
     assert not apply_profile(p)
-    stored(p, 1, status='POOR FIT')
+    stored(p, 1, status='POOR FIT', noise=60.0)              # a bad fit doesn't pool
     assert not apply_profile(p)
 
 

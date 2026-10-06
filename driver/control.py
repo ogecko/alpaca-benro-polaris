@@ -1922,7 +1922,9 @@ class PID_Controller():
                     self.clear_theta_ref_cache()
         test = self._worm_test()
         if test is not None:                               # worm profile test: has the step settled (every motor)?
-            test.track_settle(float(np.max(np.abs(self.error_signal))) * 3600.0)
+            approach = test.track_settle(float(np.max(np.abs(self.error_signal))) * 3600.0)
+            if approach is not None:                       # after an overshoot: onto the position with tracking
+                self.step_motor_targets(approach)
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
         self.is_axis_deviating = np.abs(self.error_signal) > tollerance

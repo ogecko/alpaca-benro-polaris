@@ -257,7 +257,9 @@ class WormMixin:
                   'zeta': r5(zeta), 'res': [round(float(x), 2) for x in res], 'J': [r5(row) for row in J],
                   'theta_raw': r5(theta_raw), 'zeta_offset': offset, 'theta_pv': r5(theta_pv),
                   'a_ra': a_ra, 'a_dec': a_dec, 'a_az': a_az, 'a_alt': a_alt}
-        step = test.on_sync(sample)
+        omega = np.asarray(getattr(pid, 'omega_ff', np.zeros(3)), float)
+        track_dir = np.where(np.abs(omega) > TRACK_RATE_MIN_DPS, np.sign(omega), 0.0)
+        step = test.on_sync(sample, track_dir=track_dir)
         if self.logger:
             if test.last_outcome == 'kept':
                 k = test.samples[-1]
@@ -288,8 +290,13 @@ ROLL_TARGET_DEG = 25.0        # by about the roll angle), and back afterwards
 SETTLE_ARCSEC = 10.0          # a step has settled when every motor holds within this of its target ...
 SETTLE_HOLD_S = 1.0           # ... for this long
 JUMP_ARCSEC = 300.0           # 2-D error change from the last kept sample that means the exposure caught the move
+BACKLASH_DEG = 0.25           # a step against a motor's tracking direction overshoots by this, then approaches the
+                              # position with tracking: tracking then turns each motor the way it arrived, with no
+                              # backlash to take up (measured 150-620" on the real mount; ~350" drift per step without)
+TRACK_RATE_MIN_DPS = 1e-5     # a motor turning slower than this while tracking has no tracking direction
 CALIBRATION_HISTORY = 15      # tests kept in the profile's calibration_history (with their samples)
-POOL_TESTS = 5                # the applied profile pools the last this many completed tests
+POOL_TESTS = 5                # the applied profile pools the last this many tests with a clean fit ...
+POOL_MAX_RMS_ARCSEC = 20.0    # ... a residual below this (each COMPLETED, or POOR FIT only for too few sigma on its own)
 
 
 def _legs(step_deg, pattern):
@@ -329,6 +336,8 @@ class WormProfileTest:
         self.last_outcome = None                   # the last sync: 'kept', 'moving' or 'jump'
         self.discarded = {'moving': 0, 'jump': 0}
         self.settle_times = []                     # s from each step to settled
+        self.approach = None                       # the move back onto the position after an overshoot (deg, per motor)
+        self.arrival = None                        # each motor's direction arriving at the current position
 
     @property
     def done(self):
@@ -352,23 +361,31 @@ class WormProfileTest:
 
     def track_settle(self, err_arcsec, now=None):
         """The largest of the motors' PID errors (arcsec) each control tick: marks the position settled once every
-        motor has held within SETTLE_ARCSEC for SETTLE_HOLD_S (settled_at = when they got there)."""
+        motor has held within SETTLE_ARCSEC for SETTLE_HOLD_S (settled_at = when they got there). After an overshoot
+        it returns the approach move instead (deg, per motor) for the caller to make, and settles after that."""
         if self.settled_at is not None or self.done or self.aborted:
-            return
+            return None
         now = time.monotonic() if now is None else now
         if abs(err_arcsec) >= SETTLE_ARCSEC:
             self._within_since = None
-            return
+            return None
         if self._within_since is None:
             self._within_since = now
-        if now - self._within_since >= SETTLE_HOLD_S:
-            self.settled_at = self._within_since
-            if self.step_at is not None:
-                self.settle_times.append(round(self.settled_at - self.step_at, 2))
+        if now - self._within_since < SETTLE_HOLD_S:
+            return None
+        if self.approach is not None:              # the overshoot has settled: come back onto the position with tracking
+            approach, self.approach, self._within_since = self.approach, None, None
+            return approach
+        self.settled_at = self._within_since
+        if self.step_at is not None:
+            self.settle_times.append(round(self.settled_at - self.step_at, 2))
+        return None
 
-    def on_sync(self, sample, now=None):
+    def on_sync(self, sample, now=None, track_dir=None):
         """Record a sync (dict with 'res', the 2-D error) at the current position. Returns the step (deg, per motor)
-        to make now, or None (sync discarded -- see last_outcome -- or the test is finished or aborted)."""
+        to make now, or None (sync discarded -- see last_outcome -- or the test is finished or aborted).
+        track_dir: each motor's tracking direction (+1, -1, 0): a step against it overshoots by BACKLASH_DEG, and
+        track_settle() then returns the approach back onto the position in the tracking direction."""
         if self.done or self.aborted:
             return None
         now = time.monotonic() if now is None else now
@@ -383,14 +400,25 @@ class WormProfileTest:
             return self._discard('jump')
         settle_s = None if self.step_at is None else round(self.settled_at - self.step_at, 2)
         self.samples.append({**sample, 'offset': [round(float(x), 4) for x in self.positions[self.index]],
-                             'direction': self.direction(self.index), 'settle_s': settle_s,
+                             'direction': self.arrival if self.arrival is not None else self.direction(self.index),
+                             'settle_s': settle_s,
                              'since_settle_s': round(now - self.settled_at, 2)})
         self.last_outcome = 'kept'
         self.index += 1
         self.step_at, self.settled_at, self._within_since, self.clean_next = now, None, None, False
+        self.approach = self.arrival = None
         if self.done:
             return None
-        return self.positions[self.index] - self.positions[self.index - 1]
+        step = self.positions[self.index] - self.positions[self.index - 1]
+        if track_dir is None:
+            return step
+        td, d = np.sign(np.asarray(track_dir, float)), np.sign(step)
+        against = (d != 0) & (td != 0) & (d == -td)
+        self.arrival = [int(x) for x in np.where(against, td, d)]
+        if not against.any():
+            return step
+        self.approach = np.where(against, BACKLASH_DEG * td, 0.0)
+        return step - self.approach                # overshoot: past the position, against tracking
 
     def _discard(self, why):
         self.discarded[why] += 1
@@ -426,6 +454,9 @@ def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
         off = np.array([s['offset'] for s in t], float)
         offs = (off - off.mean(0)) / np.maximum(np.ptp(off, 0), 1e-9)
         base = nw + N_NUISANCE * k
+        # a motor that arrives at every position the same way (each step approached with tracking) has no backlash
+        # to fit: its column would only duplicate the offset
+        varies = [len({s['direction'][m] for s in t}) > 1 for m in range(3)]
         for i, s in enumerate(t):
             J = np.asarray(s['J'], float)
             ph = 2 * np.pi * np.asarray(s['zeta'], float) / worm_theta
@@ -439,7 +470,7 @@ def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
                 r[base + 2 + 2 * a], r[base + 3 + 2 * a] = ts[i], ts[i] ** 2
                 for m in range(3):
                     r[base + 6 + 2 * m + a] = offs[i, m]
-                    r[base + 12 + m] = J[m, a] * (s['direction'][m] > 0)
+                    r[base + 12 + m] = J[m, a] * (s['direction'][m] > 0) if varies[m] else 0.0
                 rows.append(r)
                 y.append(float(s['res'][a]))
     return np.array(rows), np.array(y), tests
@@ -537,13 +568,27 @@ def store_profile_test(path, samples, result, timing=None):
     ff.save(path)
 
 
+def _poolable(entry):
+    """A test whose fit is clean: COMPLETED, or POOR FIT only because one test's worms are too uncertain on their own
+    (real mount: a clean 12\" rms test reached 3.3 sigma) -- not one spoiled by something the model lacks (33\" rms)."""
+    checks = (entry.get('result') or {}).get('checks') or {}
+    return (entry.get('test') == PROFILE_TEST and entry.get('status') in ('COMPLETED', 'POOR FIT')
+            and entry.get('samples') and checks.get('positions', 0) >= MIN_POSITIONS
+            and checks.get('rms_arcsec', float('inf')) < POOL_MAX_RMS_ARCSEC)
+
+
 def pooled_profile(path, worm_theta=6.0):
-    """fit_worm_profile over the last POOL_TESTS completed tests in the profile file (each with its own offset, drift
-    and trend), or a NO DATA result if there are none."""
+    """fit_worm_profile over the last POOL_TESTS tests with a clean fit in the profile file (each with its own offset,
+    drift and trend), or a NO DATA result if there are none."""
     ff = _load_or_new(path)
-    tests = [e['samples'] for e in ff.meta.get('calibration_history', [])
-             if e.get('test') == PROFILE_TEST and e.get('status') == 'COMPLETED' and e.get('samples')][-POOL_TESTS:]
+    tests = [e['samples'] for e in ff.meta.get('calibration_history', []) if _poolable(e)][-POOL_TESTS:]
     return fit_worm_profile(tests, worm_theta=worm_theta)
+
+
+def row_status(latest, pooled):
+    """The worm profile row's status after a test: COMPLETED when the pooled profile passes (so it can be approved),
+    even if the latest test alone did not; else the latest test's own status."""
+    return 'COMPLETED' if pooled.get('motors') and pooled.get('status') == 'COMPLETED' else latest['status']
 
 
 def apply_profile(path):

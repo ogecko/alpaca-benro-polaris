@@ -49,7 +49,7 @@ from kinematics import THETA2_MIN_MEAS
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
 from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
-from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, MIN_SEPARATION_DEG
+from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, row_status, MIN_SEPARATION_DEG
 from control_worm import ROLL_MIN_DEG, ROLL_TARGET_DEG
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
@@ -683,7 +683,8 @@ class Polaris:
         self.logger.info(f"WORM PROFILE TEST: END {result['status']} {result['motors']}, checks {result['checks']}, "
                          f"timing {test.timing()}; pooled over {pooled['checks'].get('tests', 0)} tests: "
                          f"{pooled.get('motors')} -> {path}")
-        self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path)), result['status'])
+        self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path)),
+                                      row_status(result, pooled))
         self.lifecycle.reset()
 
     async def _worm_test_roll(self, target, timeout_s=120.0):
