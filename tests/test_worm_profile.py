@@ -2,7 +2,7 @@
 The worm profile test (driver/control_worm.py): all three motors stepped through their worms at once while sidereal
 tracking holds the sky, each plate-solve sync recorded as a 2-D pointing error, and one joint fit for every motor.
 
-  * the schedule: 33 positions, each motor its own step and reversal points, within +-6 deg of the start
+  * the schedule: 48 positions, each motor sweeping ~2.5 worm turns with its own step and reversal points
   * one sync per position once every motor has settled; syncs before settling, or whose error jumps (an exposure that
     caught the move), are discarded
   * the joint fit recovers every motor's worm (1st and 2nd harmonic) and backlash next to an offset, a drift and a
@@ -62,13 +62,18 @@ def coef_error(fitted, true):
 
 
 # ── schedule ──────────────────────────────────────────────────────────────────────────────────
-def test_schedule_steps_each_motor_its_own_way_within_six_degrees():
-    assert POSITIONS.shape == (33, 3) and np.all(POSITIONS[0] == 0)
-    assert np.abs(POSITIONS).max() <= 6.0
+def test_schedule_sweeps_each_motor_about_two_and_a_half_worm_turns_its_own_way():
+    """Real mount 2026-10-06: over ~1.5 worm turns a linear pointing trend mimics much of a worm cycle (M2's terms
+    correlated ~0.8 with it; two clean runs gave M2 41" and 100"). 48 positions sweeping ~2.5 turns each separate them."""
+    assert POSITIONS.shape == (48, 3) and np.all(POSITIONS[0] == 0)
+    assert np.abs(POSITIONS).max() <= 7.5 + 1e-9
+    assert all(np.ptp(POSITIONS[:, m]) >= 2.2 * 6.0 for m in range(3))                    # >= ~2.2 worm turns each
     steps = np.abs(np.diff(POSITIONS, axis=0))
-    assert [round(float(steps[:, m].max()), 3) for m in range(3)] == [0.6, 0.45, 0.375]    # phase rates 36/27/22.5 deg
-    turns = lambda m: np.flatnonzero(np.diff(np.sign(np.diff(POSITIONS[:, m])))) + 1
-    assert list(turns(0)) == [8, 24] and list(turns(1)) == [12] and list(turns(2)) == [16]  # reversals don't coincide
+    rates = [round(float(steps[:, m].max()) * 60, 2) for m in range(3)]                     # worm phase deg per step
+    assert rates == [45.0, 36.0, 33.75]
+    assert not {2 * r for r in rates} & set(rates)                                          # no 2nd/1st harmonic alias
+    turns = lambda m: set(np.flatnonzero(np.diff(np.sign(np.diff(POSITIONS[:, m])))) + 1)
+    assert not (turns(0) & turns(1)) and not (turns(0) & turns(2)) and not (turns(1) & turns(2))
 
 
 def settle(test, now):
@@ -90,7 +95,7 @@ def test_a_sync_after_the_step_settles_is_kept_and_steps_all_motors_at_once():
         t += 10.0
         test.on_sync({'res': [0.0, 0.0]}, now=t)
         assert test.last_outcome == 'kept'
-    assert len(test.samples) == 33 and test.samples[1]['direction'] == [1, -1, 1]
+    assert len(test.samples) == len(POSITIONS) and test.samples[1]['direction'] == [1, -1, 1]
     assert test.samples[1]['settle_s'] == pytest.approx(2.0)
     assert test.on_sync({'res': [0, 0]}, now=t + 10.0) is None
 
@@ -163,9 +168,10 @@ def test_fit_recovers_every_motors_worm_and_backlash():
     for m, M in enumerate(('M1', 'M2', 'M3')):
         got = r['motors'][M]
         assert coef_error(got['coef'][:2], TRUE[M][:2]) < 4.0, (M, got)
-        assert got['backlash'] == pytest.approx(BACKLASH[m], abs=8.0)      # only loosely determined (not applied)
+        assert got['backlash'] == pytest.approx(BACKLASH[m], abs=12.0)     # loosely determined next to the quadratic
+                                                                            # trend (reported only; real tests approach with tracking)
     assert coef_error(r['motors']['M2']['coef'][2:], TRUE['M2'][2:]) < 3.0     # a significant 2nd harmonic is applied
-    assert r['checks']['positions'] == 32 and r['checks']['rms_arcsec'] == pytest.approx(2.0, abs=0.8)
+    assert r['checks']['positions'] == len(POSITIONS) - 1 and r['checks']['rms_arcsec'] == pytest.approx(2.0, abs=0.8)
 
 
 def test_an_insignificant_2nd_harmonic_is_not_applied():
@@ -216,7 +222,7 @@ def test_tests_are_kept_with_their_samples_up_to_the_history_limit(tmp_path):
     stored(p, CALIBRATION_HISTORY + 2)
     h = json.load(open(p))['calibration_history']
     assert len(h) == CALIBRATION_HISTORY and all(e['test'] == PROFILE_TEST for e in h)
-    assert len(h[-1]['samples']) == 33 and h[-1]['status'] == 'COMPLETED' and h[-1]['timing']['settle_median_s'] == 7.0
+    assert len(h[-1]['samples']) == len(POSITIONS) and h[-1]['status'] == 'COMPLETED' and h[-1]['timing']['settle_median_s'] == 7.0
     assert WormFeedForward.load(p).coef.sum() == 0                     # kept, not applied
 
 
@@ -327,7 +333,7 @@ def test_the_row_shows_the_pooled_profile_and_what_applying_it_changes():
     pooled = fit_worm_profile([synthetic_test(seed=k) for k in range(3)])
     f = profile_row_fields(latest, pooled, None)
     assert f['test_result'].startswith('M1 ') and ' M3 ' in f['test_result'] and '"@' in f['test_result']
-    assert f['test_change'].startswith('pooled 3 tests:') and 'rms n32' in f['test_stdev']
+    assert f['test_change'].startswith('pooled 3 tests:') and 'rms n47' in f['test_stdev']
     bad = dict(latest, status='POOR FIT')
     assert '⚠' in profile_row_fields(bad, pooled, None)['test_change']
 
@@ -351,3 +357,16 @@ def test_every_row_stays_in_the_last_150_messages_through_a_worm_profile_test(mo
         logger.removeHandler(handler)
     assert set(sent[-150:]) == set(cm.test_data)
     assert sent[-len(cm.test_data):] == list(cm.test_data)      # in table order
+
+
+def test_a_curved_pointing_error_across_the_test_does_not_leak_into_the_worms():
+    """The pointing model's error changes across the test's +-7.5 deg, not only linearly: a quadratic trend absorbs it."""
+    rng = np.random.default_rng(5)
+    quad = rng.normal(0, 4.0, (2, 3, 3))                                       # "/deg^2: hundreds of " at +-7.5 deg
+    s = synthetic_test(seed=3)
+    for x in s:
+        o = np.asarray(x['offset'])
+        x['res'] = list(np.asarray(x['res']) + np.einsum('aij,i,j->a', quad, o, o))
+    r = fit_worm_profile([s])
+    for M in ('M1', 'M2', 'M3'):
+        assert coef_error(r['motors'][M]['coef'][:2], TRUE[M][:2]) < 6.0, (M, r['motors'][M])

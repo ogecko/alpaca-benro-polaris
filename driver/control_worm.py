@@ -16,7 +16,7 @@
 # The worm profile test (Speed Calibration page, M1 row)
 # -----------------------------------------------------
 # Measures all three motors' worms at once from plate solves. The tracked target is stepped so that each motor turns
-# its own schedule (POSITIONS: different step sizes and reversal points per motor, so their worm phases and their
+# its own schedule (POSITIONS: 48 positions, ~2.5 worm turns, different step sizes and reversal points per motor, so their worm phases and their
 # backlash separate), while sidereal tracking holds the sky; each plate-solve sync is recorded, not applied.
 #
 # Stop and go, driven by the syncs: plate solving while the motors turn would smear the stars and turn the solve's
@@ -268,10 +268,13 @@ class WormMixin:
             elif test.last_outcome == 'moving':
                 timing = 'motors not settled: discarded'
             else:
-                timing = f'error jumped > {JUMP_ARCSEC:.0f}" from the last sample: discarded'
-            self.logger.info(f"WORM PROFILE TEST: sync {test.last_outcome}, error {res[0]:.1f}\" {res[1]:.1f}\", "
-                             f"position {test.index}/{len(test.positions)}, {timing}, solved ra {a_ra:.6f} h dec "
-                             f"{a_dec:.5f} az {a_az:.5f} alt {a_alt:.5f}, zeta {sample['zeta']}, theta_pv {sample['theta_pv']}")
+                timing = f'pointing jumped > {JUMP_ARCSEC:.0f}" from the last sample: discarded'
+            # the pointing offset (solved - predicted, horizontal and up) is mostly the alignment model's error at this
+            # pose plus drift -- hundreds of arcsec is normal; the fit removes it -- so it comes last, for analysis
+            self.logger.info(f"WORM PROFILE TEST: sync {test.last_outcome}, position {test.index}/{len(test.positions)}, "
+                             f"{timing}, solved ra {a_ra:.6f} h dec {a_dec:.5f} az {a_az:.5f} alt {a_alt:.5f}, "
+                             f"pointing offset {res[0]:.1f}\" {res[1]:.1f}\", zeta {sample['zeta']}, "
+                             f"theta_pv {sample['theta_pv']}")
         if step is not None:
             pid.step_motor_targets(step)
 
@@ -308,14 +311,27 @@ def _legs(step_deg, pattern):
     return out
 
 
-# Motor offsets (deg) from the start at each of the 33 positions: each motor its own step and reversal points, so their
-# worm phases advance at different rates (36, 27, 22.5 deg a step) and their backlash (direction) patterns differ. The
-# steps avoid simple ratios between one motor's 1st harmonic and another's 2nd: with 0.75 and 0.375 deg steps, M3's
-# 2nd harmonic advanced exactly as fast as M1's 1st and, where M1 and M3 move the field the same way (Roll 0), the
-# two could not be told apart (worst-case 1st harmonic error 21" -> 7.5" with these steps, on synthetic data).
-POSITIONS = np.array([_legs(0.6, [(+1, 8), (-1, 16), (+1, 8)]),           # M1 +-4.8 deg, reverses at 8 and 24
-                      _legs(0.45, [(-1, 12), (+1, 20)]),                  # M2 -5.4 .. +3.6 deg, reverses at 12
-                      _legs(0.375, [(+1, 16), (-1, 16)])]).T              # M3 0 .. +6 deg, reverses at 16
+def _sweep(step_deg, steps_out, first, n):
+    """n offsets (deg) sweeping back and forth across +-steps_out x step_deg from 0, first leg in direction `first`."""
+    out, k, d = [0.0], 0, first
+    for _ in range(n - 1):
+        if abs(k + d) > steps_out:
+            d = -d
+        k += d
+        out.append(k * step_deg)
+    return out
+
+
+# Motor offsets (deg) from the start at each of the 48 positions (~20 min at one solve every ~25 s): each motor sweeps
+# back and forth across about +-7.5 deg -- ~2.5 worm turns -- with its own step and reversal points. Over only ~1.5
+# turns (the 33-position schedule) a linear pointing trend mimics much of a worm cycle: on the real mount (2026-10-06)
+# M2's terms correlated ~0.8 with the trend and two clean runs gave 41" and 100". The steps advance the worm phases at
+# 45, 36 and 33.75 deg a step, avoiding simple ratios between one motor's 1st harmonic and another's 2nd (with 0.75
+# and 0.375 deg steps, M3's 2nd harmonic advanced as fast as M1's 1st and, at Roll 0, could not be told apart).
+POSITIONS = np.array([_sweep(0.75, 10, +1, 48),                           # M1 +-7.5 deg
+                      _sweep(0.6, 12, -1, 48),                            # M2 +-7.2 deg
+                      _sweep(0.5625, 13, +1, 48)]).T                      # M3 +-7.3 deg
+QUAD_TREND_MIN_SPAN_DEG = 12.0  # a test sweeping every motor at least this far also fits a quadratic pointing trend
 
 
 class WormProfileTest:
@@ -437,7 +453,8 @@ def _phase(a, b):
     return float(np.degrees(np.arctan2(b, a)) % 360)
 
 
-N_NUISANCE = 2 + 4 + 6 + 3      # per test: 2-D offset, quadratic drift in time, linear pointing trend, backlash
+N_NUISANCE = 2 + 4 + 6 + 3 + 12  # per test: 2-D offset, quadratic drift in time, linear pointing trend, backlash,
+                                  # quadratic pointing trend (wide tests only, else zero columns)
 
 
 def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
@@ -457,6 +474,10 @@ def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
         # a motor that arrives at every position the same way (each step approached with tracking) has no backlash
         # to fit: its column would only duplicate the offset
         varies = [len({s['direction'][m] for s in t}) > 1 for m in range(3)]
+        # the pointing model's error is not linear across a wide test: there, also a quadratic trend in the offsets
+        wide = bool(np.all(np.ptp(off, 0) >= QUAD_TREND_MIN_SPAN_DEG))
+        quad = np.column_stack([offs[:, 0] ** 2, offs[:, 1] ** 2, offs[:, 2] ** 2, offs[:, 0] * offs[:, 1],
+                                offs[:, 0] * offs[:, 2], offs[:, 1] * offs[:, 2]]) if wide else np.zeros((len(t), 6))
         for i, s in enumerate(t):
             J = np.asarray(s['J'], float)
             ph = 2 * np.pi * np.asarray(s['zeta'], float) / worm_theta
@@ -471,6 +492,7 @@ def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
                 for m in range(3):
                     r[base + 6 + 2 * m + a] = offs[i, m]
                     r[base + 12 + m] = J[m, a] * (s['direction'][m] > 0) if varies[m] else 0.0
+                r[base + 15 + 6 * a:base + 21 + 6 * a] = quad[i]
                 rows.append(r)
                 y.append(float(s['res'][a]))
     return np.array(rows), np.array(y), tests

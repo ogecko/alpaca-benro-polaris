@@ -19,7 +19,7 @@ import pytest
 import polaris as polaris_mod
 from polaris import Polaris
 from control import CalibrationManager
-from control_worm import PROFILE_TEST, WormProfileTest, WormFeedForward
+from control_worm import PROFILE_TEST, WormProfileTest, WormFeedForward, POSITIONS
 from test_worm_profile import synthetic_test, TRUE, coef_error
 
 
@@ -103,7 +103,7 @@ def run_test(p, seed=0, stop=False):
             p.lifecycle.stopped = True
         else:
             await asyncio.sleep(0.6)
-            assert p._cm.test_data[PROFILE_TEST]['test_status'] == 'PENDING 0/33'
+            assert p._cm.test_data[PROFILE_TEST]['test_status'] == f'PENDING 0/{len(POSITIONS)}'
             feed(p._sm.worm_test, seed)
         await asyncio.wait_for(task, 5)
     asyncio.run(run())
@@ -123,9 +123,9 @@ def test_the_test_runs_fits_keeps_the_test_and_shows_the_pooled_profile(tmp_path
     assert p.calls == ['start_tracking', 'stop_tracking'] and p._sm.worm_test is None
     assert p.lifecycle.events == ['start', 'reset']
     row = p._cm.test_data[PROFILE_TEST]
-    assert row['test_status'] == 'COMPLETED' and row['test_result'].startswith('M1 ') and 'rms n32' in row['test_stdev']
+    assert row['test_status'] == 'COMPLETED' and row['test_result'].startswith('M1 ') and 'rms n47' in row['test_stdev']
     h = json.load(open(p._sm.path))['calibration_history']
-    assert len(h) == 1 and len(h[0]['samples']) == 33 and h[0]['status'] == 'COMPLETED'
+    assert len(h) == 1 and len(h[0]['samples']) == len(POSITIONS) and h[0]['status'] == 'COMPLETED'
 
     run_test(p, seed=1)                                          # a second test: the row pools both
     assert p._cm.test_data[PROFILE_TEST]['test_change'].startswith('pooled 2 tests:')
