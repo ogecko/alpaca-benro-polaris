@@ -1090,7 +1090,10 @@ class PID_Controller():
         return self.axis_v_act if Config.coordinated_speed_control else self.axis_v_sp
 
     def ramp_jog_rates(self):
-        """Move the applied jog rates toward the requested ones by at most Ka*dt per control step."""
+        """Move the applied jog rates toward the requested ones by at most Ka*dt per control step (with
+        coordinated_speed_control; otherwise jogs use the requested rates directly, see _jog_rates)."""
+        if not Config.coordinated_speed_control:
+            return
         self.set_Ka_array(Config.pid_Ka)          # constrain() sets these later in the step; needed now
         max_step = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL) * self.dt if self.dt > 0 else 0.0
         keys = list(AXIS_MAP)
@@ -1488,6 +1491,7 @@ class PID_Controller():
     
     
     def track_target(self):
+        self.ramp_jog_rates()       # the jog rates this step integrates below
         # Update alpha_ref based on current mode
         if self.mode in ['PRESETUP', 'PARKING', 'HOMING', 'PARK', 'LIMIT']:
             self.reset_sp()
@@ -1765,8 +1769,9 @@ class PID_Controller():
 
         # PEC contribution — independent of ff_inhibit gating (that's for setpoint-
         # change transients, unrelated to PEC), added as its own velocity term.
+        # step_pec_drift() publishes omega_pec_B only while it applies (tracking, PEC Drift Correction on, no worm test)
         self.omega_pec = np.zeros(3, dtype=float)
-        if Config.advanced_pec_drift and self.mode == "TRACK" and not self.worm_test_active():
+        if self.mode == "TRACK":
             omega_pec_B = getattr(self.polaris._sm, 'omega_pec_B', None)
             if omega_pec_B is not None and np.any(omega_pec_B):
                 J = theta_to_jacobian(*self.theta_pv)
@@ -2050,19 +2055,17 @@ class PID_Controller():
             if self.dt < 0.05:
                 return
         self.time_step = now
-        if Config.advanced_pec_drift and not self.worm_test_active():
-            self.polaris._sm.apply_pec_drift_correction()
-        if self.time_meas:      # Only process if we have a measurement
-            if Config.coordinated_speed_control:
-                self.ramp_jog_rates()
-            self.track_target() # Update theta_ref with target's new position
-            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
-            self.errsignal()    # Update error_signal with deviation from theta_ref
-            self.errintegral()  # Update error_integral with accumulation of err_signal
-            self.pid()          # Update omega_tgt, calculate raw PID control target
-            self.constrain()    # Update omega_ctl, constrain velocity and acceleration
-            self.notify()       # Notify any callback of no longer deviating
-            self.telemetry()    # send to Alpaca Pilot
+        if not self.time_meas:  # Only process once we have a measurement
+            return
+        self.polaris._sm.step_pec_drift()   # PEC drift: this tick's step into the PV and omega_pec_B (feed_forward)
+        self.track_target()     # Update theta_ref with target's new position (ramping jog rates first)
+        self.feed_forward()     # Feed forward tracking velocities when in TRACK mode
+        self.errsignal()        # Update error_signal with deviation from theta_ref
+        self.errintegral()      # Update error_integral with accumulation of err_signal
+        self.pid()              # Update omega_tgt, calculate raw PID control target
+        self.constrain()        # Update omega_ctl, constrain velocity and acceleration
+        self.notify()           # Notify any callback of no longer deviating
+        self.telemetry()        # send to Alpaca Pilot
 
     async def control_step_execute(self):
         """Async part - motor commands only."""

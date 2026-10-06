@@ -134,7 +134,7 @@ def test_without_the_guard_the_calibration_steps_are_learnt_as_drift(cfg, clock)
 
 
 def test_rollback_keeps_pec_correction_applied_during_the_run(cfg, clock):
-    # apply_pec_drift_correction() adds to _applied_accum every control tick, also between
+    # step_pec_drift() adds to _applied_accum every control tick, also between
     # the calibration pulses; the rollback must not lose those amounts
     before = guiding(1000.0, 150)
     t = before[-1][0]

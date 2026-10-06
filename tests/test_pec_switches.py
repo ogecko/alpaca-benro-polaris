@@ -74,10 +74,10 @@ def twin(monkeypatch, profile_path=None, worm=False, drift=False, mac=False, tmp
 
 
 # ── the switches ───────────────────────────────────────────────────────────────────────────────
-def test_config_has_both_switches_off_by_default_and_no_single_pec_switch():
+def test_config_has_both_switches_on_by_default_and_no_single_pec_switch():
     raw = toml.load(CONFIG_TOML_PATH)
     flat = {k: v for section in raw.values() if isinstance(section, dict) for k, v in section.items()}
-    assert flat['advanced_pec_drift'] is False and flat['advanced_pec_worm'] is False
+    assert flat['advanced_pec_drift'] is True and flat['advanced_pec_worm'] is True
     assert 'advanced_pec' not in flat
 
 

@@ -8,7 +8,7 @@
 #   PecMixin      SyncManager's PEC methods (mixed into control.SyncManager)
 #     learning      update_pec_model(): each sync guide residual (plate-solve sync), and ingest_pulse_for_pec(): each
 #                   pulse guide when Config.advanced_pulse_pec_tuning -- per axis (RA, Dec), as a running total of drift
-#     applying      apply_pec_drift_correction(), every control tick: the predicted rate becomes a feed-forward velocity
+#     applying      step_pec_drift(), every control tick while tracking: the predicted rate becomes a feed-forward velocity
 #                   for the PID (omega_pec_B) and the same correction is folded into the sync guide correction, so the
 #                   PID treats the moved pointing as on target; each step is capped (pec_max_step_arcmin)
 #     gating        nothing is applied until an axis's model has converged: pec_min_observations, rmse below
@@ -383,7 +383,7 @@ class PecMixin:
             # EMA weight of the previous rate at the last ingest, exp(-dt / tau), dimensionless
             "lambda": [round(float(ra.lam), 5), round(float(dec.lam), 5)],
 
-            # ra.converged() or dec.converged() -- gates apply_pec_drift_correction() as a
+            # ra.converged() or dec.converged() -- gates step_pec_drift() as a
             # whole, but is not per-axis: check inhibit[0]/[1] for whether RA/Dec specifically
             # is actually being corrected (see docs/control.md)
             "pec_active": self._pec_active,
@@ -395,21 +395,23 @@ class PecMixin:
         self.logger.info(f"PECLOG {payload}")
 
 
-    def apply_pec_drift_correction(self):
+    def step_pec_drift(self):
         """
-        Called every control tick. Computes the current PEC rate once, then:
-        1. Publishes it as omega_pec_B for feed_forward() to solve through the
-            Jacobian and add proactively to omega_tgt (minimizes transient/lag).
-        2. Injects the same rate into the measurement chain via
-            accumulate_sync_guiding_residuals (original design) so the loop's
-            notion of "on target" advances in lockstep with the FF-induced
-            motion — this is what stops Ki from seeing a sustained error and
-            rejecting the correction over time.
-        delta_sp/delta_ref are never touched — sidereal target identity is
-        preserved exactly as before.
+        Advance the PEC drift correction by one control tick (called every tick from the PID's control step). While
+        tracking with PEC Drift Correction on (and no worm profile test), this tick's step of the drift rate is:
+        1. folded into the present value (q_syncguide_B, via accumulate_sync_guiding_residuals), so the loop's
+            notion of "on target" advances with the drift -- this is what stops Ki from seeing a sustained error and
+            rejecting the correction over time;
+        2. published as the feed-forward rate omega_pec_B, which feed_forward() solves through the Jacobian into
+            motor rates, so the mount moves with the drift instead of waiting for the error.
+        Otherwise omega_pec_B is zero: a step outside TRACK would move the PV with no motion to match.
+        delta_sp/delta_ref are never touched — sidereal target identity is preserved.
         """
         self.omega_pec_B = np.zeros(3, dtype=float)   # deg/sec, Base frame — read by feed_forward()
 
+        pid = getattr(self.polaris, '_pid', None)
+        if not Config.advanced_pec_drift or getattr(pid, 'mode', None) != 'TRACK' or self.worm_test is not None:
+            return
         if not getattr(self, '_pec_active', False):
             return
         if self.equatorial_axes_B[0] is None:

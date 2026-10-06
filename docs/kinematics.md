@@ -906,7 +906,7 @@ dec_resid = clamp_error(a_dec,    Dec_pv)
           PecAxis.ingest(resid, t, var_alpha, sse_alpha)   per-axis RLS or EMA fit update (§2.6.III)
           PecAxis.eval_inhibit(n, min_obs, max_rmse, min_r2)
                  → TOO_FEW_OBS | HIGH_RMSE | LOW_R2 | VALID
-          _pec_active = ra.converged() or dec.converged()  gates apply_pec_drift_correction() in §4.5
+          _pec_active = ra.converged() or dec.converged()  gates step_pec_drift() in §4.5
           _pec_log()  → PECLOG entry
 ```
 
@@ -923,19 +923,21 @@ worm profile test in `driver/control_worm.py` (`WormMixin`, `WormProfileTest`, `
 
 ### 4.5 PID Tick — PEC Rate Evaluation → `q_syncguide_B` and `omega_tgt`
 
-Every control tick, `PID_Controller.control_step_calculate()` calls
-`apply_pec_drift_correction()` first, ahead of `feed_forward()` / `pid()`:
+Every control tick with a measurement, `PID_Controller.control_step_calculate()` calls `step_pec_drift()` first,
+ahead of `feed_forward()` / `pid()`. It steps the drift correction only while tracking with PEC Drift Correction on
+(and no worm profile test); otherwise `omega_pec_B` is zero, so a converged model never shifts the PV without the
+matching feed-forward motion:
 
 ```
 PID_Controller.control_step_calculate()                          every ~200ms
     │
-    ▼  SyncManager.apply_pec_drift_correction()                   no-op unless _pec_active
+    ▼  SyncManager.step_pec_drift()                              omega_pec_B = 0; returns unless advanced_pec_drift,
+    │                                                                mode == TRACK, no worm test, and _pec_active
     │     t  = now − _pec_t0            dt = now − _pec_last_apply   (skipped if dt ≤ 0 or dt > 5s)
     │     d_ra,  ra_applied  = _pec_ra.eval_correction(t, dt, cap=_pec_max_step_arcmin)
     │     d_dec, dec_applied = _pec_dec.eval_correction(t, dt, cap)
     │
-    │         rate = predicted_rate(t)     RLS: dy/dt = a + Σₖ [kω·bₖ·cos(kωt) − kω·cₖ·sin(kωt)],  ω = 2π/T
-    │                                      EMA: rate  (already an exponential average of observed rate)
+    │         rate = predicted_rate(t)     the EMA of the observed drift rate
     │         d = clip(rate · dt, −cap, +cap)                     capped correction step for this tick
     │
     │     if ra_applied or dec_applied:
@@ -944,7 +946,7 @@ PID_Controller.control_step_calculate()                          every ~200ms
     │         omega_pec_B = (d_ra/dt)·ra_axis_B + (d_dec/dt)·dec_axis_B     B frame, deg/sec
     │
     ▼  track_target() → feed_forward()
-    │     if advanced_pec_drift and mode == TRACK and any(omega_pec_B):
+    │     if mode == TRACK and any(omega_pec_B):
     │         theta_dot_pec = J(theta_pv)⁻¹ · radians(omega_pec_B)          same Jacobian as omega_ff
     │         omega_pec = degrees(theta_dot_pec)
     │         if trackingrate ≠ 0: omega_pec[2] = 0                         (M3/roll — non-sidereal target)

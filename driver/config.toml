@@ -76,8 +76,8 @@ advanced_scc_enabled = true                 # Enable correction to reduce the nu
 advanced_scc_choice = 2                     # 0 = Zero Last Residual, 1=Local Gausian Adjustment; 2=Sync Guiding Adjustment
 advanced_align_mac = false                  # Enable Mechanical Alignment Correction models, corrects mechanical tilt on M3 and M2
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
-advanced_pec_drift = false                  # PEC Drift Correction: learn the slow drift from guide corrections and correct it
-advanced_pec_worm = false                   # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json
+advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guide corrections and correct it
+advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json
                                             # (the M1-M2-M3-WORM-PROFILE test); also used in the QUEST and MAC models
 coordinated_speed_control = true            # BETA: coordinated speed control - shared-level motor speed controller (driver/speed_controller.py),
                                             # planned goto trajectories, acceleration-shaped jogs and Ki freeze during gotos; switchable live
