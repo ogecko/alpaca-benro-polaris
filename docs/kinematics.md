@@ -385,7 +385,7 @@ Each plate solve measures where the mount really points. The worm errors are 30-
 
 For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° field, which is well suited. A 50 mm lens will still complete the test, but with a less accurate profile.
 
-To perform the worm profile calibration:
+**To perform the worm profile calibration:**
 
 1. Point the mount at a clear area of sky **30-45 degrees above the horizon**.  Choose any direction with about +/-6 degrees of clear sky around the target and plenty of stars. 
 
@@ -399,7 +399,7 @@ To perform the worm profile calibration:
 
 5. The driver will enable tracking and, if the Roll angle is within 20° of 0, rotate to Roll ±25° (keeping the same Az/Alt, and back again when the test finishes). It will then take measurements at 33 different positions. The status shows progress, for example `PENDING 12/33`.
 
-While the test is running:
+**While the test is running:**
 
 * Your syncs are used only as measurements. They do not change the pointing model.
 * Any existing PEC and worm gear correction are paused.
