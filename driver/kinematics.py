@@ -1165,9 +1165,13 @@ def autotune_mac(sync_history: list[dict], base_params: MountModelParams, worm_q
     #              m2_tilt_dm2_amp  (arcmin)    m2_tilt_dm2_zero (degrees)    m3_tilt_dm1 (arcmin)
     x0        = [ base_params.m2_tilt_dm2_amp, base_params.m2_tilt_dm2_zero, base_params.m3_tilt_dm1 ]
     bounds    = [ (-300.0,  300.0),              (-360.0,  360.0),               (-400.0,  400.0) ]
+    # Nelder-Mead's default first simplex steps each parameter by 5% of its value (0.00025 when it is 0), so from
+    # zero (a mount whose MAC values were cleared) it stops at once: start from steps of a typical size instead
+    steps     = [ 20.0, 30.0, 40.0 ]                                   # arcmin, degrees, arcmin
+    simplex   = [ x0 ] + [ [x + (s if j == i else 0.0) for j, x in enumerate(x0)] for i, s in enumerate(steps) ]
     ss_before = objective(x0)
     result    = minimize(objective, x0, method='Nelder-Mead', bounds=bounds,
-                         options={'xatol': 0.01, 'fatol': 1e-6, 'maxiter': 2000})
+                         options={'xatol': 0.01, 'fatol': 1e-6, 'maxiter': 2000, 'initial_simplex': simplex})
     ss_after  = result.fun
 
     rms_before = math.degrees(math.sqrt(ss_before / n)) * 60   # arcmin
