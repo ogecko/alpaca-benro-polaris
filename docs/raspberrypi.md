@@ -112,32 +112,25 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
 ## Optional GPS
 
-You can also configure automatic location detection using a USB GPS Dongle. The driver relies on gpsd to read the location from the GPS Dongle. It has been tested with [this GPS dongle](https://amzn.eu/d/050xUKar). This option is disabled by default.
+The driver can read GPS location through gpsd. A tested receiver is for example the [G-Mouse USB GPS/GLONASS receiver](https://amzn.eu/d/050xUKar). Automatic detection is disabled by default.
 
-1. Run the setup script with `-g` to install gpsd and its status client:
+1. Install gpsd and its status client:
     ```Bash
     ./setup.sh -g
     ```
-    After installing dependencies, setup creates `data/config.pilot.json` with `"gps_auto_detect": true` if the file does not exist. If it already exists, setup leaves it unchanged and prints a reminder to add or set the GPS option.
-2. Configure gpsd for the receiver's specific device. Find a stable USB path with `ls -l /dev/serial/by-id/`, then edit `/etc/default/gpsd` and set the device explicitly, for example:
+    On a new install, setup creates `data/config.pilot.json` with `"gps_auto_detect": true`. Existing config files are left unchanged, to enable GPS detection add `"gps_auto_detect": true`.
+2. Configure gpsd to use the receiver. Find its stable USB path with `ls -l /dev/serial/by-id/`, then set it in `/etc/default/gpsd`, for example:
     ```Bash
     DEVICES="/dev/serial/by-id/usb-your-receiver"
     USBAUTO="false"
     ```
-3. Enable the gpsd socket and check for a fix:
+3. Start gpsd and confirm the receiver has a fix:
     ```Bash
     sudo systemctl enable --now gpsd.socket
     sudo systemctl restart gpsd
     cgps -s
     ```
     Exit `cgps` with **Ctrl+C** after confirming it reports a fix.
-4. If you already have a customised config, add or set `"gps_auto_detect": true` in `data/config.pilot.json`, preserving other entries, otherwise it's created automatically if you used the -g option in the setup. The attempt count, required stable 3D fix count, and maximum retry delay can be configured in `driver/config.toml`; the defaults are `gps_max_attempts = 20`, `gps_3d_fix_count = 3`, and `gps_retry_max_delay = 60.0`. Restart the driver to apply changes:
-    ```Bash
-    sudo systemctl restart polaris-driver
-    ```
-    The first valid 2D fix immediately updates the site coordinates and names the location **GPS Receiver**, while preserving the existing elevation. To finish, the listener requires `gps_3d_fix_count` consecutive 3D fixes within 1 degree, then applies their averaged position; elevation changes only if the fixes include measured altitude. If retries expire before a stable 3D fix, the 2D position and existing elevation are retained.
-
-Retry delay start from 1s and increase exponentially after each attempt, up to the configured `gps_retry_max_delay`.
 
 ## Setup.sh Command Reference
 You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:

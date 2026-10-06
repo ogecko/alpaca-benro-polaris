@@ -29,7 +29,6 @@ preset_name = ''                            # name of the preset to take action 
 [server]
 gps_auto_detect = false                     # Opt in to using gpsd at startup for site location
 gps_max_attempts = 20                       # Maximum GPS polls (1-20)
-gps_3d_fix_count = 3                        # Consecutive 3D fixes required within 1 degree (1-20)
 gps_retry_max_delay = 60.0                  # Maximum wait between polls; delays double from 1 second to this cap
 location_list   = ''                        # pipe-separated sorted list of saved location names, for Pilot locations dropdown
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az.

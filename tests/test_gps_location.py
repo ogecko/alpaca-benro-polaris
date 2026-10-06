@@ -206,56 +206,14 @@ def test_retry_delay_doubles_to_configured_maximum():
     assert gps_location._retry_delay_after_attempt(2, 4.0) == 4.0
 
 
-def test_configured_3d_fix_count_is_bounded():
-    assert gps_location._configured_3d_fix_count(3) == 3
-    assert gps_location._configured_3d_fix_count(0) == 1
-    assert gps_location._configured_3d_fix_count(25) == gps_location.DEFAULT_GPS_MAX_ATTEMPTS
-    assert gps_location._configured_3d_fix_count(True) == gps_location.DEFAULT_GPS_3D_FIX_COUNT
-
-
-def test_listener_applies_fix_once_and_preserves_elevation_for_2d(monkeypatch):
+def test_listener_waits_for_three_returned_fixes_and_averages_mixed_consensus(monkeypatch):
     monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
-    monkeypatch.setattr(Config, "gps_max_attempts", 1, raising=False)
+    monkeypatch.setattr(Config, "gps_max_attempts", 4, raising=False)
     monkeypatch.setattr(Config, "gps_retry_max_delay", 30.0, raising=False)
-    applied_changes = []
-    live_changes = []
-    monkeypatch.setattr(
-        Config,
-        "apply_changes",
-        classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
-    )
-
-    async def get_gps_location(timeout, on_2d_fix=None):
-        gps_fix = gps_location.GPSFix(51.5, -0.12, None, 2)
-        if on_2d_fix is not None:
-            on_2d_fix(gps_fix)
-        return gps_fix
-
-    monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
-    polaris = SimpleNamespace(make_config_params_live=live_changes.append)
-
-    asyncio.run(gps_location.gps_background_listener(polaris))
-
-    expected = {
-        "site_latitude": 51.5,
-        "site_longitude": -0.12,
-        "location": "GPS Receiver",
-    }
-    assert applied_changes == [expected]
-    assert live_changes == [expected]
-
-
-def test_listener_continues_after_2d_until_3d_fix(monkeypatch):
-    clock = SimpleNamespace(value=0.0)
-    monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
-    monkeypatch.setattr(Config, "gps_max_attempts", 2, raising=False)
-    monkeypatch.setattr(Config, "gps_3d_fix_count", 1, raising=False)
-    monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
     sleep_delays = []
 
     async def fake_sleep(delay):
         sleep_delays.append(delay)
-        clock.value += delay
 
     monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
     applied_changes = []
@@ -265,200 +223,248 @@ def test_listener_continues_after_2d_until_3d_fix(monkeypatch):
         "apply_changes",
         classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
     )
-    attempt_starts = []
     fixes = [
-        gps_location.GPSFix(51.5, -0.12, None, 2),
-        gps_location.GPSFix(51.6, -0.1, 35.7, 3),
+        gps_location.GPSFix(51.5, 179.8, None, 2),
+        gps_location.GPSFix(51.6, -179.9, 10.0, 3),
+        gps_location.GPSFix(51.7, 179.9, 14.0, 3),
     ]
+    attempts = []
 
     async def get_gps_location(timeout, on_2d_fix=None):
-        attempt_starts.append(clock.value)
-        gps_fix = fixes.pop(0)
-        if gps_fix.mode == 2 and on_2d_fix is not None:
-            on_2d_fix(gps_fix)
-        return gps_fix
+        attempt_index = len(attempts)
+        attempts.append(attempt_index)
+        if on_2d_fix is not None:
+            on_2d_fix(gps_location.GPSFix(0.0, 0.0, None, 2))
+        assert applied_changes == []
+        return fixes[attempt_index]
 
     monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
     polaris = SimpleNamespace(make_config_params_live=live_changes.append)
 
     asyncio.run(gps_location.gps_background_listener(polaris))
 
-    assert attempt_starts == pytest.approx([0.0, 1.0])
-    assert sleep_delays == pytest.approx([1.0])
+    assert attempts == [0, 1, 2]
+    assert applied_changes == [{
+        "site_latitude": pytest.approx(51.6),
+        "site_longitude": pytest.approx(179.93333333333334),
+        "location": "GPS Receiver",
+        "site_elevation": 12,
+    }]
+    assert live_changes == applied_changes
+
+
+def test_listener_retains_outliers_and_finds_a_later_triple(monkeypatch):
+    monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
+    monkeypatch.setattr(Config, "gps_max_attempts", 5, raising=False)
+    monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
+    sleep_delays = []
+    applied_changes = []
+    fixes = [
+        gps_location.GPSFix(0.0, 0.0, None, 2),
+        gps_location.GPSFix(51.5, -0.12, None, 2),
+        gps_location.GPSFix(20.0, 80.0, None, 2),
+        gps_location.GPSFix(51.6, -0.1, None, 2),
+        gps_location.GPSFix(51.7, -0.08, None, 2),
+    ]
+    attempts = []
+
+    async def fake_sleep(delay):
+        sleep_delays.append(delay)
+
+    async def get_gps_location(timeout, on_2d_fix=None):
+        attempts.append(len(attempts))
+        assert applied_changes == []
+        return fixes[len(attempts) - 1]
+
+    monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
+    monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
+    monkeypatch.setattr(
+        Config,
+        "apply_changes",
+        classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
+    )
+
+    asyncio.run(gps_location.gps_background_listener(SimpleNamespace(
+        make_config_params_live=lambda changes: None
+    )))
+
+    assert attempts == [0, 1, 2, 3, 4]
+    assert sleep_delays == pytest.approx([1.0, 2.0, 4.0, 4.0])
+    assert applied_changes == [{
+        "site_latitude": pytest.approx(51.6),
+        "site_longitude": pytest.approx(-0.1),
+        "location": "GPS Receiver",
+    }]
+
+
+def test_listener_waits_for_compatible_3d_altitude(monkeypatch):
+    monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
+    monkeypatch.setattr(Config, "gps_max_attempts", 5, raising=False)
+    monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
+    sleep_delays = []
+    applied_changes = []
+    live_changes = []
+    fixes = [
+        gps_location.GPSFix(51.5, -0.12, None, 2),
+        gps_location.GPSFix(51.6, -0.1, None, 3),
+        gps_location.GPSFix(51.7, -0.08, None, 2),
+        gps_location.GPSFix(54.0, -0.12, 100.0, 3),
+        gps_location.GPSFix(51.6, -0.1, 35.7, 3),
+    ]
+    attempts = []
+
+    async def fake_sleep(delay):
+        sleep_delays.append(delay)
+
+    async def get_gps_location(timeout, on_2d_fix=None):
+        attempts.append(len(attempts))
+        if len(attempts) >= 4:
+            assert applied_changes == [{
+                "site_latitude": pytest.approx(51.6),
+                "site_longitude": pytest.approx(-0.1),
+                "location": "GPS Receiver",
+            }]
+        return fixes[len(attempts) - 1]
+
+    monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
+    monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
+    monkeypatch.setattr(
+        Config,
+        "apply_changes",
+        classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
+    )
+    polaris = SimpleNamespace(make_config_params_live=live_changes.append)
+
+    asyncio.run(gps_location.gps_background_listener(polaris))
+
+    assert attempts == [0, 1, 2, 3, 4]
+    assert sleep_delays == pytest.approx([1.0, 2.0, 4.0, 4.0])
     assert applied_changes == [
         {
-            "site_latitude": 51.5,
-            "site_longitude": -0.12,
+            "site_latitude": pytest.approx(51.6),
+            "site_longitude": pytest.approx(-0.1),
             "location": "GPS Receiver",
         },
-        {
-            "site_latitude": 51.6,
-            "site_longitude": -0.1,
-            "location": "GPS Receiver",
-            "site_elevation": 36,
-        },
+        {"site_elevation": 36},
     ]
     assert live_changes == applied_changes
 
 
-def test_listener_rounds_3d_altitude(monkeypatch, caplog):
+def test_listener_retains_horizontal_consensus_if_no_altitude_is_compatible(monkeypatch):
     monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
-    monkeypatch.setattr(Config, "gps_max_attempts", 20, raising=False)
-    monkeypatch.setattr(Config, "gps_3d_fix_count", 1, raising=False)
-    monkeypatch.setattr(Config, "gps_retry_max_delay", 30.0, raising=False)
-    applied_changes = []
-    monkeypatch.setattr(
-        Config,
-        "apply_changes",
-        classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
-    )
-
-    async def get_gps_location(timeout, on_2d_fix=None):
-        return gps_location.GPSFix(51.5, -0.12, 35.7, 3)
-
-    monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
-    polaris = SimpleNamespace(make_config_params_live=lambda changes: None)
-
-    with caplog.at_level(logging.INFO, logger="gps_location"):
-        asyncio.run(gps_location.gps_background_listener(polaris))
-
-    assert applied_changes[0]["site_elevation"] == 36
-    assert applied_changes[0]["location"] == "GPS Receiver"
-    assert "==GPS== Attempt 1 of 20: found a 3D fix (1/1 consecutive within 1.0 degrees)." in caplog.messages
-
-
-def test_listener_requires_consecutive_3d_fixes_within_one_degree(monkeypatch):
-    clock = SimpleNamespace(value=0.0)
-    monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
-    monkeypatch.setattr(Config, "gps_max_attempts", 5, raising=False)
-    monkeypatch.setattr(Config, "gps_3d_fix_count", 3, raising=False)
+    monkeypatch.setattr(Config, "gps_max_attempts", 4, raising=False)
     monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
     sleep_delays = []
-    attempt_starts = []
+    applied_changes = []
+    fixes = [
+        gps_location.GPSFix(51.5, -0.12, None, 2),
+        gps_location.GPSFix(51.6, -0.1, None, 2),
+        gps_location.GPSFix(51.7, -0.08, None, 2),
+        gps_location.GPSFix(54.0, -0.12, 100.0, 3),
+    ]
 
     async def fake_sleep(delay):
         sleep_delays.append(delay)
-        clock.value += delay
-
-    fixes = [
-        gps_location.GPSFix(51.5, -0.12, 10, 3),
-        gps_location.GPSFix(54.0, -0.12, 10, 3),
-        gps_location.GPSFix(54.1, -0.12, 10, 3),
-        gps_location.GPSFix(54.2, -0.12, 10, 3),
-    ]
 
     async def get_gps_location(timeout, on_2d_fix=None):
-        attempt_starts.append(clock.value)
         return fixes.pop(0)
 
     monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
     monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
-    applied_changes = []
     monkeypatch.setattr(
         Config,
         "apply_changes",
         classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
     )
-    polaris = SimpleNamespace(make_config_params_live=lambda changes: None)
 
-    asyncio.run(gps_location.gps_background_listener(polaris))
+    asyncio.run(gps_location.gps_background_listener(SimpleNamespace(
+        make_config_params_live=lambda changes: None
+    )))
 
-    assert attempt_starts == pytest.approx([0.0, 1.0, 3.0, 7.0])
     assert sleep_delays == pytest.approx([1.0, 2.0, 4.0])
     assert applied_changes == [{
-        "site_latitude": pytest.approx(54.1),
-        "site_longitude": pytest.approx(-0.12),
+        "site_latitude": pytest.approx(51.6),
+        "site_longitude": pytest.approx(-0.1),
         "location": "GPS Receiver",
-        "site_elevation": 10,
     }]
+    assert "site_elevation" not in applied_changes[0]
 
 
-def test_listener_2d_fix_breaks_3d_stability_streak(monkeypatch):
-    clock = SimpleNamespace(value=0.0)
+def test_listener_leaves_config_untouched_without_horizontal_consensus(monkeypatch):
     monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
-    monkeypatch.setattr(Config, "gps_max_attempts", 5, raising=False)
-    monkeypatch.setattr(Config, "gps_3d_fix_count", 3, raising=False)
+    monkeypatch.setattr(Config, "gps_max_attempts", 2, raising=False)
     monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
     sleep_delays = []
-    attempt_starts = []
+    applied_changes = []
+    live_changes = []
+    fixes = [
+        gps_location.GPSFix(51.5, -0.12, None, 2),
+        gps_location.GPSFix(51.6, -0.1, None, 2),
+    ]
 
     async def fake_sleep(delay):
         sleep_delays.append(delay)
-        clock.value += delay
-
-    fixes = [
-        gps_location.GPSFix(51.5, -0.12, 10, 3),
-        gps_location.GPSFix(51.5, -0.12, 10, 3),
-        gps_location.GPSFix(51.5, -0.12, 10, 3),
-        gps_location.GPSFix(51.5, -0.12, 10, 3),
-    ]
 
     async def get_gps_location(timeout, on_2d_fix=None):
-        attempt_index = len(attempt_starts)
-        attempt_starts.append(clock.value)
-        gps_fix = fixes.pop(0)
-        if attempt_index == 1 and on_2d_fix is not None:
-            on_2d_fix(gps_location.GPSFix(51.5, -0.12, None, 2))
-        return gps_fix
+        return fixes.pop(0)
 
     monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
     monkeypatch.setattr(gps_location, "get_gps_location", get_gps_location)
-    monkeypatch.setattr(Config, "apply_changes", classmethod(lambda cls, changes: dict(changes)))
-
-    asyncio.run(gps_location.gps_background_listener(SimpleNamespace(make_config_params_live=lambda changes: None)))
-
-    assert attempt_starts == pytest.approx([0.0, 1.0, 3.0, 7.0])
-    assert sleep_delays == pytest.approx([1.0, 2.0, 4.0])
-
-
-def test_listener_exhaustion_uses_configured_attempts_and_logs_each_attempt(monkeypatch, caplog):
-    clock = SimpleNamespace(value=0.0)
-    monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
-    monkeypatch.setattr(Config, "gps_max_attempts", 3, raising=False)
-    monkeypatch.setattr(Config, "gps_3d_fix_count", 3, raising=False)
-    monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
-    sleep_delays = []
-    attempt_starts = []
-    attempt_timeouts = []
-
-    async def fake_sleep(delay):
-        sleep_delays.append(delay)
-        clock.value += delay
-
-    async def no_fix(timeout, on_2d_fix=None):
-        attempt_starts.append(clock.value)
-        attempt_timeouts.append(timeout)
-        clock.value += timeout / 2
-        return None
-
-    monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
-    monkeypatch.setattr(gps_location, "get_gps_location", no_fix)
-    apply_changes = []
     monkeypatch.setattr(
         Config,
         "apply_changes",
-        classmethod(lambda cls, changes: apply_changes.append(changes) or changes),
+        classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
+    )
+
+    asyncio.run(gps_location.gps_background_listener(SimpleNamespace(
+        make_config_params_live=live_changes.append
+    )))
+
+    assert sleep_delays == pytest.approx([1.0])
+    assert applied_changes == []
+    assert live_changes == []
+
+
+def test_listener_retries_connection_refused_without_mutating_config(monkeypatch, caplog):
+    monkeypatch.setattr(Config, "gps_auto_detect", True, raising=False)
+    monkeypatch.setattr(Config, "gps_max_attempts", 3, raising=False)
+    monkeypatch.setattr(Config, "gps_retry_max_delay", 4.0, raising=False)
+    sleep_delays = []
+    connection_attempts = []
+    applied_changes = []
+    live_changes = []
+
+    async def fake_sleep(delay):
+        sleep_delays.append(delay)
+
+    async def refused_connection(host, port, *, limit):
+        connection_attempts.append((host, port, limit))
+        raise ConnectionRefusedError("gpsd unavailable")
+
+    monkeypatch.setattr(gps_location, "_sleep", fake_sleep)
+    monkeypatch.setattr(gps_location.asyncio, "open_connection", refused_connection)
+    monkeypatch.setattr(
+        Config,
+        "apply_changes",
+        classmethod(lambda cls, changes: applied_changes.append(dict(changes)) or dict(changes)),
     )
 
     with caplog.at_level(logging.INFO, logger="gps_location"):
-        asyncio.run(gps_location.gps_background_listener(SimpleNamespace()))
+        asyncio.run(gps_location.gps_background_listener(SimpleNamespace(
+            make_config_params_live=live_changes.append
+        )))
 
     info_records = [
         record for record in caplog.records
         if record.name == "gps_location" and record.levelno == logging.INFO
     ]
-    assert attempt_starts == pytest.approx([0.0, 6.0, 13.0])
-    assert attempt_timeouts == [gps_location.GPSD_ATTEMPT_TIMEOUT] * 3
+    assert connection_attempts == [
+        (gps_location.GPSD_HOST, gps_location.GPSD_PORT, gps_location.GPSD_LINE_LIMIT)
+    ] * 3
     assert sleep_delays == pytest.approx([1.0, 2.0])
-    assert apply_changes == []
+    assert applied_changes == []
+    assert live_changes == []
     assert [record.getMessage() for record in info_records] == [
-        "==GPS== Starting acquisition attempt 1 of 3",
-        "==GPS== Attempt 1 of 3: no fix.",
-        "==GPS== Waiting 1.0 seconds before the next acquisition attempt.",
-        "==GPS== Starting acquisition attempt 2 of 3",
-        "==GPS== Attempt 2 of 3: no fix.",
-        "==GPS== Waiting 2.0 seconds before the next acquisition attempt.",
-        "==GPS== Starting acquisition attempt 3 of 3",
-        "==GPS== Attempt 3 of 3: no fix.",
-        "==GPS== No stable 3D fix or 2D position found after 3 attempts.",
+        "==GPS== Waiting for gpsd fix",
+        "==GPS== No fix after 3 attempts",
     ]

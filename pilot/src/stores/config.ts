@@ -36,7 +36,7 @@ export const useConfigStore = defineStore('config', {
     mdns_name: 'alpacapailot.local',
 
     // Site Info
-    gps_auto_detect: true,
+    gps_auto_detect: false,
     location: 'Unknown',
     location_list: '',
     site_latitude: -33.8598874,

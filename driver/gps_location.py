@@ -3,6 +3,7 @@ import json
 import logging
 import math
 from dataclasses import dataclass
+from itertools import combinations
 from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
@@ -16,8 +17,7 @@ GPSD_ATTEMPT_TIMEOUT = 10.0
 GPSD_FIX_SAMPLES = 3
 DEFAULT_GPS_MAX_ATTEMPTS = 20
 DEFAULT_GPS_RETRY_MAX_DELAY = 60.0
-DEFAULT_GPS_3D_FIX_COUNT = 3
-GPS_3D_FIX_TOLERANCE_DEG = 1.0
+GPS_FIX_CONSENSUS_TOLERANCE_DEG = 1.0
 
 
 @dataclass(frozen=True)
@@ -49,21 +49,6 @@ def _configured_attempts(value) -> int:
     if bounded_attempts != attempts:
         logger.debug("==GPS== Clamped gps_max_attempts from %r to %d", value, bounded_attempts)
     return bounded_attempts
-
-
-def _configured_3d_fix_count(value) -> int:
-    if isinstance(value, bool):
-        count = DEFAULT_GPS_3D_FIX_COUNT
-    else:
-        try:
-            count = int(value)
-        except (TypeError, ValueError, OverflowError):
-            count = DEFAULT_GPS_3D_FIX_COUNT
-
-    bounded_count = min(DEFAULT_GPS_MAX_ATTEMPTS, max(1, count))
-    if bounded_count != count:
-        logger.debug("==GPS== Clamped gps_3d_fix_count from %r to %d", value, bounded_count)
-    return bounded_count
 
 
 def _configured_retry_max_delay(value) -> float:
@@ -153,94 +138,115 @@ def _angular_distance_degrees(first: GPSFix, second: GPSFix) -> float:
 
 
 async def gps_background_listener(polaris):
-    """Apply a 2D fix immediately and keep polling until 3D or timeout."""
+    """Apply the first stable horizontal fix and use compatible 3D data when available."""
+    logger.info("==GPS== Waiting for gpsd fix")
     from config import Config
 
     attempts = _configured_attempts(getattr(Config, "gps_max_attempts", DEFAULT_GPS_MAX_ATTEMPTS))
     retry_max_delay = _configured_retry_max_delay(
         getattr(Config, "gps_retry_max_delay", DEFAULT_GPS_RETRY_MAX_DELAY)
     )
+    fix_history: list[GPSFix] = []
+    horizontal_consensus: Optional[tuple[GPSFix, GPSFix, GPSFix]] = None
+    consensus_altitudes: list[float] = []
 
-    required_3d_fix_count = _configured_3d_fix_count(
-        getattr(Config, "gps_3d_fix_count", DEFAULT_GPS_3D_FIX_COUNT)
-    )
-    last_applied_fix = None
-    stable_3d_fixes: list[GPSFix] = []
-
-    def apply_fix(gps_fix: GPSFix) -> None:
-        nonlocal last_applied_fix
-        changes = {
-            "site_latitude": gps_fix.latitude,
-            "site_longitude": gps_fix.longitude,
-            "location": "GPS Receiver",
-        }
-        if gps_fix.altitude is not None:
-            changes["site_elevation"] = round(gps_fix.altitude)
-
+    def apply_changes(changes) -> None:
         applied = Config.apply_changes(changes)
         if applied:
             polaris.make_config_params_live(applied)
-            logger.info("==GPS== Coordinates applied to live configuration.")
-        last_applied_fix = gps_fix
+            logger.debug("==GPS== Applied changes to live configuration")
 
-    def apply_2d_fix(gps_fix: GPSFix) -> None:
-        stable_3d_fixes.clear()
-        if last_applied_fix is None:
-            apply_fix(gps_fix)
+    def on_2d_fix(gps_fix: GPSFix) -> None:
+        logger.debug(
+            "==GPS== Received intermediate 2D fix at %.6f, %.6f",
+            gps_fix.latitude,
+            gps_fix.longitude,
+        )
 
     for attempt_index in range(attempts):
         attempt_timeout = GPSD_ATTEMPT_TIMEOUT
-        logger.info("==GPS== Starting acquisition attempt %d of %d", attempt_index + 1, attempts)
+        logger.debug("==GPS== Starting acquisition attempt %d of %d", attempt_index + 1, attempts)
         try:
             gps_fix = await get_gps_location(
                 timeout=attempt_timeout,
-                on_2d_fix=apply_2d_fix,
+                on_2d_fix=on_2d_fix,
             )
         except asyncio.CancelledError:
             raise
         except Exception as error:
-            logger.info("==GPS== Acquisition attempt %d failed: %s", attempt_index + 1, error)
+            logger.debug("==GPS== Acquisition attempt %d failed: %s", attempt_index + 1, error)
             gps_fix = None
 
         if gps_fix is None:
-            stable_3d_fixes.clear()
-            logger.info("==GPS== Attempt %d of %d: no fix.", attempt_index + 1, attempts)
+            logger.debug("==GPS== Attempt %d of %d returned no fix", attempt_index + 1, attempts)
         else:
-            if gps_fix.mode >= 3:
-                if any(
-                    _angular_distance_degrees(previous_fix, gps_fix) > GPS_3D_FIX_TOLERANCE_DEG
-                    for previous_fix in stable_3d_fixes
-                ):
-                    stable_3d_fixes.clear()
-                stable_3d_fixes.append(gps_fix)
-                logger.info(
-                    "==GPS== Attempt %d of %d: found a 3D fix (%d/%d consecutive within %.1f degrees).",
-                    attempt_index + 1,
-                    attempts,
-                    len(stable_3d_fixes),
-                    required_3d_fix_count,
-                    GPS_3D_FIX_TOLERANCE_DEG,
+            fix_history.append(gps_fix)
+            logger.debug(
+                "==GPS== Attempt %d of %d returned a mode-%d fix",
+                attempt_index + 1,
+                attempts,
+                gps_fix.mode,
+            )
+
+            if horizontal_consensus is None:
+                for first_fix, second_fix in combinations(fix_history[:-1], 2):
+                    triple = (first_fix, second_fix, gps_fix)
+                    if all(
+                        _angular_distance_degrees(first, second)
+                        <= GPS_FIX_CONSENSUS_TOLERANCE_DEG
+                        for first, second in combinations(triple, 2)
+                    ):
+                        horizontal_consensus = triple
+                        break
+
+                if horizontal_consensus is not None:
+                    consensus_altitudes = [
+                        fix.altitude
+                        for fix in horizontal_consensus
+                        if fix.mode >= 3 and fix.altitude is not None
+                    ]
+                    averaged_fix = _average_fixes(list(horizontal_consensus))
+                    changes = {
+                        "site_latitude": averaged_fix.latitude,
+                        "site_longitude": averaged_fix.longitude,
+                        "location": "GPS Receiver",
+                    }
+                    if consensus_altitudes:
+                        changes["site_elevation"] = round(
+                            sum(consensus_altitudes) / len(consensus_altitudes)
+                        )
+                    apply_changes(changes)
+                    logger.debug("==GPS== Horizontal consensus applied")
+
+                    if consensus_altitudes:
+                        logger.info("==GPS== Fix applied")
+                        return
+            elif (
+                gps_fix.mode >= 3
+                and gps_fix.altitude is not None
+                and all(
+                    _angular_distance_degrees(consensus_fix, gps_fix)
+                    <= GPS_FIX_CONSENSUS_TOLERANCE_DEG
+                    for consensus_fix in horizontal_consensus
                 )
-                if len(stable_3d_fixes) >= required_3d_fix_count:
-                    stable_fix = _average_fixes(stable_3d_fixes)
-                    if stable_fix != last_applied_fix:
-                        apply_fix(stable_fix)
-                    return
-            else:
-                stable_3d_fixes.clear()
-                if gps_fix != last_applied_fix:
-                    apply_fix(gps_fix)
-                logger.info("==GPS== Attempt %d of %d: found a 2D fix.", attempt_index + 1, attempts)
+            ):
+                altitudes = [*consensus_altitudes, gps_fix.altitude]
+                apply_changes({
+                    "site_elevation": round(sum(altitudes) / len(altitudes)),
+                })
+                logger.debug("==GPS== Compatible altitude applied")
+                logger.info("==GPS== Fix applied")
+                return
 
         if attempt_index + 1 < attempts:
             retry_delay = _retry_delay_after_attempt(attempt_index, retry_max_delay)
-            logger.info("==GPS== Waiting %.1f seconds before the next acquisition attempt.", retry_delay)
+            logger.debug("==GPS== Waiting %.1f seconds before the next acquisition attempt", retry_delay)
             await _sleep(retry_delay)
 
-    if last_applied_fix is None:
-        logger.info("==GPS== No stable 3D fix or 2D position found after %d attempts.", attempts)
+    if horizontal_consensus is None:
+        logger.info("==GPS== No fix after %d attempts", attempts)
     else:
-        logger.info("==GPS== No stable 3D fix found after %d attempts; keeping the 2D position.", attempts)
+        logger.info("==GPS== Fix applied")
 
 
 async def get_gps_location(
@@ -337,7 +343,7 @@ async def _try_gpsd(
     except asyncio.CancelledError:
         raise
     except (OSError, RuntimeError, TimeoutError, ValueError) as error:
-        logger.info("==GPS== gpsd query failed: %s", error)
+        logger.debug("==GPS== gpsd query failed: %s", error)
     finally:
         if writer is not None:
             writer.close()
