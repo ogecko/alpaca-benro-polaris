@@ -79,6 +79,7 @@ from test_sync_manager import Polaris, mock_config          # noqa: F401  (fixtu
 def ff_config(mock_config, tmp_path, monkeypatch):
     profile(m2=(15.0, 5.0, 0.0, 0.0)).save(tmp_path / 'worm_profile.json')
     monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'worm_profile.json')
+    mock_config.advanced_pec_worm = True                  # PEC Worm Gear Correction switched on
     return mock_config
 
 

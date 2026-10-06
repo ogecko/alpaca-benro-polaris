@@ -328,6 +328,8 @@ The driver addresses periodic error in two layers. Both are applied every **200m
 * **Drift correction** learns and corrects the slow changing drift based on guiding corrections from either **Pulse Guiding** or **Sync Guiding**.
 * **Worm gear correction** uses a fixed periodic correction profile for each motor of the mount (see section V).
 
+Each layer has its own switch in Pilot's settings, **PEC Drift Correction** and **PEC Worm Gear Correction** (`advanced_pec_drift`, `advanced_pec_worm`), so either can be compared on and off. The PEC button on Pilot's status panel switches both together.
+
 These two corrections allow PEC to anticipate the periodic errors and correct them before they become visible in the image.
 
 #### **III. Comparison with External Models**
@@ -352,19 +354,36 @@ Incoming data used in the estimate is filtered, and the model must first demonst
   2. **Accuracy:** The root mean square error (RMSE) is below **6 arc minutes**.
   3. **Reliability:** The R-squared (R²) value is greater than **0.500**.
 
-> Note: Drift Correction applies only when PEC is enabled.
+> Note: Drift Correction applies only when PEC Drift Correction is switched on.
 
 #### **V. Worm Gear Correction - Profile Calibration**
 
-The driver applies worm gear corrections once it has a profile of each motor's gearset. This correction is applied first and immediately, **without requiring any guiding**. Because the error is caused by the gears and its phase is relative to the motors' home position (0,0,0), it should repeat from night to night. Any remaining slowly changing drift is then learnt and corrected by PEC.
+The driver applies worm gear corrections once it has a profile of each motor's gearset. This correction is applied first and immediately, **without requiring any guiding**. Because the error is caused by the gears and its phase is relative to the motors' home position (0,0,0), it should repeat from night to night. Any remaining slowly changing drift is then learnt and corrected by PEC Drift Correction.
 
-> Note: Worm Gear correction applies whenever a `worm_profile.json` exists, even with PEC disabled.
+> Note: Worm Gear Correction applies when PEC Worm Gear Correction is switched on and a `worm_profile.json` exists (switched on without a profile, the driver logs a warning and corrects nothing). It is independent of the Drift Correction switch.
 
 **1. Worm Profile Calibration Test**
 
 The Worm Gear Profile is calibrated using a special speed calibration test called **M1-M2-M3-WORM-PROFILE**.
 
 This test will move the mount to different positions +/- 6 degrees from its current orientation. At each new position it will wait for a solve and sync to confirm the true pointing orientation. Each time it receives a solve and sync, it will move onto the next position.
+
+**Choosing the lens and camera for the test**
+
+Each plate solve measures where the mount really points. The worm errors are 30-150 arc seconds, so each solve should be accurate to about 2 arc seconds or better. A plate solve locates the field to roughly a fifth of a pixel, so what matters is the **image scale** (arc seconds per pixel):
+
+* **Image scale** = 206 × pixel size (µm) / focal length (mm).
+* **10"/px or finer** is enough; **2-5"/px is ideal**. For most cameras this means a **100-300 mm** lens or scope.
+* **Finer than about 2"/px gains nothing.** Seeing, mount settling and the fit itself then limit the result, while a smaller field needs longer exposures for enough stars, solves more slowly, is more sensitive to wind, and adds weight to the mount.
+* Keep the field of view above about 1° so solves stay fast and reliable, and use short exposures (2-5 s) with plenty of stars.
+
+| Camera (pixel size)        | 50 mm  | 100 mm | 200 mm | 300 mm |
+| -------------------------- | ------ | ------ | ------ | ------ |
+| IMX585 (2.9 µm)            | 12"/px | 6"/px  | 3"/px  | 2"/px  |
+| IMX533 / IMX571 (3.76 µm)  | 15.5"/px | 8"/px  | 4"/px  | 2.6"/px |
+| Typical DSLR (4.3 µm)      | 18"/px | 9"/px  | 4.4"/px | 3"/px |
+
+For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° field, which is well suited. A 50 mm lens will still complete the test, but with a less accurate profile.
 
 To perform the worm profile calibration:
 
@@ -422,11 +441,13 @@ Pressing it again rejects the profile and restores the previous correction.
 
 **4. It applies immediately.**
 
-The worm gear correction is applied whenever a profile exists.
+Approving the profile also switches **PEC Worm Gear Correction** on; rejecting it switches it off.
 
-For this reason, approve the profile **before** aligning and slewing for the night. Approving or rejecting it while guiding shifts the pointing once, by up to the measured wobble size.
+The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. MAC Autotune does the same. Sync points keep their raw motor angles, so this needs no re-alignment.
 
-To run without the worm gear correction, delete `worm_profile.json`, and restart the driver.
+For this reason, approve the profile **before** aligning and slewing for the night. Approving, rejecting or switching it while guiding shifts the pointing once, by up to the measured wobble size, and restarts the drift correction.
+
+To run without the worm gear correction, switch **PEC Worm Gear Correction** off in Pilot's settings.
 
 **5. Check it.**
 
@@ -923,7 +944,7 @@ PID_Controller.control_step_calculate()                          every ~200ms
     │         omega_pec_B = (d_ra/dt)·ra_axis_B + (d_dec/dt)·dec_axis_B     B frame, deg/sec
     │
     ▼  track_target() → feed_forward()
-    │     if advanced_pec and mode == TRACK and any(omega_pec_B):
+    │     if advanced_pec_drift and mode == TRACK and any(omega_pec_B):
     │         theta_dot_pec = J(theta_pv)⁻¹ · radians(omega_pec_B)          same Jacobian as omega_ff
     │         omega_pec = degrees(theta_dot_pec)
     │         if trackingrate ≠ 0: omega_pec[2] = 0                         (M3/roll — non-sidereal target)

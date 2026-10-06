@@ -1888,9 +1888,7 @@ class action:
 
         elif actionName == "Polaris:AutotuneMAC":
             logger.info('Polaris:AutotuneMAC')
-            from kinematics import autotune_mac, MountModelParams
-            base_params = MountModelParams.from_config(Config)
-            result = autotune_mac(polaris._sm.sync_history, base_params)
+            result = polaris._sm.autotune_mac()           # predicts each sync point as QUEST does (MAC, worm)
             if result['success']:
                 improv_msg = ('improved' if result['rms_improv']>0 else 'worse') + f' {abs(result['rms_improv']):.1f}%'
                 logger.info(

@@ -872,13 +872,13 @@ curl -s "$BASE/tracking?ClientID=1&ClientTransactionID=3"
 # Read config
 curl -s -X PUT "$BASE/action" \
   -d 'Action=Polaris:ConfigFetch' \
-  -d 'Parameters={"configNames":["advanced_pec","advanced_sync_guiding","advanced_alignment"]}' \
+  -d 'Parameters={"configNames":["advanced_pec_drift","advanced_pec_worm","advanced_sync_guiding","advanced_alignment"]}' \
   -d 'ClientID=1' -d 'ClientTransactionID=4'
 
-# Enable Multi-Point Alignment, PEC, and Sync Guiding
+# Enable Multi-Point Alignment, PEC Drift Correction, and Sync Guiding
 curl -s -X PUT "$BASE/action" \
   -d 'Action=Polaris:ConfigUpdate' \
-  -d 'Parameters={"advanced_alignment":true,"advanced_pec":true,"advanced_sync_guiding":true}' \
+  -d 'Parameters={"advanced_alignment":true,"advanced_pec_drift":true,"advanced_sync_guiding":true}' \
   -d 'ClientID=1' -d 'ClientTransactionID=5'
 
 # Clean in-process restart (preserves alignment model; NOT the same as killing the process)
@@ -929,7 +929,7 @@ on hardware.
   - **`sync`** -- a real `synctocoordinates` call. Typically follows a plate-solve in normal operation. 
     Is used to feed the live QUEST/MPA fit (if `advanced_alignment` enabled). 
     Alternately can be used to drive sync-guiding (if `advanced_sync_guiding` enabled, and no Goto since last sync).
-    Finally, can also be used to train PEC (if `advanced_sync_guiding` and `advanced_pec` is enabled).
+    Finally, can also be used to train PEC (if `advanced_sync_guiding` and `advanced_pec_drift` are enabled).
 
 Every run: slews to the requested Az/Alt/Roll, resets the Multi-Point Alignment model
 (`advanced_alignment` off/on -- **wipes `sync_history`**, see below), then clears

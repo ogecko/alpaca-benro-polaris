@@ -137,6 +137,7 @@ class WormMixin:
     def init_worm(self):
         """Create the worm state; called once from SyncManager.__init__."""
         self.corrQ_WFF = Quaternion()           # worm feed-forward: measured -> true pose, base frame (identity when off)
+        self.worm_error_deg = np.zeros(3)       # each motor's worm gear correction now (deg of motor angle), for status
         self._worm_ff = None                    # WormFeedForward profile, loaded on first use
         self._worm_ff_path = None               # path it was loaded from (None: reload on next use)
         self.worm_test = None                   # WormProfileTest while the worm profile test runs
@@ -159,12 +160,42 @@ class WormMixin:
                                  f"harmonics {list(self._worm_ff.harmonics)}, {self._worm_ff.meta.get('learnt_from', '')}")
         return self._worm_ff
 
+    def worm_ff_in_use(self):
+        """The worm gear profile to correct with: when Config.advanced_pec_worm is on and worm_profile.json exists
+        (on without a profile: a warning, once, and no correction), else None."""
+        if not Config.advanced_pec_worm:
+            self._worm_ff_warned = False
+            return None
+        prof = self._worm_ff_profile()
+        if prof is None and not getattr(self, '_worm_ff_warned', False):
+            self.logger.warning(f"PEC Worm Gear Correction is on but there is no worm gear profile at "
+                                f"{self.worm_profile_path()}: no correction until one is measured ({PROFILE_TEST} test)")
+        self._worm_ff_warned = prof is None
+        return prof
+
     def update_worm_ff(self, theta):
-        """Refresh the worm feed-forward rotation for the current motor angles (deg): applied whenever there is a
-        worm gear profile (worm_profile.json), except while a worm calibration test measures the uncorrected worm."""
-        prof = self._worm_ff_profile() if self.worm_test is None else None
+        """Refresh the worm feed-forward rotation for the current motor angles (deg): applied when the worm gear
+        correction is in use (worm_ff_in_use), except while a worm calibration test measures the uncorrected worm."""
+        prof = self.worm_ff_in_use() if self.worm_test is None else None
         offset = getattr(self.polaris, '_zeta_raw_offset', None)
-        self.corrQ_WFF = prof.correction_q(theta, zeta_offset=offset) if prof is not None else Quaternion()
+        if prof is None:
+            self.corrQ_WFF, self.worm_error_deg = Quaternion(), np.zeros(3)
+            return
+        self.worm_error_deg = prof.error_deg(theta, zeta_offset=offset)
+        self.corrQ_WFF = prof.correction_q(theta, zeta_offset=offset)
+
+    def entry_worm_q(self, entry):
+        """The worm feed-forward rotation at a sync point, from the raw motor angles it keeps ('theta', and the MCU's
+        'zeta'), with the profile in use now -- so QUEST and MAC predict it as the pointing is corrected at runtime.
+        Identity when the correction is off, or for a sync point without its motor angles (saved before v2.2)."""
+        prof = self.worm_ff_in_use()
+        theta = entry.get('theta')
+        if prof is None or theta is None:
+            return Quaternion()
+        theta = np.asarray(theta, float)
+        zeta = entry.get('zeta')
+        offset = theta - np.asarray(zeta, float) if zeta is not None else None
+        return prof.correction_q(theta, zeta_offset=offset)
 
     def reload_worm_ff(self):
         """Read the profile file again on the next tick (after a worm calibration was approved or rejected)."""

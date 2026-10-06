@@ -720,6 +720,11 @@ class Polaris:
         if done:
             self._sm.reload_worm_ff()
             self.logger.info(f"WORM PROFILE: {'applied to' if approved else 'reverted in'} {path}")
+            # approving puts the profile in use: switch the worm gear correction on (off on rejecting); saved as a
+            # Pilot setting so it survives a restart
+            applied = Config.apply_changes({'advanced_pec_worm': bool(approved)})
+            self.make_config_params_live(applied or {'advanced_pec_worm': bool(approved)})
+            Config.save_pilot_overrides()
         else:
             self.logger.warning(f"WORM PROFILE: nothing to {'apply' if approved else 'revert'} in {path}")
         return done
@@ -1764,6 +1769,8 @@ class Polaris:
                 'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
                 'sgstatus': [self._sm.valid_sync_guide, sg_interval, sg_last_time, pulseg_last_time, pecg_last_time],
                 'pec': [pec_ra._applied_rate*3600, pec_dec._applied_rate*3600, pec_ra_status, pec_dec_status],
+                # deg of motor angle, each motor's worm gear correction now (0 when PEC Worm Gear Correction is off)
+                'pecworm': [float(x) for x in self._sm.worm_error_deg],
                 # arcmin, PEC correction actually applied since the *previous* guide-sync only (resets on
                 # each sync ingest) -- same value/units as PECLOG's pec_accum field, but live between syncs.
                 'pec_accum': [pec_ra._applied_accum*60, pec_dec._applied_accum*60],
@@ -1821,6 +1828,15 @@ class Polaris:
                 self._sm.optimize_alignQ_B2T()
                 self._sm.refresh_pid_setpoints_from_q1()
                 self._sm.streamSyncData()
+            elif param == "advanced_pec_worm":
+                # the worm gear correction is part of every sync point's prediction: refit QUEST with or without it;
+                # clearing sync guiding also restarts the drift model, which learnt the drift with the other setting
+                self._sm.clear_sync_guiding()
+                self._sm.optimize_alignQ_B2T()
+                self._sm.refresh_pid_setpoints_from_q1()
+                self._sm.streamSyncData()
+            elif param == "advanced_pec_drift":
+                self._sm.reset_pec_model()
             elif param == "ref_action":
                 if changed_params["ref_action"]=="update":    # Update Reference Position with Current Orientation
                     match Config.ref:

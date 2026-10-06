@@ -1080,7 +1080,7 @@ def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
     return q_fixed, magnitude
 
 
-def autotune_mac(sync_history: list[dict], base_params: MountModelParams) -> dict:
+def autotune_mac(sync_history: list[dict], base_params: MountModelParams, worm_q=None) -> dict:
     """
     Numerically optimise three MAC parameters to minimise QUEST residuals.
 
@@ -1091,6 +1091,8 @@ def autotune_mac(sync_history: list[dict], base_params: MountModelParams) -> dic
     ----------
     sync_history : list of sync entry dicts from SyncManager.sync_history (only non-deleted AzAlt entries are used)
     base_params  : current MountModelParams (frozen — not mutated)
+    worm_q       : entry -> the worm feed-forward rotation at that sync point (SyncManager.entry_worm_q), so each
+                   prediction is built as at runtime: MAC(raw pose) * WFF * raw pose. None: no worm correction.
 
     Returns
     -------
@@ -1136,12 +1138,14 @@ def autotune_mac(sync_history: list[dict], base_params: MountModelParams) -> dic
         q = eigvecs[:, np.argmax(eigvals)]
         return Quaternion(q[0], q[1], q[2], q[3])
 
+    raw_q  = [azaltroll_to_q(e['p_az'], e['p_alt'], e['p_roll']) for e in entries]
+    worm_q = [worm_q(e) if worm_q is not None else Quaternion() for e in entries]
+
     def residuals_ss(params: MountModelParams) -> float:
         v_preds = []
-        for e in entries:
-            motorQ_adj, _ = apply_mechanical_corrections(
-                azaltroll_to_q(e['p_az'], e['p_alt'], e['p_roll']), params)
-            az, alt, _    = q_to_azaltroll(motorQ_adj)
+        for q, w in zip(raw_q, worm_q):
+            corr, _    = get_mechanical_correction_q(q, params)      # MAC from the raw pose, as at runtime
+            az, alt, _ = q_to_azaltroll((corr * w * q).normalised)
             v_preds.append(np.array(azalt_to_vector(az, alt)))
 
         alignQ = _davenport_quest(v_preds)

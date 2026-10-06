@@ -25,7 +25,7 @@
 #                 recognises a guider's calibration (PHD2, CCDciel) in the pulses, so PEC doesn't learn its large
 #                 deliberate moves as drift; what was learnt during it is rolled back (pec_ignore_guider_calibration)
 #
-# The worm gear correction (applied whenever there is a worm gear profile, from the worm profile test) is a separate,
+# The worm gear correction (Config.advanced_pec_worm, with a profile from the worm profile test) is a separate,
 # fixed correction: see control_worm.py.
 # PEC keeps working on whatever drift that leaves.
 # -----------------------------------------------------------------------------
@@ -163,7 +163,8 @@ class PecMixin:
         self._pec_active      = False
 
         if Config.log_pec and getattr(self, '_log_pec_config', True):
-            self.logger.info(f"PECCONFIG tau_sec,{self._pec_tau},min_dt_sec,{self._pec_min_dt}")
+            self.logger.info(f"PECCONFIG drift,{bool(Config.advanced_pec_drift)},worm,{bool(Config.advanced_pec_worm)},"
+                             f"tau_sec,{self._pec_tau},min_dt_sec,{self._pec_min_dt}")
             self._log_pec_config = False
 
 
@@ -248,7 +249,7 @@ class PecMixin:
         Either or both residuals may be None (pulse guiding sends one axis at a time).
         Returns True if the residuals were fitted (False if disabled, rejected or used as the seed).
         """
-        if not Config.advanced_pec:
+        if not Config.advanced_pec_drift:
             return False
 
         now = time.monotonic()

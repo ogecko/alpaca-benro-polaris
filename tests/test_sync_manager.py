@@ -23,7 +23,7 @@ DEFAULT_LON    = 151.12
 
 @pytest.fixture
 def mock_config(tmp_path, monkeypatch):
-    # the worm gear correction applies whenever there is a worm_profile.json: start without one (a developer's own
+    # the worm gear correction uses worm_profile.json when switched on: start without one (a developer's own
     # data/worm_profile.json must not change these tests); a test that wants one points WORM_PROFILE_PATH at its own
     monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'no_worm_profile.json')
     defaults = {
@@ -34,7 +34,8 @@ def mock_config(tmp_path, monkeypatch):
         "advanced_sync_guiding":    True,
         "advanced_scc_enabled":     True,
         "advanced_scc_choice":      0,
-        "advanced_pec":             True,
+        "advanced_pec_drift":       True,
+        "advanced_pec_worm":        False,
         "log_quest_model":          False,
         "log_pec":                  False,
         "pec_min_observations":     3,

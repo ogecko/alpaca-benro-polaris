@@ -26,7 +26,7 @@ from kinematics import azaltroll_to_theta_ik
 
 TRACK_POSE = (135.0, 45.0, 0.0)
 DRIFT_RA, DRIFT_DEC = 20.0, 10.0          # arcsec/min, constant
-PEC_CONFIG = {"coordinated_speed_control": True, "advanced_pec": True, "advanced_pulse_pec_tuning": True,
+PEC_CONFIG = {"coordinated_speed_control": True, "advanced_pec_drift": True, "advanced_pulse_pec_tuning": True,
               "advanced_sync_guiding": True, "advanced_alignment": True}
 
 
@@ -48,7 +48,7 @@ def pec_rate_arcsec_min(tw):
 
 
 def test_pulses_move_the_mount_opposite_to_the_ascom_direction(monkeypatch):
-    tw = tracking_twin(monkeypatch, {"advanced_pec": False})
+    tw = tracking_twin(monkeypatch, {"advanced_pec_drift": False})
     g = SimGuider(tw)
     g.calibrate()
     tw.close()
@@ -84,7 +84,7 @@ def sync_guided_rms(monkeypatch, config, minutes=30, since_min=10):
 
 @pytest.mark.slow
 def test_sync_guiding_pec_cuts_the_error_between_solves(monkeypatch):
-    (off_ra, off_dec), _ = sync_guided_rms(monkeypatch, {"advanced_pec": False})
+    (off_ra, off_dec), _ = sync_guided_rms(monkeypatch, {"advanced_pec_drift": False})
     (on_ra, on_dec), _ = sync_guided_rms(monkeypatch, {})
     assert on_ra < 0.4 * off_ra, f"RA {on_ra:.1f}\" with PEC vs {off_ra:.1f}\" without"
     assert on_dec < 0.5 * off_dec, f"Dec {on_dec:.1f}\" with PEC vs {off_dec:.1f}\" without"
@@ -95,7 +95,7 @@ def test_sync_guiding_pec_cuts_the_error_between_solves(monkeypatch):
 # ---------------------------------------------------------------------------------------------------
 import math                                                         # noqa: E402
 
-PEC_OFF = {"advanced_pec": False}
+PEC_OFF = {"advanced_pec_drift": False}
 
 
 def reversing_drift(t, period_s=80 * 60):

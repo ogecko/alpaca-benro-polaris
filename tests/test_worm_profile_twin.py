@@ -19,7 +19,7 @@ from control_worm import WormProfileTest, WormFeedForward, fit_worm_profile, POS
 
 POSE = (90.0, 40.0, 30.0)
 CONFIG = {"coordinated_speed_control": True, "advanced_sync_guiding": True, "advanced_alignment": True,
-          "advanced_pec": True}
+          "advanced_pec_drift": True, "advanced_pec_worm": True}
 WORM = Worm(amplitude_arcsec=(35.0, 60.0, 50.0), theta_deg=6.0, h2=0.15, seed=11)
 
 

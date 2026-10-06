@@ -58,6 +58,15 @@ def session_key(filename):
     return re.sub(r"_[a-d]\d+$", "", name)              # rotated parts: _a1, _a08, _d3 (not _h2 etc.)
 
 
+def _config_pec_state(payload):
+    """The PEC drift correction's switch in a ConfigUpdate (advanced_pec_drift; advanced_pec in logs before the PEC
+    switches were split), or None if the update doesn't set it."""
+    for key in ('advanced_pec_drift', 'advanced_pec'):
+        if key in payload:
+            return bool(payload[key])
+    return None
+
+
 def _classify(line):
     """(kind, payload) for the lines that matter, else None."""
     if 'PECLOG {' in line:
@@ -234,8 +243,9 @@ def catalog_session(paths, notes=None):
         if kind == 'version':
             state['version'] = payload
         elif kind == 'config':
-            if 'advanced_pec' in payload:
-                state['pec'] = bool(payload['advanced_pec'])
+            pec = _config_pec_state(payload)
+            if pec is not None:
+                state['pec'] = pec
                 if cur is not None:
                     cur['pec_events'].append(state['pec'])
         elif kind == 'battery':

@@ -46,7 +46,7 @@ START_UTC = _dt.datetime(2026, 9, 27, 11, 0, 0)
 TWIN_CONFIG = {
     "advanced_control": True, "advanced_kf": True, "advanced_slewing": True, "advanced_goto": True,
     "advanced_tracking": True, "advanced_alignment": False, "advanced_scc_enabled": False,
-    "advanced_align_mac": False, "advanced_pec": False, "advanced_sync_guiding": False,
+    "advanced_align_mac": False, "advanced_pec_drift": False, "advanced_pec_worm": False, "advanced_sync_guiding": False,
     "advanced_pulse_guiding": True, "advanced_orbitals": False, "coordinated_speed_control": False,
     "log_position": False, "log_pec": False, "log_quest_model": False,
     "site_latitude": LAT, "site_longitude": LON, "pid_Ka": 0.0, "pid_Kv": 0.0,
@@ -185,8 +185,8 @@ class Twin:
         monkeypatch.setattr(control, "datetime", shim)
         monkeypatch.setattr(control.time, "monotonic", self.clock.monotonic)
         if control_worm.WORM_PROFILE_PATH == control_worm.DATA_DIR / 'worm_profile.json':
-            # the worm gear correction applies whenever there is a worm_profile.json: a developer's own must not change
-            # the twin (a test that wants a profile sets control_worm.WORM_PROFILE_PATH before creating the twin)
+            # the worm gear correction uses data/worm_profile.json when it is switched on: a developer's own must not
+            # change the twin (a test that wants a profile sets control_worm.WORM_PROFILE_PATH before creating the twin)
             monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", control_worm.DATA_DIR / 'twin_has_no_worm_profile.json')
         monkeypatch.setattr(ephem, "now", lambda: ephem.Date(self.clock.utc()))
         self.rng = np.random.default_rng(seed)

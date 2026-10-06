@@ -169,7 +169,7 @@ def _dms_to_deg(sign_deg, minutes, seconds):
 def parse_sync_guiding_residual_line(line):
     """
     Parse the always-present '->> Polaris: SYNC GUIDING Ra <dms>, Dec <dms> Residuals' line
-    (control.py's process_guide_sync(), logged unconditionally regardless of Config.advanced_pec
+    (control.py's process_guide_sync(), logged unconditionally regardless of Config.advanced_pec_drift
     or PECLOG format/version) back into decimal-degree ra_resid_deg/dec_resid_deg -- the inverse
     of shr.py's deg2dms(). This is the only place a legacy (pre-dict-format) PECLOG session's
     'resid' survives; parse_peclog_legacy()'s own payload doesn't carry it.
@@ -224,14 +224,17 @@ def find_site_location(log_filenames, log_dir='.'):
 
 
 def parse_pecconfig(line):
-    """The PECCONFIG line emitted once per session: {'tau', 'min_dt'} (seconds), or None. Logs from before v2.2 Beta 7
-    also name the model ('mode' rls/ema, harmonics, period); RLS has since been removed, so only EMA sessions replay
-    as they ran."""
-    m = re.search(r'PECCONFIG (?:mode,(\w+),n_harmonics,\d+,T,[\d.]+,)?tau_sec,([\d.]+),min_dt_sec,([\d.]+)', line)
+    """The PECCONFIG line emitted once per session: {'drift', 'worm'} (the PEC Drift / Worm Gear Correction switches,
+    None in logs before they were split), {'tau', 'min_dt'} (seconds), or None. Logs from before v2.2 Beta 7 also
+    name the model ('mode' rls/ema, harmonics, period); RLS has since been removed, so only EMA sessions replay as
+    they ran."""
+    m = re.search(r'PECCONFIG (?:drift,(True|False),worm,(True|False),)?(?:mode,(\w+),n_harmonics,\d+,T,[\d.]+,)?'
+                  r'tau_sec,([\d.]+),min_dt_sec,([\d.]+)', line)
     if not m:
         return None
-    mode, tau, min_dt = m.groups()
-    return dict(mode=mode or 'ema', tau=float(tau), min_dt=float(min_dt))
+    drift, worm, mode, tau, min_dt = m.groups()
+    flag = lambda v: None if v is None else v == 'True'
+    return dict(drift=flag(drift), worm=flag(worm), mode=mode or 'ema', tau=float(tau), min_dt=float(min_dt))
 
 
 def _finalize_log_df(rows):
@@ -348,7 +351,7 @@ def load_sync_guiding_residuals(log_filenames, log_dir='.'):
     """
     Parse every '->> Polaris: SYNC GUIDING Ra <dms>, Dec <dms> Residuals' line into a
     DataFrame with timestamp/resid_1 (RA, arcmin)/resid_2 (Dec, arcmin) -- same convention as
-    PECLOG's own resid_1/resid_2. Unlike load_pec(), this works with Config.advanced_pec off
+    PECLOG's own resid_1/resid_2. Unlike load_pec(), this works with Config.advanced_pec_drift off
     (a session with PEC disabled, sync-guiding enabled -- e.g. for a clean, uncontaminated
     ground-truth capture per docs/pec_theta_space_plan.md): process_guide_sync() logs this
     line unconditionally, whether or not PECLOG exists at all for the session.

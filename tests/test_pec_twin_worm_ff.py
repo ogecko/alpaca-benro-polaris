@@ -66,7 +66,7 @@ def guide(monkeypatch, kind, config, minutes, record=False):
 @pytest.mark.slow
 def test_a_profile_fitted_from_the_guide_corrections_is_the_physical_gear_error(monkeypatch):
     from pe_analysis import fit_worm
-    g, rec = guide(monkeypatch, 'pulse', {"advanced_pec": False}, minutes=90, record=True)
+    g, rec = guide(monkeypatch, 'pulse', {"advanced_pec_drift": False}, minutes=90, record=True)
     c = np.array(g.corrections)                                     # (t, axis, deg) as PEC sees them
     t, th = rec[:, 0], rec[:, 1:4]
     ra, dec = ([c[(c[:, 0] <= x) & (c[:, 1] == ax), 2].sum() * ARCSEC for x in t] for ax in (0, 1))
@@ -91,20 +91,18 @@ def rms_since(g, minutes):
 
 @pytest.mark.slow
 def test_sync_guiding_with_the_feed_forward_no_longer_chases_the_worm(monkeypatch, profile_path):
-    cfg = {"advanced_pec": True}
-    off, _ = guide(monkeypatch, 'sync', cfg, minutes=50)                       # no profile: no worm correction
     monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", profile_path)
-    on, _ = guide(monkeypatch, 'sync', cfg, minutes=50)
+    off, _ = guide(monkeypatch, 'sync', {"advanced_pec_drift": True, "advanced_pec_worm": False}, minutes=50)
+    on, _ = guide(monkeypatch, 'sync', {"advanced_pec_drift": True, "advanced_pec_worm": True}, minutes=50)
     # twin 2026-10-03: off ~180", on ~11" (the no-worm level: 2" solve noise, near the pole)
     assert rms_since(on, 10) < 0.15 * rms_since(off, 10), f'on {rms_since(on, 10):.1f}" off {rms_since(off, 10):.1f}"'
 
 
 @pytest.mark.slow
 def test_pulse_guiding_with_the_feed_forward_has_less_error_and_guider_effort(monkeypatch, profile_path):
-    cfg = {"advanced_pec": False}
-    off, _ = guide(monkeypatch, 'pulse', cfg, minutes=50)                      # no profile: no worm correction
     monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", profile_path)
-    on, _ = guide(monkeypatch, 'pulse', cfg, minutes=50)
+    off, _ = guide(monkeypatch, 'pulse', {"advanced_pec_drift": False, "advanced_pec_worm": False}, minutes=50)
+    on, _ = guide(monkeypatch, 'pulse', {"advanced_pec_drift": False, "advanced_pec_worm": True}, minutes=50)
     effort = lambda g: sum(abs(c[2]) for c in g.corrections if c[0] - g.t0 >= 10 * 60)
     # twin 2026-10-03 (90 min): error 6.0" -> 5.0", corrections -14%
     assert rms_since(on, 10) < 0.92 * rms_since(off, 10), f'on {rms_since(on, 10):.2f}" off {rms_since(off, 10):.2f}"'

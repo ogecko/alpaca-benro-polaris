@@ -65,7 +65,7 @@ def test_ordinary_tracking_put_is_not_location_dependent():
 def test_config_update_action_is_not_location_dependent():
     instr = parse_line(
         "127.0.0.1 -> PUT /api/v1/telescope/0/action "
-        "{'Action': 'Polaris:ConfigUpdate', 'Parameters': '{\"advanced_pec\": true}'}"
+        "{'Action': 'Polaris:ConfigUpdate', 'Parameters': '{\"advanced_pec_drift\": true}'}"
     )
     assert is_location_dependent(instr) is False
 

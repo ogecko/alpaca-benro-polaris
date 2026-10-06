@@ -71,6 +71,8 @@ def fake_polaris(tmp_path, separation=30.0, roll=30.0, roll_move_finishes=True):
     p.start_tracking, p.stop_tracking = start_tracking, stop_tracking
     p.radec2altaz = lambda ra, dec: (45.0, 180.0)
     p.worm_profile_approval = lambda approved: Polaris.worm_profile_approval(p, approved)
+    p.live = []
+    p.make_config_params_live = lambda changed: p.live.append(dict(changed))
     return p
 
 
@@ -78,6 +80,7 @@ def fake_polaris(tmp_path, separation=30.0, roll=30.0, roll_move_finishes=True):
 def cfg(monkeypatch):
     for k, v in dict(advanced_control=True, advanced_tracking=True, advanced_alignment=True).items():
         monkeypatch.setattr(polaris_mod.Config, k, v, raising=False)
+    monkeypatch.setattr(polaris_mod.Config, 'save_pilot_overrides', classmethod(lambda cls, *a: None))   # not data/
 
 
 def feed(test, seed=0):
@@ -130,11 +133,13 @@ def test_the_test_runs_fits_keeps_the_test_and_shows_the_pooled_profile(tmp_path
     p._cm.on_worm_profile_approval = p.worm_profile_approval
     p._cm.toggleApproval(0, [PROFILE_TEST])
     assert row['test_status'] == 'APPROVED' and p._sm.reloaded == 1
+    assert p.live[-1] == {'advanced_pec_worm': True}            # approving switches the worm gear correction on
     ff = WormFeedForward.load(p._sm.path)
     assert ff.angle_reference == {'M1': 'zeta', 'M2': 'zeta', 'M3': 'zeta'}
     assert all(coef_error(ff.coef[m][:2], TRUE[M][:2]) < 4.0 for m, M in enumerate(('M1', 'M2', 'M3')))
     p._cm.toggleApproval(0, [PROFILE_TEST])
     assert row['test_status'] == 'REJECTED' and p._sm.reloaded == 2
+    assert p.live[-1] == {'advanced_pec_worm': False}
     assert np.all(WormFeedForward.load(p._sm.path).coef == 0)
 
 

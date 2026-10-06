@@ -15,7 +15,7 @@ from shr import rad2deg, deg2rad, deg2dms, format_timestamp, ratio_string
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl, ensure_data_dir_exists
 from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
-from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams
+from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, autotune_mac
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
@@ -1766,7 +1766,7 @@ class PID_Controller():
         # PEC contribution — independent of ff_inhibit gating (that's for setpoint-
         # change transients, unrelated to PEC), added as its own velocity term.
         self.omega_pec = np.zeros(3, dtype=float)
-        if Config.advanced_pec and self.mode == "TRACK" and not self.worm_test_active():
+        if Config.advanced_pec_drift and self.mode == "TRACK" and not self.worm_test_active():
             omega_pec_B = getattr(self.polaris._sm, 'omega_pec_B', None)
             if omega_pec_B is not None and np.any(omega_pec_B):
                 J = theta_to_jacobian(*self.theta_pv)
@@ -2050,7 +2050,7 @@ class PID_Controller():
             if self.dt < 0.05:
                 return
         self.time_step = now
-        if Config.advanced_pec and not self.worm_test_active():
+        if Config.advanced_pec_drift and not self.worm_test_active():
             self.polaris._sm.apply_pec_drift_correction()
         if self.time_meas:      # Only process if we have a measurement
             if Config.coordinated_speed_control:
@@ -2188,12 +2188,19 @@ class SyncManager(PecMixin, WormMixin):
         self.init_pec()
 
     def standard_entry(self):
+        theta = getattr(self.polaris, '_theta_state', None)
+        offset = getattr(self.polaris, '_zeta_raw_offset', None)
+        theta = [float(x) for x in theta] if theta is not None else None
+        zeta = [t - float(o) for t, o in zip(theta, offset)] if theta is not None and offset is not None \
+            and all(o is not None for o in offset) else None
         entry = {
             "timestamp": format_timestamp(),
             "deleted": False,
             "p_az": self.polaris._p_azimuth,    # store raw motorQ_state Az
             "p_alt": self.polaris._p_altitude,  # store raw motorQ_state Alt
             "p_roll": self.polaris._p_roll,     # store raw motorQ_state Roll
+            "theta": theta,                     # raw motor angles of that pose (KF state, 518 space)
+            "zeta": zeta,                       # the MCU's motor angles (517): the worm gear correction's reference
             "a_ra": None,
             "a_dec": None,
             "a_az": None,
@@ -2205,17 +2212,25 @@ class SyncManager(PecMixin, WormMixin):
 
     def entry_to_pred_vector(self, entry):
         """
-        Convert a sync history entry's raw stored p_az/p_alt/p_roll into a predicted unit vector.
-        Only apply [MAC] as its the only static theta frame correction. Do not apply [SGC], [PGC] or [LGA] 
+        Convert a sync history entry's raw stored p_az/p_alt/p_roll into a predicted unit vector, rebuilt with the
+        static corrections in use now, in the runtime order: [WFF] (from the entry's raw motor angles) then [MAC]
+        (computed from the raw pose). Do not apply [SGC], [PGC] or [LGA].
         """
+        wormQ = self.entry_worm_q(entry)
+        if not Config.advanced_align_mac and wormQ.degrees == 0:
+            return azalt_to_vector(entry["p_az"], entry["p_alt"]), entry["p_az"], entry["p_alt"]
+        motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
+        motorQ_adj = (wormQ * motorQ_entry).normalised
         if Config.advanced_align_mac:
-            motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
-            motorQ_adj, _   = apply_mechanical_corrections(motorQ_entry, self.params_RBC)
-            eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
-        else:
-            eff_az  = entry["p_az"]
-            eff_alt = entry["p_alt"]
+            corrQ, _ = get_mechanical_correction_q(motorQ_entry, self.params_RBC)
+            motorQ_adj = (corrQ * motorQ_adj).normalised
+        eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
         return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
+
+    def autotune_mac(self):
+        """kinematics.autotune_mac on the sync points, each predicted as entry_to_pred_vector does (with the worm
+        gear correction when it is in use)."""
+        return autotune_mac(self.sync_history, MountModelParams.from_config(Config), worm_q=self.entry_worm_q)
 
 
 
@@ -2884,6 +2899,8 @@ class SyncManager(PecMixin, WormMixin):
                     'p_alt':      float(entry['p_alt']),
                     'p_roll':     float(entry['p_roll']),
                     'p_roll_pv':  float(entry['p_roll_pv']) if entry.get('p_roll_pv') is not None else None,
+                    'theta':      [float(x) for x in entry['theta']] if entry.get('theta') is not None else None,
+                    'zeta':       [float(x) for x in entry['zeta']] if entry.get('zeta') is not None else None,
                     'a_ra':       float(entry['a_ra'])   if entry.get('a_ra')   is not None else None,
                     'a_dec':      float(entry['a_dec'])  if entry.get('a_dec')  is not None else None,
                     'a_az':       float(entry['a_az'])   if entry.get('a_az')   is not None else None,
