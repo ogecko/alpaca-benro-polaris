@@ -242,14 +242,14 @@ Calibration determines how your mount responds to guide pulses in Right Ascensio
 
 For best results, calibration should be performed under the following conditions:
 
-* **CRITICAL: Disable PEC during calibration** - 
+* **PEC can stay on during calibration** - 
 We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. The Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC with an autoguider:
-    * Let PEC run and converge first, then disable it before you calibrate the autoguider.
-    * That might sound backward;  why run PEC and then disable it right before calibration? Here's the reasoning: PEC's corrections get baked into the correction quaternion as they're applied, so they don't disappear when you disable PEC. Disabling it only stops the ongoing learning and application of new corrections. Everything it's already corrected up to that point stays in effect. So calibration starts from a mount that's already had its periodic error largely removed, making it easier to calibrate (especially with lower guiding rates). Disabling PEC during calibration stops it from learning the autoguider app's calibration steps.
-    * TL;DR: run PEC until it converges → disable PEC → calibrate the autoguider → re-enable PEC.
+    * Leave PEC on while you calibrate. The driver recognises PHD2's (and CCDciel's) calibration pulses, and PEC Drift Correction ignores them, rolling back anything it learnt during the calibration (`pec_ignore_guider_calibration`, on by default).
+    * PEC Worm Gear Correction doesn't learn from guiding, so it can stay on too; calibrating with it on means PHD2 measures a mount with its worm gear error already removed.
+    * Avoid switching PEC Drift Correction off and on around calibration: switching it restarts the drift model, which then has to learn the drift again.
 
-* **CRITICAL: Disable PEC if you are using Dithering** - 
-We recommend not using Dithering with the Alpaca Benro Polaris as we have not seen any significant improvement in guiding or hot pixel reduction. If you decide to use Dithering, then you should disable PEC. Much like calibration, you don't want PEC to learn the dither steps, which aren't valid guiding corrections.
+* **CRITICAL: Disable PEC Drift Correction if you are using Dithering** - 
+We recommend not using Dithering with the Alpaca Benro Polaris as we have not seen any significant improvement in guiding or hot pixel reduction. If you decide to use Dithering, then you should switch off PEC Drift Correction. Unlike calibration, dither steps aren't recognised, and you don't want PEC to learn them as drift. PEC Worm Gear Correction can stay on.
 
 * **CRITICAL: Use the same Position Angle as the intended imaging target** - 
 The recommended approach is to calibrate at your imaging target and simply ignore PHD2's calibration location warning. Just slew to your target and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration. This ensures the position angle remains the same between calibration and imaging, which is important for the Benro Polaris (though not for a typical equatorial mount).

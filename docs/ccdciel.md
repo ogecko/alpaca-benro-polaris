@@ -170,7 +170,7 @@ Calibrate once before guiding. Set the guide exposure to 3-5 seconds with the st
 
 For the Benro Polaris:
 * **Calibrate at your imaging target**, at the same position angle you will image at. RA/Dec guide pulses become a mix of motor movements that changes across the sky, so avoid large slews or position angle changes after calibrating.
-* **Disable PEC while calibrating**: let PEC converge, disable it, calibrate, then re-enable it, so PEC doesn't learn the calibration pulses as drift.
+* **PEC can stay on while calibrating**: the driver recognises CCDciel's calibration pulses, and PEC Drift Correction ignores them (`pec_ignore_guider_calibration`, on by default). PEC Worm Gear Correction doesn't learn from guiding, so it can stay on too.
 
 ### Guiding
 Click **Guide** to start guiding. The **Guider** tab shows the corrections and lets you adjust the RA and Dec **Gain** and **Hysteresis**. You can monitor the pulse guide commands and the RA/Dec setpoint changes on the Alpaca Pilot **PID Tuning** page.
