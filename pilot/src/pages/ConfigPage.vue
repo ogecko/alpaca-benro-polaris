@@ -187,12 +187,15 @@
                 </div>
               </div>
               <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_pec_drift', 'PEC Drift Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_pec_worm', 'PEC Worm Gear Correction')"/>
+              </div>
+              <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Sync Guiding (Plate-solve)')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Periodic Error Correction (PEC)')"/>
+                <q-toggle class='col-6' v-bind="bindField('coordinated_speed_control', 'Coordinated Speed Control')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Pulse Guiding (Guide-camera)')"/>
-                <q-toggle class='col-6' v-bind="bindField('coordinated_speed_control', 'Coordinated Speed Control')"/>
               </div>
               <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select

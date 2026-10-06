@@ -84,7 +84,8 @@ export const useConfigStore = defineStore('config', {
     advanced_scc_choice: 2,
     advanced_align_mac: false,
     advanced_orbitals: false,
-    advanced_pec: false,
+    advanced_pec_drift: false,
+    advanced_pec_worm: false,
     coordinated_speed_control: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,

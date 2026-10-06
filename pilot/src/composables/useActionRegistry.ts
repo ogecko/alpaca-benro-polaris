@@ -76,6 +76,12 @@ export function useActionRegistry(): ActionRegistry {
         put(payload)
     }
 
+    // PEC Drift and Worm Gear Correction together: any on -> both off, both off -> both on
+    function togglePEC() {
+        const on = !(cfg.advanced_pec_drift || cfg.advanced_pec_worm)
+        put({ advanced_pec_drift: on, advanced_pec_worm: on })
+    }
+
     registry = {
         referenceFrame: {
         type: 'trigger',
@@ -195,7 +201,7 @@ export function useActionRegistry(): ActionRegistry {
       },
       togglePEC: {
         type: 'trigger',
-        onFire: () => toggleConfig('advanced_pec'),   
+        onFire: () => togglePEC(),
       },
       syncGuiding: {
         type: 'trigger',

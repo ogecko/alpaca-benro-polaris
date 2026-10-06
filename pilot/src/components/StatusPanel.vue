@@ -41,7 +41,7 @@
           <q-item>
               <q-item-section avatar>
                 <q-btn size="lg" dense round flat icon="mdi-sine-wave" 
-                        :color="isEnabled(cfg.advanced_pec)" @click="toggle('advanced_pec')" />
+                        :color="isEnabled(cfg.advanced_pec_drift || cfg.advanced_pec_worm)" @click="togglePEC" />
               </q-item-section>
               <q-item-section>Periodic Error Correction</q-item-section>
               <q-item-section side class="cursor-pointer" @click="router.push('/position')"><StatusPEC /></q-item-section>
@@ -110,6 +110,12 @@ function toggle(key:string) {
   const val = cfg[key];
   const payload = { [key]: !val }
   put(payload)
+}
+
+// PEC Drift and Worm Gear Correction together: any on -> both off, both off -> both on
+function togglePEC() {
+  const on = !(cfg.advanced_pec_drift || cfg.advanced_pec_worm)
+  put({ advanced_pec_drift: on, advanced_pec_worm: on })
 }
 
   const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put for toggles

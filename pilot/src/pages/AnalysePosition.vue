@@ -94,14 +94,27 @@
                   <!-- PEC -->
                   <div class="ok terminal">
                     <span>{{`PEC Rate:`}}</span>
-                    <span v-if="cfg.advanced_pec" >
+                    <span v-if="cfg.advanced_pec_drift" >
                       <VField label="    RA " :val="p.pec[0]" unit="deg/hr"/>
                       <VField label=" |  Dec " :val="p.pec[1]" unit="deg/hr"/>
                       <VField label=" | R² " :val="p.pec[2]" unit="r2"/>
                       <VField label=" | R² " :val="p.pec[3]" unit="r2"/>
                     </span>
                     <span v-else>
-                      <span >{{` Periodic Error Correction  `}}</span>
+                      <span >{{` Drift Correction           `}}</span>
+                      <span class="haz">{{ `                              Disabled`}}</span>
+                    </span>
+                  </div>
+                  <!-- PEC Worm -->
+                  <div class="ok terminal">
+                    <span>{{`PEC Worm:`}}</span>
+                    <span v-if="cfg.advanced_pec_worm" >
+                      <VField label="    M1 " :val="p.pecworm[0]" unit="deg_ofst"/>
+                      <VField label="   |  M2  " :val="p.pecworm[1]" unit="deg_ofst"/>
+                      <VField label="   | M3   " :val="p.pecworm[2]" unit="deg_ofst"/>
+                    </span>
+                    <span v-else>
+                      <span >{{` Gear Correction            `}}</span>
                       <span class="haz">{{ `                              Disabled`}}</span>
                     </span>
                   </div>
