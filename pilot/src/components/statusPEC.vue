@@ -45,19 +45,9 @@ function col_r2(r2ra: unknown, r2dec: unknown) {
 const isIdle = computed(() => (p.pec[2] == 0 && p.pec[3] == 0)  || !p.tracking)
 const isWarmup = computed(() => (p.pec[2] == -2 && p.pec[3] == -2)  || !p.tracking)
 const isOff = computed(() => !cfg.advanced_pec_drift && !cfg.advanced_pec_worm)
-// the drift EMA is applying (converged: its R² is reported, not an inhibit code)
-const isDriftActive = computed(() => cfg.advanced_pec_drift && p.tracking && (toNumber(p.pec[2]) > 0 || toNumber(p.pec[3]) > 0))
-
-// the drift rate PEC is applying, arcsec/min (pec[0], pec[1] in deg/hr)
-function fmt_rate(): string {
-  const r = Math.hypot(toNumber(p.pec[0]), toNumber(p.pec[1])) * 60
-  return `${r.toFixed(1)}"/min`
-}
-
 const statusLabel = computed(() =>  
                  isOff.value ? "Disabled" : 
     !cfg.advanced_pec_drift  ? "Worm Gear" :
-         isDriftActive.value ? fmt_rate() :
                 isIdle.value ? 'Idle' :
               isWarmup.value ? 'Warmup' :
                                `${fmt_r2(p.pec[2])} | ${fmt_r2(p.pec[3])}`
