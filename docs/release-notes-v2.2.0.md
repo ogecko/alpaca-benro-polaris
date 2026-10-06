@@ -3,9 +3,9 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.2.0 Beta 6
-* **Release Date:** 23-Sep-2026
-* **Availability:** Download from [Alpaca Driver v2.2 Beta 6 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
+* **Version:** 2.2.0 Beta 8
+* **Release Date:** TBD
+* **Availability:** Download from [Alpaca Driver v2.2 Beta 8 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
 * **Current Branch:** dev2_2
 
@@ -27,16 +27,18 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.2 Beta 7
-- **[Speed Controller v2]** Better tracking at low altitude and zero roll, and a better response to guiding, from a new motor speed controller.
-- **[Motion Planner v2]** Less drift while rolling: motor speed profiles are planned, slowing on tight curves.
-- **[Ramped Jogging]** Less jogging overshoot: jog speed changes are ramped.
-- **[Goto Settle Time]** Gotos settle faster, without Ki windup or completing too early.
+## What's new in v2.2 Beta 8
 - **[PEC Drift]** PEC learns the remaining drift as a 7.5 minute moving average (the harmonic model is removed), and ignores PHD2/CCDciel calibration pulses, so it can stay on while calibrating.
 - **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. Applied whenever there is a profile.
 - **[Restore Tracking]** Tracking resumes after a driver restart within 10 minutes.
 - **[Smooth Charts]** Live charts on the Analysis pages scroll smoothly and use less CPU.
 - **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
+
+## What's new in v2.2 Beta 7
+- **[Speed Controller v2]** Better tracking at low altitude and zero roll, and a better response to guiding, from a new motor speed controller.
+- **[Motion Planner v2]** Less drift while rolling: motor speed profiles are planned, slowing on tight curves.
+- **[Ramped Jogging]** Less jogging overshoot: jog speed changes are ramped.
+- **[Goto Settle Time]** Gotos settle faster, without Ki windup or completing too early.
 
 ## What's new in v2.2 Beta 6
 - **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
