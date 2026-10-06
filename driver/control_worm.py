@@ -153,8 +153,7 @@ class WormMixin:
             self._worm_ff_path = full
             self._worm_ff = WormFeedForward.load(full)
             if self._worm_ff is None:
-                self.logger.info(f"No worm gear profile at {full}: worm correction off (measure it with the Speed "
-                                 f"Calibration {PROFILE_TEST} test and approve it)")
+                self.logger.info(f"No worm gear profile at {full}: worm correction off")
             else:
                 self.logger.info(f"Worm feed-forward profile loaded from {full}: worm {self._worm_ff.worm_theta:g} deg, "
                                  f"harmonics {list(self._worm_ff.harmonics)}, {self._worm_ff.meta.get('learnt_from', '')}")
@@ -168,8 +167,7 @@ class WormMixin:
             return None
         prof = self._worm_ff_profile()
         if prof is None and not getattr(self, '_worm_ff_warned', False):
-            self.logger.warning(f"PEC Worm Gear Correction is on but there is no worm gear profile at "
-                                f"{self.worm_profile_path()}: no correction until one is measured ({PROFILE_TEST} test)")
+            self.logger.warning(f"PEC Worm Gear Correction is enabled but missing profile. Run Speed Calibration test {PROFILE_TEST} to create one.")
         self._worm_ff_warned = prof is None
         return prof
 
