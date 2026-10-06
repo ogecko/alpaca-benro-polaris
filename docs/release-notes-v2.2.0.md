@@ -30,7 +30,7 @@
 ## What's new in v2.2 Beta 8
 - **[PEC Drift]** PEC learns the remaining drift as a 7.5 minute moving average (the harmonic model is removed), and ignores PHD2/CCDciel calibration pulses, so it can stay on while calibrating.
 - **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. Applied whenever there is a profile.
-- **[Restore Tracking]** Tracking resumes after a driver restart within 10 minutes.
+- **[Resume Tracking]** Tracking resumes from its previous position after a driver restart, provided the restart occurs within 10 minutes.
 - **[Smooth Charts]** Live charts on the Analysis pages scroll smoothly and use less CPU.
 - **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
 
