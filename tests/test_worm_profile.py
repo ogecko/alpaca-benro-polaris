@@ -429,3 +429,13 @@ def test_the_fit_and_the_row_show_the_peak():
     v = r['motors']['M3']
     assert v['peak'] == pytest.approx(peak_deg(*v['coef'][:2]), abs=0.1)
     assert f'M3 {v["amplitude"]:.0f}"@{v["peak"]:.0f}' in profile_row_fields(r, r, None)['test_result']
+
+
+def test_the_profile_file_starts_with_the_profile_in_use_and_ends_with_the_test_history(tmp_path):
+    """The applied profile is what a reader opens the file for: at the top, before the (long) test history."""
+    p = str(tmp_path / 'worm_profile.json')
+    stored(p, 3)
+    assert apply_profile(p)
+    keys = list(json.load(open(p)))
+    assert keys[:6] == ['worm_theta', 'harmonics', 'motors', 'units', 'angle_reference', 'applied_profile']
+    assert keys[-1] == 'calibration_history'

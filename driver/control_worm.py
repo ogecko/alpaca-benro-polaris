@@ -103,7 +103,12 @@ class WormFeedForward:
                 'units': 'arcsec of motor angle; per harmonic: sin, cos; true angle = MCU angle + error'}
         if self.angle_reference:
             core['angle_reference'] = dict(self.angle_reference)
-        d = {**{k: v for k, v in self.meta.items() if k not in core}, **core}        # provenance never overrides
+        # the profile in use first (what a reader opens the file for), then the applied profile's details and other
+        # provenance, the (long) test history last; provenance never overrides the profile
+        meta = {k: v for k, v in self.meta.items() if k not in core}
+        d = {**core, **{k: v for k, v in meta.items() if k == 'applied_profile'},
+             **{k: v for k, v in meta.items() if k not in ('applied_profile', 'calibration_history')},
+             **{k: v for k, v in meta.items() if k == 'calibration_history'}}
         with open(path, 'w') as f:
             json.dump(d, f, indent=2)
 
