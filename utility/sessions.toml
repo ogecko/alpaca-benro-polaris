@@ -464,3 +464,12 @@ driver = "v2.2.0 Beta 7.3"
 guiding = "pulse (PHD2) + sync"
 records = ["pec", "sg", "sync"]
 notes = "first worm gear profile, and pulse guiding after"
+
+[sessions."jdm_Beta8.0_10_06_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_06_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_06_worm_a1_PHD2_GuideLog_2026-10-06_165252.txt"
+date = "2026-10-06"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
