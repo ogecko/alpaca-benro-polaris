@@ -407,15 +407,17 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 * If no Solve and Sync arrives for 1 minute, the test stops with **NO DATA**.
 * You can press **Stop** at any time.
 
+**When the test finishes:** stop the Solve and Sync loop; syncs after the test are ordinary alignment points.
+
 **2. Review the result.**
 
 Each test is retained. The displayed profile is **pooled over the last five tests**.
 
 The result row contains:
 
-* **Test Result:** The measured wobble, size, and phase for each motor.
+* **Test Result:** The measured wobble for each motor: its size, and the angle where it peaks.
 
-  For example: `M1 38"@263 M2 63"@283 M3 116"@212`.
+  For example: `M1 21"@177 M2 86"@179 M3 85"@224`. The angle after `@` is where in its worm turn that motor's error is largest (0-360 over one 6 degree worm turn, from the motor's angle). A motor whose wobble is too small to measure shows `off` and is left uncorrected.
 
 * **Change:** The change that would be made to each motor's correction if you approve the result.
 
@@ -425,8 +427,8 @@ The result row contains:
 
 * **Status:**
 
-  * `COMPLETED` — all three motor wobbles were measured clearly.
-  * `POOR FIT` — the wobble could not be distinguished reliably from noise.
+  * `COMPLETED` — the measurements fitted cleanly and at least one motor's wobble was measured clearly (pooled over the recent tests).
+  * `POOR FIT` — no wobble could be distinguished reliably from noise, or the measurements scattered too much (e.g. wind, backlash).
   * `NO DATA` or `STOPPED` — too few plate solves were received.
 
 Running the test again at a different pose reduces the effect of measurement noise.
@@ -435,7 +437,7 @@ All tests, including their individual measurements, are retained in `worm_profil
 
 **3. Approve it.**
 
-Press **Approve** on the row to apply the pooled profile to all three motors.
+Press **Approve** on the row to apply the pooled profile to the motors that were measured.
 
 Pressing it again rejects the profile and restores the previous correction.
 
@@ -445,13 +447,14 @@ Approving the profile also switches **PEC Worm Gear Correction** on; rejecting i
 
 The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. MAC Autotune does the same. Sync points keep their raw motor angles, so this needs no re-alignment.
 
-For this reason, approve the profile **before** aligning and slewing for the night. Approving, rejecting or switching it while guiding shifts the pointing once, by up to the measured wobble size, and restarts the drift correction.
+For this reason, approve the profile **before** aligning and slewing for the night, and do a fresh Multi-Point Alignment after the test: the test moves the mount well away from its alignment points, and a clean, well-spread set of alignment points matters more than the profile itself. Approving, rejecting or switching it while guiding shifts the pointing once, by up to the measured wobble size, and restarts the drift correction.
 
 To run without the worm gear correction, switch **PEC Worm Gear Correction** off in Pilot's settings.
 
 **5. Check it.**
 
-Compare guiding performance on the same target with the correction enabled and disabled.
+* On the **Position** page, the **PEC Worm** row shows each motor's current correction; it changes as the motors turn (M1 fastest while tracking).
+* Compare guiding performance on the same target with the correction enabled and disabled, 10-15 minutes each (switching it restarts the drift correction).
 
 Use either:
 
