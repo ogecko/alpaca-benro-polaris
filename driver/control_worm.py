@@ -453,6 +453,26 @@ def _phase(a, b):
     return float(np.degrees(np.arctan2(b, a)) % 360)
 
 
+def peak_deg(a, b, harmonic=1):
+    """The worm phase (deg, 0-360 over one worm turn: 360 x MCU angle / worm_theta) where a sin(h phi) + b cos(h phi)
+    peaks (+A) -- the angle shown to users. The stored phase p = atan2(b, a) is a shift (A sin(phi + p)), so the
+    peak is at (90 - p) / h; for a 2nd harmonic, the first of its two peaks."""
+    return float(((90.0 - _phase(a, b)) % 360) / harmonic)
+
+
+def profile_summary(result):
+    """One line per fit for the log: each motor's 1st harmonic amplitude @ peak angle, its SE and significance, and
+    whether it is applied; a 2nd harmonic when applied."""
+    parts = []
+    for m, v in (result.get('motors') or {}).items():
+        s = f'{m} {v["amplitude"]:.1f}"+-{v["se"]:.1f} @{v.get("peak", (90 - v["phase"]) % 360):.0f} ({v["significance"]:.1f} sigma'
+        s += ')' if v.get('applied', True) else ', off)'
+        if len(v.get('coef', [])) > 2 and any(v['coef'][2:]):
+            s += f' h2 {v["h2_amplitude"]:.1f}" @{v.get("h2_peak", 0):.0f}'
+        parts.append(s)
+    return '; '.join(parts)
+
+
 N_NUISANCE = 2 + 4 + 6 + 3 + 12  # per test: 2-D offset, quadratic drift in time, linear pointing trend, backlash,
                                   # quadratic pointing trend (wide tests only, else zero columns)
 
@@ -503,7 +523,8 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
     2-D error is fitted as sum over motors of J_m (the motor's effect on the pointing) x [its worm, a sin + b cos per
     harmonic of 360 x zeta_m / worm_theta, + its backlash when moving forward], plus, per test, a 2-D offset, a
     quadratic drift in time and a linear trend in each motor's offset (the pointing model across the field)
-    (profile_design). Returns a dict: status (COMPLETED / POOR FIT / NO DATA), motors {M#: amplitude, phase, se, coef
+    (profile_design). Returns a dict: status (COMPLETED / POOR FIT / NO DATA), motors {M#: amplitude, phase (the shift p
+    of A sin(phi + p)), peak (the worm phase of the peak, shown to users), se, coef
     (applied: a, b per harmonic, a 2nd harmonic only when significant), h2_amplitude, h2_se, significance, backlash},
     checks."""
     X, y, tests = profile_design(tests, worm_theta, harmonics)
@@ -534,12 +555,14 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
                 # each motor stands on its own: applied only when its worm is measured (a small one, like M1's
                 # ~21" on the real mount, is left uncorrected rather than failing the others)
                 applied = A / max(se, 1e-9) >= MIN_SIGNIFICANCE
-                info.update(amplitude=round(A, 2), phase=round(_phase(a, b), 1), se=round(se, 2),
+                info.update(amplitude=round(A, 2), phase=round(_phase(a, b), 1), peak=round(peak_deg(a, b), 1),
+                            se=round(se, 2),
                             significance=round(A / max(se, 1e-9), 1), applied=bool(applied))
                 applied_any |= applied
                 cm += [a, b]
             else:
-                info.update(h2_amplitude=round(A, 2), h2_phase=round(_phase(a, b), 1), h2_se=round(se, 2))
+                info.update(h2_amplitude=round(A, 2), h2_phase=round(_phase(a, b), 1),
+                            h2_peak=round(peak_deg(a, b, harmonic=2), 1), h2_se=round(se, 2))
                 cm += [a, b] if A / max(se, 1e-9) >= MIN_H2_SIGNIFICANCE else [0.0, 0.0]
         bl = [float(beta[nw + n_nuis * k + 12 + m]) for k in range(len(tests))]
         info['backlash'] = round(float(np.mean(bl)), 1)
@@ -553,7 +576,7 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
 
 
 def profile_row_fields(latest, pooled, current):
-    """The worm profile row's columns: test_result = the pooled profile per motor (amplitude @ phase), test_change =
+    """The worm profile row's columns: test_result = the pooled profile per motor (amplitude @ peak angle), test_change =
     the latest test and what applying the pooled profile would change, test_stdev = residual rms and positions.
     `current`: the WormFeedForward in use (or None)."""
     def h1(info):
@@ -561,7 +584,8 @@ def profile_row_fields(latest, pooled, current):
             return '-'
         if not info.get('applied', True):
             return 'off'                       # not measured: left uncorrected (its amplitude is only noise)
-        return f'{info["amplitude"]:.0f}"@{info["phase"]:.0f}'
+        peak = info.get('peak', (90.0 - info['phase']) % 360)          # results saved before 'peak' was stored
+        return f'{info["amplitude"]:.0f}"@{peak:.0f}'
     res = pooled if pooled.get('motors') else latest
     fields = {'dps': 0.0, 'test_result': ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
               'test_change': '', 'test_stdev': ''}

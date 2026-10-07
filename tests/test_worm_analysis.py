@@ -107,3 +107,13 @@ def test_the_logged_correction_is_checked_against_the_profile_directly():
     assert ok['corr'] > 0.999 and ok['rms_diff_arcsec'] < 0.5
     bad = wff_matches_profile(df, C, COEF2, harmonics=(1, 2))                  # a different profile: it shows
     assert bad['rms_diff_arcsec'] > 1.0
+
+
+def test_each_term_reports_the_worm_phase_of_its_peak():
+    from control_worm import peak_deg
+    df = peclog()
+    C, _ = wff_coupling(df, LAT)
+    terms, _ = worm_terms(df, predicted_wff(df, C, COEF2, harmonics=(1, 2)), C)
+    for t in terms.itertuples():
+        assert t.peak == pytest.approx(peak_deg(t.a, t.b, harmonic=t.harmonic), abs=1e-6)
+

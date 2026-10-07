@@ -408,3 +408,24 @@ def test_unused_trend_columns_do_not_inflate_the_residual():
     for x, pos in zip(s, narrow):
         x['offset'] = list(pos)
     assert fit_worm_profile([s])['checks']['rms_arcsec'] == pytest.approx(2.0, abs=0.6)
+
+
+# ── display: the angle where each motor's wobble peaks ──────────────────────────────────────────
+def test_displayed_angle_is_the_worm_phase_of_the_peak():
+    """e = a sin(phi) + b cos(phi) = A sin(phi + p): the stored phase p is a shift; users read the angle of the peak."""
+    from control_worm import peak_deg
+    for a, b in ((30.0, 0.0), (0.0, 30.0), (-20.0, -25.0), (5.0, -40.0)):
+        peak = peak_deg(a, b)
+        phi = np.radians(np.arange(0, 360, 0.5))
+        e = a * np.sin(phi) + b * np.cos(phi)
+        assert abs((np.degrees(phi[np.argmax(e)]) - peak + 180) % 360 - 180) < 0.6
+        e2 = a * np.sin(2 * phi) + b * np.cos(2 * phi)                          # 2nd harmonic: its first peak
+        assert abs((np.degrees(phi[np.argmax(e2[:360])]) - peak_deg(a, b, harmonic=2) + 90) % 180 - 90) < 0.6
+
+
+def test_the_fit_and_the_row_show_the_peak():
+    from control_worm import peak_deg
+    r = fit_worm_profile([synthetic_test()])
+    v = r['motors']['M3']
+    assert v['peak'] == pytest.approx(peak_deg(*v['coef'][:2]), abs=0.1)
+    assert f'M3 {v["amplitude"]:.0f}"@{v["peak"]:.0f}' in profile_row_fields(r, r, None)['test_result']

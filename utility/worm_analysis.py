@@ -22,7 +22,7 @@ import pandas as pd
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 from kinematics import theta_to_q, azaltroll_to_q, calc_equatorial_axes_B          # noqa: E402
 from quaternion import Q as Quaternion                                               # noqa: E402
-from control_worm import (PROFILE_TEST, HARMONICS, MOTORS, profile_design, fit_worm_profile,   # noqa: E402
+from control_worm import (PROFILE_TEST, HARMONICS, MOTORS, profile_design, fit_worm_profile, peak_deg,   # noqa: E402
                           N_NUISANCE)
 
 WORM_THETA = 6.0
@@ -118,7 +118,8 @@ def worm_terms(df, y, C, harmonics=HARMONICS, worm_theta=WORM_THETA, trend_degre
     total_accum + pec_accum, or both) next to a polynomial drift per axis and an offset per piece between PEC resets
     (the totals restart there). Both harmonics by default, as the driver applies them: fitting only the 1st to a profile
     with a 2nd harmonic leaks it into the other motors. Use a series with one profile in use (not across a restart).
-    Returns (DataFrame per motor and harmonic: a, b, amplitude, phase, se -- arcsec of motor angle, the profile's
+    Returns (DataFrame per motor and harmonic: a, b, amplitude, phase (the shift), peak (the worm phase of the peak, as
+    shown to users), se -- arcsec of motor angle, the profile's
     convention -- turns (worm turns in the series), reliable (enough turns, and for M1/M3 enough separation), and the
     residual rms in arcmin)."""
     phi = 2 * np.pi * motor_angles(df) / worm_theta
@@ -157,7 +158,7 @@ def worm_terms(df, y, C, harmonics=HARMONICS, worm_theta=WORM_THETA, trend_degre
         m = MOTORS.index(M)
         reliable = bool(turns[m] >= MIN_TURNS and (M == 'M2' or np.percentile(sep, 10) >= MIN_SEPARATION_DEG))
         rows.append(dict(motor=M, harmonic=h, a=a, b=b, amplitude=float(np.hypot(a, b)),
-                         phase=float(np.degrees(np.arctan2(b, a)) % 360),
+                         phase=float(np.degrees(np.arctan2(b, a)) % 360), peak=peak_deg(a, b, harmonic=h),
                          se=float(np.sqrt(max((cov[2 * i, 2 * i] + cov[2 * i + 1, 2 * i + 1]) / 2, 0))),
                          turns=round(float(turns[m]), 1), reliable=reliable))
     return pd.DataFrame(rows), float(np.sqrt(s2))

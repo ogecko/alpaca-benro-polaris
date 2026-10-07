@@ -50,6 +50,7 @@ from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
 from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
 from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, row_status, MIN_SEPARATION_DEG
+from control_worm import profile_summary
 from control_worm import ROLL_MIN_DEG, ROLL_TARGET_DEG
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
@@ -680,9 +681,10 @@ class Polaris:
             return
         store_profile_test(path, test.samples, result, timing=test.timing())
         pooled = pooled_profile(path, worm_theta=test.worm_theta)
-        self.logger.info(f"WORM PROFILE TEST: END {result['status']} {result['motors']}, checks {result['checks']}, "
+        # amplitude @ peak: the worm phase (360 x MCU angle / 6 deg) where each motor's wobble peaks
+        self.logger.info(f"WORM PROFILE TEST: END {result['status']}: {profile_summary(result)}; checks {result['checks']}, "
                          f"timing {test.timing()}; pooled over {pooled['checks'].get('tests', 0)} tests: "
-                         f"{pooled.get('motors')} -> {path}")
+                         f"{profile_summary(pooled)} -> {path}")
         self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path)),
                                       row_status(result, pooled))
         self.lifecycle.reset()
