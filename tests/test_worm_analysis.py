@@ -19,11 +19,12 @@ import pytest
 from kinematics import theta_to_q, q_to_azaltroll, calc_equatorial_axes_B
 from quaternion import Q as Quaternion
 from control_worm import WormFeedForward
-from worm_analysis import test_fit_details as fit_details, wff_coupling, predicted_wff, worm_terms
+from worm_analysis import test_fit_details as fit_details, wff_coupling, predicted_wff, worm_terms, wff_matches_profile
 from test_worm_profile import synthetic_test
 
 LAT = -33.65
 COEF = np.array([[20.0, -25.0], [-60.0, 5.0], [40.0, 30.0]])            # a sin + b cos per motor, arcsec
+COEF2 = np.array([[20.0, -25.0, 0.0, 0.0], [-60.0, 5.0, -12.0, -6.0], [40.0, 30.0, 0.0, 0.0]])   # with M2's 2nd harmonic
 
 
 def test_the_fit_details_add_up():
@@ -72,7 +73,37 @@ def test_worm_terms_recover_the_profile_through_drift_and_resets():
     t = df['t_sec'].to_numpy() / 3600
     after_reset = (np.arange(len(df)) >= 250)[:, None]                     # the totals restart at the PEC reset
     y = y + np.column_stack([0.5 * t + 0.2 * t ** 2, -0.3 * t]) + np.where(after_reset, 1.0, 0.0)
-    terms, rms = worm_terms(df, y, C)
+    terms, rms = worm_terms(df, y, C, harmonics=(1,))
     for m, row in terms.iterrows():
         assert row['a'] == pytest.approx(COEF[m, 0], abs=0.5) and row['b'] == pytest.approx(COEF[m, 1], abs=0.5)
     assert rms < 1e-3
+
+
+def test_worm_terms_fit_both_harmonics_by_default_as_the_driver_applies_them():
+    """Real log 2026-10-06: fitting only 1st harmonics to a profile with M2's 2nd harmonic leaked it into the other
+    motors (M1 9" for 32"); with both, the profile in use comes back."""
+    df = peclog()
+    C, _ = wff_coupling(df, LAT)
+    y = predicted_wff(df, C, COEF2, harmonics=(1, 2))
+    terms, rms = worm_terms(df, y, C)
+    for m in range(3):
+        for h in (1, 2):
+            row = terms[(terms['motor'] == f'M{m + 1}') & (terms['harmonic'] == h)].iloc[0]
+            assert row['a'] == pytest.approx(COEF2[m, 2 * h - 2], abs=0.5) and row['b'] == pytest.approx(COEF2[m, 2 * h - 1], abs=0.5)
+
+
+def test_worm_terms_flag_motors_too_few_turns_to_separate():
+    df = peclog(n=60)                                                          # M2 turns 0.04 deg a row: < 1 turn
+    C, _ = wff_coupling(df, LAT)
+    terms, _ = worm_terms(df, predicted_wff(df, C, COEF2, harmonics=(1, 2)), C)
+    m2 = terms[terms['motor'] == 'M2'].iloc[0]
+    assert m2['turns'] < 2 and not m2['reliable']
+
+
+def test_the_logged_correction_is_checked_against_the_profile_directly():
+    df = peclog()
+    C, _ = wff_coupling(df, LAT)
+    ok = wff_matches_profile(df, C, np.hstack([COEF, np.zeros((3, 2))]), harmonics=(1, 2))   # the profile peclog() used
+    assert ok['corr'] > 0.999 and ok['rms_diff_arcsec'] < 0.5
+    bad = wff_matches_profile(df, C, COEF2, harmonics=(1, 2))                  # a different profile: it shows
+    assert bad['rms_diff_arcsec'] > 1.0

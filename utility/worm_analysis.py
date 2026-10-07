@@ -5,6 +5,7 @@ Worm gear correction analysis for the notebooks (analyse_worm_profile.ipynb, ana
   test_fit_details       one test's fit, sample by sample: the fit, each motor's worm on its own, the residual
   wff_coupling           how much each motor's angle error moves RA and Dec (arcmin per deg), as the driver splits the
                          worm feed-forward for PECLOG's wff (control_worm.WormMixin._wff_radec_arcmin)
+  wff_matches_profile    is the logged worm feed-forward the profile in use? (direct check of the driver, no fit)
   worm_terms             each motor's worm (a sin + b cos per harmonic, arcsec of motor angle) in a PECLOG RA/Dec series:
                          the logged wff (returns the profile in use), the guide corrections (what the profile left), or
                          both (what the mount needed)
@@ -108,11 +109,18 @@ def predicted_wff(df, C, coef, harmonics=HARMONICS, worm_theta=WORM_THETA):
     return np.einsum('nm,nmk->nk', e / 3600, C)
 
 
-def worm_terms(df, y, C, harmonics=(1,), worm_theta=WORM_THETA, trend_degree=3):
+MIN_TURNS = 2.0                 # a motor turning fewer worm turns in the series can't be told from the drift
+MIN_SEPARATION_DEG = 10.0       # M1 and M3 moving the sky within this angle (Roll ~0) trade their worms
+
+
+def worm_terms(df, y, C, harmonics=HARMONICS, worm_theta=WORM_THETA, trend_degree=3):
     """Fit each motor's worm in an RA/Dec series y ((n, 2) arcmin: e.g. the logged wff, the guide corrections
     total_accum + pec_accum, or both) next to a polynomial drift per axis and an offset per piece between PEC resets
-    (the totals restart there). Returns (DataFrame per motor and harmonic: a, b, amplitude, phase, se -- arcsec of motor
-    angle, the profile's convention -- and the residual rms in arcmin)."""
+    (the totals restart there). Both harmonics by default, as the driver applies them: fitting only the 1st to a profile
+    with a 2nd harmonic leaks it into the other motors. Use a series with one profile in use (not across a restart).
+    Returns (DataFrame per motor and harmonic: a, b, amplitude, phase, se -- arcsec of motor angle, the profile's
+    convention -- turns (worm turns in the series), reliable (enough turns, and for M1/M3 enough separation), and the
+    residual rms in arcmin)."""
     phi = 2 * np.pi * motor_angles(df) / worm_theta
     n = len(df)
     t = df['t_sec'].to_numpy(float)
@@ -141,10 +149,31 @@ def worm_terms(df, y, C, harmonics=(1,), worm_theta=WORM_THETA, trend_degree=3):
     r = Y[ok] - X[ok] @ beta
     s2 = float(r @ r) / max(ok.sum() - X.shape[1], 1)
     cov = s2 * np.linalg.pinv(X[ok].T @ X[ok])
+    turns = np.ptp(motor_angles(df), axis=0) / worm_theta
+    sep = separation_deg(C)
     rows = []
     for i, (M, h) in enumerate(names):
         a, b = beta[2 * i], beta[2 * i + 1]
+        m = MOTORS.index(M)
+        reliable = bool(turns[m] >= MIN_TURNS and (M == 'M2' or np.percentile(sep, 10) >= MIN_SEPARATION_DEG))
         rows.append(dict(motor=M, harmonic=h, a=a, b=b, amplitude=float(np.hypot(a, b)),
                          phase=float(np.degrees(np.arctan2(b, a)) % 360),
-                         se=float(np.sqrt(max((cov[2 * i, 2 * i] + cov[2 * i + 1, 2 * i + 1]) / 2, 0)))))
+                         se=float(np.sqrt(max((cov[2 * i, 2 * i] + cov[2 * i + 1, 2 * i + 1]) / 2, 0))),
+                         turns=round(float(turns[m]), 1), reliable=reliable))
     return pd.DataFrame(rows), float(np.sqrt(s2))
+
+
+def separation_deg(C):
+    """(n,) the angle (deg) between the directions M1 and M3 move RA/Dec at each row (C from wff_coupling)."""
+    c = np.abs(np.sum(C[:, 0] * C[:, 2], axis=1)) / np.maximum(np.linalg.norm(C[:, 0], axis=1) *
+                                                             np.linalg.norm(C[:, 2], axis=1), 1e-12)
+    return np.degrees(np.arccos(np.clip(c, 0.0, 1.0)))
+
+
+def wff_matches_profile(df, C, coef, harmonics=HARMONICS, worm_theta=WORM_THETA):
+    """Is the logged worm feed-forward (wff) the profile `coef` ((3, 2 x harmonics) arcsec, on MCU angles)? The direct
+    check of the driver, no fit: {'corr': per axis (min), 'rms_diff_arcsec': rms of logged - predicted}."""
+    pred = predicted_wff(df, C, np.asarray(coef, float), harmonics, worm_theta)
+    wff = df[['wff_1', 'wff_2']].to_numpy(float)
+    corr = min(float(np.corrcoef(wff[:, k], pred[:, k])[0, 1]) for k in range(2))
+    return {'corr': corr, 'rms_diff_arcsec': float(np.sqrt(np.mean((wff - pred) ** 2)) * 60)}
