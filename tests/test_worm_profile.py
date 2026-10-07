@@ -370,3 +370,41 @@ def test_a_curved_pointing_error_across_the_test_does_not_leak_into_the_worms():
     r = fit_worm_profile([s])
     for M in ('M1', 'M2', 'M3'):
         assert coef_error(r['motors'][M]['coef'][:2], TRUE[M][:2]) < 6.0, (M, r['motors'][M])
+
+
+# ── per-motor acceptance ─────────────────────────────────────────────────────────────────────
+SMALL_M1 = dict(TRUE, M1=[1.0, -1.0, 0.0, 0.0])         # a worm too small to measure on M1
+
+
+def test_a_motor_too_small_to_measure_is_left_uncorrected_and_the_others_are_applied():
+    """Real mount 2026-10-06: M2 and M3 at 15-19 sigma, M1 (~21") at 2.8-3.9: the whole test was POOR FIT. Each motor now
+    stands on its own: a significant one is applied, the others are left uncorrected."""
+    r = fit_worm_profile([synthetic_test(true=SMALL_M1, noise=8.0)])
+    assert r['status'] == 'COMPLETED', r['checks']
+    assert not r['motors']['M1']['applied'] and r['motors']['M1']['coef'] == [0.0, 0.0, 0.0, 0.0]
+    for M in ('M2', 'M3'):
+        assert r['motors'][M]['applied'] and coef_error(r['motors'][M]['coef'][:2], TRUE[M][:2]) < 8.0
+
+
+def test_a_test_with_no_motor_measured_or_a_poor_residual_is_a_poor_fit():
+    nothing = {M: [0.5, 0.5, 0.0, 0.0] for M in ('M1', 'M2', 'M3')}
+    assert fit_worm_profile([synthetic_test(true=nothing)])['status'] == 'POOR FIT'
+    noisy = fit_worm_profile([synthetic_test(noise=40.0)])                  # rms above POOL_MAX_RMS_ARCSEC
+    assert noisy['checks']['rms_arcsec'] > 20.0 and noisy['status'] == 'POOR FIT'
+
+
+def test_the_row_marks_the_motors_left_uncorrected():
+    r = fit_worm_profile([synthetic_test(true=SMALL_M1, noise=8.0)])
+    fields = profile_row_fields(r, r, None)
+    assert 'M1 off' in fields['test_result'] and 'M2 ' in fields['test_result']
+
+
+def test_unused_trend_columns_do_not_inflate_the_residual():
+    """A narrow test (the 33-position schedule) carries the quadratic trend columns as zeros: they aren't parameters."""
+    from control_worm import _legs
+    narrow = np.array([_legs(0.6, [(+1, 8), (-1, 16), (+1, 8)]), _legs(0.45, [(-1, 12), (+1, 20)]),
+                       _legs(0.375, [(+1, 16), (-1, 16)])]).T
+    s = synthetic_test(noise=2.0)[:len(narrow)]
+    for x, pos in zip(s, narrow):
+        x['offset'] = list(pos)
+    assert fit_worm_profile([s])['checks']['rms_arcsec'] == pytest.approx(2.0, abs=0.6)

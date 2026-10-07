@@ -515,13 +515,13 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
     n_nuis = N_NUISANCE
     beta, *_ = np.linalg.lstsq(X, y, rcond=None)
     r = y - X @ beta
-    dof = max(len(y) - X.shape[1], 1)
+    dof = max(len(y) - np.linalg.matrix_rank(X), 1)        # zero columns (narrow tests' quadratic trend) don't count
     s2 = float(r @ r) / dof
     cov = s2 * np.linalg.pinv(X.T @ X)
     J = np.array([s['J'] for t in tests for s in t], float)
     cos13 = np.abs(np.sum(J[:, 0] * J[:, 2], axis=1)) / np.maximum(np.linalg.norm(J[:, 0], axis=1) * np.linalg.norm(J[:, 2], axis=1), 1e-12)
     sep = np.degrees(np.arccos(np.clip(cos13, 0.0, 1.0)))
-    good = True
+    applied_any = False
     for m in range(3):
         cm = []
         info = {}
@@ -531,20 +531,24 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
             A = float(np.hypot(a, b))
             se = float(np.sqrt(max((cov[c, c] + cov[c + 1, c + 1]) / 2, 0.0)))
             if h == 1:
+                # each motor stands on its own: applied only when its worm is measured (a small one, like M1's
+                # ~21" on the real mount, is left uncorrected rather than failing the others)
+                applied = A / max(se, 1e-9) >= MIN_SIGNIFICANCE
                 info.update(amplitude=round(A, 2), phase=round(_phase(a, b), 1), se=round(se, 2),
-                            significance=round(A / max(se, 1e-9), 1))
-                good &= A / max(se, 1e-9) >= MIN_SIGNIFICANCE
+                            significance=round(A / max(se, 1e-9), 1), applied=bool(applied))
+                applied_any |= applied
                 cm += [a, b]
             else:
                 info.update(h2_amplitude=round(A, 2), h2_phase=round(_phase(a, b), 1), h2_se=round(se, 2))
                 cm += [a, b] if A / max(se, 1e-9) >= MIN_H2_SIGNIFICANCE else [0.0, 0.0]
         bl = [float(beta[nw + n_nuis * k + 12 + m]) for k in range(len(tests))]
         info['backlash'] = round(float(np.mean(bl)), 1)
-        info['coef'] = [round(float(x), 4) for x in cm]
+        info['coef'] = [round(float(x), 4) for x in cm] if info['applied'] else [0.0] * len(cm)
         out['motors'][MOTORS[m]] = info
     out['checks'].update(rms_arcsec=round(float(np.sqrt(s2)), 2),
                          separation_deg=[round(float(sep.min()), 1), round(float(sep.max()), 1)])
-    out['status'] = 'COMPLETED' if good else 'POOR FIT'
+    # COMPLETED: a clean fit (a residual like a test that pools) that measured at least one motor's worm
+    out['status'] = 'COMPLETED' if applied_any and np.sqrt(s2) < POOL_MAX_RMS_ARCSEC else 'POOR FIT'
     return out
 
 
@@ -553,7 +557,11 @@ def profile_row_fields(latest, pooled, current):
     the latest test and what applying the pooled profile would change, test_stdev = residual rms and positions.
     `current`: the WormFeedForward in use (or None)."""
     def h1(info):
-        return f'{info["amplitude"]:.0f}"@{info["phase"]:.0f}' if info else '-'
+        if not info:
+            return '-'
+        if not info.get('applied', True):
+            return 'off'                       # not measured: left uncorrected (its amplitude is only noise)
+        return f'{info["amplitude"]:.0f}"@{info["phase"]:.0f}'
     res = pooled if pooled.get('motors') else latest
     fields = {'dps': 0.0, 'test_result': ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
               'test_change': '', 'test_stdev': ''}
