@@ -351,7 +351,7 @@ if defined LOC_OFF if %WINBUILD% LSS 26100 set "LOC_OFF="
 rem Which version was installed: the branch, the commit (short hash, date) and the driver's version string.
 set "ABP_BRANCH=" & set "ABP_COMMIT=" & set "ABP_VERSION="
 for /f "delims=" %%B in ('git branch --show-current 2^>nul') do set "ABP_BRANCH=%%B"
-for /f "delims=" %%C in ('git log -1 "--format=%%h (%%cs)" 2^>nul') do set "ABP_COMMIT=%%C"
+for /f "delims=" %%C in ('git log -1 --abbrev^=7 "--format=%%h (%%cs)" 2^>nul') do set "ABP_COMMIT=%%C"
 for /f "tokens=2 delims='" %%V in ('findstr /c:"Version = " driver\shr.py 2^>nul') do if not defined ABP_VERSION set "ABP_VERSION=%%V"
 popd
 echo.
