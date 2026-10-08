@@ -645,8 +645,8 @@ class Polaris:
         test = WormProfileTest()
         sep, sens = sm.motor_separation(np.array(self._pid.theta_pv, float))
         self.logger.info(f"WORM PROFILE TEST: START, {len(test.positions)} positions, all motors; requires plate-solve "
-                         f"syncs, one per position after the step settles (~9-10 s: set the wait between solves to the "
-                         f"settle time logged), stops after {test.no_sync_timeout_s:.0f} s without a sync. M1-M3 "
+                         f"syncs, one per position after the step settles (~8-12 s: a wait between solves of ~10 s, "
+                         f"longer if syncs are discarded as moving), stops after {test.no_sync_timeout_s:.0f} s without a sync. M1-M3 "
                          f"separation {sep:.0f} deg, sensitivity {sens}")
         if sep < MIN_SEPARATION_DEG:
             self.logger.warning(f"WORM PROFILE TEST: M1 and M3 move the view in nearly the same direction here "

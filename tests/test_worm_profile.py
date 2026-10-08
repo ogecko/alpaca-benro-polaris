@@ -306,7 +306,7 @@ def table():
 def test_one_worm_profile_row_on_m1_first_in_the_table():
     cm = table()
     assert list(cm.test_data)[0] == PROFILE_TEST and cm.test_data[PROFILE_TEST]['axis'] == 0
-    assert cm.test_data[PROFILE_TEST]['raw'] == '50 steps, approx 21 min'      # Raw Command column
+    assert cm.test_data[PROFILE_TEST]['raw'] == '50 steps, approx 15 min'      # Raw Command column
     assert not any(k.endswith('-WORM-GEAR') for k in cm.test_data)
 
 

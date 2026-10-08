@@ -25,7 +25,7 @@
 # within SETTLE_ARCSEC of its target for SETTLE_HOLD_S, a sync is kept and the motors step at once. A sync before that
 # is discarded ('moving'); so is one whose error jumps more than JUMP_ARCSEC from the last kept sample (an exposure
 # that caught the move) -- the sync after it was exposed after a settled sync, so it is kept. With Nina's wait between
-# solves at least the settle time (~9-10 s), every solve is kept: one solve per position.
+# solves of ~10 s (a step settles in ~8 s, ~11-12 s with an overshoot), every solve is kept: one solve per position.
 #
 # Each sync gives the 2-D pointing error (solved minus predicted, in a tangent frame at the prediction) and each
 # motor's 2-D effect on the pointing there. fit_worm_profile fits every motor's worm (1st and 2nd harmonic) to that,
@@ -329,7 +329,7 @@ def _sweep(step_deg, steps_out, first, n):
     return out
 
 
-# Motor offsets (deg) from the start at each of the 51 positions (50 steps, ~21 min at one solve every ~25 s): each motor sweeps
+# Motor offsets (deg) from the start at each of the 51 positions (50 steps, ~15 min at one solve every ~16-18 s): each motor sweeps
 # back and forth across about +-7.5 deg -- ~2.5 worm turns -- with its own step and reversal points. Over only ~1.5
 # turns (the 33-position schedule) a linear pointing trend mimics much of a worm cycle: on the real mount (2026-10-06)
 # M2's terms correlated ~0.8 with the trend and two clean runs gave 41" and 100". The steps advance the worm phases at
@@ -338,7 +338,7 @@ def _sweep(step_deg, steps_out, first, n):
 POSITIONS = np.array([_sweep(0.75, 10, +1, 51),                           # M1 +-7.5 deg
                       _sweep(0.6, 12, -1, 51),                            # M2 +-7.2 deg
                       _sweep(0.5625, 13, +1, 51)]).T                      # M3 +-7.3 deg
-SYNC_CYCLE_S = 25.0           # a typical solve-and-sync cycle (exposure, solve, wait): the test takes ~ positions x this
+SYNC_CYCLE_S = 17.5           # a typical solve-and-sync cycle (exposure, solve, wait): the test takes ~ positions x this
 TEST_SUMMARY = f'{len(POSITIONS) - 1} steps, approx {round(len(POSITIONS) * SYNC_CYCLE_S / 60)} min'   # Raw Command column
 QUAD_TREND_MIN_SPAN_DEG = 12.0  # a test sweeping every motor at least this far also fits a quadratic pointing trend
 
