@@ -81,6 +81,7 @@ def cfg(monkeypatch):
     for k, v in dict(advanced_control=True, advanced_tracking=True, advanced_alignment=True).items():
         monkeypatch.setattr(polaris_mod.Config, k, v, raising=False)
     monkeypatch.setattr(polaris_mod.Config, 'save_pilot_overrides', classmethod(lambda cls, *a: None))   # not data/
+    monkeypatch.setattr(polaris_mod.Config, 'advanced_pec_worm', True, raising=False)
 
 
 def feed(test, seed=0):
@@ -123,7 +124,7 @@ def test_the_test_runs_fits_keeps_the_test_and_shows_the_pooled_profile(tmp_path
     assert p.calls == ['start_tracking', 'stop_tracking'] and p._sm.worm_test is None
     assert p.lifecycle.events == ['start', 'reset']
     row = p._cm.test_data[PROFILE_TEST]
-    assert row['test_status'] == 'COMPLETED' and row['test_result'].startswith('M1 ') and 'rms n47' in row['test_stdev']
+    assert row['test_status'] == 'COMPLETED' and row['test_result'].startswith('M1 ') and 'rms n50' in row['test_stdev']
     h = json.load(open(p._sm.path))['calibration_history']
     assert len(h) == 1 and len(h[0]['samples']) == len(POSITIONS) and h[0]['status'] == 'COMPLETED'
 
@@ -134,13 +135,13 @@ def test_the_test_runs_fits_keeps_the_test_and_shows_the_pooled_profile(tmp_path
     p._cm.toggleApproval(0, [PROFILE_TEST])
     assert row['test_status'] == 'APPROVED' and p._sm.reloaded == 1
     assert row['dps'] == row['test_result'] and row['test_change'].endswith('+0"')       # baseline: now the pooled profile
-    assert p.live[-1] == {'advanced_pec_worm': True}            # approving switches the worm gear correction on
+    assert p.live == [{'advanced_pec_worm': True}]              # the switch is left on; the new profile is refitted
     ff = WormFeedForward.load(p._sm.path)
     assert ff.angle_reference == {'M1': 'zeta', 'M2': 'zeta', 'M3': 'zeta'}
     assert all(coef_error(ff.coef[m][:2], TRUE[M][:2]) < 4.0 for m, M in enumerate(('M1', 'M2', 'M3')))
     p._cm.toggleApproval(0, [PROFILE_TEST])
     assert row['test_status'] == 'REJECTED' and p._sm.reloaded == 2
-    assert p.live[-1] == {'advanced_pec_worm': False}
+    assert len(p.live) == 2                                      # rejecting: refitted again, the switch still on
     assert np.all(WormFeedForward.load(p._sm.path).coef == 0)
 
 

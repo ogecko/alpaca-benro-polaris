@@ -727,11 +727,10 @@ class Polaris:
             cm = getattr(self, '_cm', None)
             if cm is not None and PROFILE_TEST in cm.test_data:
                 cm.test_data[PROFILE_TEST].update(row_fields_from_file(path))
-            # approving puts the profile in use: switch the worm gear correction on (off on rejecting); saved as a
-            # Pilot setting so it survives a restart
-            applied = Config.apply_changes({'advanced_pec_worm': bool(approved)})
-            self.make_config_params_live(applied or {'advanced_pec_worm': bool(approved)})
-            Config.save_pilot_overrides()
+            # the profile changed; whether it is applied is the user's own PEC Worm Gear Correction switch, left as
+            # it is. With the correction on, refit the alignment through the new profile (as switching it does).
+            if Config.advanced_pec_worm:
+                self.make_config_params_live({'advanced_pec_worm': True})
         else:
             self.logger.warning(f"WORM PROFILE: nothing to {'apply' if approved else 'revert'} in {path}")
         return done

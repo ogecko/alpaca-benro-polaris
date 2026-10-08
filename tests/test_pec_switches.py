@@ -294,20 +294,22 @@ def test_switching_the_drift_correction_restarts_its_model():
 
 
 @pytest.mark.parametrize('approved', [True, False])
-def test_approving_a_profile_switches_the_worm_gear_correction_on_and_rejecting_switches_it_off(monkeypatch, tmp_path,
-                                                                                                approved):
+@pytest.mark.parametrize('worm_on', [True, False])
+def test_approving_or_rejecting_a_profile_leaves_the_worm_gear_switch_alone(monkeypatch, tmp_path, approved, worm_on):
+    """Approve/Reject choose the profile; switching the correction on or off is the user's own setting (changing it
+    as a side effect was too hidden). With the correction on, the new profile is refitted into the alignment."""
     import polaris as polaris_mod
     p, Polaris = fake_polaris()
     p._sm.worm_profile_path = lambda: str(tmp_path / 'worm_profile.json')
     monkeypatch.setattr(polaris_mod, 'apply_profile', lambda path: True)
     monkeypatch.setattr(polaris_mod, 'revert_profile', lambda path: True)
     Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath='/nonexistent')
-    monkeypatch.setattr(Config, 'advanced_pec_worm', not approved, raising=False)
+    monkeypatch.setattr(Config, 'advanced_pec_worm', worm_on, raising=False)
     saved = []
     monkeypatch.setattr(Config, 'save_pilot_overrides', classmethod(lambda cls, *a: saved.append(True)))
     assert Polaris.worm_profile_approval(p, approved)
-    assert Config.advanced_pec_worm is approved and saved
-    assert 'optimize_alignQ_B2T' in p._sm.calls
+    assert Config.advanced_pec_worm is worm_on and not saved
+    assert ('optimize_alignQ_B2T' in p._sm.calls) is worm_on
 
 
 # ── logging, for the notebooks ────────────────────────────────────────────────────────────────

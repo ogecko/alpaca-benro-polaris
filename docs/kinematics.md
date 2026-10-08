@@ -389,15 +389,15 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 1. Point the mount at a clear area of sky **30-45 degrees above the horizon**, **a couple of hours east or west of the meridian**, and away from the celestial pole. Choose a target with about +/-9 degrees of clear sky around it and plenty of stars. 
 
-2. In NINA (or similar), create a looping sequence of around 55 iterations. Within the loop
+2. In NINA (or similar), create a looping sequence of around 60 iterations. Within the loop
    * Run a repeating **Solve and Sync** using short exposures. 
    * Add a **Wait for Time Span** of around 12 seconds between syncs to allow the mount to settle.
 
 3. Start the sequence of solve and syncs, and keep the sequence running until the test finishes.
 
-4. On the Alpaca Pilot, change to the **Speed Calibration** page, and select the **M1-M2-M3-WORM-PROFILE** test case, then press **Test** and confirm the execution. This one test measures all three motors, and takes about 20 minutes to complete.
+4. On the Alpaca Pilot, change to the **Speed Calibration** page, and select the **M1-M2-M3-WORM-PROFILE** test case, then press **Test** and confirm the execution. This one test measures all three motors, and takes about 21 minutes to complete.
 
-5. The driver will enable tracking and, if the Roll angle is within 20° of 0, rotate to Roll ±25° (keeping the same Az/Alt, and back again when the test finishes). It will then take measurements at 48 different positions. Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/48`.
+5. The driver will enable tracking and, if the Roll angle is within 20° of 0, rotate to Roll ±25° (keeping the same Az/Alt, and back again when the test finishes). It will then take measurements at 51 different positions (50 steps). Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/51`.
 
 **While the test is running:**
 
@@ -443,7 +443,7 @@ Pressing it again rejects the profile and restores the previous correction.
 
 **4. It applies immediately.**
 
-Approving the profile also switches **PEC Worm Gear Correction** on; rejecting it switches it off.
+Approve and Reject only choose the profile: whether it is applied is the **PEC Worm Gear Correction** switch in Pilot's settings, which they leave as it is.
 
 The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. MAC Autotune does the same. Sync points keep their raw motor angles, so this needs no re-alignment.
 
