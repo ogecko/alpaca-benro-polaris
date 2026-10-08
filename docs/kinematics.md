@@ -112,8 +112,11 @@ The Alpaca Driver utilizes three distinct strategies to handle these residuals, 
     LGA is a more advanced method that corrects the residual **locally around the most recent sync point** without disrupting the global integrity of the QUEST model. It applies the full correction at the exact sync location, then gracefully fades that correction both spatially and temporally. As the mount moves aways from the last sync point (σ = 10 degrees), the adjustment automatically decays back to the pure QUEST model. This ensurs the system smoothly returns to the underlying global solution.
 
 3.  **Sync Guiding Adjustment (SGA):** (Recommended)
-    SGA is the most sophisticated approach. It seeds the **Sync Guiding** system with the residual of the last QUEST sync point. By integrating all local pointing residuals into a single, unified quaternion, SGA addresses both local alignment errors and **Periodic Error Correction (PEC)** simultaneously. You can further refine this alignment by performing additional syncs without slewing the mount. Each sync will refine the model further.
-    
+    SGA leaves the QUEST model unchanged and instead **offsets the pointing by the error left at the last sync**. After each alignment sync, the residual at that point becomes a correction applied to everything the mount does, so a corrective slew lands where the plate solve says it should.
+    * **It does not need Sync Guiding.** The name comes from the correction it uses, which it shares with Sync Guiding; it works the same with Sync Guiding on or off, with pulse guiding (PHD2's corrections are applied on top, separately), or with no guiding at all.
+    * **It builds on itself.** With Sync Guiding on, further syncs on the same target refine this same correction instead of adding alignment points, and PEC Drift Correction folds its corrections into it too.
+    * **It lasts until it is replaced.** The next alignment sync sets a new offset; a goto or slew keeps it (so the next Slew & Center benefits); turning tracking off or changing the alignment or Slew & Center settings clears it.
+    * **Unlike LGA, it does not fade with distance:** after slewing far from the last sync point the offset still applies until the next Slew & Center sync replaces it, which is normally the first plate solve at the new target.
 
 #### **IV. The Mathematics of LGA**
 LGA uses a **Gaussian weighting function** to determine how much of the local residual should be applied based on the angular distance from the last sync point. The correction fades to identity (zero additional correction) as the distance increases.
