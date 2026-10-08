@@ -29,7 +29,7 @@ COEF2 = np.array([[20.0, -25.0, 0.0, 0.0], [-60.0, 5.0, -12.0, -6.0], [40.0, 30.
 
 def test_the_fit_details_add_up():
     d = fit_details(synthetic_test())
-    assert len(d) == 2 * 47
+    assert len(d) == 2 * 50
     assert np.allclose(d['fitted'] + d['residual'], d['measured'])
     assert np.allclose(d['worm_M1'] + d['worm_M2'] + d['worm_M3'] + d['nuisance'], d['fitted'])
     assert d['residual'].std() == pytest.approx(2.0, abs=0.8)

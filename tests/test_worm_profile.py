@@ -2,7 +2,7 @@
 The worm profile test (driver/control_worm.py): all three motors stepped through their worms at once while sidereal
 tracking holds the sky, each plate-solve sync recorded as a 2-D pointing error, and one joint fit for every motor.
 
-  * the schedule: 48 positions, each motor sweeping ~2.5 worm turns with its own step and reversal points
+  * the schedule: 51 positions (50 steps), each motor sweeping ~2.5 worm turns with its own step and reversal points
   * one sync per position once every motor has settled; syncs before settling, or whose error jumps (an exposure that
     caught the move), are discarded
   * the joint fit recovers every motor's worm (1st and 2nd harmonic) and backlash next to an offset, a drift and a
@@ -64,8 +64,8 @@ def coef_error(fitted, true):
 # ── schedule ──────────────────────────────────────────────────────────────────────────────────
 def test_schedule_sweeps_each_motor_about_two_and_a_half_worm_turns_its_own_way():
     """Real mount 2026-10-06: over ~1.5 worm turns a linear pointing trend mimics much of a worm cycle (M2's terms
-    correlated ~0.8 with it; two clean runs gave M2 41" and 100"). 48 positions sweeping ~2.5 turns each separate them."""
-    assert POSITIONS.shape == (48, 3) and np.all(POSITIONS[0] == 0)
+    correlated ~0.8 with it; two clean runs gave M2 41" and 100"). 51 positions (50 steps) sweeping ~2.5 turns each separate them."""
+    assert POSITIONS.shape == (51, 3) and np.all(POSITIONS[0] == 0)
     assert np.abs(POSITIONS).max() <= 7.5 + 1e-9
     assert all(np.ptp(POSITIONS[:, m]) >= 2.2 * 6.0 for m in range(3))                    # >= ~2.2 worm turns each
     steps = np.abs(np.diff(POSITIONS, axis=0))
@@ -290,6 +290,7 @@ def table():
 def test_one_worm_profile_row_on_m1_first_in_the_table():
     cm = table()
     assert list(cm.test_data)[0] == PROFILE_TEST and cm.test_data[PROFILE_TEST]['axis'] == 0
+    assert cm.test_data[PROFILE_TEST]['raw'] == '50 steps, approx 21 min'      # Raw Command column
     assert not any(k.endswith('-WORM-GEAR') for k in cm.test_data)
 
 
@@ -333,7 +334,7 @@ def test_the_row_shows_the_pooled_profile_and_what_applying_it_changes():
     pooled = fit_worm_profile([synthetic_test(seed=k) for k in range(3)])
     f = profile_row_fields(latest, pooled, None)
     assert f['test_result'].startswith('M1 ') and ' M3 ' in f['test_result'] and '"@' in f['test_result']
-    assert f['test_change'].startswith('pooled 3 tests:') and 'rms n47' in f['test_stdev']
+    assert f['test_change'].startswith('pooled 3 tests:') and 'rms n50' in f['test_stdev']
     bad = dict(latest, status='POOR FIT')
     assert '⚠' in profile_row_fields(bad, pooled, None)['test_change']
 

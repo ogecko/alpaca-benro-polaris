@@ -22,7 +22,7 @@ from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reacha
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
-from control_worm import WormMixin, PROFILE_TEST
+from control_worm import WormMixin, PROFILE_TEST, TEST_SUMMARY
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -249,6 +249,7 @@ class CalibrationManager:
         row = self.test_data.get(PROFILE_TEST) or dict(
             name=PROFILE_TEST, axis=0, raw=0, ascom=0.0, dps=0.0,
             test_result='', test_change='', test_stdev='', test_status='UNTESTED')
+        row['raw'] = TEST_SUMMARY                  # shown under Raw Command: the test's length
         rest = {k: v for k, v in self.test_data.items() if k != PROFILE_TEST and not str(k).endswith('-WORM-GEAR')}
         self.test_data = {PROFILE_TEST: row, **rest}
 

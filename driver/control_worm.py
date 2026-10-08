@@ -16,7 +16,7 @@
 # The worm profile test (Speed Calibration page, M1 row)
 # -----------------------------------------------------
 # Measures all three motors' worms at once from plate solves. The tracked target is stepped so that each motor turns
-# its own schedule (POSITIONS: 48 positions, ~2.5 worm turns, different step sizes and reversal points per motor, so their worm phases and their
+# its own schedule (POSITIONS: 51 positions, ~2.5 worm turns, different step sizes and reversal points per motor, so their worm phases and their
 # backlash separate), while sidereal tracking holds the sky; each plate-solve sync is recorded, not applied.
 #
 # Stop and go, driven by the syncs: plate solving while the motors turn would smear the stars and turn the solve's
@@ -327,15 +327,17 @@ def _sweep(step_deg, steps_out, first, n):
     return out
 
 
-# Motor offsets (deg) from the start at each of the 48 positions (~20 min at one solve every ~25 s): each motor sweeps
+# Motor offsets (deg) from the start at each of the 51 positions (50 steps, ~21 min at one solve every ~25 s): each motor sweeps
 # back and forth across about +-7.5 deg -- ~2.5 worm turns -- with its own step and reversal points. Over only ~1.5
 # turns (the 33-position schedule) a linear pointing trend mimics much of a worm cycle: on the real mount (2026-10-06)
 # M2's terms correlated ~0.8 with the trend and two clean runs gave 41" and 100". The steps advance the worm phases at
 # 45, 36 and 33.75 deg a step, avoiding simple ratios between one motor's 1st harmonic and another's 2nd (with 0.75
 # and 0.375 deg steps, M3's 2nd harmonic advanced as fast as M1's 1st and, at Roll 0, could not be told apart).
-POSITIONS = np.array([_sweep(0.75, 10, +1, 48),                           # M1 +-7.5 deg
-                      _sweep(0.6, 12, -1, 48),                            # M2 +-7.2 deg
-                      _sweep(0.5625, 13, +1, 48)]).T                      # M3 +-7.3 deg
+POSITIONS = np.array([_sweep(0.75, 10, +1, 51),                           # M1 +-7.5 deg
+                      _sweep(0.6, 12, -1, 51),                            # M2 +-7.2 deg
+                      _sweep(0.5625, 13, +1, 51)]).T                      # M3 +-7.3 deg
+SYNC_CYCLE_S = 25.0           # a typical solve-and-sync cycle (exposure, solve, wait): the test takes ~ positions x this
+TEST_SUMMARY = f'{len(POSITIONS) - 1} steps, approx {round(len(POSITIONS) * SYNC_CYCLE_S / 60)} min'   # Raw Command column
 QUAD_TREND_MIN_SPAN_DEG = 12.0  # a test sweeping every motor at least this far also fits a quadratic pointing trend
 
 
