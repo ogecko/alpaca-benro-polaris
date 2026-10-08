@@ -301,6 +301,8 @@ JUMP_ARCSEC = 300.0           # 2-D error change from the last kept sample that 
 BACKLASH_DEG = 0.25           # a step against a motor's tracking direction overshoots by this, then approaches the
                               # position with tracking: tracking then turns each motor the way it arrived, with no
                               # backlash to take up (measured 150-620" on the real mount; ~350" drift per step without)
+APPROACH_RELEASE_ARCSEC = 120.0  # the approach starts once every motor is within this of the overshoot (no hold): past
+                              # the position by more than the backlash, without the slow final settle (~5 s per step)
 TRACK_RATE_MIN_DPS = 1e-5     # a motor turning slower than this while tracking has no tracking direction
 CALIBRATION_HISTORY = 15      # tests kept in the profile's calibration_history (with their samples)
 POOL_TESTS = 5                # the applied profile pools the last this many tests with a clean fit ...
@@ -385,10 +387,16 @@ class WormProfileTest:
     def track_settle(self, err_arcsec, now=None):
         """The largest of the motors' PID errors (arcsec) each control tick: marks the position settled once every
         motor has held within SETTLE_ARCSEC for SETTLE_HOLD_S (settled_at = when they got there). After an overshoot
-        it returns the approach move instead (deg, per motor) for the caller to make, and settles after that."""
+        it returns the approach move (deg, per motor) for the caller to make once every motor is within
+        APPROACH_RELEASE_ARCSEC of it, and settles after that."""
         if self.settled_at is not None or self.done or self.aborted:
             return None
         now = time.monotonic() if now is None else now
+        if self.approach is not None:              # the overshoot is past the backlash: come back onto the position
+            if abs(err_arcsec) >= APPROACH_RELEASE_ARCSEC:
+                return None
+            approach, self.approach, self._within_since = self.approach, None, None
+            return approach
         if abs(err_arcsec) >= SETTLE_ARCSEC:
             self._within_since = None
             return None
@@ -396,9 +404,6 @@ class WormProfileTest:
             self._within_since = now
         if now - self._within_since < SETTLE_HOLD_S:
             return None
-        if self.approach is not None:              # the overshoot has settled: come back onto the position with tracking
-            approach, self.approach, self._within_since = self.approach, None, None
-            return approach
         self.settled_at = self._within_since
         if self.step_at is not None:
             self.settle_times.append(round(self.settled_at - self.step_at, 2))

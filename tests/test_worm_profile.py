@@ -22,6 +22,7 @@ import pytest
 
 from control import CalibrationManager
 from control_worm import (POSITIONS, PROFILE_TEST, CALIBRATION_HISTORY, POOL_TESTS, SETTLE_HOLD_S, JUMP_ARCSEC, BACKLASH_DEG,
+                          APPROACH_RELEASE_ARCSEC,
                           WormProfileTest, WormFeedForward, fit_worm_profile, store_profile_test, pooled_profile,
                           apply_profile, revert_profile, profile_row_fields, row_status)
 
@@ -134,6 +135,21 @@ def test_a_step_against_a_motors_tracking_direction_overshoots_then_approaches_w
     assert test.settled_at is not None                                       # settled only after the approach
     test.on_sync({'res': [0.0, 0.0]}, now=20.0, track_dir=TRACK)
     assert test.samples[-1]['direction'] == [-1, -1, 1]                      # every motor arrived as it tracks
+
+
+def test_the_approach_starts_once_the_overshoot_is_past_the_backlash_without_waiting_to_settle():
+    """The overshoot only has to take up the backlash: the approach starts as soon as every motor is within
+    APPROACH_RELEASE_ARCSEC of the overshoot (no hold), well past the position by more than the backlash."""
+    assert BACKLASH_DEG * 3600 - APPROACH_RELEASE_ARCSEC > 620                # the most backlash measured on the mount
+    test = WormProfileTest(now=0.0)
+    settle(test, 0.0)
+    test.on_sync({'res': [0.0, 0.0]}, now=5.0, track_dir=TRACK)
+    assert test.track_settle(APPROACH_RELEASE_ARCSEC + 1, now=6.0) is None    # still on its way to the overshoot
+    approach = test.track_settle(APPROACH_RELEASE_ARCSEC - 1, now=6.1)        # close enough: approach at once
+    assert np.allclose(approach, [-BACKLASH_DEG, 0.0, 0.0]) and test.settled_at is None
+    assert test.track_settle(5.0, now=6.2) is None and test.settled_at is None  # the final position still holds
+    test.track_settle(5.0, now=6.2 + SETTLE_HOLD_S)
+    assert test.settled_at is not None
 
 
 def test_with_every_step_along_the_tracking_direction_there_is_no_approach():
