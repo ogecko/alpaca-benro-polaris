@@ -2,3 +2,5 @@
 # scripts, and setup.bat is downloaded straight from raw.githubusercontent.com.
 platforms/win/setup.bat -text
 utility/ccdciel/install.bat -text
+*.bat -text
+*.cmd -text
