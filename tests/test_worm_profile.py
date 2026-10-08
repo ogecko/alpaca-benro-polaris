@@ -439,3 +439,18 @@ def test_the_profile_file_starts_with_the_profile_in_use_and_ends_with_the_test_
     keys = list(json.load(open(p)))
     assert keys[:6] == ['worm_theta', 'harmonics', 'motors', 'units', 'angle_reference', 'applied_profile']
     assert keys[-1] == 'calibration_history'
+
+
+def test_the_row_shows_the_profile_in_use_as_its_baseline():
+    """Like the speed rows (baseline, test result, change): Baseline = the profile in use, Test Result = the pooled
+    profile, Change = how far approving it moves each motor."""
+    from control_worm import profile_text
+    r = fit_worm_profile([synthetic_test()])
+    coef = np.array([r['motors'][M]['coef'] for M in ('M1', 'M2', 'M3')])
+    ff = WormFeedForward(worm_theta=6.0, harmonics=(1, 2), coef=coef)
+    fields = profile_row_fields(r, r, ff)
+    assert fields['dps'] == profile_text(ff) == fields['test_result']        # the pooled profile is the one in use
+    assert fields['test_change'].endswith('M1 +0" M2 +0" M3 +0"')
+    assert profile_row_fields(r, r, None)['dps'] == 'none'
+    off = WormFeedForward(worm_theta=6.0, harmonics=(1,), coef=np.array([[0.0, 0.0], [0.0, -86.2], [-58.8, -61.5]]))
+    assert profile_text(off) == 'M1 off M2 86"@180 M3 85"@224'

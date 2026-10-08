@@ -50,7 +50,7 @@ from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
 from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
 from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, row_status, MIN_SEPARATION_DEG
-from control_worm import profile_summary
+from control_worm import profile_summary, row_fields_from_file, PROFILE_TEST
 from control_worm import ROLL_MIN_DEG, ROLL_TARGET_DEG
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
@@ -723,6 +723,10 @@ class Polaris:
         if done:
             self._sm.reload_worm_ff()
             self.logger.info(f"WORM PROFILE: {'applied to' if approved else 'reverted in'} {path}")
+            # the row's Baseline is the profile in use: show the new one (and Change against it)
+            cm = getattr(self, '_cm', None)
+            if cm is not None and PROFILE_TEST in cm.test_data:
+                cm.test_data[PROFILE_TEST].update(row_fields_from_file(path))
             # approving puts the profile in use: switch the worm gear correction on (off on rejecting); saved as a
             # Pilot setting so it survives a restart
             applied = Config.apply_changes({'advanced_pec_worm': bool(approved)})

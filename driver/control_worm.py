@@ -580,10 +580,33 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
     return out
 
 
+def profile_text(ff):
+    """A profile in use (WormFeedForward or None) as the row shows profiles: each motor's 1st harmonic amplitude @ peak
+    angle, 'off' for an uncorrected motor, 'none' without a profile."""
+    if ff is None or 1 not in ff.harmonics:
+        return 'none'
+    j = 2 * list(ff.harmonics).index(1)
+    parts = []
+    for m, M in enumerate(MOTORS):
+        a, b = (float(x) for x in ff.coef[m][j:j + 2])
+        parts.append(f'{M} off' if a == 0 and b == 0 else f'{M} {np.hypot(a, b):.0f}"@{peak_deg(a, b):.0f}')
+    return ' '.join(parts)
+
+
+def row_fields_from_file(path):
+    """The row's columns from the profile file (its latest test, the pooled profile and the profile in use), e.g. after
+    Approve/Reject changed the profile in use."""
+    ff = _load_or_new(path)
+    tests = [e for e in ff.meta.get('calibration_history', []) if e.get('test') == PROFILE_TEST and e.get('samples')]
+    if not tests:
+        return {'dps': profile_text(WormFeedForward.load(path))}
+    return profile_row_fields(fit_worm_profile([tests[-1]['samples']]), pooled_profile(path), WormFeedForward.load(path))
+
+
 def profile_row_fields(latest, pooled, current):
     """The worm profile row's columns: test_result = the pooled profile per motor (amplitude @ peak angle), test_change =
     the latest test and what applying the pooled profile would change, test_stdev = residual rms and positions.
-    `current`: the WormFeedForward in use (or None)."""
+    `current`: the WormFeedForward in use (or None), shown in the Baseline column (dps)."""
     def h1(info):
         if not info:
             return '-'
@@ -592,7 +615,7 @@ def profile_row_fields(latest, pooled, current):
         peak = info.get('peak', (90.0 - info['phase']) % 360)          # results saved before 'peak' was stored
         return f'{info["amplitude"]:.0f}"@{peak:.0f}'
     res = pooled if pooled.get('motors') else latest
-    fields = {'dps': 0.0, 'test_result': ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
+    fields = {'dps': profile_text(current), 'test_result': ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
               'test_change': '', 'test_stdev': ''}
     if not latest.get('motors'):
         return fields
