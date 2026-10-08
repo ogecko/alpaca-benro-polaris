@@ -453,7 +453,7 @@ To run without the worm gear correction, switch **PEC Worm Gear Correction** off
 
 **5. Check it.**
 
-* On the **Position** page, the **PEC Worm** row shows each motor's current correction; it changes as the motors turn (M1 fastest while tracking).
+* On the **Kinematics** page, the **PEC Worm** row shows each motor's current correction; it changes as the motors turn (M1 fastest while tracking).
 * Compare guiding performance on the same target with the correction enabled and disabled, 10-15 minutes each (switching it restarts the drift correction).
 
 Use either:
@@ -461,7 +461,7 @@ Use either:
 * PHD2 RMS; or
 * the size of the sync guide corrections.
 
-With worm gear correction enabled, the slow, regular wave in the guide corrections should disappear.
+With worm gear correction enabled, the slow, regular wave in the guide corrections should disappear. In PHD2 Log Viewer's frequency analysis, the peak at the worm period (typically around 34 minutes, about 2000 s, though it varies with the target's position as the motors' speeds change) should be gone or much smaller.
 
 #### **VI. Important Considerations**
 
