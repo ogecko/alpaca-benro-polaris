@@ -348,10 +348,17 @@ for /f "tokens=3" %%V in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVer
 for /f "tokens=3" %%V in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location\NonPackaged" /v Value 2^>nul') do if /i "%%V"=="Deny" set "LOC_OFF=1"
 if defined LOC_OFF if %WINBUILD% LSS 26100 set "LOC_OFF="
 
+rem Which version was installed: the branch, the commit (short hash, date) and the driver's version string.
+set "ABP_BRANCH=" & set "ABP_COMMIT=" & set "ABP_VERSION="
+for /f "delims=" %%B in ('git branch --show-current 2^>nul') do set "ABP_BRANCH=%%B"
+for /f "delims=" %%C in ('git log -1 "--format=%%h (%%cs)" 2^>nul') do set "ABP_COMMIT=%%C"
+for /f "tokens=2 delims='" %%V in ('findstr /c:"Version = " driver\shr.py 2^>nul') do if not defined ABP_VERSION set "ABP_VERSION=%%V"
 popd
 echo.
 echo -------------------------------------------------------------------
 echo Alpaca Benro Polaris Setup Complete
+echo.
+echo Installed:  %ABP_VERSION%  ^|  branch %ABP_BRANCH%  ^|  commit %ABP_COMMIT%
 echo.
 echo Access Alpaca Pilot via:  http://ap.local  (or http://%COMPUTERNAME%)
 if defined LOC_OFF echo NOTE: To let the driver join the Polaris Wi-Fi, turn on Settings ^> Privacy ^& security ^> Location ^> "Let apps access your location" and "Let desktop apps access your location".

@@ -490,9 +490,16 @@ if [ -z "$PILOT_URL" ]; then
     PILOT_URL="http://$(hostname):8080  (could not confirm the actual port -- check: journalctl -u polaris-driver)"
 fi
 
+# Which version was installed: the branch, the commit (short hash, date) and the driver's version string.
+ABP_BRANCH=$(git -C "$src_home" branch --show-current 2>/dev/null)
+ABP_COMMIT=$(git -C "$src_home" log -1 --format='%h (%cs)' 2>/dev/null)
+ABP_VERSION=$(sed -n "s/^ *Version = '\([^']*\)'.*/\1/p" "$src_home/driver/shr.py" 2>/dev/null | head -1)
+
 cat <<_EOF
 -------------------------------------------------------------------
 Alpaca Benro Polaris Setup Complete
+
+Installed:  ${ABP_VERSION}  |  branch ${ABP_BRANCH}  |  commit ${ABP_COMMIT}
 
 You can:
 * Check the service status with:  sudo systemctl status polaris-driver
