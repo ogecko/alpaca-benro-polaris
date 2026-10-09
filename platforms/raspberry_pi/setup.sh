@@ -34,7 +34,6 @@ Options:
                    or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
 
     -g             Install gpsd and gpsd-clients for optional GPS receivers.
-                   Creates data/config.pilot.json if absent; otherwise prints a reminder.
 
     -h             Print this help and exit.
 
@@ -229,15 +228,6 @@ fi
 
 echo "==SETUP== 4. Sync the python dependencies needed for the application with uv (creates $src_home/.venv)."
 uv sync --no-dev --locked --no-build-package numpy --no-build-package scipy
-if [ "$INSTALL_GPSD" = "true" ]; then
-    GPS_CONFIG="$src_home/data/config.pilot.json"
-    if [ -e "$GPS_CONFIG" ]; then
-        printf 'To enable GPS, add or set "gps_auto_detect": true in %s, preserving other settings.\n' "$GPS_CONFIG"
-    else
-        printf '{\n  "gps_auto_detect": true\n}\n' > "$GPS_CONFIG"
-        echo "Created $GPS_CONFIG with GPS location detection enabled."
-    fi
-fi
 source "$src_home/.venv/bin/activate"
 
 # Alpaca Pilot ports: nothing to configure here. Linux only lets root bind ports below 1024, so

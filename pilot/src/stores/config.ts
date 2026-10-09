@@ -36,7 +36,13 @@ export const useConfigStore = defineStore('config', {
     mdns_name: 'alpacapailot.local',
 
     // Site Info
-    gps_auto_detect: false,
+    gps_provider: 'none' as 'none' | 'gpsd' | 'nmea' | 'ubx',
+    gpsd_host: '127.0.0.1',
+    gpsd_port: 2947,
+    gps_serial_device: '/dev/ttyUSB0',
+    gps_serial_baudrate: 9600,
+    gps_max_attempts: 10,
+    gps_retry_max_delay: 15,
     location: 'Unknown',
     location_list: '',
     site_latitude: -33.8598874,

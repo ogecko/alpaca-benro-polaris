@@ -35,7 +35,9 @@
                 Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
               <div class="col-auto q-gutter-sm flex justify-end items-center">
-                <q-btn outline icon="mdi-crosshairs-gps" color="grey-5" label="Locate"  @click="setFromLocationServices"/>
+                <q-btn outline icon="mdi-crosshairs-gps" color="grey-5" :class="{ 'locate-spin': isLocating }"
+                       :label="locateLabel" :disable="isLocating"
+                       @click="locateSite"/>
               </div>
             </div>
             <div class="q-pt-md q-pb-md">
@@ -264,6 +266,17 @@ const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
 const poll = new PollingManager()
+const isLocating = ref(false)
+const locateLabel = computed(() => {
+  switch (cfg.gps_provider) {
+    case 'gpsd': return 'Locate (GPSD)'
+    case 'nmea': return 'Locate (NMEA)'
+    case 'ubx': return 'Locate (UBX)'
+    default: return 'Locate'
+  }
+})
+
+const GPS_FIX_POLLING_DELAY = 500
 
 const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"deg",1) }));
 const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
@@ -301,6 +314,58 @@ async function onHome() {
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
   console.log(result)
+}
+
+async function locateSite() {
+  isLocating.value = true
+
+  let gpsLocated = false
+  const hasGps = cfg.gps_provider !== 'none'
+  if (hasGps) {
+    await dev.alpacaGpsLocate()
+    let status = await dev.alpacaGpsLocationStatus()
+    while (status.state === 'running') {
+      await new Promise<void>(resolve => setTimeout(resolve, GPS_FIX_POLLING_DELAY))
+      status = await dev.alpacaGpsLocationStatus()
+    }
+
+    if (status.state === 'found') {
+      await cfg.configFetch(['site_latitude', 'site_longitude', 'site_elevation'])
+      gpsLocated = true
+    } else {
+      $q.notify({
+        message: status.error || `No GPS fix found after ${status.attempts} attempts, falling back to browser/network location.`,
+        type: 'warning',
+        position: 'top',
+        timeout: 2000,
+        actions: [{ icon: 'mdi-close', color: 'white' }],
+      })
+    }
+  }
+
+  const result = gpsLocated ?
+    await getLocationServices(cfg.site_latitude, cfg.site_longitude, cfg.site_elevation) :
+    await getLocationServices()
+  if (result.success) {
+    put(result.data)
+    triggerAnimation(Object.keys(result.data))
+    $q.notify({
+      message: 'Location updated.',
+      type: 'positive',
+      position: 'top',
+      timeout: 3000,
+      actions: [{ icon: 'mdi-close', color: 'white' }],
+    })
+  } else {
+    $q.notify({
+      message: 'Location could not be determined.',
+      type: 'negative',
+      position: 'top',
+      timeout: 3000,
+      actions: [{ icon: 'mdi-close', color: 'white' }],
+    })
+  }
+  isLocating.value = false
 }
 
 async function onSetPark() {
@@ -405,14 +470,6 @@ function triggerAnimation(keys: string[]) {
   }, 600)
 }
 
-async function setFromLocationServices() {
-  const result = await getLocationServices()
-  if (result.success) {
-    put(result.data)
-    triggerAnimation(Object.keys(result.data))
-  }
-}
-
 function setFromMapClick(result: LocationResult) {
   if (result.success) {
     put(result.data)
@@ -445,6 +502,14 @@ const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put 
 </script>
 
 <style lang="scss">
+.locate-spin .q-icon {
+  animation: locate-rotate 1s linear infinite;
+}
+
+@keyframes locate-rotate {
+  to { transform: rotate(360deg); }
+}
+
 .taflash {
   animation: flash 0.6s;
 }

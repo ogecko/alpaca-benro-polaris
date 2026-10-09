@@ -80,18 +80,20 @@ export async function getWeatherData(lat: number, lon: number): Promise<{ pressu
     return { pressure, elevation };
 }
 
-export async function getLocationServices(inputLat?: number, inputLon?: number): Promise<LocationResult> {
+export async function getLocationServices(inputLat?: number, inputLon?: number, inputElevation?: number): Promise<LocationResult> {
 /**
  * Retrieves enriched location metadata based on latitude and longitude input.
  * If coordinates are not provided, attempts to infer location via browser geolocation or IP fallback.
  * Returns site coordinates, elevation, pressure, and a human-readable location name.
- * If no location can be determined or external lookups fail, returns a structured failure response.
+ * Metadata lookup use fallback values rather than failing the location lookup.
  */
   let lat = inputLat
   let lon = inputLon
+  let location = `GPS ${new Date().toISOString()}`
 
   // If lat/lon not provided, try to get from browser or IP
   if (typeof lat !== 'number' || typeof lon !== 'number') {
+    location = `Location ${new Date().toISOString()}`
     const browserLoc = await getNavigatorLocation()
     if (browserLoc) {
       lat = browserLoc.lat
@@ -107,24 +109,24 @@ export async function getLocationServices(inputLat?: number, inputLon?: number):
     }
   }
 
-  // Now we have lat/lon, get location name and weather data
-  try {
-    const [location, weather] = await Promise.all([
-      getLocationName(lat, lon),
-      getWeatherData(lat, lon)
-    ])
-    return {
-      success: true,
-      data: {
-        site_latitude: lat,
-        site_longitude: lon,
-        location,
-        site_elevation: weather.elevation,
-        site_pressure: weather.pressure
-      }
+  // Now we have lat/lon, get location name
+  location = await getLocationName(lat, lon).catch(() => location)
+  
+  // and weather data
+  const weather = await getWeatherData(lat, lon).catch(() => ({
+    pressure: 1013,
+    elevation: 100
+  }))
+
+  return {
+    success: true,
+    data: {
+      site_latitude: lat,
+      site_longitude: lon,
+      location,
+      site_elevation: inputElevation ?? weather.elevation,
+      site_pressure: weather.pressure
     }
-  } catch {
-    return { success: false, reason: 'lookup-failed' }
   }
 }
 
