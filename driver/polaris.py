@@ -51,7 +51,7 @@ from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_
 from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
 from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, row_status, MIN_SEPARATION_DEG
 from control_worm import profile_summary, row_fields_from_file, PROFILE_TEST
-from control_worm import ROLL_MIN_DEG, ROLL_TARGET_DEG
+from control_worm import ROLL_MIN_DEG, ROLL_TARGET_DEG, POSITIONS, SYNC_CYCLE_S, SETTLE_TIMEOUT_S, fit_sweep, MOTORS
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
@@ -642,7 +642,23 @@ class Polaris:
                 await self.stop_tracking()
             self.lifecycle.reset()
             return
-        test = WormProfileTest()
+        # keep every motor's sweep where it can go: a step it can't reach (M2 against the Alt/Roll limit, a motor
+        # limit) never settles, and the test would wait on the plate-solves for ever
+        pid = self._pid
+        theta0 = np.array(pid.theta_ref if pid.theta_ref is not None else pid.theta_pv, float)
+        lo, hi = sm.worm_test_reach(theta0, self._zeta_meas, getattr(pid, 'omega_ff', np.zeros(3)),
+                                    len(POSITIONS) * SYNC_CYCLE_S)
+        positions, scale = fit_sweep(POSITIONS, lo, hi)
+        test = WormProfileTest(positions)
+        moved = [m for m in range(3) if np.any(np.abs(positions[:, m] - POSITIONS[:, m]) > 1e-9)]
+        if moved:
+            self.logger.info("WORM PROFILE TEST: sweep fitted inside what the motors can reach here: " + "; ".join(
+                f"{MOTORS[m]} {POSITIONS[:, m].min():+.1f}..{POSITIONS[:, m].max():+.1f} -> "
+                f"{positions[:, m].min():+.1f}..{positions[:, m].max():+.1f} deg (reach {lo[m]:+.1f}..{hi[m]:+.1f})"
+                + (f", {scale[m] * 100:.0f}% of the sweep" if scale[m] < 1 else '') for m in moved))
+            if np.any(scale < 0.7):
+                self.logger.warning("WORM PROFILE TEST: a motor has little room to move at this pose -- its worm "
+                                    "will be less certain; a lower altitude or smaller roll gives more")
         sep, sens = sm.motor_separation(np.array(self._pid.theta_pv, float))
         self.logger.info(f"WORM PROFILE TEST: START, {len(test.positions)} positions, all motors; requires plate-solve "
                          f"syncs, one per position after the step settles (~8-12 s: a wait between solves of ~10 s, "
@@ -653,12 +669,21 @@ class Polaris:
                                 f"({sep:.0f} deg apart, Roll near 0): their worms may not separate -- a pose with Roll "
                                 f"15-30 deg either way is better")
         sm.worm_test = test
+        if np.any(positions[0] != 0):                        # the fitted sweep starts off the current pose: go there
+            pid.step_motor_targets(positions[0])
+            test.step_at = time.monotonic()
         try:
             shown = None
             while not test.done and not test.aborted and not self.lifecycle.should_stop():
                 if test.index != shown:
                     shown = test.index
                     self._cm.setWormProfileProgress(shown, len(test.positions))
+                if test.settle_overdue(time.monotonic()):
+                    test.abort('not settling')
+                    err = np.abs(np.array(pid.error_signal, float)) * 3600 if pid.error_signal is not None else np.zeros(3)
+                    self.logger.warning(f"WORM PROFILE TEST: position {test.index}/{len(test.positions)} not reached "
+                                        f"in {SETTLE_TIMEOUT_S:.0f} s (motor errors {err.round(0).tolist()}\") -- "
+                                        f"ending the test with the positions measured so far")
                 if test.timed_out(time.monotonic()):
                     test.abort('no syncs')
                     self.logger.warning(f"WORM PROFILE TEST: no plate-solve sync for {test.no_sync_timeout_s:.0f} s "

@@ -48,7 +48,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from config import Config, DATA_DIR
-from kinematics import theta_to_q, q_to_azaltroll, azalt_to_vector
+from kinematics import theta_to_q, q_to_azaltroll, azalt_to_vector, reachable_azaltroll
 from quaternion import Q as Quaternion
 
 WORM_PROFILE_PATH = DATA_DIR / 'worm_profile.json'   # the worm gear correction profile, written when a test is approved
@@ -237,6 +237,44 @@ class WormMixin:
             J[m] = [d @ t1, d @ t2]
         return b0, t1, t2, J
 
+    def worm_test_reach(self, theta, zeta, omega, duration_s):
+        """The range of offsets (deg from theta, per motor) each motor can reach over a worm profile test that lasts
+        duration_s: (lo, hi). Two limits, each with the motor's tracking travel over the test taken off the side it
+        tracks towards:
+          * the pointing envelope: a pose the mount can't take (M2 against the Alt/Roll limit) is clamped by
+            reachable_azaltroll, so a step there never settles -- scanned along each motor from theta;
+          * the motor limits (zeta): M1/M3 inside the unwind margin (an unwind mid-test would end it), M2 inside its
+            hard limits."""
+        theta = np.asarray(theta, float)
+        zeta = np.asarray(zeta, float) if zeta is not None else None
+        travel = np.asarray(omega, float) * duration_s
+        lo, hi = np.full(3, -REACH_SCAN_DEG), np.full(3, REACH_SCAN_DEG)
+        align = self.alignQ_B2T
+
+        def reachable(t):
+            az, alt, roll = q_to_azaltroll(align * theta_to_q(*t))
+            r_az, r_alt, r_roll = reachable_azaltroll(az, alt, roll)
+            return (abs(r_alt - alt) < 1e-3 and abs((r_az - az + 180) % 360 - 180) * np.cos(np.radians(alt)) < 1e-3
+                    and abs((r_roll - roll + 180) % 360 - 180) < 1e-3)
+
+        steps = np.arange(REACH_SCAN_STEP_DEG, REACH_SCAN_DEG + 1e-9, REACH_SCAN_STEP_DEG)
+        for m in range(3):
+            for sign, bound in ((+1, hi), (-1, lo)):
+                for x in steps:
+                    t = theta.copy()
+                    t[m] += sign * x
+                    if not reachable(t):
+                        bound[m] = sign * (x - REACH_SCAN_STEP_DEG)
+                        break
+        if zeta is not None:
+            safety = float(getattr(Config, 'zeta_safety_margin', 0.0))
+            z_lo = np.array([Config.z1_min_limit + safety, Config.z2_min_limit, Config.z3_min_limit + safety], float)
+            z_hi = np.array([Config.z1_max_limit - safety, Config.z2_max_limit, Config.z3_max_limit - safety], float)
+            lo, hi = np.maximum(lo, z_lo - zeta), np.minimum(hi, z_hi - zeta)
+        hi = hi - np.maximum(travel, 0.0)
+        lo = lo - np.minimum(travel, 0.0)
+        return lo, hi
+
     def motor_separation(self, theta):
         """(angle between the directions M1 and M3 move the field, deg; each motor's sensitivity): near 0 deg (Roll 0)
         their worms can't be told apart at this pose."""
@@ -304,7 +342,11 @@ BACKLASH_DEG = 0.25           # a step against a motor's tracking direction over
 APPROACH_RELEASE_ARCSEC = 120.0  # the approach starts once every motor is within this of the overshoot (no hold): past
                               # the position by more than the backlash, without the slow final settle (~5 s per step)
 TRACK_RATE_MIN_DPS = 1e-5     # a motor turning slower than this while tracking has no tracking direction
-CALIBRATION_HISTORY = 15      # tests kept in the profile's calibration_history (with their samples)
+SETTLE_TIMEOUT_S = 90.0       # a position not settled this long after its step can't be reached: the test ends there
+REACH_MARGIN_DEG = 0.5        # each motor's sweep keeps this far inside the range it can reach
+REACH_SCAN_DEG = 12.0         # how far each way the reach check looks (beyond the sweep's +-7.5 deg)
+REACH_SCAN_STEP_DEG = 0.1
+CALIBRATION_HISTORY = 50      # tests kept in the profile's calibration_history (with their samples, ~60 KB each)
 POOL_TESTS = 5                # the applied profile pools the last this many tests with a clean fit ...
 POOL_MAX_RMS_ARCSEC = 20.0    # ... a residual below this (each COMPLETED, or POOR FIT only for too few sigma on its own)
 
@@ -343,6 +385,29 @@ TEST_SUMMARY = f'{len(POSITIONS) - 1} steps, approx {round(len(POSITIONS) * SYNC
 QUAD_TREND_MIN_SPAN_DEG = 12.0  # a test sweeping every motor at least this far also fits a quadratic pointing trend
 
 
+def fit_sweep(positions, lo, hi, margin=REACH_MARGIN_DEG):
+    """Fit each motor's offsets (deg from the start, one column per motor) inside the range it can reach, [lo, hi]
+    (deg of offset from the start): shift the motor's sweep just enough, or, where the range is narrower than the
+    sweep, shrink the sweep onto the range. Returns (positions, scale per motor: 1 = full sweep); a motor whose sweep
+    already fits is left alone. The first position may then be off the start: the test moves there first."""
+    p = np.array(positions, float)
+    scale = np.ones(p.shape[1])
+    for m in range(p.shape[1]):
+        a, b = lo[m] + margin, hi[m] - margin
+        mn, mx = p[:, m].min(), p[:, m].max()
+        if b <= a:                                   # no room at all: hold the motor at the middle of what it can reach
+            p[:, m] = min(max((a + b) / 2, lo[m]), hi[m])
+            scale[m] = 0.0
+        elif mx - mn > b - a:                        # narrower than the sweep: shrink it onto the range
+            scale[m] = (b - a) / (mx - mn)
+            p[:, m] = a + (p[:, m] - mn) * scale[m]
+        elif mx > b:
+            p[:, m] -= mx - b
+        elif mn < a:
+            p[:, m] += a - mn
+    return p, scale
+
+
 class WormProfileTest:
     """The worm profile test: the step schedule (all motors), the step settling and the syncs it keeps."""
 
@@ -363,6 +428,7 @@ class WormProfileTest:
         self.settle_times = []                     # s from each step to settled
         self.approach = None                       # the move back onto the position after an overshoot (deg, per motor)
         self.arrival = None                        # each motor's direction arriving at the current position
+        self.started = self.last_sync              # when the test started (settling at the start is timed from here)
 
     @property
     def done(self):
@@ -379,6 +445,14 @@ class WormProfileTest:
 
     def timed_out(self, now):
         return now - self.last_sync > self.no_sync_timeout_s
+
+    def settle_overdue(self, now, timeout_s=None):
+        """The motors haven't settled on the current position within timeout_s of its step: it can't be reached (a
+        motor held at a limit), and plate-solves arriving would otherwise keep the test waiting for ever."""
+        if self.done or self.aborted or self.settled_at is not None:
+            return False
+        timeout_s = SETTLE_TIMEOUT_S if timeout_s is None else timeout_s
+        return now - (self.step_at if self.step_at is not None else self.started) > timeout_s
 
     def direction(self, i):
         """Each motor's direction of travel arriving at position i (+1, -1; 0 at the start)."""

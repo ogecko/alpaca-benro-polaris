@@ -42,6 +42,8 @@ class FakeSM:
     def worm_profile_path(self): return self.path
     def motor_separation(self, theta): return self.separation, [0.7, 1.0, 1.0]
     def record_worm_sync(self, *a): self.recorded.append(a)
+    reach = (np.full(3, -20.0), np.full(3, 20.0))              # what worm_test_reach answers (room for the full sweep)
+    def worm_test_reach(self, theta, zeta, omega, duration_s): return self.reach
     def reload_worm_ff(self): self.reloaded += 1
     def sync_az_alt(self, *a): raise AssertionError('applied to the alignment model during a worm profile test')
 
@@ -49,7 +51,9 @@ class FakeSM:
 def fake_polaris(tmp_path, separation=30.0, roll=30.0, roll_move_finishes=True):
     p = SimpleNamespace(lifecycle=Lifecycle(), _sm=FakeSM(str(tmp_path / 'worm_profile.json'), separation),
                         _cm=CalibrationManager(False), logger=logging.getLogger('test'), _tracking=False, calls=[],
-                        _pid=SimpleNamespace(theta_pv=[180.0, 45.0, 10.0], alpha_pv=[180.0, 45.0, roll]), rolls=[],
+                        _pid=SimpleNamespace(theta_pv=[180.0, 45.0, 10.0], alpha_pv=[180.0, 45.0, roll], theta_ref=None,
+                                             omega_ff=np.zeros(3), error_signal=None, steps=[]),
+                        _zeta_meas=None, rolls=[],
                         _worm_test_rolling=False, synced_while_rolling=[])
     def slew_axis(coords):
         p.rolls.append(coords['roll'])
@@ -62,6 +66,7 @@ def fake_polaris(tmp_path, separation=30.0, roll=30.0, roll_move_finishes=True):
             await asyncio.sleep(10)
     p.slew_axis, p.wait_for_goto_complete = slew_axis, wait_for_goto_complete
     p._worm_test_roll = lambda target, timeout_s=120.0: Polaris._worm_test_roll(p, target, 0.2 if not roll_move_finishes else timeout_s)
+    p._pid.step_motor_targets = lambda step: p._pid.steps.append(np.asarray(step, float).copy())
     p._cm.createTestDataFromBaseline()
     p._cm.ensureWormProfileRow()
     async def start_tracking():
@@ -156,7 +161,7 @@ def test_stopping_early_keeps_tracking_as_it_was_and_reports_stopped(tmp_path, c
 
 def test_no_syncs_times_out_as_no_data(tmp_path, cfg, monkeypatch, caplog):
     p = fake_polaris(tmp_path)
-    monkeypatch.setattr(polaris_mod, 'WormProfileTest', lambda: WormProfileTest(no_sync_timeout_s=0.3))  # 60 s, shortened
+    monkeypatch.setattr(polaris_mod, 'WormProfileTest', lambda positions=POSITIONS: WormProfileTest(positions, no_sync_timeout_s=0.3))  # 60 s, shortened
     with caplog.at_level(logging.INFO, logger='test'):
         asyncio.run(asyncio.wait_for(Polaris.worm_profile_test(p), 5))
     log = ' '.join(r.getMessage() for r in caplog.records)
@@ -219,3 +224,56 @@ def test_a_roll_move_that_does_not_finish_stops_the_test(tmp_path, cfg):
     asyncio.run(asyncio.wait_for(Polaris.worm_profile_test(p), 5))
     assert p._cm.test_data[PROFILE_TEST]['test_status'] == 'STOPPED' and p._sm.worm_test is None
     assert p.calls == ['start_tracking', 'stop_tracking']
+
+
+# ── the sweep stays where the motors can go ─────────────────────────────────────────────────────
+
+def test_full_sweep_when_there_is_room(tmp_path, cfg):
+    """With room for the whole sweep the schedule is the standard one and the test starts where the mount is."""
+    p = fake_polaris(tmp_path)
+    p._cm.pendingWormProfileTest([PROFILE_TEST])
+    run_test(p, seed=0)
+    assert p._pid.steps == []                                  # no move before the first position
+
+
+def test_sweep_moved_below_a_limit_and_the_test_goes_there_first(tmp_path, cfg):
+    """2026-10-09: M2 started 1.5 deg below the Alt/Roll envelope; position 35 asked for more and never settled. The
+    sweep is now fitted inside the reach before the test starts, and the mount moves onto its first position."""
+    p = fake_polaris(tmp_path)
+    p._sm.reach = (np.full(3, -20.0), np.array([20.0, 1.5, 20.0]))
+    p._cm.pendingWormProfileTest([PROFILE_TEST])
+    seen = {}
+    async def run():
+        task = asyncio.create_task(Polaris.worm_profile_test(p))
+        while p._sm.worm_test is None:
+            await asyncio.sleep(0.01)
+        seen['positions'] = p._sm.worm_test.positions.copy()
+        p.lifecycle.stopped = True
+        await asyncio.wait_for(task, 5)
+    asyncio.run(run())
+    m2 = seen['positions'][:, 1]
+    assert m2.max() <= 1.5 - 0.5 + 1e-9                        # inside the reach, with the margin
+    assert np.ptp(m2) == pytest.approx(np.ptp(POSITIONS[:, 1]))   # the whole sweep, just moved
+    assert np.allclose(seen['positions'][:, [0, 2]], POSITIONS[:, [0, 2]])
+    assert len(p._pid.steps) == 1 and np.allclose(p._pid.steps[0], seen['positions'][0])
+
+
+def test_a_position_that_never_settles_ends_the_test(tmp_path, cfg, monkeypatch):
+    """Plate-solves kept arriving while M2 sat at its limit: the test waited for ever. Now it ends with what it has."""
+    monkeypatch.setattr(polaris_mod, 'SETTLE_TIMEOUT_S', 0.3, raising=False)
+    import control_worm
+    monkeypatch.setattr(control_worm, 'SETTLE_TIMEOUT_S', 0.3)
+    p = fake_polaris(tmp_path)
+    p._cm.pendingWormProfileTest([PROFILE_TEST])
+    async def run():
+        task = asyncio.create_task(Polaris.worm_profile_test(p))
+        while p._sm.worm_test is None:
+            await asyncio.sleep(0.01)
+        test = p._sm.worm_test
+        for _ in range(10):                                    # solves keep coming, the motors never settle
+            test.on_sync({'t': 0, 'zeta': [0, 0, 0], 'res': [0, 0], 'J': [[0, 0]] * 3})
+            await asyncio.sleep(0.1)
+        await asyncio.wait_for(task, 5)
+        return test
+    test = asyncio.run(run())
+    assert test.abort_reason == 'not settling'
