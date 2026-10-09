@@ -114,6 +114,7 @@ import PIDStatus from 'src/components/PIDStatus.vue'
 import StatusPanel  from 'src/components/StatusPanel.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'
+import { zeroM2Roll } from 'src/utils/zeroM2'
 
 
 const $q = useQuasar()
@@ -326,8 +327,22 @@ async function onClickScale(e: { label:string, angle: number, radialOffset: numb
 }
 
 
-async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
+async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number, zm2?: boolean }) {
   if (cannotPerformCommand('slew')) return
+
+  if (e.zm2) {
+    // ZM2: the roll that keeps M2 still for the next couple of hours (src/utils/zeroM2.ts)
+    const best = zeroM2Roll(p.rightascension, p.declination, cfg.site_latitude, cfg.site_longitude)
+    if (!best) {
+      $q.notify({ message: 'ZM2: target too low to choose a roll', type: 'warning', position: 'top' })
+      return
+    }
+    $q.notify({ message: `ZM2: Roll ${best.roll.toFixed(1)}°, M2 ~${best.m2Mean.toFixed(1)}"/s over the next ${best.minutes} min`,
+                type: 'info', position: 'top', timeout: 5000 })
+    await dev.alpacaMoveMechanical(best.roll)
+    console.log('Fab ZM2:', best)
+    return
+  }
 
   const az = e.az ?? p.alpharef[0] ?? 0;
   const alt = e.alt ?? p.alpharef[1] ?? 0;

@@ -45,6 +45,7 @@
           <div class="row text-positive text-h6 items-center q-gutter-xs  no-wrap text-weight-light">
             <div v-if="showButtons">
               <MoveFab v-if="props.label=='Roll'" icon="mdi-format-align-middle" >
+                <q-fab-action color="positive" @click="onClickFabAngle({zm2: true})">ZM2</q-fab-action>
                 <q-fab-action color="positive" @click="onClickFabAngle({roll: -60})">-60°</q-fab-action>
                 <q-fab-action color="positive" @click="onClickFabAngle({roll: -30})">-30°</q-fab-action>
                 <q-fab-action color="positive" @click="onClickFabAngle({roll: 0})" >0°</q-fab-action>
@@ -167,7 +168,7 @@ const isCircular = computed(() => [
 // events that can be emitted
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
-  (e: 'clickFabAngle', payload: { az?: number, alt?: number, roll?: number }): void,
+  (e: 'clickFabAngle', payload: { az?: number, alt?: number, roll?: number, zm2?: boolean }): void,
   (e: 'clickMove', payload: { label: string, rateScale: number} ): void,
 }>();
 
@@ -236,7 +237,7 @@ watch(dProps, () => {
 
 // ------------------- Event handlers ---------------------
 
-function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
+function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number, zm2?: boolean }) {
   emit('clickFabAngle', payload)
 }
 

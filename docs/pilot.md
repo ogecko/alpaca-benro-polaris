@@ -561,7 +561,7 @@ Scrolling the mouse wheel downward performs the same action as this control.
 - **④ Floating Action Buttons:** - Toggles the visibility of context-sensitive presets for quickly adjusting the Set Point. The available presets depend on the coordinate type of the active radial dial:
    - Azimuth: North 0°, East 90°, South 180°, West 270°
    - Altitude: 0°, 30°, 45°, 60°
-   - Roll: –75°, 0°, +70°
+   - Roll: ZM2, –60°, –30°, 0°, +30°, +60°. **ZM2** (Zero M2) Rotates to the roll angle that minimises M2 movement over the next 2 hours of tracking, within the permitted roll limits. M2 supports the camera's weight off-axis, so a heavy lens can make it struggle to track smoothly at sidereal rates, causing regular dips in tracking performance. Use ZM2 to minimise M2 movement and reduce these disturbances.
 - **⑤ SP Decrease**  
   Decreases the current setpoint (SP) by a fixed increment, determined by the active Range setting. Use this to manually slew the target value downward.  
  *Note: The mount may take a moment to respond and align with the new setpoint.*
