@@ -27,6 +27,13 @@ preset_action = ''                          # Action to trigger preset "<verb>_<
 preset_name = ''                            # name of the preset to take action on
 
 [server]
+gps_provider = 'none'                        # Location source: none, gpsd, nmea, or ubx
+gpsd_host = '127.0.0.1'                     # GPSD server hostname or IP address
+gpsd_port = 2947                             # GPSD server TCP port
+gps_serial_device = '/dev/ttyUSB0'          # GPS serial device path for NMEA or UBX
+gps_serial_baudrate = 9600                   # GPS serial baud rate
+gps_max_attempts = 10                       # Maximum GPS polls (1-20)
+gps_retry_max_delay = 15.0                  # Maximum wait between polls; intervals double every two attempts
 location_list   = ''                        # pipe-separated sorted list of saved location names, for Pilot locations dropdown
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az.
 site_latitude = -33.8598874                 # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.

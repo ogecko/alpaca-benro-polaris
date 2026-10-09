@@ -19,6 +19,7 @@ from falcon import Request, Response, before
 import ephem
 import asyncio
 from logging import Logger
+from typing import Literal, Optional
 from config import Config
 from shr import PropertyResponse, MethodResponse, HTTPBadRequest,  PreProcessRequest, get_request_field, to_bool, deg2rad, rad2deg, rad2hr, hr2rad, log_request
 from exceptions import NotImplementedException, DriverException, NotConnectedException, InvalidValueException, InvalidOperationException
@@ -27,11 +28,77 @@ import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent, running_in_container
 from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog, loadCustomCatalogDataFromFile, remove_orbital
+from gps_location import GPSProviderError, get_gps_location
 
 
 logger: Logger = None
 polaris: Polaris = None
 lifecycle: LifecycleController = None
+GPSLocationState = Literal["idle", "running", "found", "no_fix", "error"]
+gps_location_state: GPSLocationState = "idle"
+gps_location_attempts = 0
+gps_location_error: Optional[str] = None
+
+
+async def _run_gps_location() -> None:
+    global gps_location_state, gps_location_attempts, gps_location_error
+    try:
+        logger.info("==GPS== Location detection started")
+
+        def on_attempt(attempt: int, total: int) -> None:
+            global gps_location_attempts
+            gps_location_attempts = attempt
+
+        result = await get_gps_location(Config.as_dict(), on_attempt=on_attempt)
+        gps_location_attempts = result.attempts
+        if result.fix is None:
+            gps_location_state = "no_fix"
+            gps_location_error = result.error or f"No GPS fix found after {result.attempts} attempts."
+            logger.info("==GPS== Location detection result: %s", gps_location_error)
+            return
+
+        changes = {
+            "site_latitude": result.fix.latitude,
+            "site_longitude": result.fix.longitude,
+        }
+        if result.fix.altitude is not None:
+            changes["site_elevation"] = round(result.fix.altitude)
+
+        previous = {key: Config.get(key) for key in changes}
+        applied = Config.apply_changes(changes)
+        try:
+            polaris.make_config_params_live(applied)
+        except Exception:
+            Config.apply_changes(previous)
+            try:
+                polaris.make_config_params_live(previous)
+            except Exception:
+                logger.debug(
+                    "==GPS== Failed to restore live site settings after GPS update failure",
+                    exc_info=True,
+                )
+            raise
+
+        gps_location_state = "found"
+        gps_location_error = None
+        logger.info(
+            "==GPS== Location detection result: location applied after %d attempts",
+            result.attempts,
+        )
+    except asyncio.CancelledError:
+        gps_location_state = "error"
+        gps_location_error = "GPS location acquisition was cancelled."
+        logger.info("==GPS== Location detection result: cancelled")
+        raise
+    except GPSProviderError as error:
+        gps_location_state = "error"
+        gps_location_error = str(error)
+        logger.info("==GPS== Location detection result: failed: %s", error)
+    except Exception as error:
+        gps_location_state = "error"
+        gps_location_error = f"{type(error).__name__}: {error}"
+        logger.info("==GPS== Location detection result: failed: %s", error)
+        logger.debug("==GPS== Unexpected GPS location failure", exc_info=True)
 
 # ----------------------------------------------------------------------
 # Set our reference to the Polaris object (not at import time)
@@ -1517,6 +1584,7 @@ class supportedactions:
             "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:ShutdownOS", "Polaris:ShutdownMount",
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
+            "Polaris:GpsLocate", "Polaris:GPSLocationStatus",
             "Polaris:ReplayMark",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove", "Polaris:AutotuneMAC",
@@ -1531,7 +1599,7 @@ class supportedactions:
 # Actions that are polled frequently (eg by the Pilot config/status pages) are logged
 # under log_alpaca_polling instead of log_alpaca_actions, to avoid flooding the log.
 #
-_polling_actions = {"Polaris:ConfigFetch", "Polaris:StatusFetch"}
+_polling_actions = {"Polaris:ConfigFetch", "Polaris:StatusFetch", "Polaris:GPSLocationStatus"}
 
 # Actions whose raw PUT/response wrapper is pure noise -- ReplayMark's own REPLAYLOG line
 # (below) is already the complete, unconditionally-logged record; the generic "-> PUT ..."/
@@ -1541,6 +1609,7 @@ _silent_actions = {"Polaris:ReplayMark"}
 @before(PreProcessRequest(maxdev))
 class action:
     async def on_put(self, req: Request, resp: Response, devnum: int):
+        global gps_location_state, gps_location_attempts, gps_location_error
         actionName = await get_request_field('Action', req)
         raw_params = await get_request_field('Parameters', req)
         if actionName in _silent_actions:
@@ -1603,14 +1672,38 @@ class action:
             fetched_params['site_longitude'] = polaris.sitelongitude
             fetched_params['site_elevation'] = polaris.siteelevation
 
+            config_names = parameters.get('configNames')
             # only return requested Config.names
-            configNames = parameters.get('configNames')
-            if isinstance(configNames, list) and len(configNames)>0:
-                filtered_params = {k: fetched_params[k] for k in configNames if k in fetched_params}
+            if isinstance(config_names, list) and config_names:
+                filtered_params = {k: fetched_params[k] for k in config_names if k in fetched_params}
             else:
                 filtered_params = fetched_params
 
             resp.text = await PropertyResponse(filtered_params, req)
+            return
+
+        elif actionName == "Polaris:GpsLocate":
+            gps_task = lifecycle.get_task("GPSLocation")
+            if gps_task is not None and not gps_task.done():
+                resp.text = await MethodResponse(
+                    req,
+                    InvalidOperationException('GPS location acquisition is already in progress'),
+                )
+                return
+
+            gps_location_state = "running"
+            gps_location_attempts = 0
+            gps_location_error = None
+            lifecycle.create_task(_run_gps_location(), name="GPSLocation")
+            resp.text = await MethodResponse(req)
+            return
+
+        elif actionName == "Polaris:GPSLocationStatus":
+            resp.text = await PropertyResponse({
+                "state": gps_location_state,
+                "attempts": gps_location_attempts,
+                "error": gps_location_error,
+            }, req)
             return
         
         elif actionName == "Polaris:ConfigUpdate":
@@ -1902,6 +1995,3 @@ class action:
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
-
-
-

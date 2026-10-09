@@ -7,6 +7,12 @@ import type { ConfigResponse } from 'src/stores/config'
 import type { OrbitalExport, DsoType, CatalogItem } from 'src/stores/catalog'
 import { AppVisibility } from 'quasar'
 
+type GPSLocationStatus = {
+  state: 'idle' | 'running' | 'found' | 'no_fix' | 'error'
+  attempts: number
+  error: string | null
+}
+
 export const useDeviceStore = defineStore('device', {
   state: () => ({
     _connecting: false,             // used in connectRestAPI to manage connecting state
@@ -220,6 +226,14 @@ export const useDeviceStore = defineStore('device', {
 
     async alpacaShutdownMount() {
       await this.apiAction<void>('Polaris:ShutdownMount')
+    },
+
+    async alpacaGpsLocate() {
+      await this.apiAction<void>('Polaris:GpsLocate')
+    },
+
+    async alpacaGpsLocationStatus() {
+      return await this.apiAction<GPSLocationStatus>('Polaris:GPSLocationStatus')
     },
 
     async bleSelectDevice(name:string) {

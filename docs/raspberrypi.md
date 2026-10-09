@@ -4,6 +4,7 @@
 [Versions](#which-pi-should-i-buy) | 
 [Image Creation](#install-the-raspberry-pi-os-image) | 
 [Alpaca Installation](#install-pre-requisites-and-the-alpaca-driver) | 
+[Optional GPS](#optional-gps) |
 [Setup.sh Reference](#setupsh-command-reference) | 
 [Troubleshooting](#troubleshooting-the-raspberry-pi)
 
@@ -109,10 +110,38 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
     Once you have completed compass and single star alignment, the Polaris should be ready to use.
 
+## Optional GPS
+
+The Alpaca Pilot **Locate** button uses browser / network  location by default. To use a GPS receiver instead, select **GPSD**, **GPS Serial (NMEA)**, or **GPS Serial (UBX)** under **Network Services**. A tested receiver is for example the [G-Mouse USB GPS/GLONASS receiver](https://amzn.eu/d/050xUKar) working both with gpsd or UBX serial.
+
+### GPSD
+
+1. Install gpsd and its status client:
+    ```Bash
+    ./setup.sh -g
+    ```
+    The `-g` option adds the gpsd packages to setup's package installation; it does not select GPSD in Alpaca Pilot.
+2. Configure gpsd to use the receiver. Find its stable USB path with `ls -l /dev/serial/by-id/`, then set it in `/etc/default/gpsd`, for example:
+    ```Bash
+    DEVICES="/dev/serial/by-id/usb-your-receiver"
+    USBAUTO="false"
+    ```
+3. Start gpsd and confirm the receiver has a fix:
+    ```Bash
+    sudo systemctl enable --now gpsd.socket
+    sudo systemctl restart gpsd
+    cgps -s
+    ```
+    Exit `cgps` with **Ctrl+C** after confirming it reports a fix. In **Network Services**, select **GPSD** and configure its host and port (defaults: `127.0.0.1:2947`). In **Observing Site Information**, click **Locate (GPSD)** to update the site.
+
+### Serial
+
+Serial modes read the receiver directly and do not require gpsd. In **Network Services**, choose **Serial (NMEA)** for NMEA-0183 receivers or **Serial (UBX)** for u-blox binary output. Set the serial device path (for example `/dev/serial/by-id/usb-your-receiver`) and baud rate (default `9600`); the **Locate** button is labeled **Locate (NMEA)** or **Locate (UBX)** for the selected mode.
+
 ## Setup.sh Command Reference
 You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
 ```
-Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
+Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-g] [-h] [branch]
 
 Options:
     -n <ssid>      Defines the network SSID for the Alpaca Station Mode Wifi connection. 
@@ -126,6 +155,8 @@ Options:
     -p <password>  Password for the network named by -a, min 8 chars for WPA2.
                    (default: keep the existing password on a re-run, otherwise prompted interactively,
                    or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+
+    -g             Install gpsd and gpsd-clients for optional GPS receivers.
 
     -h             Print this help and exit.
 
@@ -280,4 +311,3 @@ The Raspberry Pi Zero 2 W has been known to have problems with some **home mesh 
 To resolve this issue:
 * This is a router-side setting. No change is needed on the Raspberry Pi itself.
 * In your router/mesh app's Wi-Fi settings, find "Roaming Assistant" / "Smart Connect" / "Band Steering" and disable it. 
-

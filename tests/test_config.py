@@ -1,3 +1,4 @@
+import logging
 import sys, os, json
 from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
@@ -34,6 +35,19 @@ def test_load_and_inject(config_fixture):
     assert Config.ip == "192.168.1.10"
     assert Config.port == 9000
     assert Config.get("ip") == "192.168.1.10"
+
+
+def test_load_migrates_legacy_serial_provider_to_nmea(tmp_path):
+    tomlpath = tmp_path / "config.toml"
+    tomlpath.write_text("[server]\ngps_provider = 'none'\n")
+    pilotpath = tmp_path / "config.pilot.json"
+    pilotpath.write_text(json.dumps({"gps_provider": "serial"}))
+
+    Config.load(tomlpath, pilotpath)
+
+    assert Config.gps_provider == "nmea"
+    assert Config.diff()["gps_provider"] == "nmea"
+
 
 def test_apply_changes_and_diff(config_fixture):
     Config, tomlpath, pilotpath = config_fixture
@@ -75,3 +89,14 @@ def test_apply_badtype_key(config_fixture):
     assert applied == {}
     assert Config.port == 9000
 
+def test_config_change_logging_is_debug_and_does_not_log_values(config_fixture, caplog):
+    Config, tomlpath, pilotpath = config_fixture
+    Config.load(tomlpath, pilotpath)
+
+    with caplog.at_level(logging.DEBUG, logger="cfg"):
+        Config.apply_changes({"ip": "10.0.0.42"})
+
+    assert [(record.levelno, record.getMessage()) for record in caplog.records] == [
+        (logging.DEBUG, "Applied configuration keys: ip")
+    ]
+    assert "10.0.0.42" not in caplog.text
