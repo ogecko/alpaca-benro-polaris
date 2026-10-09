@@ -798,6 +798,10 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     If |alt| > 90 the boresight has gone 'over the top'; flip to the
     equivalent pointing: alt' = 180 - alt (or -180 - alt), az' = az + 180,
     and accumulate a 180° roll flip.
+    Above THETA2_MAX (the zenith zone, and an over-the-top pose that lands in it) alt is clamped to the
+    limit on the same az: the nearest reachable pointing, directly below the target. A target in
+    (THETA2_MAX, 90] is NOT flipped: tracking it through the zone keeps M1 on the target's own azimuth
+    (the short way round through the meridian) instead of the mirror image on the far side.
 
     Roll handling
     -------------
@@ -805,7 +809,9 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     The maximum achievable roll at the resolved altitude is altitude_to_maxroll(alt').
     If |roll| <= max_roll  → use roll as-is.
     If |roll| >  max_roll  → try the 180° equivalent (roll - 180 or roll + 180);
-                             if still unreachable, clamp to ±max_roll.
+                             if still unreachable, clamp whichever of the two is
+                             nearer level (|roll| <= 90) to ±max_roll: the frame
+                             closest to the requested footprint.
 
     Returns
     -------
@@ -820,12 +826,12 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     # Resolve over-the-top alt by flipping through the pole 
     roll_flip = 0.0
 
-    if alt_norm > THETA2_MAX:
+    if alt_norm > 90.0:
         # e.g. alt=120 → alt'=60, az+=180, roll+=180
         alt_resolved = 180.0 - alt_norm
         az += 180.0
         roll_flip += 180.0
-    elif alt_norm < -THETA2_MAX:
+    elif alt_norm < -90.0:
         # e.g. alt=-120 → alt'=-60, az+=180, roll+=180
         alt_resolved = -180.0 - alt_norm
         az += 180.0
@@ -833,7 +839,7 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     else:
         alt_resolved = alt_norm
 
-    # Safety clamp — should not be needed after the flip, but be defensive
+    # Zenith zone: clamp to the limit on the same az (nearest reachable pointing)
     alt_resolved = float(np.clip(alt_resolved, -THETA2_MAX, THETA2_MAX))
 
     # Normalise az to [0, 360)
@@ -854,8 +860,10 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
         if abs(roll_flipped) <= max_roll:
             roll_resolved_mech = roll_flipped
         else:
-            # Neither orientation reaches the target — clamp to nearest limit
-            roll_resolved_mech = float(np.clip(roll_total, -max_roll, max_roll))
+            # Neither orientation reaches the target — clamp the one nearer level (the least footprint error:
+            # e.g. 154 at max_roll 25 is -26 upside down -> -25, not +25)
+            nearest = roll_total if abs(roll_total) <= 90.0 else roll_flipped
+            roll_resolved_mech = float(np.clip(nearest, -max_roll, max_roll))
 
     # shift back to ASCOM roll angle (not mechanical roll angle)
     roll_resolved = wrap180(roll_resolved_mech + roll_adj)
