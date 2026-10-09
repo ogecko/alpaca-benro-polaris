@@ -1810,3 +1810,76 @@ def correction_breakdown(df, rate_half_window_s=300.0):
         x['pec_active'] = (d.loc[own, f'inhibit_{i}'] == 'VALID').values if f'inhibit_{i}' in d else True
         out[ax] = x.reset_index(drop=True)
     return out
+
+
+SLIP_ARCSEC = 8.0                                      # M2 stepping back more than this against its motion in one step
+SLIP_SPEED_BINS = (0, 2, 5, 8, 11, 15, 25, 60)         # M2 speed bins ("/s) for m2_slip_summary
+
+
+def m2_slips(df, slip_arcsec=SLIP_ARCSEC, max_step_s=3.0, window=61, max_rate=60.0, still_rate=0.3, pose_every=30):
+    """
+    M2 slips while tracking: with a heavy payload M2 can creep ahead and then slip back 10-30" at once, which the
+    guider sees as a kick (seen with a 300 mm f/2.8 while M2 lifted it, 8 Oct 2026). Found in PECLOG's motor angles
+    (theta_raw), ~1 s apart while pulse guiding.
+
+    Per step between consecutive rows (no more than max_step_s apart, M2 under max_rate "/s): M2's local speed (the
+    median over `window` steps), the step's departure from it, and whether it slipped (stepped back more than
+    slip_arcsec against its motion; either way when M2 is still). direction: whether M2's motion lifts or lowers
+    the lens (its altitude), or 'still' (under still_rate "/s), from the pose every `pose_every` steps.
+    Returns DataFrame: timestamp, dt, rate ("/s), resid ("), size (" back), slip, direction.
+    """
+    from kinematics import theta_to_q, q_to_azaltroll
+    cols = ['timestamp', 'dt', 'rate', 'resid', 'size', 'slip', 'direction']
+    d = df.dropna(subset=['theta_raw_2']).sort_values('t_sec').reset_index(drop=True)
+    if len(d) < 3:
+        return pd.DataFrame(columns=cols)
+    t = d['t_sec'].to_numpy(float)
+    th = d[['theta_raw_1', 'theta_raw_2', 'theta_raw_3']].to_numpy(float)
+    dt = np.diff(t)
+    step = np.diff(th[:, 1]) * 3600
+    ok = (dt > 0.2) & (dt <= max_step_s)
+    rate = pd.Series(np.where(ok, step / np.where(dt > 0, dt, 1), np.nan)).rolling(
+        window, center=True, min_periods=window // 3).median().to_numpy()
+    resid = step - rate * dt
+    keep = ok & np.isfinite(rate) & (np.abs(rate) < max_rate)
+    size = np.where(np.abs(rate) > still_rate, -np.sign(rate) * resid, np.abs(resid))
+    # does M2 turning up raise the lens? the altitude's change with M2, at a pose every pose_every steps
+    rows = np.arange(0, len(dt), pose_every)
+    up = []
+    for i in rows:
+        alt = [q_to_azaltroll(theta_to_q(*(th[i] + [0, s, 0])))[1] for s in (-0.01, 0.01)]
+        up.append(np.sign(alt[1] - alt[0]))
+    up = np.asarray(up)[np.minimum(np.round(np.arange(len(dt)) / pose_every).astype(int), len(rows) - 1)]
+    direction = np.where(np.abs(rate) < still_rate, 'still', np.where(up * rate > 0, 'lifting', 'lowering'))
+    out = pd.DataFrame({'timestamp': d['timestamp'].iloc[1:].to_numpy(), 'dt': dt, 'rate': rate, 'resid': resid,
+                        'size': size, 'slip': (size > slip_arcsec) & (np.abs(resid) < 120), 'direction': direction})
+    return out[keep].reset_index(drop=True)
+
+
+def m2_slip_summary(steps, frames=None, speed_bins=SLIP_SPEED_BINS, sky_jump_arcsec=6.0, sky_within_s=4.0):
+    """
+    Slips per hour of tracking by direction (lifting, lowering, still) and M2 speed ("/s), from m2_slips(). With PHD2
+    frames (load_phd2_guidelog), also the share of slips the guider saw: a frame-to-frame jump of the guide star
+    over sky_jump_arcsec within sky_within_s after the slip.
+    """
+    s = steps.copy()
+    labels = [f'{a}-{b}' for a, b in zip(speed_bins[:-1], speed_bins[1:])]
+    s['speed'] = pd.cut(s['rate'].abs(), speed_bins, labels=labels, include_lowest=True)
+    if frames is not None and len(frames):
+        f = frames.sort_values('timestamp')
+        jumps = f.loc[np.hypot(f['ra_arcsec'].diff(), f['dec_arcsec'].diff()) > sky_jump_arcsec, 'timestamp'].to_numpy()
+        ts = s['timestamp'].to_numpy()
+        i = np.searchsorted(jumps, ts)
+        nxt = jumps[np.minimum(i, len(jumps) - 1)] if len(jumps) else np.full(len(ts), np.datetime64('NaT'))
+        s['seen'] = (i < len(jumps)) & ((nxt - ts) <= np.timedelta64(int(sky_within_s * 1000), 'ms'))
+    rows = []
+    for (direction, speed), g in s.groupby(['direction', 'speed'], observed=True):
+        hours = g['dt'].sum() / 3600
+        slips = g[g['slip']]
+        row = {'direction': direction, 'speed': speed, 'hours': round(hours, 2), 'slips': len(slips),
+               'slips per hour': len(slips) / hours if hours else np.nan,
+               'median size "': round(float(slips['size'].median()), 1) if len(slips) else np.nan}
+        if 'seen' in s:
+            row['seen by guider %'] = round(100 * slips['seen'].mean()) if len(slips) else np.nan
+        rows.append(row)
+    return pd.DataFrame(rows)
