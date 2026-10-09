@@ -8,6 +8,7 @@
 [Equipment Setup](#3-phd2-equipment-setup) | 
 [Calibration](#4-phd2-calibration) | 
 [Workflow](#5-pulse-guiding-with-phd2) |
+[Improving Guiding](#6-improving-guiding-performance) |
 
 
 Guiding is a general concept that refers to any method used to correct tracking errors. It includes manual-guiding, auto-guiding, encoder-assisted guiding, and software based corrections. 
@@ -337,7 +338,59 @@ Below is a typical Graph and Statistics of an auto-guiding session.
 * Initial results may not be perfect. Allow guiding to settle for a few minutes.
 
 
-## 6. Final Notes
+## 6. Improving Guiding Performance
+
+Guiding corrects whatever the mount gets wrong, but the less there is to correct, the better the guiding. This section describes the tracking errors that limit guiding on the Benro Polaris, how to recognise each one, and what the driver offers to reduce it. A quick reference table is at the end.
+
+### 6.1 Slow Drift: PEC Drift Correction
+
+* **What you see:** The guide star drifts steadily in one direction, mostly in RA and Dec, and the guider keeps pushing it back with corrections that are mostly one-sided. Without guiding, the target slowly wanders out of frame over tens of minutes.
+* **Cause:** The alignment model (QUEST) is never perfect, so the mount's idea of the sky is slightly off. The resulting drift rate changes slowly as the mount moves across the sky and as the night progresses.
+* **Solution:** Switch on **PEC Drift Correction** in Pilot's settings. The driver learns the drift rate from the guide corrections (Pulse Guiding or Sync Guiding), averaged over about 7.5 minutes, and applies it every 200 ms, leaving the guider only what remains. It starts once it has enough corrections to be confident (see [Kinematics 2.6](./kinematics.md#26-periodic-error-correction-pec)).
+* **Tips:**
+  * It ignores PHD2 and CCDciel guider calibration pulses, so it can stay on while calibrating.
+  * Switch it **off** if you dither: dither steps look like drift, and PEC would learn them.
+  * A good Multi-Point Alignment (and Mechanical Alignment Correction) reduces the drift in the first place.
+
+### 6.2 Worm Gear Wobble: PEC Worm Gear Correction
+
+* **What you see:** A slow, smooth wave in the guide graph, with a period of a few minutes to an hour or more. In the PHD2 Log Viewer's frequency analysis it shows as a peak, often around 30-40 minutes, but it varies with where the mount is pointing.
+* **Cause:** Each motor drives its axis through a worm gear (6°, 60 teeth). Small irregularities in the gear make each axis wobble by about 30-150 arc seconds, repeating every 6° of that motor's rotation. Because the wobble is tied to the motor angles, it repeats in the same way night after night.
+* **Solution:** Measure each motor's worm once with the **M1-M2-M3-WORM-PROFILE** test on Pilot's Speed Calibration page (about 15 minutes, using plate solves), approve the result, then switch on **PEC Worm Gear Correction**. The driver then removes the wobble before it happens, with or without guiding. See [Kinematics 2.6 V](./kinematics.md#v-worm-gear-correction---profile-calibration) for the test.
+* **Tips:**
+  * PEC Drift Correction and PEC Worm Gear Correction work together: the worm correction removes the wave, and the drift correction learns what is left. The PEC button on Pilot's status panel switches both.
+  * The PEC switches are live settings. Press **Save** on the Config page to keep them after the driver restarts.
+
+### 6.3 Payload Slip on M2: Zero M2 Roll (ZM2)
+
+* **What you see:** Regular sharp kicks in the guide graph, every 10-40 seconds, in RA and Dec at the same time: the star jumps 10-20 arc seconds, then the guider brings it back over several frames. PHD2's RA Osc stays low (the guider isn't over-correcting) and lowering the aggressiveness only slows the recovery. It is most likely with a heavy lens.
+* **Cause:** M2 carries the camera, the lens and the M3 Astro Module off its axis, and this is hard to balance (a guide camera crossbar adds more). When M2 has to lift a heavy payload slowly while tracking, it creeps ahead and then slips back about 20 arc seconds, over and over. With a 300 mm f/2.8 (2.4 kg) this gave 8" RMS guiding; the same target at a different roll gave 2.4".
+* **Solution:** On the Dashboard's **Roll** dial, open the presets and choose **ZM2**. The driver rotates the camera to the roll that keeps M2 almost still while tracking the target for the next 2 hours, within the mount's roll limits. Recalibrate the guider after changing the roll. The framing rotates, but the target stays centred.
+* **Tips:**
+  * Balance what you can: slide the lens back in its clamp so its balance point is as close as possible to the tilt pivot.
+  * M1 is never affected (its axis is vertical, so the payload's weight can't turn it).
+  * If the kicks come back later in the night (the roll drifts as the target crosses the sky), choose ZM2 again.
+
+### 6.4 Computer Stalls
+
+* **What you see:** An occasional single large disturbance, not regular, often when the computer is busy (saving images, a virus scan or Windows update starting).
+* **Cause:** The driver's control loop runs on the guiding computer. If the computer stalls for a second or more, the motors keep their last speed for that time, and the guider then sees a jump. The driver log shows warnings such as `Event loop lag detected` and `HIGH CPU LOAD breakdown` at that time.
+* **Solution:** Keep the guiding computer free of heavy background work during imaging: exclude the driver, log and image folders from Windows Defender scans, pause Windows Update, and close programs you don't need.
+
+### 6.5 Quick Reference
+
+| What you see in the guide graph | Likely cause | What to do |
+| ------------------------------- | ------------ | ---------- |
+| Steady drift, mostly one-sided corrections | Imperfect alignment model | PEC Drift Correction (6.1); refresh Multi-Point Alignment |
+| Slow wave, minutes to an hour | Worm gear wobble | Worm profile test and PEC Worm Gear Correction (6.2) |
+| Regular sharp kicks every 10-40 s, heavy lens | M2 payload slip | ZM2 roll preset, better balance (6.3) |
+| A single large jump at random | Computer stall | Check the log for lag warnings; reduce background load (6.4) |
+| Rapid back-and-forth, high RA Osc | Guider over-correcting | Lower PHD2 aggressiveness or the Guide Rate (3.4) |
+| Drift after a dither | PEC learning the dither | Switch off PEC Drift Correction when dithering (6.1) |
+
+<br>
+
+## 7. Final Notes
 
 Guiding with PHD2 and N.I.N.A. can feel **finicky at first**, especially at longer focal lengths. Once dialed in, it dramatically reduces drift and enables longer, cleaner exposures.
 

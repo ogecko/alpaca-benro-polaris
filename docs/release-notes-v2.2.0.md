@@ -31,10 +31,11 @@
 - **[PEC Drift]** PEC learns the remaining drift as a 7.5 minute moving average, and ignores PHD2/CCDciel calibration pulses, so it can stay on while calibrating.
 - **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. 
 - **[PEC Settings]** PEC Drift Correction and PEC Worm Gear Correction are switched separately in Pilot's settings; the status panel's PEC button switches both, and its badge shows which are on and the drift rate being applied.
-- **[Zero M2 Roll]** Use the **Zero M2** preset on the Dashboard's Roll dial to select a roll angle that minimises M2 movement over the next 120 minutes, helping to reduce tracking disturbances.
+- **[Zero M2 Roll]** Use the **ZM2** preset on the Dashboard's Roll dial to select a roll angle that minimises M2 movement over the next 120 minutes, helping to reduce tracking disturbances.
 - **[Resume Tracking]** Tracking resumes from its previous position after a driver restart, provided the restart occurs within 10 minutes.
 - **[Smooth Charts]** Live charts on the Analysis pages scroll smoothly and use less CPU.
 - **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
+- **[Guiding Guide]** Add a new section **Improving Guiding Performance**, in the [Guiding guide](./guiding.md#6-improving-guiding-performance) explaining how to recognise and solve common guiding problems.
 
 ## What's new in v2.2 Beta 7
 - **[Speed Controller v2]** Better tracking at low altitude and zero roll, and a better response to guiding, from a new motor speed controller.
