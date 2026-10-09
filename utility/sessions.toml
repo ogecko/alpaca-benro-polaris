@@ -473,3 +473,77 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2) + sync"
 records = ["pec", "sg", "sync"]
 notes = ""
+
+[sessions."jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = "300mm f2.8 (2.4 kg). Worm profile tests 22:13 and 22:32 (Roll -30/-24). Worm on/off A/B: blocks C, D, E below. NGC1365 stops tracking ~02:20 (alt 81, M2 limit)."
+
+[sessions."jdm_Beta8.0_10_08_Tuc47_300mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = "300mm f2.8 (2.4 kg). Worm profile test 19:29 (approved 19:52, used all night). Worm on/off A/B: blocks A, B below; M2 lifting the lens gave guiding kicks every 10-40 s."
+
+# 2026-10-08 worm on/off A/B with the 300mm f2.8: one entry per block (same logs, own window)
+[sessions."jdm_Beta8.0_10_08_300mm_A_Tuc47_drift"]
+logs = ["alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 20:08"
+t_to = "2026-10-08 21:10"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block A: PEC drift only, 1 h. Roll -30, M2 lifting (kicks), M3 7-20 deg. PHD2 5.9/4.4". Profile would have removed 76% of the slow error.'
+
+[sessions."jdm_Beta8.0_10_08_300mm_B_Tuc47_drift_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 21:11"
+t_to = "2026-10-08 22:10"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block B: PEC drift + worm, 1 h. M2 lifting (kicks), M3 22-29 deg. PHD2 7.6/4.6" (kicks). Worm removed 73% of the slow error.'
+
+[sessions."jdm_Beta8.0_10_08_300mm_C_C62_drift_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 23:08"
+t_to = "2026-10-08 23:35"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block C: PEC drift + worm, 27 min. Roll -60 (M2 still), M3 16-21 deg. PHD2 1.9/2.1". Too short for the worm (<1 turn).'
+
+[sessions."jdm_Beta8.0_10_08_300mm_D_C62_drift"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 23:35"
+t_to = "2026-10-09 00:05"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block D: PEC drift only, 30 min. Roll -60 (M2 still), M3 10-15 deg. PHD2 2.2/3.7". Too short for the worm (<1 turn).'
+
+[sessions."jdm_Beta8.0_10_08_300mm_E_NGC1365_drift_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-09 00:12"
+t_to = "2026-10-09 02:20"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block E: PEC drift + worm, 2.2 h. Roll +60, M3 -35..-11 deg (never calibrated): measured M3 50"@135 vs profile 99"@205, the worm correction added slow error. PHD2 2.0/2.0".'
