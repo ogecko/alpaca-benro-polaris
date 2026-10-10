@@ -20,7 +20,7 @@ from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, ca
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
-from control_eq import wedge_alignQ_B2T
+from control_eq import wedge_alignQ_B2T, limit_rig_tilt, rig_tilt_deg, eq_theta1_with_room
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
 from control_backlash import BacklashCompensator, HOLD_ARRIVED_ARCSEC
@@ -938,6 +938,7 @@ class PID_Controller():
         self.omega_backlash = np.zeros(3, dtype=float)  # its take-up push, added after smoothing (coordinated_speed_control)
         self.move_planned = None                       # per goto: planned, or left to the PID (large move while tracking, unwind/flip)
         self.lock_checked = False                      # per goto: path checked for passing near gimbal lock (theta2 ~ 0)
+        self.room_checked = False                      # per goto: eq mode M1 placement checked for tracking room
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
         self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
         self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
@@ -1424,6 +1425,7 @@ class PID_Controller():
     def set_goto_complete_callback(self, fn):
         self.move_planned = None                     # plan_goto decides once per goto whether to plan it
         self.lock_checked = False
+        self.room_checked = False
         self.is_deviating = True
         self.time_goto = ephem.now()
         self.goto_complete_callback = fn
@@ -1431,6 +1433,7 @@ class PID_Controller():
     def set_rotate_complete_callback(self, fn):
         self.move_planned = None
         self.lock_checked = False
+        self.room_checked = False
         self.is_deviating = True
         self.rotate_complete_callback = fn
               
@@ -1684,7 +1687,8 @@ class PID_Controller():
             return np.array(reachable_azaltroll(*alpha, roll_adj=sm.roll_adj), dtype=float)
         alpha_B = q_to_azaltroll(sm.alignQ_B2T_inv * azaltroll_to_q(*alpha))
         reach_B = reachable_azaltroll(*alpha_B, roll_adj=sm.roll_adj)
-        return np.array(q_to_azaltroll(sm.alignQ_B2T * azaltroll_to_q(*reach_B)), dtype=float)
+        cameraQ = limit_rig_tilt(sm.alignQ_B2T * azaltroll_to_q(*reach_B), sm.alignQ_B2T, Config.eq_rig_tilt_limit)
+        return np.array(q_to_azaltroll(cameraQ), dtype=float)
 
     def move_pending(self):
         """A goto or rotate has been requested and has not yet completed."""
@@ -1833,6 +1837,14 @@ class PID_Controller():
             if t3_fix!=0: msg+= f' | Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
             self.logger.info(msg)
             self.set_theta_ref_cache(cause, theta_final)
+        elif Config.advanced_eq_mode and self.move_pending() and not self.room_checked \
+                and (theta_room := self._eq_theta_with_room(zeta, safety)) is not None:
+            # eq mode, at the start of the goto: M1 turned a whole turn so tracking has room before its limit, rather
+            # than a 360 deg unwind mid-session
+            self._move_in_motor_angles('EQ ROOM', 'M1 travel left for tracking', theta_room)
+            if self.time_goto:                            # the goto timeout allows for the extra turn
+                turn_s = abs(theta_room[0] - self.theta_pv[0]) / max(1e-3, float(np.max(self.Kv)) * self.GOTO_RATE_SHARE)
+                self.time_goto += turn_s / (24 * 3600)
         elif self.move_pending() and not self.lock_checked and self._path_passes_gimbal_lock(self.alpha_pv, self.alpha_ref):
             # At the start of the goto: the pointing path passes near theta2 ~ 0 (M1/M3 aligned), where M1/M3 must
             # swing ~180 deg. Stepping along it flipped late (M2 already running into the lock), cached a point
@@ -1842,17 +1854,7 @@ class PID_Controller():
             theta_final = self._flip_motor_angles(self._alpha_to_theta(self.alpha_ref, self.theta_pv), zeta, safety)
             d1 = theta_final[0] - self.theta_pv[0]
             cause = ('FLIP CW' if d1 > 0 else 'FLIP CCW') if abs(d1) > 90 else 'LOCK'
-            if Config.coordinated_speed_control and self.dt > 0:
-                # planned straight to the target's motor angles, with the planner's speed profile
-                self.set_Ka_array(Config.pid_Ka)
-                self.set_Kv_array(Config.pid_Kv)
-                traj = MotorTrajectory(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
-                traj.start(np.array(self.theta_pv, dtype=float), np.array(self.theta_pv, dtype=float), theta_final)
-                self.goto_traj, self.move_planned = traj, False
-                self.logger.info(f'{cause} Transition (gimbal lock on path) | planned in motor angles to: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
-            else:
-                self.logger.info(f'{cause} Transition (gimbal lock on path) | theta_ref_cache: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
-                self.set_theta_ref_cache(cause, theta_final, settle_all=True)
+            self._move_in_motor_angles(cause, 'gimbal lock on path', theta_final)
         else:
             # FLIP: if far away from target (in M1 or M3) then cache the target
             distance = self.theta_ref - self.theta_pv
@@ -1861,6 +1863,43 @@ class PID_Controller():
                 self.logger.info(f'{cause} Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
                 self.set_theta_ref_cache(cause, self.theta_ref.copy())
                 self._lp.flipCW = not self._lp.flipCW
+
+    def _move_in_motor_angles(self, cause, why, theta_final):
+        """Go straight to theta_final in motor angles: planned with the planner's speed profile (coordinated speed
+        control), else held as theta_ref_cache for the PID until all axes arrive."""
+        if Config.coordinated_speed_control and self.dt > 0:
+            self.set_Ka_array(Config.pid_Ka)
+            self.set_Kv_array(Config.pid_Kv)
+            traj = MotorTrajectory(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
+            traj.start(np.array(self.theta_pv, dtype=float), np.array(self.theta_pv, dtype=float), theta_final)
+            self.goto_traj, self.move_planned = traj, False
+            self.logger.info(f'{cause} Transition ({why}) | planned in motor angles to: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
+        else:
+            self.logger.info(f'{cause} Transition ({why}) | theta_ref_cache: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
+            self.set_theta_ref_cache(cause, theta_final, settle_all=True)
+
+    def _eq_theta_with_room(self, zeta, safety):
+        """Eq mode, once per goto: the target's motor angles with M1 turned +-360 when that leaves EQ_MIN_TRACK_ROOM_DEG
+        of M1 travel for tracking and the nearest turn does not; None to leave the goto as it is. M1 tracks one way
+        (theta1 falls when M1 points at the south pole), and its travel is the z1 limits less the safety margin.
+        Skipped, with a warning, if the straight motor move there would tilt the rig past eq_rig_tilt_limit."""
+        self.room_checked = True
+        theta_goal = self._alpha_to_theta(self.alpha_ref, self.theta_pv)
+        offset = self.theta_pv[0] - zeta[0]
+        lo, hi = Config.z1_min_limit + safety + offset, Config.z1_max_limit - safety + offset
+        sm, lat = self.polaris._sm, math.radians(self.polaris._sitelatitude)
+        direction = np.dot(sm.alignQ_B2T.rotate([0.0, 0.0, 1.0]), [0.0, math.cos(lat), math.sin(lat)])
+        theta1 = eq_theta1_with_room(theta_goal[0], self.theta_pv[0], lo, hi, direction)
+        if abs(theta1 - theta_goal[0]) < 1.0:
+            return None
+        theta_room = np.array([theta1, theta_goal[1], theta_goal[2]], dtype=float)
+        for f in np.linspace(0.0, 1.0, 73):
+            theta = self.theta_pv + f * (theta_room - self.theta_pv)
+            if rig_tilt_deg(sm.pvQ_to_topoQ(theta_to_q(*theta))) > Config.eq_rig_tilt_limit + 0.5:
+                self.logger.warning(f'EQ ROOM: turning M1 to {theta1:+.1f} would tilt the rig past {Config.eq_rig_tilt_limit} deg '
+                                    f'on the way: left at {theta_goal[0]:+.1f}, tracking may need an unwind later')
+                return None
+        return theta_room
 
     def _flip_motor_angles(self, theta_goal, zeta, safety):
         """Pick the M1/M3 turns (theta_goal +-360 on each) for a move straight to the goal's motor angles: within
