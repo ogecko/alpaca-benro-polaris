@@ -92,6 +92,7 @@ export const useConfigStore = defineStore('config', {
     advanced_scc_choice: 2,
     advanced_align_mac: false,
     advanced_eq_mode: false,
+    eq_rig_tilt_limit: 180,
     advanced_orbitals: false,
     advanced_pec_drift: false,
     advanced_pec_worm: false,

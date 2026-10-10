@@ -217,6 +217,9 @@
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
               </div>
+              <div v-if="cfg.advanced_eq_mode" class="row q-col-gutter-lg q-pb-md">
+                <q-input class="col-3 offset-6" v-bind="bindField('eq_rig_tilt_limit', 'Max Rig Tilt (180 = off)', '°')" type="number" input-class="text-right"/>
+              </div>
               <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select
                   class="col-6 q-pt-none" label="RA Pulse Guide Rate" emit-value map-options
