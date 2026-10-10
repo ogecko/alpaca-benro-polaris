@@ -71,7 +71,7 @@
               <q-item v-if="dev.restAPIConnected" :inset-level="0.5">
                 <q-item-section><q-item-label>Control the Alpaca Driver on this connection</q-item-label></q-item-section>
                 <q-item-section side >
-                  <div class="row">
+                  <div :class="$q.screen.xs ? 'column' : 'row'">
                     <q-btn label="RESTART" icon="mdi-restart"  stack class="fixedWidth" @click="onRestartDriver"/>
                     <q-btn label="SHUTDOWN" icon="mdi-power"  stack class="fixedWidth" @click="openShutdownDialog"/>
                   </div>
@@ -134,12 +134,12 @@
                   <q-item-label>Benro Polaris Versions</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <span class="q-gutter-sm q-pl-sm">
+                  <div class="row justify-end q-gutter-sm q-pl-sm">
                     <q-badge>hw v{{ p.polarishwver }}</q-badge>
-                    <q-badge>sw v{{ p.polarisswver }}</q-badge> 
-                    <q-badge v-if="isAstroModuleOk">astro v{{ p.polarisastrover }}</q-badge> 
-                    <q-badge v-else color="warning">missing astro module</q-badge> 
-                  </span>
+                    <q-badge>sw v{{ p.polarisswver }}</q-badge>
+                    <q-badge v-if="isAstroModuleOk">astro v{{ p.polarisastrover }}</q-badge>
+                    <q-badge v-else color="warning">missing astro module</q-badge>
+                  </div>
                 </q-item-section>
               </q-item>
 
