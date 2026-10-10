@@ -184,9 +184,6 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_align_mac', 'Mechanical Alignment Correction')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
-              </div>
-              <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_scc_enabled', 'Slew & Center Correction')"/>
                 <div class="col-6" v-if="cfg.advanced_scc_enabled">
                   <div class="q-gutter-md">
@@ -216,6 +213,9 @@
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Pulse Guiding (Guide-camera)')"/>
                 <q-toggle class='col-6' v-bind="bindField('advanced_backlash', 'Backlash Compensation')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
               </div>
               <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
                 <q-select
