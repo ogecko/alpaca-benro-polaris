@@ -9,6 +9,7 @@ Sky positions come from ephem (refraction off), independent of the driver's own 
 wedge really puts M1 on the axis the sky turns about. The motor angles come from the driver's own IK (q_to_theta)
 with the wedge as alignQ_B2T. Pure kinematics, no hardware.
 """
+import logging
 import math
 import os
 import sys
@@ -139,3 +140,136 @@ class TestReach:
 
     def test_theta2_limits(self):
         assert (THETA2_MIN, THETA2_MAX) == (-8.0, 81.5)
+
+
+# ---------------------------------------------------------------------------------------
+# advanced_eq_mode in the driver: SyncManager alignment and the control loop (digital twin)
+# ---------------------------------------------------------------------------------------
+#
+# Requirements with advanced_eq_mode on (Polaris on a wedge, M1 on the visible celestial pole):
+#   * the setting exists in config.toml and is off by default
+#   * before any sync the alignment is the ideal wedge for the site latitude (not identity), whether or not
+#     advanced_alignment is on, so gotos are right from the start
+#   * a single sync corrects the wedge's small setup error on top of the wedge (the level-mount fallback would
+#     treat the 56 deg tilt as the error); two or more syncs let QUEST recover the true base orientation
+#   * the control loop applies its reach limits in the mount's own (base) frame, not as if the base were level:
+#     wedge poses whose sky alt/roll a level mount can't reach are tracked unchanged
+#   * sidereal tracking is M1-only: M2 and M3 hold, M1 runs at the sidereal rate
+#   * a goto while tracking completes on target
+
+
+from config import Config, CONFIG_TOML_PATH
+from control import SyncManager
+from test_sync_manager import Polaris as MockPolaris, mock_config   # noqa: F401  (fixture)
+from sim_digital_twin import Twin, LAT as TWIN_LAT
+from test_motion_outcomes import tracking_rms, run_goto, radec_sep_arcmin
+
+EQ_TWIN = {"advanced_eq_mode": True, "coordinated_speed_control": True}
+
+
+def q_angle_arcsec(qa, qb):
+    """Rotation angle between two quaternions (arcsec), either sign of the double cover."""
+    w = abs(float(np.dot(np.asarray(qa.q), np.asarray(qb.q))))
+    return math.degrees(2 * math.acos(min(1.0, w))) * 3600
+
+
+@pytest.fixture
+def eq_config(mock_config):
+    mock_config.advanced_eq_mode = True
+    mock_config.advanced_sync_guiding = False
+    return mock_config
+
+
+def eq_sync(sm, p, true_B2T, az_b, alt_b, roll_b=0.0):
+    """Sync at the base-frame pose az_b/alt_b/roll_b (what the motors report) of a mount whose true base->topo
+    rotation is true_B2T."""
+    p.update(az_b, alt_b, roll_b)
+    v_obs = true_B2T.rotate(azalt_to_vector(az_b, alt_b))
+    a_az, a_alt = vector_to_az_alt(v_obs)
+    lat = math.radians(p._sitelatitude)
+    a_dec = math.degrees(math.asin(np.dot(v_obs, [0.0, math.cos(lat), math.sin(lat)])))
+    sm.sync_az_alt(0.0, a_dec, a_az, a_alt)
+
+
+class TestEqConfig:
+
+    def test_setting_in_config_toml_off_by_default(self):
+        Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath="/nonexistent")
+        assert Config.advanced_eq_mode is False
+
+
+class TestEqAlignment:
+
+    def test_level_mode_starts_at_identity(self, mock_config):
+        mock_config.advanced_eq_mode = False
+        sm = SyncManager(logging.getLogger(), MockPolaris())
+        assert q_angle_arcsec(sm.alignQ_B2T, Quaternion(1, 0, 0, 0)) < 1e-6
+
+    @pytest.mark.parametrize("advanced_alignment", [True, False])
+    def test_eq_mode_starts_at_the_ideal_wedge(self, eq_config, advanced_alignment):
+        eq_config.advanced_alignment = advanced_alignment
+        p = MockPolaris()
+        sm = SyncManager(logging.getLogger(), p)
+        sm.optimize_alignQ_B2T()
+        assert q_angle_arcsec(sm.alignQ_B2T, wedge_alignQ_B2T(p._sitelatitude)) < 1e-6
+        assert q_angle_arcsec(sm.alignQ_B2T_inv, wedge_alignQ_B2T(p._sitelatitude).inverse) < 1e-6
+
+    @pytest.mark.parametrize("error_axis", [[0, 0, 1], [1, 0, 0]], ids=["az", "lat"])
+    def test_single_sync_corrects_on_top_of_the_wedge(self, eq_config, error_axis):
+        p = MockPolaris()
+        sm = SyncManager(logging.getLogger(), p)
+        true_B2T = Quaternion(axis=error_axis, degrees=0.3) * wedge_alignQ_B2T(p._sitelatitude)
+        eq_sync(sm, p, true_B2T, 150.0, 40.0)
+        for az_b, alt_b in [(150.0, 40.0), (100.0, 30.0), (200.0, 60.0)]:     # the synced pose and two others
+            v_true = true_B2T.rotate(azalt_to_vector(az_b, alt_b))
+            v_pred = azalt_to_vector(*sm.azalt_polaris2ascom(az_b, alt_b))
+            assert math.degrees(math.acos(np.clip(np.dot(v_true, v_pred), -1, 1))) < 0.35   # within the setup error
+
+    def test_quest_recovers_the_true_wedge_orientation(self, eq_config):
+        p = MockPolaris()
+        sm = SyncManager(logging.getLogger(), p)
+        true_B2T = Quaternion(axis=[0.3, 1.0, 0.4], degrees=0.5) * wedge_alignQ_B2T(p._sitelatitude)
+        for az_b, alt_b in [(150.0, 40.0), (100.0, 30.0), (200.0, 60.0), (60.0, 20.0)]:
+            eq_sync(sm, p, true_B2T, az_b, alt_b)
+        assert q_angle_arcsec(sm.alignQ_B2T, true_B2T) < 1.0
+
+
+def eq_twin(monkeypatch, theta0, seed=0):
+    tw = Twin(monkeypatch, config=EQ_TWIN, seed=seed)
+    tw.place(theta0)
+    tw.start_tracking()
+    tw.run(30)
+    return tw
+
+
+EQ_POSES = {                    # wedge motor poses (deg) and whether a level mount's sky-frame limits would clamp them
+    "ha-4h_dec-36": (60.0, 36.0, 0.0),        # within the level limits
+    "ha-2h_dec-36": (30.0, 36.0, 0.0),        # sky roll -87 beyond the level max roll 69 at alt 65
+    "transit_dec-56": (0.0, 56.0, -0.5),      # sky alt 68, roll ~180: beyond the level max roll
+    "m3_framing_dec-52": (30.0, 60.0, 25.0),  # M3 turned for framing: sky roll -115
+}
+
+
+class TestEqTracking:
+
+    @pytest.mark.parametrize("pose", EQ_POSES.keys())
+    def test_tracking_is_m1_only_and_on_target(self, monkeypatch, pose):
+        tw = eq_twin(monkeypatch, EQ_POSES[pose])
+        theta_start, ra0, dec0 = tw.theta, tw.polaris.rightascension, tw.polaris.declination
+        rms = tracking_rms(tw, seconds=90.0)
+        moved = (tw.theta - theta_start) * 3600
+        drift = radec_sep_arcmin(ra0, dec0, tw.polaris.rightascension, tw.polaris.declination) * 60
+        tw.close()
+        assert abs(moved[1]) < 10 and abs(moved[2]) < 10, f"M2/M3 moved {moved[1]:.1f}\" / {moved[2]:.1f}\""
+        assert abs(abs(moved[0]) / 90.0 - SIDEREAL_RATE_ARCSEC_S) < 0.02 * SIDEREAL_RATE_ARCSEC_S, \
+            f"M1 ran at {abs(moved[0]) / 90.0:.2f}\"/s"
+        assert rms < 3.0, f"tracking RMS {rms:.2f}\""
+        assert drift < 5.0, f"RA/Dec drifted {drift:.1f}\""
+
+    def test_goto_while_tracking_completes_on_target(self, monkeypatch):
+        tw = eq_twin(monkeypatch, EQ_POSES["ha-4h_dec-36"])
+        target = (tw.polaris.rightascension + 0.2, tw.polaris.declination - 3.0)    # 3 deg in RA and 3 deg south
+        done, _, miss = run_goto(tw, lambda: tw.goto_radec(*target), target_radec=target)
+        tw.close()
+        assert done is not None and done < 40, f"goto did not complete ({done})"
+        assert miss < 60, f"goto finished {miss:.1f}\" from target"

@@ -34,6 +34,7 @@ def mock_config(tmp_path, monkeypatch):
         "advanced_sync_guiding":    True,
         "advanced_scc_enabled":     True,
         "advanced_scc_choice":      0,
+        "advanced_eq_mode":         False,
         "advanced_pec_drift":       True,
         "advanced_pec_worm":        False,
         "log_quest_model":          False,

@@ -20,6 +20,7 @@ from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, ca
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
+from control_eq import wedge_alignQ_B2T
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
 from control_backlash import BacklashCompensator, HOLD_ARRIVED_ARCSEC
@@ -1548,7 +1549,7 @@ class PID_Controller():
             self.alpha_sp = self.alpha_pv
 
         # Remember cameraQ_ref and last cameraQ_ref for calculating FF
-        self.alpha_ref = np.array(reachable_azaltroll(*self.alpha_ref, roll_adj=self.polaris._sm.roll_adj))
+        self.alpha_ref = self._reachable_alpha(self.alpha_ref)
         self.gamma_sp = delta_to_gamma(self.delta_ref)
         cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
         if self.cameraQ_ref is None:
@@ -1670,7 +1671,17 @@ class PID_Controller():
         body.compute(self.observer)
         az, alt = rad2deg(body.az), rad2deg(body.alt)
         roll = wrap180(delta[2] - calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
-        return np.array(reachable_azaltroll(az, alt, roll, roll_adj=self.polaris._sm.roll_adj), dtype=float)
+        return self._reachable_alpha((az, alt, roll))
+
+    def _reachable_alpha(self, alpha):
+        """Az/Alt/Roll -> the nearest pose the motors can reach. The limits are the motors' own, expressed for a
+        level base; in eq mode (base on a wedge) they apply in the base frame, so the pose goes there and back."""
+        sm = self.polaris._sm
+        if not Config.advanced_eq_mode:
+            return np.array(reachable_azaltroll(*alpha, roll_adj=sm.roll_adj), dtype=float)
+        alpha_B = q_to_azaltroll(sm.alignQ_B2T_inv * azaltroll_to_q(*alpha))
+        reach_B = reachable_azaltroll(*alpha_B, roll_adj=sm.roll_adj)
+        return np.array(q_to_azaltroll(sm.alignQ_B2T * azaltroll_to_q(*reach_B)), dtype=float)
 
     def move_pending(self):
         """A goto or rotate has been requested and has not yet completed."""
@@ -2208,6 +2219,12 @@ class SyncManager(PecMixin, WormMixin):
         self.polaris = polaris
         self.set_alignQ_to_identity()
 
+    def seedQ_B2T(self):
+        """Base->topocentric rotation before any sync: identity for a level base, the ideal wedge in eq mode."""
+        if Config.advanced_eq_mode:
+            return wedge_alignQ_B2T(self.polaris._sitelatitude)
+        return Quaternion(1,0,0,0)
+
     def set_alignQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
@@ -2226,8 +2243,8 @@ class SyncManager(PecMixin, WormMixin):
         self.mac_error = 0                    # MAC correction magnitude at the current pose (deg, Kinematics page)
         self.mpa_error = 0                      # cache of Multi Point Alignment RMS Residual error, (for Alignment page)
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
-        self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
-        self.alignQ_B2T_inv = Quaternion(1,0,0,0)   # cached inverse adjustment quaternion for azalt syncing, initially identity
+        self.alignQ_B2T = self.seedQ_B2T()          # cached adjustment quaternion for azalt syncing, initially identity (eq mode: the wedge)
+        self.alignQ_B2T_inv = self.alignQ_B2T.inverse   # cached inverse adjustment quaternion for azalt syncing
         self.alignQ_B2T_message = ""                # message from last optimisation
         self.q_pulseguide_B = Quaternion(1,0,0,0)   # accumulation of pulse guide corrections
         self.q_syncguide_B = Quaternion(1,0,0,0)    # accumulation of sync guide corrections
@@ -2890,11 +2907,13 @@ class SyncManager(PecMixin, WormMixin):
 
 
     def optimise_alignQ_B2T_fallback_single_sync(self, pairs):
+        # Azimuth then tilt correction on top of the seed (identity, or the ideal wedge in eq mode)
+        seedQ = self.seedQ_B2T()
         if len(pairs) == 0:
-            return Quaternion(1,0,0,0)  # identity quaternion
+            return seedQ
         
         v_pred, v_obs = pairs[0]
-        v_pred /= np.linalg.norm(v_pred)
+        v_pred = seedQ.rotate(v_pred / np.linalg.norm(v_pred))
         v_obs /= np.linalg.norm(v_obs)
 
         # Horizontal projection
@@ -2917,11 +2936,11 @@ class SyncManager(PecMixin, WormMixin):
         axis = np.array([axis[0], axis[1], 0])  # project to horizontal
 
         if np.linalg.norm(axis) < 1e-6:
-            return q_az  # only azimuth correction needed
+            return q_az * seedQ  # only azimuth correction needed
 
         axis /= np.linalg.norm(axis)
         q_tilt = Quaternion(axis=axis, radians=angle)
-        return q_tilt * q_az
+        return q_tilt * q_az * seedQ
 
     def compute_azalt_residuals(self):
         for entry in self.sync_history:

@@ -1856,6 +1856,9 @@ class Polaris:
             elif param == "site_latitude":
                 self.sitelatitude = float(Config.site_latitude)
                 self._pid.check_latlon_configured()
+                if Config.advanced_eq_mode:             # the wedge the alignment starts from depends on the latitude
+                    self._sm.optimize_alignQ_B2T()
+                    self._sm.refresh_pid_setpoints_from_q1()
             elif param == "site_longitude":
                 self.sitelongitude = float(Config.site_longitude)
                 self._pid.check_latlon_configured()
@@ -1874,7 +1877,7 @@ class Polaris:
             elif param == "guide_rate_dec":
                 self.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
             elif param in ["advanced_alignment", "advanced_scc_enabled", "advanced_scc_choice", "advanced_align_mac",
-                           "align_m2_scale"]:
+                           "align_m2_scale", "advanced_eq_mode"]:
                 self._sm.clear_sync_guiding()
                 self._sm.optimize_alignQ_B2T()
                 self._sm.refresh_pid_setpoints_from_q1()
