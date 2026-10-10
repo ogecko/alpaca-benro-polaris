@@ -1,10 +1,20 @@
 # PEC in Motor (Theta) Space — Validation & Implementation Plan
 
-Branch: `feature/pec_in_theta_space`
+Branches: `feature/pec_in_theta_space` (Phase 0 analysis, Aug–Sep 2026), then `feature/pec_theta_v2` (worm
+feed-forward and the worm profile test, Oct 2026).
+
+**Read [Status and findings (2026-10-10)](#status-and-findings-2026-10-10) first.** It records what was built, what
+the sky measurements showed and the plan from here. The sections after it are the investigation log, kept for the
+reasoning and evidence; where they describe the RA/Dec RLS model as "current" or plan work that has since been done
+differently, the status section is what holds.
 
 ## Background
 
-The current PEC model fits a periodic drift signal in equatorial space (RA/Dec), against a
+*(Written in August 2026. The RA/Dec RLS harmonic model and `pec_T_sec` described here have since been removed: PEC
+Drift Correction is now an EMA of the drift rate, `pec_tau_sec` 450 s, and the periodic error is corrected per motor
+in motor space by the worm feed-forward — see the status section.)*
+
+The PEC model at the time fitted a periodic drift signal in equatorial space (RA/Dec), against a
 fixed time period `pec_T_sec` (default 2040s/34min). That's the right frame for a classical
 equatorial mount, where one worm gear drives RA at a constant ~15°/hr and periodic error is
 naturally RA-only and time-periodic.
@@ -39,6 +49,113 @@ current RA/Dec model, without regressing sessions where the current model alread
 **Ground rule for this whole plan:** PEC corrections are small enough that visual inspection of
 a chart is not sufficient evidence of anything. Every phase below ends in a specific number or
 a pass/fail against a threshold, not "looks better."
+
+---
+
+## Status and findings (2026-10-10)
+
+### What is built
+
+* **PEC Drift Correction** (`advanced_pec_drift`, `driver/control_pec.py` `PecAxis`): an EMA of the guide-correction
+  drift rate per RA/Dec axis, `pec_tau_sec` = 450 s. Chosen from the archive benchmark (`analyse_sessions.ipynb`,
+  `pe_analysis.benchmark_segments`): the old RLS + 2 harmonics with a 21 min period scored about the same as no PEC;
+  an EMA with a 5–10 min time constant was best (no forecastable cycle in RA/Dec — the hypothesis of the Background
+  held: the periodic part lives in the motors, not the sky axes).
+* **PEC Worm Gear Correction** (`advanced_pec_worm`, `driver/control_worm.py`): a per-motor feed-forward on each motor's
+  **MCU angle** (`zeta`, from 517; `theta_raw - zeta_offset` at the 518 rate), applied as a correction rotation in the
+  forward kinematics (`corrQ_WFF`). Profile: 1st + 2nd harmonic per motor of a **6.0° worm** (60-tooth worm wheel:
+  the MCU's 960:1 = 16 × 60), in arcsec of motor angle, from `data/worm_profile.json`.
+* **Worm profile test** (`WormProfileTest`, Speed Calibration page): steps all three motors through their own
+  schedules (51 positions, ~±7.5°, ~2.5 worm turns each, approached in the tracking direction to take up backlash)
+  while tracking holds the sky, one plate-solve sync per position (recorded, not applied); `fit_worm_profile` fits
+  all motors jointly with per-test nuisance terms (offset, drift, linear pointing trend, backlash). Approve applies
+  the profile pooled over the last 5 completed tests. Since 2026-10-09 (`7fac1b95`): each motor's sweep is fitted
+  inside the range it can reach (pointing envelope, zeta limits, tracking travel), a position not settled in 90 s
+  ends the test, and the file keeps 50 tests with their samples.
+* **Logging**: PECLOG carries `theta_raw`, `zeta_offset` and the logged feed-forward `wff`; analysis in
+  `utility/analyse_worm_profile.ipynb` (per test, across tests, against gear angle and pose) and
+  `utility/analyse_tracking.ipynb` (sections 1, 3 and 7: motor angles, who corrected the drift, the worm terms left).
+
+### Phase 0 outcome (the gate)
+
+Passed for the period, in a different form than planned: not from periodograms of guide drift (0.2's data stayed too
+short and too drift-dominated), but from fits in motor space (`utility/pe_analysis.py`, `analyse_pec_theta.ipynb`,
+2026-10-02) and then from the profile tests, which measure the worm directly.
+
+* The worm period is **6.0° of motor angle** for every motor; cross-validated angle scans dip only at 6.0° (and its
+  2nd harmonic); the 54-tooth / 6.67° candidate shows nothing. A free period scan on the 10-08 Block E tracking data
+  is also lowest at 6.0°.
+* Phase 0.3's "fit one session, predict another" turned out to be the wrong test for a slow drift plus a short
+  periodic term; the worm is now measured by the profile test and checked on tracking data afterwards
+  (`analyse_tracking` section 7).
+
+### Sky measurements from the profile tests (2026-10-06 … 10-09)
+
+17 tests (tests 0–4 on 10-06 used the old 33-position schedule and are POOR FIT). Amplitudes are arcsec of motor angle;
+"peak" is the worm phase (0–360° over one 6° turn of MCU angle) where the 1st harmonic peaks.
+
+| Night | Payload | Tests | M1 | M2 | M3 peak | M3 amplitude |
+|---|---|---|---|---|---|---|
+| 10-06 | EF 200 mm f/2.8 (755 g) | 0–4 (old schedule) | 18–87" | 41–130" | 194–237 (best test 227) | 88–124" |
+| 10-08 | 300 mm f/2.8 (2.4 kg) | 5–7 | 9–21" | 63–90" | **187–196** | 101–131" |
+| 10-09 | EF 200 mm f/2.8 | 8, 10–16 (9 POOR FIT) | 18–36" | 17–91" | **234–248** | 71–119" |
+
+Findings:
+
+1. **The phase does not depend on the gear angle.** On 10-09 M3's peak stayed at 234–248 from M3 at −43° to +46°
+   (8 tests, roll ±25 … ±60 at several azimuths). The angle-dependence suggested by 10-08 Block E is not there.
+2. **A power-up does not move it.** Tests 15–16 ran after a Polaris power reset (the zeta offsets changed: M1 −1.9°,
+   M2 +0.57°): peaks 246 and 235, as before. A profile survives restarts.
+3. **Per motor, 10-09 (spread between tests over the per-test SE; 1 = noise only):** M1 28" mean, spread/SE 1.2 —
+   consistent; M3 91" mean, 3.1 — phase steady, amplitude varies 71–119"; M2 38" mean, 4.2 — inconsistent
+   (amplitude 17–91", peak 125–213): one sine per motor fits M2 poorly.
+4. **The phase differs between nights, and not because of the pose.** Test 11 (10-09: θ2 53°, θ3 +25°) and tests 5/6
+   (10-08: θ2 45°, θ3 +35°) are close in pose and gravity load but peak at 246 vs 187–193. The two 200 mm nights
+   differ too (best 10-06 tests 206–227 vs 241). Candidates: payload, how the head and payload were mounted, or
+   something else that settles per session; temperature is unlikely (no drift over 3.5 h on 10-09).
+5. **Pose affects amplitude, a little.** On 10-09 M3's amplitude follows the sign of the gravity torque on M3 (proxy
+   `a·(b × down)`): one side 101–131", the other 71–86", with two exceptions (tests 13, 15). M2's angle explains
+   nothing within one night (an apparent trend came from mixing nights). Too few tests to model.
+6. **A profile from one setup is wrong on another.** The pooled 10-08 (300 mm) profile, applied to 10-09's mean worm,
+   would leave 75% of M1, 66% of M3 and 116% of M2 (worse than none).
+7. **Best pose for a test:** alt 35–45° with |roll| 45–60° (tests 13, 16: the lowest SE for all motors). Above alt
+   ~55° M1 moves the view little and is poorly measured (test 9: M1 ±16.8").
+8. **Same night, same profile: it works at one pose and fails at the opposite one (10-08, tracking).** The driver
+   applies the profile exactly (the feed-forward recomputed from PECLOG's motor angles matches the logged `wff` to
+   1.4"/0.8" on 76"/44" rms). Scored as the worm rate left for the guider with the same night's tests 5–7 (roll −31,
+   M3 +15…+37°): Tuc47 blocks A/B (roll −13/−31, M3 +6…+29°) leave 55–58% (RA) and 25–30% (Dec), correlation
+   0.84–0.97; Block E (roll +56, M3 −36…−11°, gravity on M3 reversed) leaves 183%/116% — the correction ~1.8× too
+   big and ~4–5 min (~55° of worm phase) late, so it added error. The worm error itself was smaller there (8 vs
+   15–26"/min). Consistent in direction with finding 5 (amplitude lower with the torque on that side) but larger
+   than the step tests show between sides (~8° of phase), so the load side and stepping-vs-tracking may both matter.
+
+### Revised plan
+
+1. **Approve a profile per setup.** For the 200 mm, the pool of 10-09's tests 12–16. Leave M2 out of the applied
+   profile unless it repeats.
+2. **Validation night (200 mm), both gravity sides:** at roll **+60 and −60** (alt ~40°), a profile test, then 30–45 min
+   of guided tracking with the worm FF off, at the same pose. Does each step test predict its own pose's tracking
+   error (finding 8)? Does the M3 peak repeat (~241)? Then an A/B with the FF on at the pose that matched. Judge on
+   PHD2 RMS and the drift left for the guider (`analyse_tracking` 3 and 7). This is Phase 5's field gate.
+3. **Then:** if each side's step test matches its own tracking but the sides differ, a profile per gravity side
+   (chosen by the sign of the torque on M3); if the phase repeats per setup, per-payload profiles in the driver (save/load a named profile set); if
+   it drifts between nights, a short test at the start of each session (a reduced schedule, ~5–8 min; the sweep fit
+   makes it safe unattended).
+4. **Parked** until the A/B shows the leftover worm matters: modelling M3's amplitude (and M2) against gravity load,
+   which needs tests at low arm angles (alt 25–35° with small roll) and the same torque sign at different M2 angles.
+5. **Small driver follow-ups:** ✅ the test now always runs at Roll ±45° (the side it is on), not ±25° only near Roll 0;
+   still to do: warn when a test starts above alt ~55°.
+
+### Open questions (current)
+
+1. What sets the worm phase between nights — payload, mounting, or a per-session MCU/mechanical state? (Next test: a
+   repeat on a 200 mm night; a 300 mm repeat if convenient later.)
+2. Does a profile measured by stepping (the test) match the error while tracking — and is the mismatch at Block E's
+   pose (finding 8) the gravity side, stepping vs tracking, or both?
+3. M2: is its worm pose/load dependent, or are the tests just poorly conditioned for it?
+4. Resolved: M1/M2/M3 share the 6.0° worm (960 = 16 × 60); RA/Dec-space periodic fitting is replaced; the PV/FF
+   injection point is `corrQ_WFF` in the forward kinematics; shadow dual-model logging was not needed (PECLOG logs
+   `wff` alongside the guide corrections, so every night shows both).
 
 ---
 
@@ -326,6 +443,8 @@ needs revising before any driver work starts.
 
 ## Phase 1 — Driver design (theta-space PEC model + PV/FF integration)
 
+*(Historical: built differently — a fixed per-motor worm profile on MCU angles measured by the worm profile test, not a model learnt live from guide corrections; see the status section.)*
+
 Only start once Phase 0 passes.
 
 ### 1.1 Model math
@@ -389,6 +508,8 @@ new fields present.
 ---
 
 ## Phase 3 — Desk testing via `replay.py`
+
+*(Historical: superseded by the digital twin (`tests/twin.py`, `tests/sim_digital_twin.py` with worms the driver can't see) and by measuring the worm directly with the profile test.)*
 
 **Important scoping correction from the initial read of `replay.py`/its README:** it does not
 simulate motor-level telemetry. `SYNCGUIDE_PE`/`PULSEGUIDE_PE` only fake the *guide correction
@@ -455,6 +576,8 @@ rather than discovering it mid-implementation.
 
 ## Open questions to resolve early (don't let these surface mid-implementation)
 
+*(Historical — see Open questions (current) in the status section.)*
+
 1. Confirm/refute "M1/M3 same motor+gearbox, M2 different" — Phase 0.2 answers this directly.
 2. Decide the Phase 3.2 ground-truth-injection gap before committing to a bench-test-only
    validation story.
@@ -482,6 +605,8 @@ needed. Re-scanned the full expanded set for continuous PECLOG duration: `08_02.
 remains the longest available by a wide margin; nothing in the new import beats it.
 
 ## Recommended target for tonight's confirmation capture
+
+*(Historical, 2026-08-31.)*
 
 Simulated candidate starting Az/Alt across a grid, holding RA/Dec fixed (pure sidereal
 tracking, no PEC) and running the real kinematics chain (`azalt_to_radec` → track forward →
