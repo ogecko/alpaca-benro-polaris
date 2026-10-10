@@ -20,7 +20,7 @@ from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, ca
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
-from control_eq import wedge_alignQ_B2T, goto_roll_for_eq
+from control_eq import wedge_alignQ_B2T
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
 from control_backlash import BacklashCompensator, HOLD_ARRIVED_ARCSEC
@@ -1305,7 +1305,8 @@ class PID_Controller():
             sp.get("roll", default[2]),
         ]
         if Config.advanced_eq_mode and "roll" not in sp:
-            alpha[2] = self._eq_goto_roll(alpha[0], alpha[1], alpha[2])
+            # eq mode keeps the Position Angle (as a delta target does), not the sky roll
+            alpha[2] = wrap180(self.delta_sp[2] - calc_parallactic_angle(alpha[0], alpha[1], self.polaris._sitelatitude))
         self.alpha_sp[:] = alpha
         self.alpha2body(alpha)
         self.delta_sp[:] = self.body2delta()
@@ -1313,12 +1314,6 @@ class PID_Controller():
         self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
-
-    def _eq_goto_roll(self, az, alt, roll_default):
-        """Eq mode goto without a roll/PA of its own: the roll that keeps M3 where it is (the framing), or failing
-        that the smallest M3 change (control_eq.goto_roll_for_eq); roll_default if the target is out of reach."""
-        roll = goto_roll_for_eq(az, alt, float(self.theta_pv[2]), self.polaris._sm.alignQ_B2T)
-        return roll_default if roll is None else roll
 
     def set_alpha_axis_velocity(self, axis, sp=0.0):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
@@ -1340,10 +1335,6 @@ class PID_Controller():
             sp.get("dec", default[1]),
             sp.get("pa",  default[2]),
         ]
-        if Config.advanced_eq_mode and "pa" not in sp:
-            az, alt, roll = self._delta_to_alpha(delta)
-            roll = self._eq_goto_roll(az, alt, roll)
-            delta[2] = wrap360(roll + calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
         self.delta_sp[:] = delta
         self.delta2body(delta)
         self.alpha_sp[:] = self.body2alpha()
