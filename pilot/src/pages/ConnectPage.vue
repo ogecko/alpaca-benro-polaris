@@ -111,6 +111,10 @@
                     </template>
                   </q-select>
                 </q-item-section>
+                <q-item-section v-else-if="!isNetworkJoined" side>
+                  <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="sm" color="primary" />
+                  <q-btn v-else label="Join" icon="mdi-wifi" @click="onBleEnableWifi" class="fixedWidth" />
+                </q-item-section>
               </q-item>
 
               <!-- Polaris Connecting -->
@@ -400,7 +404,7 @@ const isBLESelected = computed(() => (!!p.connected) || (!!p.bleselected && bleL
 const isNetworkJoined = computed(() => (!!p.connected) || (!!p.networkjoined));
 const networkCaption = computed(() => {
   return (isNetworkJoined.value) ? '' :
-         (bleLen.value==0) ? 'Check Power or Bluetooth, no devices discovered.' :
+         (bleLen.value==0) ? 'No Bluetooth devices discovered. Check Power, or use Join if Bluetooth is unavailable.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
          (!isBLESelected.value) ? 'Please select device.' :
          `Polaris not reachable at ${cfg.polaris_ip_address}. Use the Wi-Fi button to join its network.`

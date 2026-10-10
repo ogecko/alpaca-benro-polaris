@@ -426,7 +426,7 @@ class BLE_Controller:
     # module docstring for why this is "join", never "connect".
     # ------------------------------------------------------------------
 
-    async def joinWifiNetwork(self):
+    async def joinWifiNetwork(self, ssid: str | None = None):
         """Join this host machine to the Polaris hotspot that enableWifi()
         just turned on. Explicit-trigger only -- never called from the
         automatic background scan loop or setSelectedDevice(), since unlike
@@ -441,7 +441,7 @@ class BLE_Controller:
         outcome on success (freshly joined vs. already joined), and
         duplicating a generic "Joined" message on top of that just reads as
         confusing ("Already joined" immediately followed by "Joined")."""
-        ssid = self.selectedDevice
+        ssid = ssid or self.selectedDevice
         if not ssid:
             return False
         try:
@@ -475,15 +475,33 @@ class BLE_Controller:
         self.isWifiEnabled  = False
 
         try:
-            if not self.selectedDevice:
-                self.logger.warning("Join Wi-Fi: Select Polaris device before joining network - nothing to do")
-                return
             if self.isConnectedFn():
                 self.logger.info(f"Join Wi-Fi: Already connected to '{self.selectedDevice}' - nothing to do")
                 self.isWifiEnabled  = True
                 return
+            ssid = self.selectedDevice or await self._discoverPolarisSsid()
+            if not ssid:
+                return
             # await self.enableWifi()   # dont need to do this on button press as its done in automatic scan
-            self.isWifiEnabled = await self.joinWifiNetwork()
+            self.isWifiEnabled = await self.joinWifiNetwork(ssid)
 
         finally:
             self.isEnablingWifi = False
+
+    async def _discoverPolarisSsid(self) -> str | None:
+        """Fallback when BLE has no device -- e.g. Pi 4 onboard BT, whose
+        scan responses (which carry the Polaris name) are lost to Wi-Fi
+        coexistence. Finds the Polaris hotspot by Wi-Fi scan instead, which
+        only works if the mount's hotspot is already on."""
+        try:
+            ssids = await asyncio.to_thread(join_wifi.discover_polaris_networks)
+        except Exception as e:
+            self.logger.warning(f"Join Wi-Fi: Polaris network scan failed: {e}")
+            return None
+        if not ssids:
+            self.logger.warning("Join Wi-Fi: No Polaris found by Bluetooth or Wi-Fi scan - check the Polaris is powered on")
+            return None
+        if len(ssids) > 1:
+            self.logger.warning(f"Join Wi-Fi: Multiple Polaris networks visible {ssids} - join manually from the OS's WiFi list")
+            return None
+        return ssids[0]
