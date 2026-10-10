@@ -154,7 +154,7 @@ log_polaris_polling = false                 # log frequent polling messages from
 log_quest_model = true                      # log weights in multi-point sync model
 log_orbital_queries = true                  # log information related to JPL and Celestrak orbital parameter queries
 log_pec = true                              # log information related to Predictive Error Correction
-log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
+log_heartbeat = false                       # log the stack trace whenever there is a heartbeat skip, and garbage collections over 100 ms
 log_position = false                        # log full KF (KFLOG) and PID (PIDLOG) telemetry to file every control tick (~200ms while tracking)
 log_hardware_unit_tests = false             # allow unit tests that send real protocol commands to the Polaris (they move the mount) to run
 

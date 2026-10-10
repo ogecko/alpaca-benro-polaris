@@ -17,6 +17,7 @@ Contents
 
 from __future__ import annotations
 from threading import Lock
+import gc
 from exceptions import Success
 import json
 import re
@@ -416,6 +417,43 @@ def empty_queue(q: asyncio.Queue):
         q.get_nowait()
     except asyncio.QueueEmpty:
         break
+
+
+# ── garbage collection pauses (diagnostic, with log_heartbeat) ────────────────────────────────
+GC_LOG_MIN_S = 0.1          # log a garbage collection that takes at least this long
+
+
+class GcPauseLogger:
+    """Logs every garbage collection that pauses the process for at least min_s (gc.callbacks): a full collection of a
+    large heap stops every thread, the event loop included, so its SLOW speed switching too. Suspected 2026-10-09: the
+    event loop stalled 0.6-1.3 s every ~10 min at normal CPU, each followed by a 12-38" kick on all three motors.
+    Installed with log_heartbeat (main.py); costs two clock reads per collection."""
+
+    def __init__(self, logger, min_s=GC_LOG_MIN_S, clock=time.perf_counter):
+        self._logger, self.min_s, self._clock = logger, min_s, clock
+        self._start = None
+
+    def __call__(self, phase, info):
+        if phase == 'start':
+            self._start = self._clock()
+            return
+        if self._start is None:
+            return
+        dt, self._start = self._clock() - self._start, None
+        if dt >= self.min_s:
+            stats = gc.get_stats()
+            self._logger.warning(f"->> GC pause: {dt:.3f}s, generation {info.get('generation')}, collected "
+                                 f"{info.get('collected')}, uncollectable {info.get('uncollectable')}, counts "
+                                 f"{gc.get_count()}, collections so far {[g.get('collections') for g in stats]}")
+
+    def install(self):
+        if self not in gc.callbacks:
+            gc.callbacks.append(self)
+        return self
+
+    def remove(self):
+        if self in gc.callbacks:
+            gc.callbacks.remove(self)
 
 from enum import Enum, auto
 
