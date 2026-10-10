@@ -351,6 +351,9 @@ REACH_SCAN_STEP_DEG = 0.1
 CALIBRATION_HISTORY = 50      # tests kept in the profile's calibration_history (with their samples, ~60 KB each)
 POOL_TESTS = 5                # the applied profile pools the last this many tests with a clean fit ...
 POOL_MAX_RMS_ARCSEC = 20.0    # ... a residual below this (each COMPLETED, or POOR FIT only for too few sigma on its own)
+POOLED_FIT_MAX_RMS_ARCSEC = 25.0  # a fit over several tests is COMPLETED below this: pooling adds the differences between
+                              # tests (seeing, the gravity side), so it sits above the tests' own 12-18" (2026-10-09:
+                              # every pool of 3-8 clean tests 18.9-21.7")
 
 
 def _legs(step_deg, pattern):
@@ -658,8 +661,10 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
         out['motors'][MOTORS[m]] = info
     out['checks'].update(rms_arcsec=round(float(np.sqrt(s2)), 2),
                          separation_deg=[round(float(sep.min()), 1), round(float(sep.max()), 1)])
-    # COMPLETED: a clean fit (a residual like a test that pools) that measured at least one motor's worm
-    out['status'] = 'COMPLETED' if applied_any and np.sqrt(s2) < POOL_MAX_RMS_ARCSEC else 'POOR FIT'
+    # COMPLETED: a clean fit (a residual like a test that pools; a looser limit for a pool of tests) that measured at
+    # least one motor's worm
+    limit = POOL_MAX_RMS_ARCSEC if len(tests) <= 1 else POOLED_FIT_MAX_RMS_ARCSEC
+    out['status'] = 'COMPLETED' if applied_any and np.sqrt(s2) < limit else 'POOR FIT'
     return out
 
 

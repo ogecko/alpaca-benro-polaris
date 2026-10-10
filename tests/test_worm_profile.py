@@ -471,3 +471,17 @@ def test_the_row_shows_the_profile_in_use_as_its_baseline():
     assert profile_row_fields(r, r, None)['dps'] == 'none'
     off = WormFeedForward(worm_theta=6.0, harmonics=(1,), coef=np.array([[0.0, 0.0], [0.0, -86.2], [-58.8, -61.5]]))
     assert profile_text(off) == 'M1 off M2 86"@180 M3 85"@224'
+
+
+# ── pooled fits: a looser residual limit than one test ─────────────────────────────────────────
+
+def test_a_pool_of_tests_is_judged_by_the_pooled_limit():
+    """2026-10-09: tests 12-16 fitted at 12-18" each, but pooled at 20.2" (between-test differences: seeing, the gravity
+    side) -- just over the single-test 20" limit, so Approve found nothing to apply. A pool is judged at 25"."""
+    from control_worm import POOL_MAX_RMS_ARCSEC, POOLED_FIT_MAX_RMS_ARCSEC
+    noisy = [synthetic_test(seed=s, noise=24.0) for s in (1, 2)]          # fits at ~21.5"
+    single = fit_worm_profile([noisy[0]])
+    pooled = fit_worm_profile(noisy)
+    assert POOL_MAX_RMS_ARCSEC < single['checks']['rms_arcsec'] < POOLED_FIT_MAX_RMS_ARCSEC
+    assert single['status'] == 'POOR FIT'
+    assert pooled['checks']['rms_arcsec'] < POOLED_FIT_MAX_RMS_ARCSEC and pooled['status'] == 'COMPLETED'
