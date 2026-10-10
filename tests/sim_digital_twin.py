@@ -262,6 +262,7 @@ class Twin:
         omega_meas = omega_ref if self._last_raw is None else (theta_raw - self._last_raw) / MEASURE_DT
         self._last_raw = theta_raw
         p._theta_raw = theta_raw
+        p._q1 = theta_to_q(*theta_raw)                      # polaris.py: the raw 518 motor quaternion (refresh_pid_setpoints_from_q1)
         p._zeta_meas = [theta_raw[0] - 180.0, theta_raw[1] - 45.0, theta_raw[2]]   # "517" raw motor angles (hardware: zeta = theta - (180, 45, 0))
         self.kf.predict(omega_ref)
         is_tracking = self.pid.mode == 'TRACK'

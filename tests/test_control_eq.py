@@ -20,9 +20,10 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 from quaternion import Q as Quaternion
-from kinematics import theta_to_q, q_to_theta, LastPosition, vector_to_az_alt, azalt_to_vector, THETA2_MAX
+from kinematics import (theta_to_q, q_to_theta, q_to_azaltroll, azaltroll_to_q, LastPosition, vector_to_az_alt, azalt_to_vector,
+                        wrap180, THETA2_MAX)
 from control_eq import (celestial_pole_topo, wedge_alignQ_B2T, theta_to_pole_dec, min_abs_theta3_for_dec,
-                        THETA2_MIN, SIDEREAL_RATE_ARCSEC_S)
+                        roll_keeping_theta3, goto_roll_for_eq, THETA2_MIN, SIDEREAL_RATE_ARCSEC_S)
 
 SITE_LAT, SITE_LON = -33.655, 151.2          # the 2026-10-08 session's site
 START = ephem.Date('2026/10/09 14:00:00')    # UTC, ~midnight local
@@ -155,7 +156,12 @@ class TestReach:
 #   * the control loop applies its reach limits in the mount's own (base) frame, not as if the base were level:
 #     wedge poses whose sky alt/roll a level mount can't reach are tracked unchanged
 #   * sidereal tracking is M1-only: M2 and M3 hold, M1 runs at the sidereal rate
-#   * a goto while tracking completes on target
+#   * a goto while tracking completes on target, and keeps M3 where it is (framing) when it can, else the smallest
+#     M3 change: M3 at 0 if M2 alone reaches the target, or past 90 deg for the far side of the equator
+#   * the meridian is no event: tracking through hour angle 0 is M1-only with no flip or unwind
+#   * switching advanced_eq_mode on or off while tracking re-bases the setpoints on the current position: the mount
+#     does not slew, and keeps tracking
+#   * with advanced_eq_mode off everything is as before (the rest of the test suite, plus the level goto below)
 
 
 from config import Config, CONFIG_TOML_PATH
@@ -273,3 +279,103 @@ class TestEqTracking:
         tw.close()
         assert done is not None and done < 40, f"goto did not complete ({done})"
         assert miss < 60, f"goto finished {miss:.1f}\" from target"
+
+
+class TestEqGotoRoll:
+
+    @pytest.mark.parametrize("theta", [(30.0, 36.0, 0.0), (-50.0, 60.0, 25.0), (100.0, 20.0, -40.0),
+                                       (10.0, 75.0, 130.0), (200.0, -5.0, 0.0)])
+    @pytest.mark.parametrize("alignQ", ["wedge", "level"])
+    def test_roll_keeping_theta3_round_trips(self, theta, alignQ):
+        q = WEDGE if alignQ == "wedge" else Quaternion(1, 0, 0, 0)
+        az, alt, roll = q_to_azaltroll(q * theta_to_q(*theta))
+        assert wrap180(roll_keeping_theta3(az, alt, theta[2], q) - roll) == pytest.approx(0.0, abs=1e-6)
+
+    def test_roll_keeping_theta3_none_when_m3_cannot_reach(self):
+        az, alt, _ = q_to_azaltroll(WEDGE * theta_to_q(30.0, 40.0, 0.0))      # dec_p 40
+        assert roll_keeping_theta3(az, alt, 80.0, WEDGE) is None              # at theta3 80, |dec_p| <= 10
+
+    @pytest.mark.parametrize("theta3_now, target, expected_theta3", [
+        (25.0, (30.0, 40.0, 25.0), 25.0),        # reachable: M3 kept
+        (80.0, (30.0, 40.0, 0.0), 0.0),          # dec_p 40 not reachable at 80: M2 alone, M3 at 0
+        (0.0, (30.0, 81.5, 120.0), 120.0),       # far side (dec_p -30): the smallest |theta3| past 90 ...
+        (-10.0, (30.0, 81.5, -120.0), -120.0),   # ... on the side M3 is already
+    ])
+    def test_goto_roll_for_eq_picks_theta3(self, theta3_now, target, expected_theta3):
+        az, alt, _ = q_to_azaltroll(WEDGE * theta_to_q(*target))
+        roll = goto_roll_for_eq(az, alt, theta3_now, WEDGE)
+        _, _, theta3 = q_to_theta(WEDGE.inverse * azaltroll_to_q(az, alt, roll),
+                                  LastPosition(target[0], target[1], expected_theta3))
+        assert wrap180(theta3 - expected_theta3) == pytest.approx(0.0, abs=0.5)
+
+
+def eq_toggle(monkeypatch, tw, on):
+    """Polaris:ConfigUpdate advanced_eq_mode (as polaris.make_config_params_live applies it)."""
+    monkeypatch.setattr(Config, "advanced_eq_mode", on)
+    sm = tw.polaris._sm
+    sm.clear_sync_guiding()
+    sm.optimize_alignQ_B2T()
+    sm.refresh_pid_setpoints_from_q1()
+
+
+class TestEqGotos:
+
+    @pytest.mark.parametrize("pose", ["ha-4h_dec-36", "m3_framing_dec-52"])
+    def test_goto_while_tracking_keeps_m3(self, monkeypatch, pose):
+        tw = eq_twin(monkeypatch, EQ_POSES[pose])
+        theta3 = tw.theta[2]
+        target = (tw.polaris.rightascension + 0.2, tw.polaris.declination - 3.0)
+        done, _, miss = run_goto(tw, lambda: tw.goto_radec(*target), target_radec=target)
+        tw.run(10)
+        moved3 = tw.theta[2] - theta3
+        tw.close()
+        assert done is not None and miss < 60, f"goto done {done}, miss {miss}"
+        assert abs(moved3) < 0.05, f"M3 moved {moved3:.3f} deg"
+
+    def test_goto_across_dec_0_completes(self, monkeypatch):
+        tw = eq_twin(monkeypatch, (60.0, 12.0, 0.0))                       # dec_p 12 (Dec -12)
+        target = (tw.polaris.rightascension, tw.polaris.declination + 16.0)  # Dec +4: M2 through 0 (gimbal lock)
+        done, _, miss = run_goto(tw, lambda: tw.goto_radec(*target), target_radec=target, max_s=90)
+        tw.close()
+        assert done is not None and miss < 60, f"goto done {done}, miss {miss}"
+
+    def test_level_goto_keeps_sky_roll_as_before(self, monkeypatch):
+        tw = Twin(monkeypatch, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((150.0, 40.0, 20.0))
+        tw.start_tracking()
+        tw.run(10)
+        tw.goto_radec(tw.polaris.rightascension + 0.2, tw.polaris.declination - 3.0)
+        roll_default = tw.pid.body2alpha()[2]
+        assert tw.pid.alpha_sp[2] == pytest.approx(roll_default, abs=1e-9)
+        tw.close()
+
+
+class TestEqMeridianAndToggle:
+
+    def test_tracking_through_the_meridian_is_m1_only(self, monkeypatch, caplog):
+        tw = eq_twin(monkeypatch, (2.0, 56.0, -0.5))        # 8 min east of the meridian
+        theta0 = tw.theta
+        with caplog.at_level("INFO"):
+            tw.run(16 * 60)
+        moved = tw.theta - theta0
+        tw.close()
+        assert theta0[0] > 0 > tw.theta[0], f"M1 {theta0[0]:.2f} -> {tw.theta[0]:.2f} did not pass the meridian"
+        assert abs(moved[1]) * 3600 < 10 and abs(moved[2]) * 3600 < 10
+        assert not [r for r in caplog.records if "UNWIND" in r.getMessage() or "FLIP" in r.getMessage()]
+
+    @pytest.mark.parametrize("start_eq", [False, True], ids=["level->eq", "eq->level"])
+    def test_toggle_while_tracking_does_not_slew(self, monkeypatch, start_eq):
+        config = {"coordinated_speed_control": True, "advanced_eq_mode": start_eq}
+        tw = Twin(monkeypatch, config=config, seed=0)
+        tw.place(EQ_POSES["ha-4h_dec-36"] if start_eq else (135.0, 45.0, 0.0))
+        tw.start_tracking()
+        tw.run(30)
+        theta0 = tw.theta
+        eq_toggle(monkeypatch, tw, not start_eq)
+        mode = tw.pid.mode
+        rms = tracking_rms(tw, seconds=30.0)
+        moved = np.abs(tw.theta - theta0)
+        tw.close()
+        assert mode == "TRACK"
+        assert np.all(moved < 0.2), f"motors moved {np.round(moved, 3)} deg in 30 s: a slew"
+        assert rms < 5.0, f"tracking RMS {rms:.2f}\""

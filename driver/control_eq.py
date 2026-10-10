@@ -23,7 +23,7 @@ import math
 import numpy as np
 
 from quaternion import Q as Quaternion
-from kinematics import THETA2_MAX
+from kinematics import THETA2_MAX, theta_to_q, q_to_azaltroll, azalt_to_vector, vector_to_az_alt
 
 THETA2_MIN = -8.0
 SIDEREAL_RATE_ARCSEC_S = 360 * 3600 / 86164.0905     # ~15.041"/s
@@ -55,10 +55,50 @@ def theta_to_pole_dec(theta2: float, theta3: float) -> float:
 def min_abs_theta3_for_dec(dec_deg: float, lat_deg: float):
     """Smallest |theta3| (degrees) that reaches Dec dec_deg on an ideal wedge at latitude lat_deg, or None if out
     of reach. 0 means M2 alone sets the Dec; above 90 the camera must swing round past the M2 arm."""
-    dec_p = dec_deg if lat_deg >= 0 else -dec_deg
+    return _min_abs_theta3(dec_deg if lat_deg >= 0 else -dec_deg)
+
+
+def _min_abs_theta3(dec_p: float):
+    """Smallest |theta3| that reaches dec_p (the boresight's angle above the base plane, toward the M1 axis)."""
     if abs(dec_p) > THETA2_MAX:
         return None
     if dec_p >= THETA2_MIN:
         return 0.0
     # far side: cos(theta3) = sin(dec_p) / sin(theta2) is negative; |theta3| is smallest at theta2 = THETA2_MAX
     return math.degrees(math.acos(math.sin(math.radians(dec_p)) / math.sin(math.radians(THETA2_MAX))))
+
+
+def roll_keeping_theta3(az: float, alt: float, theta3: float, alignQ_B2T: Quaternion):
+    """Sky roll (deg) that points the boresight at az/alt with M3 at theta3, or None if M3 there can't reach it
+    (theta2 would be outside [THETA2_MIN, THETA2_MAX]). Uses the base-frame identity
+    sin(boresight elevation) = cos(theta3) sin(theta2), then turns M1 onto the target's base azimuth."""
+    bore_B = np.asarray(alignQ_B2T.inverse.rotate(azalt_to_vector(az, alt)))
+    cos3 = math.cos(math.radians(theta3))
+    if abs(cos3) < 1e-9 or abs(bore_B[2]) > abs(cos3) + 1e-12:
+        return None
+    theta2 = math.degrees(math.asin(np.clip(bore_B[2] / cos3, -1.0, 1.0)))
+    if not THETA2_MIN - 1e-6 <= theta2 <= THETA2_MAX + 1e-6:    # at the limit itself (the smallest far-side theta3)
+        return None
+    theta2 = float(np.clip(theta2, THETA2_MIN, THETA2_MAX))
+    az0, _ = vector_to_az_alt(theta_to_q(0.0, theta2, theta3).rotate([0, 0, -1]))
+    az_B, _ = vector_to_az_alt(bore_B)
+    return q_to_azaltroll(alignQ_B2T * theta_to_q(az_B - az0, theta2, theta3))[2]
+
+
+def goto_roll_for_eq(az: float, alt: float, theta3_now: float, alignQ_B2T: Quaternion):
+    """Sky roll for an eq mode goto to az/alt: keep M3 where it is (framing) if it can reach the target, else M3
+    at 0 (M2 alone sets the Dec), else the smallest |theta3| past 90 on the side M3 is already. None if out of
+    reach (the polar caps)."""
+    roll = roll_keeping_theta3(az, alt, theta3_now, alignQ_B2T)
+    if roll is not None:
+        return roll
+    bore_B = np.asarray(alignQ_B2T.inverse.rotate(azalt_to_vector(az, alt)))
+    t3 = _min_abs_theta3(math.degrees(math.asin(np.clip(bore_B[2], -1.0, 1.0))))
+    if t3 is None:
+        return None
+    side = -1.0 if math.sin(math.radians(theta3_now)) < 0 else 1.0
+    for theta3 in (side * t3, -side * t3):
+        roll = roll_keeping_theta3(az, alt, theta3, alignQ_B2T)
+        if roll is not None:
+            return roll
+    return None
