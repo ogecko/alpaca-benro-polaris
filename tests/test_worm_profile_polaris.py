@@ -48,7 +48,7 @@ class FakeSM:
     def sync_az_alt(self, *a): raise AssertionError('applied to the alignment model during a worm profile test')
 
 
-def fake_polaris(tmp_path, separation=30.0, roll=30.0, roll_move_finishes=True):
+def fake_polaris(tmp_path, separation=30.0, roll=45.0, roll_move_finishes=True):
     p = SimpleNamespace(lifecycle=Lifecycle(), _sm=FakeSM(str(tmp_path / 'worm_profile.json'), separation),
                         _cm=CalibrationManager(False), logger=logging.getLogger('test'), _tracking=False, calls=[],
                         _pid=SimpleNamespace(theta_pv=[180.0, 45.0, 10.0], alpha_pv=[180.0, 45.0, roll], theta_ref=None,
@@ -199,24 +199,33 @@ def test_start_and_end_log_lines_mark_the_test_for_the_log_catalog(tmp_path, cfg
 
 
 # ── the pose: a roll that separates M1 and M3 ─────────────────────────────────────────────────
-def test_near_roll_0_the_test_rotates_to_25_deg_first_and_back_when_finished(tmp_path, cfg):
+def test_near_roll_0_the_test_rotates_to_45_deg_first_and_back_when_finished(tmp_path, cfg):
     p = fake_polaris(tmp_path, roll=5.0)
     run_test(p)
-    assert p.rolls == [25.0, 5.0] and p._cm.test_data[PROFILE_TEST]['test_status'] == 'COMPLETED'
+    assert p.rolls == [45.0, 5.0] and p._cm.test_data[PROFILE_TEST]['test_status'] == 'COMPLETED'
     assert len(p.synced_while_rolling) == 2 and p._sm.recorded == []     # syncs while rotating: ignored, not recorded
     assert all(t.done() and t.exception() is None for t in p.synced_while_rolling)   # nor applied (FakeSM would raise)
 
 
-def test_with_enough_roll_the_pose_is_left_alone(tmp_path, cfg):
-    p = fake_polaris(tmp_path, roll=-30.0)
+def test_already_at_45_deg_the_pose_is_left_alone(tmp_path, cfg):
+    p = fake_polaris(tmp_path, roll=-45.5)
     run_test(p)
     assert p.rolls == []
 
 
-def test_a_negative_roll_rotates_to_minus_25_and_a_stopped_test_does_not_rotate_back(tmp_path, cfg):
+@pytest.mark.parametrize("roll, target", [(30.0, 45.0), (60.0, 45.0), (-75.0, -45.0)])
+def test_the_test_always_runs_at_45_deg_roll(tmp_path, cfg, roll, target):
+    """2026-10-09: |Roll| 45-60 at Alt 35-45 gave the lowest SE for every motor (Roll +-25-30 separates M1 and M3 by
+    only ~25-30 deg), so the test always runs at Roll +-45 (the side it is on) and comes back afterwards."""
+    p = fake_polaris(tmp_path, roll=roll)
+    run_test(p)
+    assert p.rolls == [target, roll]
+
+
+def test_a_negative_roll_rotates_to_minus_45_and_a_stopped_test_does_not_rotate_back(tmp_path, cfg):
     p = fake_polaris(tmp_path, roll=-8.0)
     run_test(p, stop=True)
-    assert p.rolls == [-25.0]
+    assert p.rolls == [-45.0]
 
 
 def test_a_roll_move_that_does_not_finish_stops_the_test(tmp_path, cfg):

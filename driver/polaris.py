@@ -51,7 +51,7 @@ from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_
 from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
 from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, row_status, MIN_SEPARATION_DEG
 from control_worm import profile_summary, row_fields_from_file, PROFILE_TEST
-from control_worm import ROLL_MIN_DEG, ROLL_TARGET_DEG, POSITIONS, SYNC_CYCLE_S, SETTLE_TIMEOUT_S, fit_sweep, MOTORS
+from control_worm import ROLL_TARGET_DEG, ROLL_TOLERANCE_DEG, POSITIONS, SYNC_CYCLE_S, SETTLE_TIMEOUT_S, fit_sweep, MOTORS
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
@@ -667,7 +667,7 @@ class Polaris:
         if sep < MIN_SEPARATION_DEG:
             self.logger.warning(f"WORM PROFILE TEST: M1 and M3 move the view in nearly the same direction here "
                                 f"({sep:.0f} deg apart, Roll near 0): their worms may not separate -- a pose with Roll "
-                                f"15-30 deg either way is better")
+                                f"{ROLL_TARGET_DEG:.0f}-60 deg either way is better")
         sm.worm_test = test
         if np.any(positions[0] != 0):                        # the fitted sweep starts off the current pose: go there
             pid.step_motor_targets(positions[0])
@@ -716,14 +716,14 @@ class Polaris:
 
     async def _worm_test_roll(self, target, timeout_s=120.0):
         """Rotate to a roll that separates M1 and M3 (or back to `target`, the roll before the test), keeping Az/Alt.
-        Going to the test pose, `target` is ROLL_TARGET_DEG, used with the sign of the current roll and only when |Roll|
-        is below ROLL_MIN_DEG. Returns the roll before the move (None: no move needed), or False if the move didn't
-        finish (the test was stopped, or it timed out)."""
+        Going to the test pose, `target` is ROLL_TARGET_DEG, used with the sign of the current roll (the test always
+        runs there: the best separation measured). Returns the roll before the move (None: already there), or False if
+        the move didn't finish (the test was stopped, or it timed out)."""
         roll = float(self._pid.alpha_pv[2])
         if target == ROLL_TARGET_DEG:
-            if abs(roll) >= ROLL_MIN_DEG:
-                return None
             target = ROLL_TARGET_DEG if roll >= 0 else -ROLL_TARGET_DEG
+            if abs(roll - target) <= ROLL_TOLERANCE_DEG:
+                return None
             self.logger.info(f"WORM PROFILE TEST: rotating Roll {roll:.1f} -> {target:.0f} deg (M1 and M3 separate "
                              f"with roll; back to {roll:.1f} afterwards)")
         else:

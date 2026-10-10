@@ -31,8 +31,8 @@
 # motor's 2-D effect on the pointing there. fit_worm_profile fits every motor's worm (1st and 2nd harmonic) to that,
 # next to each motor's backlash and, per test, an offset, a drift in time and a trend across the pointing. Motors are
 # told apart by their different schedules and by the direction each moves the field: at Roll 0 M1 and M3 move it the
-# same way (they separate by about the roll angle), so the test first rotates to Roll +-ROLL_TARGET_DEG when |Roll| is
-# below ROLL_MIN_DEG, keeping Az/Alt, and back when it has finished -- see motor_separation().
+# same way (they separate by about the roll angle), so the test first rotates to Roll +-ROLL_TARGET_DEG (the sign of the
+# current roll), keeping Az/Alt, and back when it has finished -- see motor_separation().
 #
 # Angles are the MCU's (517 zeta: theta_raw - zeta_raw_offset), the same every session. Every test is kept in the
 # profile file's calibration_history (the last CALIBRATION_HISTORY, with their samples); approving the row applies
@@ -331,8 +331,10 @@ MIN_POSITIONS = 16            # fewer kept positions (after the start): NO DATA
 MIN_SIGNIFICANCE = 4.0        # a motor's 1st harmonic amplitude / its standard error, for COMPLETED
 MIN_H2_SIGNIFICANCE = 3.0     # a 2nd harmonic is applied only when at least this significant
 MIN_SEPARATION_DEG = 10.0     # warn when M1 and M3 move the field within this angle (Roll ~0): their worms are less certain
-ROLL_MIN_DEG = 20.0           # the test first rotates to ROLL_TARGET_DEG when |Roll| is below this (M1 and M3 separate
-ROLL_TARGET_DEG = 25.0        # by about the roll angle), and back afterwards
+ROLL_TARGET_DEG = 45.0        # the test first rotates to Roll +-this (the sign of the current roll; M1 and M3 separate by
+                              # about the roll angle), and back afterwards. 2026-10-09 tests: |Roll| 45-60 (with Alt 35-45)
+                              # gave the lowest SE for every motor; at Roll +-25-30 M1 and M3 are only ~25-30 deg apart
+ROLL_TOLERANCE_DEG = 1.0      # already this close to the target roll: no rotation
 SETTLE_ARCSEC = 10.0          # a step has settled when every motor holds within this of its target ...
 SETTLE_HOLD_S = 1.0           # ... for this long
 JUMP_ARCSEC = 300.0           # 2-D error change from the last kept sample that means the exposure caught the move
