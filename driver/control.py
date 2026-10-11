@@ -2315,13 +2315,12 @@ class SyncManager(PecMixin, WormMixin):
 
 
 
-    def baseQ_to_topoQ(self, motorQ_C2B_state, theta=None, mac_theta=None):
+    def baseQ_to_topoQ(self, motorQ_C2B_state, theta=None):
         """
         Forward kinematics: Base frame → Topocentric frame.
         motorQ → [WFF] → [MAC] → [SGC] → [PGC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         theta: the motor angles (deg) motorQ_C2B_state was built from -- the control tick passes them to refresh the
         worm feed-forward and MAC at the current pose; other callers reuse the last ones.
-        mac_theta: motor angles of a pose that isn't the current one: MAC for that pose only.
         """
         # Apply Worm Feed-Forward (WFF): the gear error after each motor, which the MCU can't see (control_pec)
         if theta is not None:
@@ -2332,10 +2331,7 @@ class SyncManager(PecMixin, WormMixin):
         # Apply Mechanical Alignment Correction (MAC): M2/M3 offsets and M2 scale on the motor angles (after the worm)
         if theta is not None:
             self.update_mac_correction(np.asarray(theta, float) + getattr(self, 'worm_error_deg', 0.0))
-        if mac_theta is not None:
-            motorQ_C2B_pv = self.mac_correction_q(np.asarray(mac_theta, float) + getattr(self, 'worm_error_deg', 0.0)) \
-                * motorQ_C2B_pv
-        elif Config.advanced_align_mac and self.corrQ_MAC.degrees != 0:
+        if Config.advanced_align_mac and self.corrQ_MAC.degrees != 0:
             motorQ_C2B_pv = self.corrQ_MAC * motorQ_C2B_pv
 
         # Apply Sync Guide Corrections (SGC)

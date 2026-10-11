@@ -2717,9 +2717,10 @@ class Polaris:
 
 
     def theta_to_alpha(self, theta) -> tuple:
-        """Motor angles in the PID's base frame (theta1-3, deg) -> topocentric Az/Alt/Roll, through the
-        same corrections as the live position (MAC, SGC, PGC, QUEST, LGA, roll_adj)."""
-        cameraQ, _ = self._sm.baseQ_to_topoQ(theta_to_q(*theta), mac_theta=theta)
+        """The PID's motor angles (theta_ref / theta_pv, deg) -> topocentric Az/Alt/Roll. They are already corrected
+        (worm, MAC, sync and pulse guiding), so only QUEST, SCC and roll_adj remain: the inverse of how
+        topoQ_to_baseQ makes theta_ref."""
+        cameraQ = self._sm.pvQ_to_topoQ(theta_to_q(*theta))
         return q_to_azaltroll(cameraQ)
 
     def parse_slew_parameters(self, parameters: dict) -> dict:

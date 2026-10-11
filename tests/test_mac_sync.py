@@ -157,20 +157,6 @@ def test_calibration_needs_enough_well_spread_points(cfg):
     assert not r['success'] and 'points' in r['message']
 
 
-def test_another_pose_uses_its_own_correction_not_the_current_poses(cfg):
-    """polaris.theta_to_alpha converts motor angles that aren't the current pose: mac_theta gives their own
-    correction, without changing the current pose's (used by callers without motor angles)."""
-    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
-    sync_all(sm, p)
-    current = np.array([200.0, 41.0, -25.0])
-    sm.baseQ_to_topoQ(theta_to_q(*current), theta=current)
-    other = np.array([90.0, 65.0, 50.0])
-    cam, _ = sm.baseQ_to_topoQ(theta_to_q(*other), mac_theta=other)
-    assert sep_arcmin(cam.rotate([0, 0, -1]), true_direction(other)) < 0.1
-    cam, _ = sm.baseQ_to_topoQ(theta_to_q(*current))
-    assert sep_arcmin(cam.rotate([0, 0, -1]), true_direction(current)) < 0.1
-
-
 def test_when_the_points_cant_fix_the_offsets_the_weighted_quest_rotation_is_kept(cfg):
     """Points bunched together (or along one roll and altitude) can't separate the offsets from the rotation: the
     alignment is then the existing weighted QUEST, whose proximity weighting fits best locally (A/B: greg 08-02)."""
@@ -239,3 +225,22 @@ def test_with_roll_adj_the_pointing_is_unchanged_and_the_inverse_round_trips(cfg
         or angular_difference(q_to_azaltroll(cam)[2], q_to_azaltroll(cam0)[2]) == pytest.approx(12.0, abs=1e-6)
     back = sm.topoQ_to_baseQ(cam)                                   # the PID's corrected motor pose
     assert abs(abs(float(np.dot(back.q, mpv.q))) - 1.0) < 1e-12
+
+
+def test_a_motor_angle_slew_converts_the_pids_corrected_angles_without_correcting_them_again(cfg):
+    """polaris.theta_to_alpha (Polaris:SlewAbsolute m1/m2/m3) converts the PID's motor angles, which are already
+    corrected (worm, MAC, sync and pulse guiding): only QUEST, SCC and roll_adj remain. Applying the corrections
+    again set a target off by them -- with MAC about a degree."""
+    from types import SimpleNamespace
+    from polaris import Polaris as DriverPolaris
+    from kinematics import q_to_theta
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    sync_all(sm, p)
+    sm.q_syncguide_B = Quaternion(axis=[0.2, 1.0, 0.3], degrees=0.1)          # an active sync guide correction
+    theta = np.array([200.0, 41.0, -25.0])
+    cam, mpv = sm.baseQ_to_topoQ(theta_to_q(*theta), theta=theta)
+    theta_pid = np.asarray(q_to_theta(mpv), float)                             # the PID's theta_pv / theta_ref
+    az, alt, roll = DriverPolaris.theta_to_alpha(SimpleNamespace(_sm=sm), theta_pid)
+    want = q_to_azaltroll(cam)
+    assert sep_arcmin(azalt_to_vector(az, alt), azalt_to_vector(want[0], want[1])) < 0.01
+    assert abs(angular_difference(roll, want[2])) < 0.01
