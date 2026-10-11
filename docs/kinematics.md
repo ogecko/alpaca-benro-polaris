@@ -220,7 +220,7 @@ logs, run `uv run python alignment_ab.py` in `utility/`.
     offsets modelled, one fit holds everywhere. Slew & Center Correction and sync guiding handle what is left
     locally.
 *   **Forward kinematics:** the correction is applied to the motor angles after the worm gear correction, as a small
-    base-frame rotation at the current pose (`align_model.correction_q`), before sync guiding, pulse guiding and
+    base-frame rotation at the current pose (`kinematics_kinematics_mac.correction_q`), before sync guiding, pulse guiding and
     QUEST. The PID works in the corrected motor angles, as before.
 *   **Worm gear correction:** sync points keep their raw motor angles, so the model is refitted through the worm
     correction when that is switched, with no re-alignment.
@@ -796,7 +796,7 @@ theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
-    ▼ Mechanical Alignment Correction    (corrQ_MODEL)    B Frame   M2/M3 offsets, M2 scale on the motor angles
+    ▼ Mechanical Alignment Correction    (corrQ_MAC)    B Frame   M2/M3 offsets, M2 scale on the motor angles
     ▼ Sync Guiding + PEC Accum Corrections (q_syncguide_B) B Frame   PEC has no quaternion of its own —
     ▼ Pulse Guiding Accum Corrections    (q_pulseguide_B)  B Frame   it folds into q_syncguide_B here, see §4.4-4.6
 motorQ_pv              MAC, Sync/PEC and Pulse corrected only (B Frame)
@@ -870,7 +870,7 @@ polaris_protocol         Slew SLOW and FAST commands
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
 feed-forward. The Jacobian `J(theta_pv)` is expressed in the **B frame**, so `omega_topo`
-must be converted to `omega_base` before the solve. No `corrQ_MODEL⁻¹` is needed — MAC is
+must be converted to `omega_base` before the solve. No `corrQ_MAC⁻¹` is needed — MAC is
 already accounted for in `theta_pv` and therefore in the Jacobian.
 
 ```
@@ -998,7 +998,7 @@ motorQ_state       = theta_to_q(*theta_state)                  raw C→B quatern
     │
     ▼  SyncManager.baseQ_to_topoQ(motorQ_state, theta=theta_state)
     │     motorQ_C2B_pv = corrQ_WFF · motorQ_state                     [WFF]  ← worm feed-forward (when there is a worm gear profile)
-    │     motorQ_C2B_pv = corrQ_MODEL · motorQ_C2B_pv                  [MAC]  ← M2/M3 offsets, M2 scale (align_model)
+    │     motorQ_C2B_pv = corrQ_MAC · motorQ_C2B_pv                  [MAC]  ← M2/M3 offsets, M2 scale (mac)
     │     motorQ_C2B_pv = q_syncguide_B · motorQ_C2B_pv                [SGC]  ← sync guide + PEC land here
     │     motorQ_C2B_pv = q_pulseguide_B · motorQ_C2B_pv               [PGC]
     │     cameraQ_C2T_pv = alignQ_B2T · motorQ_C2B_pv  → [LGA] → [roll_adj]
@@ -1028,7 +1028,7 @@ motorQ_raw          (C→B, raw from IMU)
 theta_raw / alpha_raw / omega_raw
     │
     ▼  KF + PEC            Kalman Filter                B Frame
-    ▼  corrQ_MODEL         Mechanical Alignment Corr.   B frame
+    ▼  corrQ_MAC         Mechanical Alignment Corr.   B frame
 theta_pv / motorQ_adj    (B frame, mechanically adjusted)
     │
     ▼  alignQ_B2T          QUEST Alignment              B → T

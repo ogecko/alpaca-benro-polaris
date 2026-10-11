@@ -1,6 +1,6 @@
 """
-A/B of the alignment model (Mechanical Alignment Correction on: rotation + M2/M3 offsets, M2 scale, fitted
-unweighted -- driver/align_model.py) against the existing alignment (off: the driver's weighted rotation-only QUEST),
+A/B of Mechanical Alignment Correction (MAC on: rotation + M2/M3 offsets, M2 scale, fitted
+unweighted -- driver/kinematics_mac.py) against the existing alignment (off: the driver's weighted rotation-only QUEST),
 replayed on the sync tables that every QUEST refit writes to the driver log.
 
 Scored by goto accuracy: each sync point is held out in turn and predicted from a model fitted on the others -- for
@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
-from align_model import fit_alignment, corrected_theta, boresights          # noqa: E402
+from kinematics_mac import fit_alignment, corrected_theta, boresights          # noqa: E402
 from kinematics import q_to_theta, azaltroll_to_q, azalt_to_vector          # noqa: E402
 from quaternion import Q as Quaternion                                       # noqa: E402
 
@@ -113,7 +113,7 @@ def _sep_arcmin(a, b):
 
 def loo_errors_arcmin(al, s2=DEFAULT_M2_SCALE):
     """Leave-one-out goto errors (arcmin) per point: 'quest' (the driver's weighted rotation-only QUEST, MAC off),
-    'model' (the alignment model with the M2 scale s2; the weighted QUEST when its points can't fix the offsets)."""
+    'model' (QUEST + MAC with the M2 scale s2; the weighted QUEST when its points can't fix the offsets)."""
     n = len(al['obs'])
     quest, model = np.zeros(n), np.zeros(n)
     for k in range(n):

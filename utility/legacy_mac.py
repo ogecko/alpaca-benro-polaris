@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Legacy Mechanical Alignment Correction (MAC) model, removed from the driver in October 2026 (replaced by the
-alignment model in driver/align_model.py: M2/M3 zero offsets and an M2 scale fitted with QUEST -- see
+alignment model in driver/kinematics_mac.py: M2/M3 zero offsets and an M2 scale fitted with QUEST -- see
 docs/study_alignment_mac_v2.md). Kept here only for utility/fits_extract.py's older image-based analysis.
 """
 import math

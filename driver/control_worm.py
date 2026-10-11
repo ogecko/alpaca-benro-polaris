@@ -231,7 +231,7 @@ class WormMixin:
 
     def entry_worm_error_deg(self, entry):
         """(3,) deg: the worm gear error at a sync point's raw motor angles, with the profile in use now (zeros when
-        the correction is off or the point has no motor angles) -- the alignment model adds it to those angles."""
+        the correction is off or the point has no motor angles) -- MAC adds it to those angles."""
         prof = self.worm_ff_in_use()
         theta = entry.get('theta')
         if prof is None or theta is None:

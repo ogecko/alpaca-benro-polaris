@@ -1795,8 +1795,8 @@ class Polaris:
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,
-                'rbcerror': self._sm.model_error,
-                'alignmodel': [self._sm.align_d2, self._sm.align_d3, self._sm.model_terms()[2] * 100],
+                'rbcerror': self._sm.mac_error,
+                'alignmodel': [self._sm.mac_d2, self._sm.mac_d3, self._sm.mac_terms()[2] * 100],
                 'sccerror': self._sm.scc_error,
                 'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
                 'sgstatus': [self._sm.valid_sync_guide, sg_interval, sg_last_time, pulseg_last_time, pecg_last_time],
@@ -2719,7 +2719,7 @@ class Polaris:
     def theta_to_alpha(self, theta) -> tuple:
         """Motor angles in the PID's base frame (theta1-3, deg) -> topocentric Az/Alt/Roll, through the
         same corrections as the live position (MAC, SGC, PGC, QUEST, LGA, roll_adj)."""
-        cameraQ, _ = self._sm.baseQ_to_topoQ(theta_to_q(*theta), model_theta=theta)
+        cameraQ, _ = self._sm.baseQ_to_topoQ(theta_to_q(*theta), mac_theta=theta)
         return q_to_azaltroll(cameraQ)
 
     def parse_slew_parameters(self, parameters: dict) -> dict:

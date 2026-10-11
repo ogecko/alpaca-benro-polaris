@@ -6,7 +6,7 @@ Branch: to be created from `feature/pec_theta_v2`. Analysis: October 2026, from 
 
 Implemented on `feature/alignment_mac_v2`; user documentation in [kinematics.md §2.3](kinematics.md#23-mechanical-alignment-corrections).
 
-* `driver/align_model.py`: the fit (numpy, analytic derivatives, Gauss–Newton from QUEST's rotation): 0.6 ms for 10
+* `driver/kinematics_mac.py`: the fit (numpy, analytic derivatives, Gauss–Newton from QUEST's rotation): 0.6 ms for 10
   points on a desktop, against 20 ms for the study prototype. The control-tick correction is a closed form: about
   6 µs per tick.
 * The **Mechanical Alignment Correction** switch (`advanced_align_mac`) is the A/B switch. On: the rotation and

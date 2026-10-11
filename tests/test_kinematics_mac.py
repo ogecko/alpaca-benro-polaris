@@ -1,5 +1,5 @@
 """
-Tests for driver/align_model.py: the alignment model fitted with QUEST's rotation -- M2/M3 zero offsets (d2, d3) per
+Tests for driver/kinematics_mac.py: Mechanical Alignment Correction (MAC) fitted with QUEST's rotation -- M2/M3 zero offsets (d2, d3) per
 alignment and an M2 scale (s2, a mount constant), applied to the motor angles before the forward kinematics:
     theta' = theta + (0, d2 + s2 * (theta2 - 45), d3)
 docs/study_alignment_mac_v2.md: on 1,300 archived sync points these take residuals from 36-95' to 2-8'.
@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 from quaternion import Q as Quaternion
 
-from align_model import corrected_theta, boresights, fit_alignment, M2_SCALE_REF_DEG
+from kinematics_mac import corrected_theta, boresights, fit_alignment, M2_SCALE_REF_DEG
 from kinematics import theta_to_q, q_to_theta, azaltroll_to_q
 
 ARCMIN = 1 / 60.0
@@ -134,8 +134,8 @@ def test_residuals_are_per_point_in_arcmin():
 
 
 def test_correction_rotation_closed_form_matches_the_forward_kinematics():
-    """align_model.correction_q(theta, d2, d3, s2) = q(theta') q(theta)^-1, computed directly for the control tick."""
-    from align_model import correction_q
+    """kinematics_mac.correction_q(theta, d2, d3, s2) = q(theta') q(theta)^-1, computed directly for the control tick."""
+    from kinematics_mac import correction_q
     rng = np.random.default_rng(4)
     for _ in range(50):
         th = np.array([rng.uniform(0, 360), rng.uniform(-8, 81), rng.uniform(-170, 170)])

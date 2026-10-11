@@ -1,5 +1,5 @@
 """
-utility/alignment_ab.py: A/B of the alignment model (Mechanical Alignment Correction on) against the existing
+utility/alignment_ab.py: A/B of Mechanical Alignment Correction (MAC on) against the existing
 weighted rotation-only QUEST (off), replayed on the sync tables in archived driver logs. Scored by goto accuracy:
 each sync point held out in turn, predicted from a model fitted on the others.
 """
@@ -13,7 +13,7 @@ import pandas as pd
 import pytest
 
 from alignment_ab import parse_sync_tables, alignments, quest_weighted_q, loo_errors_arcmin
-from align_model import corrected_theta, boresights
+from kinematics_mac import corrected_theta, boresights
 from kinematics import q_to_theta, azaltroll_to_q, q_to_azaltroll, theta_to_q, vector_to_az_alt
 from quaternion import Q as Quaternion
 
@@ -58,7 +58,7 @@ def test_an_alignment_is_a_tables_largest_set_of_points():
 
 
 def test_weighted_quest_is_the_drivers_rotation():
-    """With equal weights it is the unweighted QUEST rotation that the alignment model starts from."""
+    """With equal weights it is the unweighted QUEST rotation that MAC's fit starts from."""
     t = synthetic_rows(POSES, d2=0, d3=0, s2=0)
     a = alignments(t, min_points=4)[0]
     q = quest_weighted_q(a['pred'], a['obs'], np.ones(len(a['obs'])))

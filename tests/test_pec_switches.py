@@ -5,9 +5,9 @@ Config.advanced_pec_worm (the worm gear correction from the measured profile), e
   * the worm gear correction applies only when it is switched on and a profile exists (a warning when it is on and there
     is none); the drift correction only learns and applies when its own switch is on
   * a sync point keeps its raw motor angles (theta, and the MCU's zeta) next to the raw predicted pose, so QUEST and
-    the alignment model can rebuild every prediction from the current switches and profile -- with the worm gear
+    MAC can rebuild every prediction from the current switches and profile -- with the worm gear
     correction on, a sync point is predicted through it, as the pointing is at runtime
-  * on the digital twin with the worm gears and M2/M3 offsets it cannot see: QUEST with the alignment model and the
+  * on the digital twin with the worm gears and M2/M3 offsets it cannot see: QUEST with MAC and the
     pointing reach the solve-noise floor with the worm gear correction on, and stay worm-limited with it off
   * switching either correction refits / restarts what depends on it; approving a profile switches the worm gear
     correction on, rejecting it switches it off
@@ -30,7 +30,7 @@ import control_worm
 from config import Config, CONFIG_TOML_PATH
 from control_worm import WormFeedForward
 from kinematics import theta_to_q, q_to_azaltroll, azaltroll_to_theta_ik, azalt_to_vector
-from align_model import corrected_theta
+from kinematics_mac import corrected_theta
 from quaternion import Q as Quaternion
 from sim_digital_twin import Twin
 from sim_guider import Worm, ARCSEC
@@ -232,7 +232,7 @@ MODEL_TRUE = dict(d2=50 / 60, d3=-53 / 60, s2=0.01)          # the 200 mm setup'
 @pytest.mark.parametrize('seed', [0, 1, 2])
 def test_the_alignment_model_with_the_worm_gear_correction_reaches_the_solve_noise(monkeypatch, profile_path, seed):
     """Hidden M2/M3 offsets and M2 scale on top of the worm gears: with both corrections on (Mechanical Alignment
-    Correction = the alignment model), QUEST and the pointing reach the solve noise; rotation-only QUEST (the A/B
+    Correction), QUEST and the pointing reach the solve noise; rotation-only QUEST (the A/B
     comparison) can't absorb the offsets."""
     sky = Sky(seed, model_true=MODEL_TRUE)
     tw = twin(monkeypatch, profile_path, worm=True, mac=True)

@@ -1,16 +1,31 @@
 # -*- coding: utf-8 -*-
-#
-# align_model.py - the alignment model fitted with QUEST's rotation
-#
-# Each sync point's raw motor angles are corrected before the forward kinematics:
-#     theta' = theta + (0, d2 + s2 * (theta2 - 45), d3)
-#   d2, d3   M2/M3 zero offsets, fitted per alignment (they change with the setup: how the camera and lens sit on
-#            the head -- a constant sideways pull on the lens is indistinguishable from d3)
-#   s2       M2 scale, a mount constant (+1-2% on every Polaris in the logs; config align_m2_scale)
-# docs/study_alignment_mac_v2.md: on 1,300 archived sync points these take residuals from 36-95' to 2-8'.
-#
-# The fit is numpy only and vectorised over the points, with analytic derivatives: it runs at each alignment sync,
-# and must stay fast on a Raspberry Pi Zero 2 W (target under ~20 ms for 10 points).
+"""
+kinematics_mac.py — Mechanical Alignment Correction (MAC): the M2/M3 zero offsets and the M2 scale, fitted with
+QUEST's rotation.
+
+The motor angles are corrected before the forward kinematics (theta_to_q), for each sync point and for the live
+pose:
+    theta' = theta + (0, d2 + s2 * (theta2 - 45), d3)
+  d2, d3   M2/M3 zero offsets (deg), fitted at every alignment sync. They change with the setup: how the camera
+           and lens sit on the head (a constant sideways pull on the lens, e.g. a focuser, is indistinguishable
+           from d3).
+  s2       M2 scale (fraction), a mount constant: about +0.3 to +2% on the mounts measured. Config align_m2_scale
+           (%, default 1.0), calibrated by Pilot's AutoTune (fit_alignment with fit_s2).
+docs/study_alignment_mac_v2.md: on 1,300 archived sync points these take residuals from 36-95' to 2-8';
+docs/kinematics.md section 2.3 is the user documentation.
+
+Pure kinematics, no driver state: control.SyncManager keeps the fitted d2, d3 and applies them (corrQ_MAC).
+numpy only, vectorised over the points, with analytic derivatives: the fit runs at each alignment sync and must
+stay fast on a Raspberry Pi Zero 2 W (target under ~20 ms for 10 points); correction_q runs every control tick.
+
+Contents
+--------
+  corrected_theta      the motor angles with d2, d3, s2 applied
+  boresights           the forward kinematics' boresight vectors for many motor angles at once
+  correction_q         base-frame rotation from the pose at theta to the corrected pose (closed form, per tick)
+  fit_alignment        least-squares rotation + d2, d3 (and s2) from raw motor angles and observed directions
+  AlignFit             fit_alignment's result
+"""
 
 from dataclasses import dataclass, field
 import math
