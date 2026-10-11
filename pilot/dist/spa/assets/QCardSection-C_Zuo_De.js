@@ -1,0 +1,1 @@
+import{T as e,f as t,t as n}from"./create-CrPAtWm5.js";import{c as r}from"./vm-CmlbRcgt.js";var i=n({name:`QCardSection`,props:{tag:{type:String,default:`div`},horizontal:Boolean},setup(n,{slots:i}){let a=t(()=>`q-card__section q-card__section--${n.horizontal?`horiz row no-wrap`:`vert`}`);return()=>e(n.tag,{class:a.value},r(i.default))}});export{i as t};
