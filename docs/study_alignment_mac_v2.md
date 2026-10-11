@@ -2,6 +2,24 @@
 
 Branch: to be created from `feature/pec_theta_v2`. Analysis: October 2026, from the sync tables in `logs/archive`.
 
+## Status (2026-10-11)
+
+Implemented on `feature/alignment_mac_v2`; user documentation in [kinematics.md §2.3](kinematics.md#23-mechanical-alignment-corrections).
+
+* `driver/align_model.py`: the fit (numpy, analytic derivatives, Gauss–Newton from QUEST's rotation): 0.6 ms for 10
+  points on a desktop, against 20 ms for the study prototype. The control-tick correction is a closed form: about
+  6 µs per tick.
+* The **Mechanical Alignment Correction** switch (`advanced_align_mac`) is the A/B switch. On: the rotation and
+  d2, d3 refitted unweighted at every sync, with `align_m2_scale` (%, default 1.0). When the points can't separate
+  the offsets, they are held and the rotation is the existing weighted QUEST. Off: the existing QUEST, unchanged.
+* The earlier MAC model has been retired (copy in `utility/legacy_mac.py` for `fits_extract.py`). Pilot's AutoTune
+  now calibrates the M2 scale from the current sync points. First calibration on jdm's mount: **+0.335%**.
+* `utility/alignment_ab.py` replays the archived sync tables: goto accuracy (leave-one-out) median 59.2′ (MAC off)
+  → 9.6′ (on), better on 45 of 47 alignments. The two worse: 6 points at roll ~0 (greg, 9.4′ → 11.7′), and a
+  narrow-roll alignment both models fit poorly (86′ → 88′).
+* Still to do: time the fit on nina01 and a Pi Zero 2 W; the live A/B on the sky (alignment RMS, first-goto error,
+  drift with MAC on and off from the same syncs); the scale-or-sag test with the 300 mm.
+
 ## Summary
 
 Multi-Point Alignment has rarely reached a low RMS: 6–10 point alignments typically report 30–60′, and up to

@@ -33,7 +33,7 @@ The document also outlines the principal mitigation techniques used to reduce tr
 | Physical Errors | Polar Misalignment      | Tripod Tilt                                    | A tilted tripod means the mount's azimuth axis is not truly vertical, causing the effective polar alignment to vary across different pointing positions. | Multi-Point Alignment (QUEST v2.0)                      |
 | Physical Errors | Polar Misalignment      | Cone Error                               | A misalignment between the camera boresight and other axes means the boresight traces a small circle around the true target position rather than pointing directly at it. The resulting pointing error varies systematically with Az/Alt. | Multi-Point Alignment (QUEST v2.0)           |
 | Physical Errors | Roll Angle Misalignment | Mount Encoder / Camera Orientation Offset      | A fixed offset between the mount's reported roll angle and the true camera orientation on the sky. If uncalibrated, corrupts the PID roll setpoint and subtly degrades pointing and tracking across all coupled axes. | Position Angle Sync (v2.0)                  |
-| Physical Errors | Motor Axis Misalignment | M2/M3 Axis Non-Perpendicularity                | A tilt or cant in the M2 and M3 motor axes creates systematic pointing and tracking inaccuracies that vary with pointing direction.                     | Mechanical Alignment Correction (MAC v2.2)              |
+| Physical Errors | Motor Offsets and Scale | M2/M3 Zero Offsets, M2 Scale                   | Offsets in M2's and M3's angles (or the camera tilted on the head) and M2 turning slightly further than reported create pointing errors that vary with pointing direction. | Mechanical Alignment Correction (MAC v2.2)              |
 | Dynamic Errors  | Motor Backlash                | Loose Gear Mesh / Gear Play                    | Mechanical slack causes delayed or reversed response during direction changes, particularly affecting pulse guiding corrections.                         | Speed Controller defaults to continuous Motor Engagement (v2.0)                |
 | Dynamic Errors  | Slew and Center Cycling | Local Residual Pointing Error                 | After QUEST alignment, a small residual pointing error remains at the last sync point due to the global nature of the QUEST fit. This can cause Slew and Center to continuously cycle to reach the target orientation                       | Slew and Center Correction: Zero Last Residual (ZLR), Local Gaussian Adjustment (LGA), or Sync Guiding Adjustment (SGA) (v2.2)|
 | Dynamic Errors  | Post-Slew Motor Oscillation           |   Motion Dynamics and PID Tuning                   | After a slew, the PID controller requires time to stabilise at the new position. Starting an exposure before settling completes may cause plate solves to fail or star trails on the first image. | Nina Settings: Settle Time and Pointing Tolerance; Pilot Settings: Kc Goto Tollerance (v2.0); Goto Progress (v2.2) |
@@ -75,7 +75,7 @@ By using QUEST, the driver can correct for the fact that a sync point taken in t
 #### **III. The Mathematics of the Model (Briefly)**
 QUEST operates by minimizing a **quadratic loss function**, which is essentially the sum of the squared differences between pairs of reference vectors (stars) and measured vectors (mount sensors). 
 1.  **Vector Pairing:** Each sync point provides a pair of vectors: the **predicted direction** from the mount's internal sensors and the **observed direction** from a plate solve.
-2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs.
+2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs. With **Mechanical Alignment Correction** on, the rotation is instead fitted together with the M2/M3 offsets, unweighted (see [2.3](#23-mechanical-alignment-corrections)).
 3.  **Eigenvector Solution:** The "optimal" alignment is found by identifying the **eigenvector with the largest eigenvalue** of that matrix. This provides a **unit quaternion** that represents the best-fit rotation for the entire system.
 
 #### **IV. How to Use QUEST and Get the Best Results**
@@ -141,112 +141,93 @@ The formula for the weight is:
 ### 2.3 Mechanical Alignment Corrections
 
 #### **I. What it is and What it Solves**
-**Mechanical Alignment Corrections** is a specialized pointing model that compensates for systematic, non-rigid errors caused by physical axis misalignments within the Benro Polaris mount. Unlike global errors like tripod tilt or polar misalignment, which are "rigid" and affect the entire sky equally, these mechanical errors are **orientation-dependent**. The magnitude of the error fluctuates based on the mount's orientation, specifically its **Altitude** and **Roll Angle** positions.
+**Mechanical Alignment Correction (MAC)** fits the mount's and camera's geometry alongside the QUEST alignment. QUEST
+alone finds one rotation between the mount and the sky. That corrects tripod tilt, leveling and the North reference,
+but not errors that change with the mount's pose. Two such errors dominate on the Benro Polaris:
 
-Without these corrections, sync points taken at different rotation angles or altitudes would provide contradictory data, preventing the **QUEST** alignment algorithm from converging on a stable solution. By modeling these hardware-specific traits, the driver ensures the alignment model receives "clean" data for high-precision pointing across the entire sky.
+* **M2 and M3 zero offsets.** M2's and M3's reported angles are each off by a constant, or, equivalently, the camera
+  sits slightly tilted on the head. A focuser pulling the lens sideways looks exactly like an M3 offset. These change
+  with the setup: the lens, how the camera sits in its clamp.
+* **An M2 scale error.** M2 turns slightly further than its reported angle says, so the altitude error grows the
+  further M2 moves from mid-range. It is a property of the mount, not the setup.
 
-### **II. Benefits of the Model**
+A rotation can't absorb either. They are why Multi-Point Alignment residuals were typically 30–60′, and up to 2°,
+and why the pointing error then changed along a target's path, showing up as large drift for PEC Drift Correction
+to absorb.
 
-Enabling the **Mechanical Alignment Corrections** within the Alpaca Driver will improve the precision of the Benro Polaris platform. By layering **Mechanical Alignment Corrections** and **QUEST Alignment**, the system achieves a level of pointing and tracking fidelity that overcomes the inherent geometric limitations of the Alt/Az/Roll hardware.
+#### **II. Benefits of the Model**
+Replayed on 47 archived alignments (1,300 sync points, four mounts), predicting each sync point from a model fitted
+on the others, as at a goto to a new target (`utility/alignment_ab.py`):
 
-#### **A. High-Precision Multi-Point Alignment**
-The primary effect of enabling the model is a **significant increase in the accuracy of Multi-Point Alignment (MPA)**. 
-*   **Smaller Residuals:** Without these corrections, mechanical misalignments (such as axis tilts) cause the mount to report contradictory data depending on its orientation. This prevents the QUEST algorithm from converging on a stable global solution. 
-*   **Consistent Data:** By applying mechanical corrections at the measurement stage, the driver provides "clean," consistent data to the alignment model. This allows the QUEST estimator to find a tighter mathematical fit, resulting in **considerably smaller residuals**
+| | MAC off (QUEST rotation) | MAC on |
+|---|---|---|
+| Median goto error | 59.2′ | **9.6′** |
+| 200 mm, three nights (10-04, 10-06, 10-10) | 31–62′ | 5–7′ |
+| Mark's mount, 11 nights | 29–198′ | 3–8′ |
+| Better on | 2 alignments | 45 alignments |
 
-#### **B. Enhanced Slew and Center Accuracy**
-The secondary effect is that **Slew and Center operations become more accurate across the entire sky**, especially at challenging orientations.
-*   **Extreme Orientations:** The magnitude of mechanical errors in the Polaris hardware grows dramatically as the mount points upwards or utilizes large roll angles, sometimes reaching errors of over 200 arcminutes. The model predicts and negates these errors in real-time within the kinematic chain.
-*   **Reduced Iterations:** Because the model accounts for these complex deviations, the mount's predicted position aligns much more closely with the true celestial coordinates. This ensures that imaging applications like N.I.N.A. can center a target with far **fewer corrective slews**, often achieving a perfect center on the first attempt.
-*   **Global Reliability:** This increased precision is not limited to the area around a single sync point; the combined model ensures reliable pointing even when moving between targets in different parts of the sky or at large roll angles.
+* **Smaller alignment residuals:** a 6-point alignment typically fits to a few arcminutes instead of 30–60′.
+* **Gotos and Slew & Center:** the model holds across the sky, not just near the sync points, so targets away from
+  them land much closer and need fewer centering slews.
+* **Less drift:** the pointing error no longer changes as the pose moves along a target's path, so PEC Drift
+  Correction and the guider have less to correct.
 
-#### **C. Improved Guiding Performance**
-For users employing a **guide scope** and auto-guiding software (such as PHD2), the advanced model provides a superior foundation for fine tracking corrections.
-*   **Precise Pulse Translation:** Auto-guiding relies on the driver to translate equatorial (RA/Dec) pulse commands into coordinated motor-level adjustments (M1, M2, and M3). The acculation of pulse quaternions ensures this coordinate transformation is highly accurate regardless of the mount’s orientation.
-*   **Reduced Axis Cross-Coupling:** Because the Polaris is not a traditional equatorial mount, RA and Dec pulses must be carefully decomposed into multi-axis motor movements. The refined model minimizes "cross-coupling", where a correction in one axis causes an unintended shift in another, which is a common challenge for Alt/Az mounts.
-*   **Lower RMS Error:** This mathematical precision allows guiding applications to settle faster and maintain a **lower overall RMS error** (often between 1.3 to 3.0 arc-seconds), which is essential for capturing sharp stars during long-exposure imaging.
+The full study is in [study_alignment_mac_v2.md](study_alignment_mac_v2.md).
 
-Ultimately, these benefits provide the stable foundation required for professional-grade sidereal tracking and long-exposure imaging.
+#### **III. The Model**
+Each motor angle is corrected before the forward kinematics:
 
-#### **III. The Mechanical Model Parameters**
-The model identifies several fixed mechanical parameters of the mount hardware, derived from extensive analysis of "sky survey grids" (large-scale plate-solved datasets), captured at various roll angles. These fitted parameters are stored as coefficients in the `config.toml` and key parameters can be viewed and edited from the Alignment Page in Alpaca Pilot.
+```
+θ₂′ = θ₂ + M2 offset + M2 scale × (θ₂ − 45°)
+θ₃′ = θ₃ + M3 offset
+```
 
-*   **M2 (Altitude) Axis Tilt:** The physical M2 motor rotatation axis may not be perfectly perpendicular to M1 (Azimuth), and can produces a sinusoidal altitude error.
-    *   **Amplitude (`m2_tilt_dm2_amp`):** The peak magnitude of the altitude error. Introduces residual errors into the Altitude in a sinusoidal manner as M2 rotates.
-    *   **Zero Point (`m2_tilt_dm2_zero`):** The altitude angle where the M2 error is zero, typically near or above the horizon.
-*   **M3 (Astro) Axis Tilt:** The physical M3 motor rotation axis may be slightly tilted from the ideal camera vertical axis. It may be tilted or cantered towards the boresight or M2 Axis. This tilt is decomposed into three components:
-    *   **Altitude Component (`m3_tilt_dm2`):** Sweeps the camera boresight in altitude as the M3 axis rotates. Introduces residual errors into the M2 axis.
-    *   **Azimuth Component (`m3_tilt_dm1`):** Sweeps the camera boresight in azimuth as the M3 axis rotates, an effect modulated by the current altitude. Introduces residual errors into the M1 axis.
-    *   **Roll Component (`m3_tilt_dm3`):** Sweeps the camera boresight in roll, geometrically linked to the Azimuth Axis residual. Introduces residual errors into the M3 axis.
+* **M2 and M3 offsets** are fitted at **every alignment sync**, together with QUEST's rotation: nothing to set up.
+  Change the lens or reseat the camera, and the next alignment finds the new offsets. The Alignment page shows them.
+* **M2 scale** (`align_m2_scale`, %) is a mount constant. About +0.3 to +2% on the mounts measured; the default is
+  +1.0%. AutoTune refines it for your mount (below).
 
-#### **IV. Autotuning the MAC parametrers**
+The fit needs points that separate the offsets from the rotation: at least 3, spread in azimuth and altitude (and
+ideally roll). When they don't (too few, or bunched together), the offsets are kept at their last values and the
+rotation is the usual weighted QUEST fit.
 
-Although the Mechanical Alignment Correction (MAC) parameters can be enabled and adjusted manually from the Alpaca Pilot Alignment page, the driver also provides an **Autotune** feature that can refine these parameters for your specific mount.
+#### **IV. AutoTuning the M2 scale**
+The M2 offsets and M3 offsets need no tuning. AutoTune calibrates the M2 scale once, or after a hardware change:
 
-Autotune works by optimizing the MAC parameters to **minimize** the QUEST model's total residual error. The process iteratively adjusts individual parameters, recalculates the QUEST model, and evaluates whether the change improves the fit. It then continues refining other parameters until a locally optimal solution is found. While the final solution may not be the global optimum, it is often sufficient to significantly improve alignment accuracy.
-
-To autotune the MAC parameters:
-
-1. Open the **Alpaca Pilot Alignment** page.
-
-2. Click the **Autotune** button in the **Mechanical Alignment Correction Model** section.
-
-3. The driver will verify that the prerequisites for autotuning have been met:
-
-   * At least **5 sync points** are required (**10 or more** are recommended).
-   * The sync points must be distributed across different **altitudes** and **roll angles**.
-   * You can use a N.I.N.A. Advanced Sequence similar to the example below to generate additional sync points.
+1. Do a Multi-Point Alignment with **6 or more sync points** spread **20° or more in altitude**. The standard 6-point
+   alignment is enough; a sequence like the one below adds more.
 
    ![Gathering Autotune Sync Points](images/control-autotune.png)
 
-4. Ensure all prerequisite checks show **three green checkmarks** before proceeding.
+2. On the **Alignment** page, in the **Mechanical Alignment Correction Model** card, click **AutoTune**, then
+   **Run**. It fits the scale with the rotation and offsets, and reports the new scale and the alignment RMS before
+   and after.
+3. Click **Apply** to use and save the new scale. A result within 0.1% of the current scale has nothing to apply.
 
-5. Click **Run** to start the autotuning process.
+#### **V. Comparing MAC on and off (A/B)**
+The **Mechanical Alignment Correction** switch refits the alignment from the same sync points either way, so one
+alignment gives both:
 
-6. Review the proposed results:
+* **On:** QUEST's rotation and the M2/M3 offsets fitted together, with the M2 scale.
+* **Off:** the QUEST rotation alone, as before v2.2 Beta 9.
 
-   * Verify that the fit quality is acceptable.
-   * Verify that the improvement in the QUEST RMS residual is satisfactory.
-   * Click **Apply** to activate the new parameters.
-
-   ![Autotune Results](images/control-autotune-results.png)
-
-7. Applying the results makes the new parameters active immediately, but they are **not yet saved**. 
-8. To persist the changes, click **Save** on the **Alpaca Pilot Settings** page.
-
-
-#### **V. Calibrating the MAC parameters**
-In addition to the **Autotune** feature, the driver also provides a `fits_extract.py` utility to emperically fit the MAC Parameters to plate-solved images taken with your mount. You will need an astro camera capable of storing FITS file. This is intended for advanced users only.
-
-The workflow to calibrate your mount includes:
-
-1. **Data Collection:** Using a pano grid with roll variation, capture FITS images covering a wide range of altitude, azimuth, and roll positions. Aim for full coverage of the roll range (±50°) at multiple altitudes (20°–65°). Ensure all corrections are disabled while collecting the images ie only SPA, disable MPA, SCC, LGA, ZLR, MAC, PEC.
-2. **Plate Solving:** Run **ASTAP** in batch mode to solve all captured images. ASTAP must write the WCS solution directly into the FITS headers.
-3. **Extraction:** Run `python fits_extract.py -extract`. This processes a directory of FITS images to read WCS (World Coordinate System) headers from plate solves and creates a permanent CSV of raw observations comparing Polaris's predicted position (`p_*`) with the solved truth (`s_*`). 
-4. **Modelling:** Run `python fits_extract.py -model`. This uses the extracted CSV to fit the mechanical coefficients listed above alongside the QUEST alignment. It generates a `{prefix}model.txt` containing the optimized parameters (`m3_tilt_dm2`, `m3_tilt_dm1`, `m2_tilt_dm2_amp`, `m2_tilt_dm2_zero`).
-5.  **Validation** Run `python fits_extract.py -validate`. Compares the fitted model against the original data (or a subset of "out-of-sample" data) to confirm the reduction in residuals before you commit the values to your configuration.
-6. **Application:** Copy the fitted parameters into your **`config.toml`** file.
-
+Compare the alignment RMS, the first goto's error to a new target, and the drift on a long track. To replay archived
+logs, run `uv run python alignment_ab.py` in `utility/`.
 
 #### **VI. Important Implementation Details**
-*   **Stability:** These coefficients reflect the physical manufacturing of your specific unit; they are independent of your site's level or polar alignment and do not need frequent recalculation.
-*   **Forward Kinematics:** Corrections are applied within the **forward kinematic model** (`apply_mechanical_corrections`) before sky coordinates are calculated. This ensures the QUEST algorithm receives consistent data regardless of the mount's orientation.
-*   **Persistence:** Once defined in the configuration, these corrections are applied automatically at the measurement/telemetry stage of the control loop.
-
-
-#### **VII. Mechnical Correction Magnitude (arcmin) at specific Roll and Altitude Orientations**
-
-|              Roll |   -70° |   -60° |   -50° |   -40° |   -30° |   -20° |   -10° |    +0° |   +10° |   +20° |   +30° |   +40° |   +50° |   +60° |   +70° | 
-|-------------------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|
-|**Altitude 70°**   |   514' |    82' |    80' |    77' |    75' |    73' |    72' |    72' |    72' |    73' |    75' |    77' |    80' |    82' |   514' | 
-|**Altitude 60°**   |    87' |    82' |    76' |    71' |    66' |    62' |    60' |    60' |    60' |    62' |    66' |    71' |    76' |    82' |    87' | 
-|**Altitude 50°**   |    96' |    87' |    77' |    66' |    57' |    51' |    47' |    46' |    47' |    51' |    57' |    66' |    77' |    87' |    96' | 
-|**Altitude 40°**   |   114' |   101' |    85' |    68' |    52' |    40' |    33' |    31' |    33' |    40' |    52' |    68' |    85' |   101' |   114' | 
-|**Altitude 30°**   |   141' |   124' |   103' |    79' |    54' |    32' |    18' |    15' |    18' |    32' |    54' |    79' |   103' |   124' |   141' | 
-|**Altitude 20°**   |   175' |   155' |   130' |   100' |    67' |    35' |    10' |     1' |    10' |    35' |    67' |   100' |   130' |   155' |   175' | 
-|**Altitude 10°**   |   214' |   193' |   165' |   131' |    93' |    54' |    21' |    18' |    21' |    54' |    93' |   131' |   165' |   193' |   214' | 
-|**Altitude  0°**   |   257' |   235' |   206' |   172' |   132' |    89' |    48' |    34' |    48' |    89' |   132' |   172' |   206' |   235' |   257' | 
-
+*   **Unweighted fit:** with MAC on and enough spread, every sync point counts equally. QUEST's recency, proximity and
+    polar weights made a rotation-only model fit well near the target at the expense of the rest of the sky; with the
+    offsets modelled, one fit holds everywhere. Slew & Center Correction and sync guiding handle what is left
+    locally.
+*   **Forward kinematics:** the correction is applied to the motor angles after the worm gear correction, as a small
+    base-frame rotation at the current pose (`align_model.correction_q`), before sync guiding, pulse guiding and
+    QUEST. The PID works in the corrected motor angles, as before.
+*   **Worm gear correction:** sync points keep their raw motor angles, so the model is refitted through the worm
+    correction when that is switched, with no re-alignment.
+*   **Cost:** the fit takes under a millisecond on a desktop and is designed for a Raspberry Pi Zero 2 W; the
+    correction adds microseconds per control tick.
+*   **Earlier MAC:** the v2.0–v2.2 model (M2/M3 axis tilt terms fitted from plate-solved image surveys) has been
+    retired. `utility/fits_extract.py` keeps a copy (`utility/legacy_mac.py`) for its image analysis.
 
 
 ### 2.4 **Plate-Solved/Sync Guiding**
@@ -464,7 +445,7 @@ Pressing it again rejects the profile and restores the previous correction.
 
 Approve and Reject only choose the profile: whether it is applied is the **PEC Worm Gear Correction** switch in Pilot's settings, which they leave as it is.
 
-The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. MAC Autotune does the same. Sync points keep their raw motor angles, so this needs no re-alignment.
+The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. The alignment model and its M2 scale AutoTune do the same. Sync points keep their raw motor angles, so this needs no re-alignment.
 
 For this reason, approve the profile **before** aligning and slewing for the night, and do a fresh Multi-Point Alignment after the test: the test moves the mount well away from its alignment points, and a clean, well-spread set of alignment points matters more than the profile itself. Approving, rejecting or switching it while guiding shifts the pointing once, by up to the measured wobble size, and restarts the drift correction.
 
@@ -815,7 +796,7 @@ theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
-    ▼ Mechanical Corrections             (corrQ_RBC)      B Frame
+    ▼ Mechanical Alignment Correction    (corrQ_MODEL)    B Frame   M2/M3 offsets, M2 scale on the motor angles
     ▼ Sync Guiding + PEC Accum Corrections (q_syncguide_B) B Frame   PEC has no quaternion of its own —
     ▼ Pulse Guiding Accum Corrections    (q_pulseguide_B)  B Frame   it folds into q_syncguide_B here, see §4.4-4.6
 motorQ_pv              MAC, Sync/PEC and Pulse corrected only (B Frame)
@@ -854,7 +835,7 @@ cameraQ_ref             Target C→T quaternion = azaltroll_to_q(*alpha_ref)
     ▼ Shortest Path SO(3) slerp from cameraQ_pv to cameraQ_ref
 cameraQ_step
     │
-    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGA⁻¹ ∘ alignQ_B2T⁻¹ ∘ corrQ_MAC⁻¹ ∘ cameraQ_step
+    ▼ Frame Transform topoQ_to_baseQ = corrQ_roll⁻¹ ∘ corrQ_LGA⁻¹ ∘ alignQ_B2T⁻¹ ∘ cameraQ_step   (theta_ref in corrected motor angles)
     ▼    Undo Roll Sync Adjustment      (corrQ_roll⁻¹, T frame)
     ▼    Undo Local Gaussian Correction (corrQ_LGA⁻¹, T frame)
     ▼    QUEST Alignment inverse        (alignQ_B2T_inv, T→B)
@@ -889,7 +870,7 @@ polaris_protocol         Slew SLOW and FAST commands
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
 feed-forward. The Jacobian `J(theta_pv)` is expressed in the **B frame**, so `omega_topo`
-must be converted to `omega_base` before the solve. No `corrQ_MAC⁻¹` is needed — MAC is
+must be converted to `omega_base` before the solve. No `corrQ_MODEL⁻¹` is needed — MAC is
 already accounted for in `theta_pv` and therefore in the Jacobian.
 
 ```
@@ -1017,7 +998,7 @@ motorQ_state       = theta_to_q(*theta_state)                  raw C→B quatern
     │
     ▼  SyncManager.baseQ_to_topoQ(motorQ_state, theta=theta_state)
     │     motorQ_C2B_pv = corrQ_WFF · motorQ_state                     [WFF]  ← worm feed-forward (when there is a worm gear profile)
-    │     motorQ_C2B_pv = corrQ_RBC · motorQ_C2B_pv                    [MAC]
+    │     motorQ_C2B_pv = corrQ_MODEL · motorQ_C2B_pv                  [MAC]  ← M2/M3 offsets, M2 scale (align_model)
     │     motorQ_C2B_pv = q_syncguide_B · motorQ_C2B_pv                [SGC]  ← sync guide + PEC land here
     │     motorQ_C2B_pv = q_pulseguide_B · motorQ_C2B_pv               [PGC]
     │     cameraQ_C2T_pv = alignQ_B2T · motorQ_C2B_pv  → [LGA] → [roll_adj]
@@ -1047,7 +1028,7 @@ motorQ_raw          (C→B, raw from IMU)
 theta_raw / alpha_raw / omega_raw
     │
     ▼  KF + PEC            Kalman Filter                B Frame
-    ▼  corrQ_RBC           Mechanical Correction        B frame
+    ▼  corrQ_MODEL         Mechanical Alignment Corr.   B frame
 theta_pv / motorQ_adj    (B frame, mechanically adjusted)
     │
     ▼  alignQ_B2T          QUEST Alignment              B → T
