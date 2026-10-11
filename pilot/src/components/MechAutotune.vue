@@ -1,7 +1,7 @@
 <template>
   <q-card style="width: 400px" class="q-px-md q-pb-md">
     <div class="text-h6 q-mb-xs q-mt-md">
-      Autotune Pre-requisites
+      M2 Scale AutoTune Pre-requisites
     </div>
     <q-list dense>
         <q-item>
@@ -9,7 +9,7 @@
                 <q-icon :name="isEnoughPoints ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isEnoughPoints ? 'green' : 'red'" />
             </q-item-section>
             <q-item-section>
-                <q-item-label>More than {{MIN_SYNCS}} Sync Points (currently {{ stat?.n_syncs }})</q-item-label>
+                <q-item-label>{{MIN_SYNCS}} or more Sync Points (currently {{ stat?.n_syncs ?? 0 }})</q-item-label>
             </q-item-section>
         </q-item>
         <q-item>
@@ -17,80 +17,43 @@
                 <q-icon :name="isAltSpanOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isAltSpanOk ? 'green' : 'red'" />
             </q-item-section>
             <q-item-section>
-                <q-item-label>Altitude spread > {{MIN_ALTSPAN}}°  (currently {{ stat?.alt_span }}° )</q-item-label>
-            </q-item-section>
-        </q-item>
-        <q-item>
-            <q-item-section thumbnail>
-                <q-icon :name="isRollSpanOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isRollSpanOk ? 'green' : 'red'" />
-            </q-item-section>
-            <q-item-section>
-                <q-item-label>Roll Angle spread > {{MIN_ROLLSPAN}}°  (currently {{ stat?.roll_span }}° )</q-item-label>
+                <q-item-label>Altitude spread {{MIN_ALTSPAN}}° or more (currently {{ stat?.alt_span ?? 0 }}°)</q-item-label>
             </q-item-section>
         </q-item>
     </q-list>
     <div class="col text-grey text-caption q-pt-sm">
         {{morePointsMsg}}
     </div>
-    <div v-if="!isResultRun">
-        <div style="height: 280px" class="text-grey text-caption">No Results yet.</div>
+    <div v-if="!result">
+        <div style="height: 180px" class="text-grey text-caption">{{ failMsg || 'No Results yet.' }}</div>
     </div>
     <div v-else>
         <div class="text-h6 q-mb-xs q-mt-md">
-        Autotune Results
+        AutoTune Results
         </div>
         <div class="col text-grey text-caption">
-            Parameters based on {{n_points}} Sync Points and {{n_iter}} iterations. 
+            {{ result.message }}.
         </div>
-        <div class="row q-col-gutter-lg  items-center">
-            <q-input class="col-4" label="Param A (arcmin)" readonly :model-value="param_A" input-class="text-right"/>
-            <q-input class="col-4" label="Param B (deg)"    readonly :model-value="param_B" input-class="text-right"/>
-            <q-input class="col-4" label="Param C (arcmin)" readonly :model-value="param_C" input-class="text-right"/>
+        <div class="row q-col-gutter-lg items-center">
+            <q-input class="col-4" label="M2 scale (%)"   readonly :model-value="result.m2_scale.toFixed(2)" input-class="text-right"/>
+            <q-input class="col-4" label="Now (%)"         readonly :model-value="Number(cfg.align_m2_scale ?? 0).toFixed(2)" input-class="text-right"/>
+            <q-input class="col-4" label="RMS (arcmin)"    readonly :model-value="`${result.rms_before.toFixed(1)} → ${result.rms_after.toFixed(1)}`" input-class="text-right"/>
         </div>
-        <div v-if="isNoChange">
-            <div class="col text-grey text-caption q-mt-sm">
-                Parameters are similar to existing settings. Nothing to Apply. 
-            </div>
+        <div class="col text-grey text-caption q-mt-sm">
+            {{ resultMsg }}
         </div>
-        <div v-else class="col text-grey text-caption q-mt-md">
-            <q-list dense>
-                <q-item>
-                    <q-item-section thumbnail>
-                        <q-icon :name="isR2Ok ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isR2Ok ? 'green' : 'red'" />
-                    </q-item-section>
-                    <q-item-section>
-                        <q-item-label>R² fit quality {{r2str}} (need > {{MIN_R2}})</q-item-label>
-                    </q-item-section>
-                </q-item>
-                <q-item>
-                    <q-item-section thumbnail>
-                        <q-icon :name="isRmsOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isRmsOk ? 'green' : 'red'" />
-                    </q-item-section>
-                    <q-item-section>
-                        <q-item-label>RMS {{rmsstr}} (need > {{MIN_RMS}}%)</q-item-label>
-                    </q-item-section>
-                </q-item>    
-
-            </q-list>
-            <div class="col text-grey text-caption q-mt-sm">
-                {{rmsSummaryMsg}} <br>
-                {{resultConclusionMsg}} 
-            </div>
-        </div>
-
     </div>
     <q-space />
     <div class="row q-gutter-sm  q-mt-md justify-center">
       <q-btn class="col-3" label="Cancel"  outline color="grey-7" v-close-popup />
-      <q-btn class="col-3" label="Run"  outline color="grey-7"  @click="onRunAutotune"/>
-      <q-btn class="col-3" label="Apply" outline color="primary" @click="onApply" :disable="!isRestultOk" v-close-popup/>
+      <q-btn class="col-3" label="Run"  outline color="grey-7"  @click="onRunAutotune" :disable="!isReady"/>
+      <q-btn class="col-3" label="Apply" outline color="primary" @click="onApply" :disable="!isResultOk" v-close-popup/>
     </div>
 
   </q-card>
 </template>
 
 <script setup lang="ts">
-// import axios from 'axios'
 import { useQuasar } from 'quasar'
 import { onMounted, onUnmounted, computed, ref } from 'vue'
 import { useConfigStore } from 'stores/config';
@@ -98,165 +61,74 @@ import { useDeviceStore } from 'src/stores/device';
 import { useStreamStore } from 'src/stores/stream'
 import type { SyncMessage }from 'src/stores/stream'
 
-// import { debounce } from 'quasar'
-
 const dev = useDeviceStore()
 const cfg = useConfigStore()
 const socket = useStreamStore()
 const $q = useQuasar()
 
-const MIN_SYNCS = 5
-const MIN_ALTSPAN = 30
-const MIN_ROLLSPAN = 100
-const MIN_RMS = 10
-const MIN_R2 = 0.4
+const MIN_SYNCS = 6                 // the driver's calibrate_m2_scale: 6+ points, 20+ deg of M2
+const MIN_ALTSPAN = 20
+const NO_CHANGE = 0.1               // %: a result this close to the current scale has nothing to apply
 
 type AutotuneResult = {
   success: boolean,
-  m2_tilt_dm2_amp: number,
-  m2_tilt_dm2_zero: number,
-  m3_tilt_dm1: number,
-  rms_before: number,
+  m2_scale: number,                 // %
+  d2: number,                       // deg
+  d3: number,
+  rms_before: number,               // arcmin, with the current scale
   rms_after: number,
-  rms_improv: number,
-  r2: number,
+  rms_improv: number,               // %
   n_points: number,
-  nit: number,
   message: string,
 }
+const result = ref<null | AutotuneResult>(null)
+const failMsg = ref('')
 
-const autotuneResult = ref<null | AutotuneResult>(null)
-
-// ---------------- Helper functions
-type TableRow = {
-  deleted:boolean, timestamp:string, p_alt:number, p_roll:number 
-}
-
-function formatSyncData(data: SyncMessage):TableRow {
-  const deleted = data.deleted ?? false
-  const timestamp = data.timestamp ?? ''
-  const p_alt = data.p_alt ?? 45
-  const p_roll = data.p_roll ?? 0
-  return { deleted, timestamp, p_alt, p_roll }
-}
-
-// ---------------- Sync Statistics Computed functions
-const isEnoughPoints = computed(() => (stat.value?.n_syncs??0)>MIN_SYNCS);
-const isAltSpanOk = computed(() => (stat.value?.alt_span??0)>MIN_ALTSPAN);
-const isRollSpanOk = computed(() => (stat.value?.roll_span??0)>MIN_ROLLSPAN);
-
-const morePointsMsg = computed(() => {
-    return (isEnoughPoints.value && isAltSpanOk.value && isRollSpanOk.value) ? "All pre-requisites met. Click Run to perform Autotune." :
-           (!isEnoughPoints.value) ? `Collect more Sync Points.` :
-           (!isRollSpanOk.value && !isAltSpanOk.value) ? `Collect more Sync Points with ${rollMsg.value}, and also more with ${altMsg.value}.` :
-           (!isRollSpanOk.value) ? `Collect more Sync Points with ${rollMsg.value}.` :
-           (!isAltSpanOk.value) ? `Collect more Sync Points with ${altMsg.value}.` : `Autotune Unavailable.`
-})
-const rollMsg = computed(() => `Roll < ${stat.value?.roll_min}°, or Roll > ${stat.value?.roll_max}°`)
-const altMsg = computed(() => `Alt < ${stat.value?.alt_min}°, or Alt > ${stat.value?.alt_max}°`)
-
-// ---------------- Autotune Result Statistics Computed functions
-const isResultRun = computed(() => autotuneResult.value)
-const isRestultOk  = computed(() => (isR2Ok.value && isRmsOk.value))
-
-const CHANGE_THRESHOLD_AMP  = 5    // arcmin
-const CHANGE_THRESHOLD_ZERO = 2    // degrees  
-const CHANGE_THRESHOLD_TILT = 5    // arcmin
-
-const isNoChange = computed(() => {
-  if (!autotuneResult.value) return false
-  const ampSimilar  = Math.abs(autotuneResult.value.m2_tilt_dm2_amp  - cfg.m2_tilt_dm2_amp)  < CHANGE_THRESHOLD_AMP
-  const zeroSimilar = Math.abs(autotuneResult.value.m2_tilt_dm2_zero - cfg.m2_tilt_dm2_zero) < CHANGE_THRESHOLD_ZERO
-  const tiltSimilar = Math.abs(autotuneResult.value.m3_tilt_dm1      - cfg.m3_tilt_dm1)      < CHANGE_THRESHOLD_TILT
-  return ampSimilar && zeroSimilar && tiltSimilar
-})
-
-const isR2Ok  = computed(() => (autotuneResult.value?.r2 ?? 0) > MIN_R2)
-const r2str = computed(() => autotuneResult.value ? formatAutotuneR2(autotuneResult.value.r2) : 'unknown' )
-function formatAutotuneR2(r2: number) {
-    const quality = (r2>0.9) ? 'Excellent' : (r2>0.7) ? 'Good' : (r2>0.4) ? 'Satisfactory' : (r2>0.1) ? 'Weak' : 'Poor'
-    return `${r2.toFixed(3)} ${quality}`
-}
-
-const isRmsOk = computed(() => (autotuneResult.value?.rms_improv ?? 0) > MIN_RMS)
-const rms_before = computed(() => autotuneResult.value ? autotuneResult.value.rms_before.toFixed(1) : 'N/A' )
-const rms_after = computed(() => autotuneResult.value ? autotuneResult.value.rms_after.toFixed(1) : 'N/A' )
-const rmsstr = computed(() => autotuneResult.value ? formatRms(autotuneResult.value.rms_improv) : 'unknown' )
-function formatRms(rms: number) {
-    const quality = (rms>0) ? 'improved' : 'worsened'
-    return `${quality} by ${rms.toFixed(1)}%`
-}
-const n_points = computed(() => autotuneResult.value ? autotuneResult.value.n_points : 'N/A' )
-const n_iter = computed(() => autotuneResult.value ? autotuneResult.value.nit : 'N/A' )
-const param_A = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_amp.toFixed(1) : 'N/A' )
-const param_B = computed(() => autotuneResult.value ? autotuneResult.value.m2_tilt_dm2_zero.toFixed(1) : 'N/A' )
-const param_C = computed(() => autotuneResult.value ? autotuneResult.value.m3_tilt_dm1.toFixed(1) : 'N/A' )
-const resultConclusionMsg = computed(() => {
-    return (isR2Ok.value && isRmsOk.value) ? "All result checks met. Click apply to accept results." :
-           (!isRmsOk.value) ? `MAC has not improved RMS Residulas enough. Do not Apply.` :
-           (!isR2Ok.value) ? `MAC does not explain RMS Residuals. Do not Apply.` : `Autotune Results Unavailable.`
-})
-const rmsSummaryMsg = computed(() => `Autotuning changed RMS residuals from ${rms_before.value}' to ${rms_after.value}'`)
-
-// ---------------- Telescope Sync Computed functions
 const telescope_syncs = computed(() =>
   Array.from(socket.syncPoints.values())
-    .filter(d => d.a_az != null && d.a_alt != null)
-    .map(formatSyncData)
+    .filter((d: SyncMessage) => d.a_az != null && d.a_alt != null && !(d.deleted ?? false))
+    .map((d: SyncMessage) => d.p_alt ?? 45)
 )
-
 const stat = computed(() => {
-  const ts = telescope_syncs.value
-  if (!ts.length) return null
-
-  const alts  = ts.map(d => d.p_alt)
-  const rolls = ts.map(d => d.p_roll)
-
-  const alt_min  = Math.floor(Math.min(...alts))
-  const alt_max  = Math.floor(Math.max(...alts))
-  const roll_min = Math.floor(Math.min(...rolls))
-  const roll_max = Math.floor(Math.max(...rolls))
-
-  return {
-    n_syncs:   ts.length,
-    alt_min,  alt_max,  alt_span:  Math.floor(alt_max  - alt_min),
-    roll_min, roll_max, roll_span: Math.floor(roll_max - roll_min),
-  }
+  const alts = telescope_syncs.value
+  if (!alts.length) return null
+  return { n_syncs: alts.length, alt_span: Math.floor(Math.max(...alts) - Math.min(...alts)) }
 })
+const isEnoughPoints = computed(() => (stat.value?.n_syncs ?? 0) >= MIN_SYNCS)
+const isAltSpanOk = computed(() => (stat.value?.alt_span ?? 0) >= MIN_ALTSPAN)
+const isReady = computed(() => isEnoughPoints.value && isAltSpanOk.value)
+const morePointsMsg = computed(() =>
+  isReady.value ? 'All pre-requisites met. Click Run to perform AutoTune.' :
+  !isEnoughPoints.value ? 'Collect more Sync Points.' : 'Collect Sync Points at lower and higher altitudes.')
 
-
-// ----------------- Lifecycle Functions
+const isNoChange = computed(() => !!result.value && Math.abs(result.value.m2_scale - Number(cfg.align_m2_scale ?? 0)) < NO_CHANGE)
+const isResultOk = computed(() => !!result.value && result.value.success && !isNoChange.value)
+const resultMsg = computed(() => {
+  if (!result.value) return ''
+  if (isNoChange.value) return 'Similar to the current M2 scale. Nothing to Apply.'
+  return `RMS residual ${result.value.rms_improv >= 0 ? 'improved' : 'worsened'} by ${Math.abs(result.value.rms_improv).toFixed(1)}%. ` +
+         'Click Apply to save the M2 scale.'
+})
 
 onMounted(() => {
   socket.subscribe('sm')
 })
-
 onUnmounted(() => {
   socket.unsubscribe('sm')
 })
 
 async function onRunAutotune() {
-  const result = await dev.alpacaAutotuneMAC() as unknown as AutotuneResult
-  if (result.success) {
-    autotuneResult.value = result 
-  }
-  console.log(result)
+  const r = await dev.alpacaAutotuneMAC() as unknown as AutotuneResult
+  result.value = r.success ? r : null
+  failMsg.value = r.success ? '' : r.message
 }
 
 async function onApply() {
-  if (isRestultOk.value && autotuneResult.value) {
-    const payload = { 
-        m2_tilt_dm2_amp: autotuneResult.value.m2_tilt_dm2_amp, 
-        m2_tilt_dm2_zero: autotuneResult.value.m2_tilt_dm2_zero,
-        m3_tilt_dm1: autotuneResult.value.m3_tilt_dm1,
-    }
-    await cfg.configUpdate(payload)
+  if (isResultOk.value && result.value) {
+    await cfg.configUpdate({ align_m2_scale: result.value.m2_scale })
     const ok = await cfg.configSave()
-    $q.notify({ message:`Autotune Parameters save ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+    $q.notify({ message:`M2 scale save ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative',
                 position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   }
 }
-
 </script>
-
-

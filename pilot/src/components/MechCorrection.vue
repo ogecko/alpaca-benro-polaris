@@ -1,17 +1,16 @@
-
-
 <template>
     <q-card flat bordered class="q-pa-md full-width">
       <div class="text-h6">Mechanical Alignment Correction Model</div>
       <div class="row">
         <div class="col text-grey text-caption">
-          Reduce pointing residuals. Fine tune adjustments that correct for mechanical imperfections in the Benro Polaris and mount geometry. 
+          Reduce pointing residuals. With every alignment sync, fit how the camera sits on the Polaris head and the
+          motors' zero positions, together with the alignment. Off: rotation-only alignment (for comparison).
         </div>
         <q-space />
         <div class="q-gutter-md flex justify-end q-mr-md">
           <q-item-section>
             <div>
-              <q-btn-toggle v-model="cfg.advanced_align_mac" push rounded glossy toggle-color="primary"  
+              <q-btn-toggle v-model="cfg.advanced_align_mac" push rounded glossy toggle-color="primary"
                 @update:model-value="onModelUpdate"
                 :options="[
                   {label: 'On', value: true},
@@ -20,34 +19,33 @@
               />
             </div>
           </q-item-section>
-
         </div>
-
       </div>
 
-      <div class="col-12 text-h7 q-pt-md">M2 Axis Alignment Correction</div>
+      <div class="col-12 text-h7 q-pt-md">M2 and M3 Offsets</div>
       <div class="row q-col-gutter-md">
         <div class="col-9 text-grey text-caption">
-          <div>The Altitude Axis may not be perfectly perpenticular to the M1 axis. This may introduce a mechanical error, dependent on θ₂. </div>
-          <div  class="q-pl-md q-pt-sm text-body1">Altitude Residual = A x sin( θ₂ - B )</div>
+          <div>Fitted automatically at every alignment sync. They change with the setup: the lens, how the camera
+            sits in its clamp, a focuser pulling the lens sideways.</div>
+          <div class="q-pl-md q-pt-sm text-body1">θ₂′ = θ₂ + M2 offset, &nbsp; θ₃′ = θ₃ + M3 offset</div>
         </div>
         <div class="col-3">
-          <q-input label="Parameter A (arcmin/M2°)" v-model="m2_tilt_dm2_amp_str" :disable="!cfg.advanced_align_mac"/>
-          <q-input label="Parameter B (degrees)" v-model="m2_tilt_dm2_zero_str" :disable="!cfg.advanced_align_mac"/>
+          <q-input label="M2 offset (arcmin)" readonly :model-value="d2_str" input-class="text-right" :disable="!cfg.advanced_align_mac"/>
+          <q-input label="M3 offset (arcmin)" readonly :model-value="d3_str" input-class="text-right" :disable="!cfg.advanced_align_mac"/>
         </div>
       </div>
-      <div class="col-12 text-h7 q-pt-sm">M3 Axis Alignment Correction</div>
+      <div class="col-12 text-h7 q-pt-sm">M2 Scale</div>
       <div class="row q-col-gutter-md q-pb-lg">
         <div class="col-9 text-grey text-caption">
-          <div>The Astro Axis may not be perfectly perpendicular to the M2 axis. This may introduce a mechanical error, depenent on θ₂ and θ₃. </div>
-          <div class="q-pl-md q-pt-sm text-body1 ">Azimuth Residual = G x (1 - cos( θ₃ ))</div>
-          <div  class="q-pl-md q-pt-sm text-body1">Roll Residual = -cos( θ₂ ) x Azimuth Residual</div>
+          <div>M2 turns slightly further than its reported angle (about +1% on the Polaris). A mount constant:
+            AutoTune refines it from an alignment of 6 or more points spread in altitude.</div>
+          <div class="q-pl-md q-pt-sm text-body1">θ₂′ = θ₂ + M2 offset + scale × (θ₂ − 45°)</div>
         </div>
         <div class="col-3">
-          <q-input label="Parameter G (arcmin/M3°)" v-model="m3_tilt_dm1_str" :disable="!cfg.advanced_align_mac"/>
+          <q-input label="M2 scale (%)" v-model="m2_scale_str" input-class="text-right" :disable="!cfg.advanced_align_mac"/>
           <div class="q-pt-md q-gutter-sm column items-center">
             <q-btn  v-if="is_dirty" rounded  color="grey-9"  label="Apply Changes" @click="apply_params"/>
-            <q-btn  v-else label="AutoTune" icon='mdi-tune-vertical' rounded  color="grey-9">
+            <q-btn  v-else label="AutoTune" icon='mdi-tune-vertical' rounded  color="grey-9" :disable="!cfg.advanced_align_mac">
               <q-popup-proxy><MechAutotune class="" /></q-popup-proxy>
             </q-btn>
           </div>
@@ -58,83 +56,44 @@
 </template>
 
 <script setup lang="ts">
-// import axios from 'axios'
 import { onMounted, ref, computed, watch } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { deg2min, dms2deg } from 'src/utils/angles'
+import { useStatusStore } from 'src/stores/status'
 import MechAutotune from 'src/components/MechAutotune.vue';
 
 const cfg = useConfigStore()
+const p = useStatusStore()
 
-const m3_tilt_dm1_str       = ref('0.0')
-const m3_tilt_dm2_str      = ref('0.0')
-const m2_tilt_dm2_amp_str  = ref('0.0')
-const m2_tilt_dm2_zero_str = ref('0.0')
-const m2_roll_coupling_str = ref('0.0')
-const m2_roll_zero_str     = ref('0.0')
-const m1_offset_str        = ref('0.0')
-const m2_offset_str        = ref('0.0')
-const m3_offset_str        = ref('0.0')
+const d2_str = computed(() => ((p.alignmodel?.[0] ?? 0) * 60).toFixed(1))
+const d3_str = computed(() => ((p.alignmodel?.[1] ?? 0) * 60).toFixed(1))
 
-watch(
-  () => [cfg.m2_tilt_dm2_amp, cfg.m2_tilt_dm2_zero, cfg.m3_tilt_dm1],
-  () => load_params()
-)
+const m2_scale_str = ref('1.00')
+const snapshot = ref('')
+const is_dirty = computed(() => m2_scale_str.value != snapshot.value)
+
+watch(() => cfg.align_m2_scale, () => load_params())
 
 function load_params() {
-  m3_tilt_dm1_str.value = deg2min(cfg.m3_tilt_dm1/60, 1)
-  m3_tilt_dm2_str.value = deg2min(cfg.m3_tilt_dm2/60, 1)
-  m2_tilt_dm2_amp_str.value = deg2min(cfg.m2_tilt_dm2_amp/60, 1)
-  m2_tilt_dm2_zero_str.value = deg2min(cfg.m2_tilt_dm2_zero/60, 1)
-  m2_roll_coupling_str.value = deg2min(cfg.m2_roll_coupling/60, 1)
-  m2_roll_zero_str.value = deg2min(cfg.m2_roll_zero/60, 4)
-  m1_offset_str.value = deg2min(cfg.m1_offset/60, 4)
-  m2_offset_str.value = deg2min(cfg.m2_offset/60, 4)
-  m3_offset_str.value = deg2min(cfg.m3_offset/60, 4)
-  update_snapshot_params()
+  m2_scale_str.value = Number(cfg.align_m2_scale ?? 0).toFixed(2)
+  snapshot.value = m2_scale_str.value
 }
-
-const snapshot_params      = ref('')
-const update_snapshot_params = () => snapshot_params.value = current_params.value
-const current_params = computed(() => `${m3_tilt_dm1_str.value}${m3_tilt_dm2_str.value}${m2_tilt_dm2_amp_str.value}${m2_tilt_dm2_zero_str.value}${m2_roll_coupling_str.value}${m2_roll_zero_str.value}${m1_offset_str.value}${m2_offset_str.value}${m3_offset_str.value}`)
-const is_dirty = computed(() => current_params.value != snapshot_params.value)
-
-
 
 async function apply_params() {
-  const payload = {
-    m3_tilt_dm1: dms2deg(m3_tilt_dm1_str.value, 'deg'),
-    m3_tilt_dm2: dms2deg(m3_tilt_dm2_str.value, 'deg'),
-    m2_tilt_dm2_amp: dms2deg(m2_tilt_dm2_amp_str.value, 'deg'),
-    m2_tilt_dm2_zero: dms2deg(m2_tilt_dm2_zero_str.value, 'deg'),
-    m2_roll_coupling: dms2deg(m2_roll_coupling_str.value, 'deg'),
-    m2_roll_zero: dms2deg(m2_roll_zero_str.value, 'deg'),
-    m1_offset: dms2deg(m1_offset_str.value, 'deg'),
-    m2_offset: dms2deg(m2_offset_str.value, 'deg'),
-    m3_offset: dms2deg(m3_offset_str.value, 'deg'),
-    advanced_align_mac: true,
+  const v = parseFloat(m2_scale_str.value)
+  if (!Number.isFinite(v)) {
+    load_params()
+    return
   }
-  await cfg.configUpdate(payload)
+  await cfg.configUpdate({ align_m2_scale: v })
   load_params()
 }
-
 
 onMounted(() => {
   load_params()
 })
 
-
-async function onModelUpdate(v:  boolean ) {
-  const payload = { advanced_align_mac: v }
-  console.log(payload)
-  await cfg.configUpdate(payload) 
+async function onModelUpdate(v: boolean) {
+  await cfg.configUpdate({ advanced_align_mac: v })
   load_params()
 }
-
-
-
-// async function onM1Plus(payload: { isPressed: boolean }) {
-//     await dev.apiAction('Polaris:MoveMotor', `{"axis":0,"rate":${payload.isPressed ? 5 : 0}}`)
-// }
-
 </script>

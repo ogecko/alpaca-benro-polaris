@@ -106,6 +106,7 @@ export const useStatusStore = defineStore('status', {
         polarishwver: '',
         polarisastrover: '',
         rbcerror: 0,
+        alignmodel: [0, 0, 0],              // alignment model: M2, M3 offsets (deg), M2 scale (%)
         sccerror: 0,
         mpastatus: [0,0],
         sgstatus: [0,0,0,0,0],
