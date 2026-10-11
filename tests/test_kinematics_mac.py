@@ -145,3 +145,19 @@ def test_correction_rotation_closed_form_matches_the_forward_kinematics():
         assert angle_deg(got, want) < 1e-5                                     # arccos near 1: ~0.01" precision
         b = boresights(th[None])[0]
         assert np.allclose(got.rotate(b), boresights(corrected_theta(th[None], d2, d3, s2))[0], atol=1e-12)
+
+
+def test_six_standard_points_with_3_arcmin_errors_recover_the_terms_without_bias():
+    """How well the standard 6-point alignment determines the terms when each sync point is ~3' off (the typical
+    residual after the model): 300 runs. Offsets to ~4' (1 sigma), the M2 scale to ~0.16% -- no bias. One
+    alignment's AutoTune is therefore good to about +-0.3% (2 sigma); repeat it, or use more points spread in
+    altitude, to tighten it."""
+    th = thetas(POSES[:6])
+    d2s, d3s, s2s = [], [], []
+    for seed in range(300):
+        obs = observe(th, Q_TRUE, d2=50 * ARCMIN, d3=-53 * ARCMIN, s2=0.01, noise_arcmin=3.0, seed=seed)
+        f = fit_alignment(th, obs, s2=0.01)
+        d2s.append(f.d2 * 60); d3s.append(f.d3 * 60)
+        s2s.append(fit_alignment(th, obs, fit_s2=True).s2 * 100)
+    assert abs(np.mean(d2s) - 50) < 1.0 and abs(np.mean(d3s) + 53) < 1.0 and abs(np.mean(s2s) - 1.0) < 0.05
+    assert np.std(d2s) < 5.0 and np.std(d3s) < 5.0 and np.std(s2s) < 0.22

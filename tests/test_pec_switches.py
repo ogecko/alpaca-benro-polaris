@@ -334,3 +334,35 @@ def test_each_motors_worm_correction_is_kept_for_the_status(monkeypatch, profile
     monkeypatch.setattr(Config, 'advanced_pec_worm', False)
     sm.update_worm_ff(theta)
     assert np.all(sm.worm_error_deg == 0)
+
+
+def twin_mac_calibration(monkeypatch, profile_path, worm, seed, n=10):
+    """The twin with hidden MODEL_TRUE: AutoTune the M2 scale from 0, then refit with it. Returns (d2', d3', s2 %)."""
+    sky = Sky(seed, model_true=MODEL_TRUE)
+    tw = twin(monkeypatch, profile_path, worm=worm, mac=True)
+    monkeypatch.setattr(Config, 'align_m2_scale', 0.0, raising=False)          # not yet calibrated
+    sky.sync(tw, poses(np.random.default_rng(seed), n))
+    sm = tw.polaris._sm
+    r = sm.calibrate_m2_scale()
+    assert r['success'], r['message']
+    monkeypatch.setattr(Config, 'align_m2_scale', r['m2_scale'], raising=False)  # Pilot's Apply
+    sm.optimize_alignQ_B2T()
+    return sm.mac_d2 * 60, sm.mac_d3 * 60, r['m2_scale']
+
+
+@pytest.mark.parametrize('seed', [0, 1, 2, 3])
+def test_mac_recovers_the_hidden_offsets_and_autotune_the_m2_scale(monkeypatch, profile_path, seed):
+    """The values themselves, not just the pointing: with the worm gear correction on, the M2/M3 offsets the driver
+    fits are the hidden ones, and AutoTune finds the hidden M2 scale (10 syncs, 2" solve noise)."""
+    d2, d3, s2 = twin_mac_calibration(monkeypatch, profile_path, worm=True, seed=seed)
+    assert d2 == pytest.approx(MODEL_TRUE['d2'] * 60, abs=0.5) and d3 == pytest.approx(MODEL_TRUE['d3'] * 60, abs=0.5)
+    assert s2 == pytest.approx(MODEL_TRUE['s2'] * 100, abs=0.02)
+
+
+@pytest.mark.parametrize('seed', [0, 1, 2, 3])
+def test_without_the_worm_gear_correction_the_worm_moves_the_m2_scale_a_little(monkeypatch, profile_path, seed):
+    """Twin 2026-10-11: the uncorrected worm (40-100") moves AutoTune's M2 scale by up to ~0.15% and the offsets by
+    under 1' -- it can't explain a scale far from the others (e.g. 0.335% against ~1%) on its own."""
+    d2, d3, s2 = twin_mac_calibration(monkeypatch, profile_path, worm=False, seed=seed)
+    assert d2 == pytest.approx(MODEL_TRUE['d2'] * 60, abs=2.0) and d3 == pytest.approx(MODEL_TRUE['d3'] * 60, abs=2.0)
+    assert s2 == pytest.approx(MODEL_TRUE['s2'] * 100, abs=0.25)
