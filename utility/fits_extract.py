@@ -81,6 +81,7 @@ except ImportError:
 
 try:
     import kinematics as _km
+    import legacy_mac as _mac
     from kinematics import (
         wrap360, wrap180, wrap90,
         calc_parallactic_angle,
@@ -401,7 +402,7 @@ def _load_mount_params(params_path):
             saved = json.load(f)
         tm = saved.get('mount_model', saved.get('theta_model', {}))
         # MODIFICATION 1: added m2_roll_coupling and m2_roll_zero
-        return _km.MountModelParams(
+        return _mac.MountModelParams(
             m3_tilt_dm2      = tm.get('m3_tilt_dm2',      0.0),
             m3_tilt_dm1       = tm.get('m3_tilt_dm1',       0.0),
             m3_tilt_dm3     = tm.get('m3_tilt_dm3',     0.0),
@@ -413,7 +414,7 @@ def _load_mount_params(params_path):
             m2_offset        = tm.get('m2_offset',        0.0),
             m3_offset        = tm.get('m3_offset',        0.0),
         ), saved
-    return _km.MountModelParams(), {}
+    return _mac.MountModelParams(), {}
 
 
 def _build_quest_pairs(rows, mount_params):
@@ -428,7 +429,7 @@ def _build_quest_pairs(rows, mount_params):
             continue
         q_base = _km.theta_to_q(t1, t2, t3)
         if mount_params is not None:
-            q_base, _ = _km.apply_mechanical_corrections(q_base, mount_params)
+            q_base, _ = _mac.apply_mechanical_corrections(q_base, mount_params)
         p_az_corr, p_alt_corr, _ = _km.q_to_azaltroll(q_base)
         q_pred   = _km.azaltroll_to_q(p_az_corr, p_alt_corr, 0.0)
         q_solved = _km.azaltroll_to_q(s_az, s_alt, 0.0)
@@ -487,7 +488,7 @@ def _predict_row(row, alignQ, roll_adj, mount_params):
     # ---- Full model prediction (mechanical corrections + QUEST) ----------
     q_base = _km.theta_to_q(p_t1, p_t2, p_t3)
     if mount_params is not None:
-        q_base, _ = _km.apply_mechanical_corrections(q_base, mount_params)
+        q_base, _ = _mac.apply_mechanical_corrections(q_base, mount_params)
     pa_q = (alignQ * q_base).normalised
 
     m_az, m_alt, m_roll_raw = _km.q_to_azaltroll(pa_q)
@@ -674,7 +675,7 @@ def cmd_model(csv_paths, params_path):
     params_path = Path(params_path)
     mount_params, saved_json = _load_mount_params(params_path)
     # Always start with zero parameters for -model
-    mount_params, saved_json = _km.MountModelParams(), {}
+    mount_params, saved_json = _mac.MountModelParams(), {}
 
     if saved_json:
         tm = saved_json.get('mount_model', saved_json.get('theta_model', {}))

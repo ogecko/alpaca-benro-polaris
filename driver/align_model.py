@@ -13,6 +13,7 @@
 # and must stay fast on a Raspberry Pi Zero 2 W (target under ~20 ms for 10 points).
 
 from dataclasses import dataclass, field
+import math
 import numpy as np
 from quaternion import Q as Quaternion
 
@@ -30,6 +31,30 @@ def corrected_theta(theta, d2=0.0, d3=0.0, s2=0.0):
     th[..., 1] += d2 + s2 * (th[..., 1] - M2_SCALE_REF_DEG)
     th[..., 2] += d3
     return th
+
+
+def _qmul(a, b):
+    aw, ax, ay, az = a
+    bw, bx, by, bz = b
+    return (aw * bw - ax * bx - ay * by - az * bz, aw * bx + ax * bw + ay * bz - az * by,
+            aw * by - ax * bz + ay * bw + az * bx, aw * bz + ax * by - ay * bx + az * bw)
+
+
+def correction_q(theta, d2=0.0, d3=0.0, s2=0.0):
+    """Base-frame rotation from the pose at motor angles theta (deg) to the model-corrected pose: q(theta')
+    q(theta)^-1 = Rz(a1) Ry(a2') Rx(-d3) Ry(-a2) Rz(-a1), with a1 = 90 - theta1, a2 = -theta2 - 90 -- in plain floats,
+    for the control tick (the full forward kinematics twice costs ~5x more)."""
+    t1, t2 = float(theta[0]), float(theta[1])
+    h1 = (90.0 - t1) * _D2R / 2
+    h2 = (-t2 - 90.0) * _D2R / 2
+    h2c = (-(t2 + d2 + s2 * (t2 - M2_SCALE_REF_DEG)) - 90.0) * _D2R / 2
+    h3 = -d3 * _D2R / 2
+    c1, s1 = math.cos(h1), math.sin(h1)
+    q = _qmul((c1, 0.0, 0.0, s1), (math.cos(h2c), 0.0, math.sin(h2c), 0.0))
+    q = _qmul(q, (math.cos(h3), math.sin(h3), 0.0, 0.0))
+    q = _qmul(q, (math.cos(h2), 0.0, -math.sin(h2), 0.0))
+    q = _qmul(q, (c1, 0.0, 0.0, -s1))
+    return Quaternion(*q)
 
 
 def _fk(theta):

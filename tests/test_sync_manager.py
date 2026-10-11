@@ -43,17 +43,8 @@ def mock_config(tmp_path, monkeypatch):
         "pec_max_rmse_arcmin":      6.0,
         "pec_max_resid_arcmin":     10.0,
         "pec_min_r2":               0.5,
-        "m3_tilt_dm1":              0, 
-        "m3_tilt_dm2":              0, 
-        "m3_tilt_dm3":              0, 
-        "m2_tilt_dm2_amp":          0,
-        "m2_tilt_dm2_zero":         0, 
-        "m2_roll_coupling":         0, 
-        "m2_roll_zero":             0, 
-        "m1_offset":                0, 
-        "m2_offset":                0, 
-        "m3_offset":                0, 
-        
+        "align_m2_scale":           1.0,
+
     }
     config_obj = SimpleNamespace(**defaults)
 

@@ -1888,17 +1888,13 @@ class action:
 
         elif actionName == "Polaris:AutotuneMAC":
             logger.info('Polaris:AutotuneMAC')
-            result = polaris._sm.autotune_mac()           # predicts each sync point as QUEST does (MAC, worm)
+            result = polaris._sm.calibrate_m2_scale()     # the M2 scale from the current sync points (with the worm)
             if result['success']:
-                improv_msg = ('improved' if result['rms_improv']>0 else 'worse') + f' {abs(result['rms_improv']):.1f}%'
-                logger.info(
-                    f"AutotuneMAC: Based on {result['n_points']} points, ran {result['nit']} iterations | "
-                    f"R2 {result['r2']:.4f}, "
-                    f"RMS {result['rms_before']:.2f}' to {result['rms_after']:.2f}' ({improv_msg}) | "
-                    f"A = {result['m2_tilt_dm2_amp']:.2f}' "
-                    f"B = {result['m2_tilt_dm2_zero']:.1f}° "
-                    f"C = {result['m3_tilt_dm1']:.2f}'"
-                )
+                logger.info(f"AutotuneMAC: {result['message']} | RMS {result['rms_before']:.2f}' to "
+                            f"{result['rms_after']:.2f}' ({result['rms_improv']:+.1f}%) | "
+                            f"offsets M2 {result['d2'] * 60:+.1f}' M3 {result['d3'] * 60:+.1f}'")
+            else:
+                logger.info(f"AutotuneMAC: {result['message']}")
             resp.text = await PropertyResponse(result, req)
             return
 

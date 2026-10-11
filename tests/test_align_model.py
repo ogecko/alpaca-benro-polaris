@@ -131,3 +131,17 @@ def test_residuals_are_per_point_in_arcmin():
     f = fit_alignment(th, obs, fit_offsets=False)
     assert f.residuals_arcmin.shape == (6,) and np.argmax(f.residuals_arcmin) == 2
     assert f.rms_arcmin == pytest.approx(np.sqrt(np.mean(f.residuals_arcmin ** 2)))
+
+
+def test_correction_rotation_closed_form_matches_the_forward_kinematics():
+    """align_model.correction_q(theta, d2, d3, s2) = q(theta') q(theta)^-1, computed directly for the control tick."""
+    from align_model import correction_q
+    rng = np.random.default_rng(4)
+    for _ in range(50):
+        th = np.array([rng.uniform(0, 360), rng.uniform(-8, 81), rng.uniform(-170, 170)])
+        d2, d3, s2 = rng.uniform(-2, 2), rng.uniform(-6, 6), rng.uniform(-0.03, 0.03)
+        want = theta_to_q(*corrected_theta(th, d2, d3, s2)) * theta_to_q(*th).inverse
+        got = correction_q(th, d2, d3, s2)
+        assert angle_deg(got, want) < 1e-5                                     # arccos near 1: ~0.01" precision
+        b = boresights(th[None])[0]
+        assert np.allclose(got.rotate(b), boresights(corrected_theta(th[None], d2, d3, s2))[0], atol=1e-12)

@@ -229,6 +229,18 @@ class WormMixin:
         offset = theta - np.asarray(zeta, float) if zeta is not None else None
         return prof.correction_q(theta, zeta_offset=offset)
 
+    def entry_worm_error_deg(self, entry):
+        """(3,) deg: the worm gear error at a sync point's raw motor angles, with the profile in use now (zeros when
+        the correction is off or the point has no motor angles) -- the alignment model adds it to those angles."""
+        prof = self.worm_ff_in_use()
+        theta = entry.get('theta')
+        if prof is None or theta is None:
+            return np.zeros(3)
+        theta = np.asarray(theta, float)
+        zeta = entry.get('zeta')
+        offset = theta - np.asarray(zeta, float) if zeta is not None else None
+        return prof.error_deg(theta, zeta_offset=offset)
+
     def reload_worm_ff(self):
         """Read the profile file again on the next tick (after a worm calibration was approved or rejected)."""
         self._worm_ff_path = None

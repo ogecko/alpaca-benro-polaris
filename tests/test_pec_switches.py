@@ -4,11 +4,11 @@ Config.advanced_pec_worm (the worm gear correction from the measured profile), e
 
   * the worm gear correction applies only when it is switched on and a profile exists (a warning when it is on and there
     is none); the drift correction only learns and applies when its own switch is on
-  * a sync point keeps its raw motor angles (theta, and the MCU's zeta) next to the raw predicted pose, so QUEST and MAC
-    autotune can rebuild every prediction from the current switches and profile -- with the worm gear correction on,
-    a sync point is predicted through it, as the pointing is at runtime
-  * on the digital twin with the worm gears it cannot see: QUEST, the pointing and MAC autotune reach the solve-noise
-    floor with the worm gear correction on, and stay worm-limited with it off
+  * a sync point keeps its raw motor angles (theta, and the MCU's zeta) next to the raw predicted pose, so QUEST and
+    the alignment model can rebuild every prediction from the current switches and profile -- with the worm gear
+    correction on, a sync point is predicted through it, as the pointing is at runtime
+  * on the digital twin with the worm gears and M2/M3 offsets it cannot see: QUEST with the alignment model and the
+    pointing reach the solve-noise floor with the worm gear correction on, and stay worm-limited with it off
   * switching either correction refits / restarts what depends on it; approving a profile switches the worm gear
     correction on, rejecting it switches it off
 """
@@ -29,8 +29,8 @@ import toml
 import control_worm
 from config import Config, CONFIG_TOML_PATH
 from control_worm import WormFeedForward
-from kinematics import (theta_to_q, q_to_azaltroll, azaltroll_to_theta_ik, azalt_to_vector, MountModelParams,
-                        get_mechanical_correction_q, autotune_mac)
+from kinematics import theta_to_q, q_to_azaltroll, azaltroll_to_theta_ik, azalt_to_vector
+from align_model import corrected_theta
 from quaternion import Q as Quaternion
 from sim_digital_twin import Twin
 from sim_guider import Worm, ARCSEC
@@ -164,19 +164,19 @@ def test_with_the_worm_switch_on_a_sync_point_is_predicted_through_the_worm_gear
 
 # ── the twin: hidden alignment, hidden worm gears, plate solves ───────────────────────────────────
 class Sky:
-    """The twin's true pointing: a hidden alignment, optionally hidden mechanical errors, and the worm gears."""
-    def __init__(self, seed, mac_true=None):
+    """The twin's true pointing: a hidden alignment, optionally hidden M2/M3 offsets and M2 scale (model_true: d2,
+    d3 deg, s2 fraction), and the worm gears."""
+    def __init__(self, seed, model_true=None):
         rng = np.random.default_rng(seed)
         self.rng = rng
         tilt_axis = [math.cos(rng.uniform(0, 6.28)), math.sin(rng.uniform(0, 6.28)), 0]
         self.A = (Quaternion(axis=[0, 0, 1], degrees=rng.uniform(1, 3)) *
                   Quaternion(axis=tilt_axis, degrees=rng.uniform(0.3, 0.8))).normalised
-        self.mac = MountModelParams.from_config({**MAC_ZERO, **(mac_true or {})})
+        self.model = {'d2': 0.0, 'd3': 0.0, 's2': 0.0, **(model_true or {})}
 
     def true_q(self, theta):
-        q = theta_to_q(*theta)
-        rbc, _ = get_mechanical_correction_q(q, self.mac)
-        return (self.A * rbc * theta_to_q(*(theta + true_error_deg(theta)))).normalised
+        th = corrected_theta(theta + true_error_deg(theta), **self.model)
+        return (self.A * theta_to_q(*th)).normalised
 
     def sync(self, tw, poses):
         for th in poses:
@@ -197,10 +197,6 @@ class Sky:
             v1, v2 = np.array(azalt_to_vector(a1, l1)), np.array(azalt_to_vector(a2, l2))
             errs.append(math.degrees(math.acos(np.clip(v1 @ v2, -1, 1))) * 3600)
         return math.sqrt(np.mean(np.square(errs)))
-
-
-MAC_ZERO = {'m3_tilt_dm2': 0.0, 'm3_tilt_dm1': 0.0, 'm3_tilt_dm3': 0.0, 'm2_tilt_dm2_amp': 0.0, 'm2_tilt_dm2_zero': 0.0,
-            'm2_roll_coupling': 0.0, 'm2_roll_zero': 45.0, 'm1_offset': 0.0, 'm2_offset': 0.0, 'm3_offset': 0.0}
 
 
 def poses(rng, n, spread=True):
@@ -230,38 +226,30 @@ def test_with_the_worm_gear_correction_on_quest_and_the_pointing_reach_the_solve
     assert quest_rms(on) > 25.0
 
 
-MAC_DEFAULT = {'m3_tilt_dm1': -261.30, 'm3_tilt_dm2': -148.69, 'm2_tilt_dm2_amp': 94.78, 'm2_tilt_dm2_zero': 20.88}
-MAC_TRUE = {**MAC_DEFAULT, 'm3_tilt_dm1': -230.0, 'm2_tilt_dm2_amp': 80.0, 'm2_tilt_dm2_zero': 30.0}
+MODEL_TRUE = dict(d2=50 / 60, d3=-53 / 60, s2=0.01)          # the 200 mm setup's terms (docs/study_alignment_mac_v2.md)
 
 
-@pytest.mark.parametrize('worm, max_dm1_err', [(True, 2.0), (False, None)])
-def test_mac_autotune_predicts_the_sync_points_as_quest_does(monkeypatch, profile_path, worm, max_dm1_err):
-    """Twin 2026-10-06 (10 syncs): with the worm gear correction on, autotune finds m3_tilt_dm1 to <1' (off: ~12')."""
-    errs = []
-    for seed in range(3):
-        sky = Sky(seed, mac_true=MAC_TRUE)
-        tw = twin(monkeypatch, profile_path, worm=worm, mac=True)
-        for k, v in {**MAC_ZERO, **MAC_DEFAULT}.items():
-            monkeypatch.setattr(Config, k, v, raising=False)
-        sky.sync(tw, poses(np.random.default_rng(seed), 10))
-        r = tw.polaris._sm.autotune_mac()
-        errs.append(abs(r['m3_tilt_dm1'] - MAC_TRUE['m3_tilt_dm1']))
-    if max_dm1_err:
-        assert max(errs) < max_dm1_err
-    else:
-        assert max(errs) > 3.0                                   # the worm, unmodelled, leaks into the MAC terms
+@pytest.mark.parametrize('seed', [0, 1, 2])
+def test_the_alignment_model_with_the_worm_gear_correction_reaches_the_solve_noise(monkeypatch, profile_path, seed):
+    """Hidden M2/M3 offsets and M2 scale on top of the worm gears: with both corrections on (Mechanical Alignment
+    Correction = the alignment model), QUEST and the pointing reach the solve noise; rotation-only QUEST (the A/B
+    comparison) can't absorb the offsets."""
+    sky = Sky(seed, model_true=MODEL_TRUE)
+    tw = twin(monkeypatch, profile_path, worm=True, mac=True)
+    monkeypatch.setattr(Config, 'align_m2_scale', MODEL_TRUE['s2'] * 100, raising=False)
+    sky.sync(tw, poses(np.random.default_rng(seed), 6))
+    assert quest_rms(tw) < 6.0 and sky.pointing_rms(tw) < 8.0
+    monkeypatch.setattr(Config, 'advanced_align_mac', False)      # A/B: the same syncs, rotation-only QUEST
+    tw.polaris._sm.optimize_alignQ_B2T()
+    assert quest_rms(tw) > 300.0 and sky.pointing_rms(tw) > 300.0
 
 
-def test_autotune_without_a_worm_rotation_predicts_from_the_raw_pose():
-    rng = np.random.default_rng(0)
-    entries = []
-    for th in poses(rng, 6):
-        az, alt, roll = q_to_azaltroll(theta_to_q(*th))
-        entries.append(dict(deleted=False, p_az=az, p_alt=alt, p_roll=roll, a_az=(az + 0.5) % 360, a_alt=alt))
-    base = MountModelParams.from_config({**MAC_ZERO, **MAC_DEFAULT})
-    a = autotune_mac(entries, base)
-    b = autotune_mac(entries, base, worm_q=lambda e: Quaternion())
-    assert a['rms_before'] == pytest.approx(b['rms_before']) and a['m3_tilt_dm1'] == pytest.approx(b['m3_tilt_dm1'])
+def test_without_the_worm_gear_correction_the_worm_is_left_in_the_alignment_model(monkeypatch, profile_path):
+    sky = Sky(0, model_true=MODEL_TRUE)
+    tw = twin(monkeypatch, profile_path, worm=False, mac=True)
+    monkeypatch.setattr(Config, 'align_m2_scale', MODEL_TRUE['s2'] * 100, raising=False)
+    sky.sync(tw, poses(np.random.default_rng(0), 6))
+    assert quest_rms(tw) > 25.0                                   # the worms (40-100") the model doesn't hold
 
 
 # ── switching, approving ───────────────────────────────────────────────────────────────────────

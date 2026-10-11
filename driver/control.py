@@ -15,7 +15,7 @@ from shr import rad2deg, deg2rad, deg2dms, format_timestamp, ratio_string
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl, ensure_data_dir_exists
 from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
-from kinematics import get_mechanical_correction_q, apply_mechanical_corrections, MountModelParams, autotune_mac
+from align_model import fit_alignment, corrected_theta, boresights, correction_q as model_correction
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
@@ -2172,10 +2172,12 @@ class SyncManager(PecMixin, WormMixin):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
         self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
         self.corrQ_LGA = Quaternion(1,0,0,0)    # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
-        self.corrQ_RBC = Quaternion(1,0,0,0)    # cache of MAC stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
-        self.params_RBC = MountModelParams.from_config(Config)
+        self.corrQ_MODEL = Quaternion(1,0,0,0)  # alignment model (MAC) correction at the current pose, forward path only
+        self.align_d2 = 0.0                     # alignment model: M2 zero offset (deg), fitted with QUEST (align_model)
+        self.align_d3 = 0.0                     # alignment model: M3 zero offset (deg)
+        self._model_theta_w = None              # current pose's motor angles + worm error: recomputes corrQ_MODEL on a refit
         self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
-        self.rbc_error = 0                      # cache of Rotation Bias Correction  error magnitude, (for Kinematics page)
+        self.model_error = 0                    # alignment model correction magnitude at the current pose (deg, Kinematics page)
         self.mpa_error = 0                      # cache of Multi Point Alignment RMS Residual error, (for Alignment page)
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
         self.alignQ_B2T = Quaternion(1,0,0,0)       # cached adjustment quaternion for azalt syncing, initially identity
@@ -2228,34 +2230,91 @@ class SyncManager(PecMixin, WormMixin):
 
     def entry_to_pred_vector(self, entry):
         """
-        Convert a sync history entry's raw stored p_az/p_alt/p_roll into a predicted unit vector, rebuilt with the
-        static corrections in use now, in the runtime order: [WFF] (from the entry's raw motor angles) then [MAC]
-        (computed from the raw pose). Do not apply [SGC], [PGC] or [LGA].
+        Convert a sync history entry's raw stored pose into a predicted unit vector, rebuilt with the static
+        corrections in use now, in the runtime order: [WFF] (from the entry's raw motor angles) then the alignment
+        model [MAC] (M2/M3 offsets, M2 scale, on those angles). Do not apply [SGC], [PGC] or [LGA].
         """
+        if Config.advanced_align_mac:
+            v = boresights(corrected_theta(self.entry_model_theta(entry), *self.model_terms()))[0]
+            eff_az, eff_alt = vector_to_az_alt(v)
+            return v, eff_az, eff_alt
         wormQ = self.entry_worm_q(entry)
-        if not Config.advanced_align_mac and wormQ.degrees == 0:
+        if wormQ.degrees == 0:
             return azalt_to_vector(entry["p_az"], entry["p_alt"]), entry["p_az"], entry["p_alt"]
         motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
-        motorQ_adj = (wormQ * motorQ_entry).normalised
-        if Config.advanced_align_mac:
-            corrQ, _ = get_mechanical_correction_q(motorQ_entry, self.params_RBC)
-            motorQ_adj = (corrQ * motorQ_adj).normalised
-        eff_az, eff_alt, _ = q_to_azaltroll(motorQ_adj)
+        eff_az, eff_alt, _ = q_to_azaltroll((wormQ * motorQ_entry).normalised)
         return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
 
-    def autotune_mac(self):
-        """kinematics.autotune_mac on the sync points, each predicted as entry_to_pred_vector does (with the worm
-        gear correction when it is in use)."""
-        return autotune_mac(self.sync_history, MountModelParams.from_config(Config), worm_q=self.entry_worm_q)
+    # ── alignment model (MAC): M2/M3 zero offsets and M2 scale on the motor angles (align_model) ──────────
+    def model_terms(self):
+        """(d2, d3, s2) in use: the fitted offsets (deg) and the M2 scale (fraction, config align_m2_scale %); zero
+        while the model (advanced_align_mac) is off."""
+        if not Config.advanced_align_mac:
+            return 0.0, 0.0, 0.0
+        return self.align_d2, self.align_d3, float(getattr(Config, 'align_m2_scale', 0.0)) / 100.0
+
+    def entry_theta(self, entry):
+        """A sync point's raw motor angles (deg): stored with it, or rebuilt from its pose (points saved before v2.2)."""
+        if entry.get("theta") is not None:
+            return np.asarray(entry["theta"], float)
+        return np.asarray(q_to_theta(azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])), float)
+
+    def entry_model_theta(self, entry):
+        """A sync point's motor angles as the model sees them: raw, plus the worm gear error when it is corrected."""
+        return self.entry_theta(entry) + self.entry_worm_error_deg(entry)
+
+    def model_correction_q(self, theta_w):
+        """Base-frame rotation from the pose at motor angles theta_w (raw + worm) to the model-corrected pose."""
+        d2, d3, s2 = self.model_terms()
+        if d2 == 0 and d3 == 0 and s2 == 0:
+            return Quaternion(1, 0, 0, 0)
+        return model_correction(theta_w, d2, d3, s2)
+
+    def calibrate_m2_scale(self, min_points=6, min_m2_span_deg=20.0):
+        """Fit the M2 scale (with the rotation and the M2/M3 offsets) on the current sync points: Pilot's AutoTune.
+        Reported, not applied -- Pilot's Apply saves it as align_m2_scale (%). Needs points spread in M2."""
+        pts = [e for e in self.sync_history if not e["deleted"] and e["a_az"] is not None and e["a_alt"] is not None]
+        th = np.array([self.entry_model_theta(e) for e in pts]) if pts else np.zeros((0, 3))
+        obs = np.array([azalt_to_vector(e["a_az"], e["a_alt"]) for e in pts]) if pts else np.zeros((0, 3))
+        out = {'success': False, 'n_points': len(pts), 'm2_scale': float(getattr(Config, 'align_m2_scale', 0.0)),
+               'rms_before': 0.0, 'rms_after': 0.0, 'rms_improv': 0.0, 'message': ''}
+        span = float(np.ptp(th[:, 1])) if len(th) else 0.0
+        if len(pts) < min_points or span < min_m2_span_deg:
+            out['message'] = (f"Needs {min_points} or more sync points spread {min_m2_span_deg:.0f} deg or more in "
+                              f"altitude (M2): have {len(pts)} points over {span:.0f} deg")
+            return out
+        s2_now = out['m2_scale'] / 100.0
+        before = fit_alignment(th, obs, s2=s2_now)
+        after = fit_alignment(th, obs, s2=s2_now, d_init=(before.d2, before.d3), fit_s2=True)
+        if not after.s2_fitted:
+            out['message'] = "The sync points can't separate the M2 scale from the offsets: add points at other altitudes"
+            return out
+        out.update(success=True, m2_scale=round(after.s2 * 100, 3), d2=after.d2, d3=after.d3,
+                   rms_before=before.rms_arcmin, rms_after=after.rms_arcmin,
+                   rms_improv=(1 - after.rms_arcmin / before.rms_arcmin) * 100 if before.rms_arcmin > 0 else 0.0,
+                   message=f"M2 scale {after.s2 * 100:+.2f}% from {len(pts)} points")
+        return out
+
+    def update_model_correction(self, theta_w=None):
+        """Refresh corrQ_MODEL at the current pose (theta_w: its motor angles + worm error; None: the last ones), e.g.
+        after a refit changed the model, so callers without motor angles get the new model."""
+        if theta_w is not None:
+            self._model_theta_w = np.asarray(theta_w, float)
+        if self._model_theta_w is None:
+            self.corrQ_MODEL, self.model_error = Quaternion(1, 0, 0, 0), 0
+            return
+        self.corrQ_MODEL = self.model_correction_q(self._model_theta_w)
+        self.model_error = self.corrQ_MODEL.degrees
 
 
 
-    def baseQ_to_topoQ(self, motorQ_C2B_state, theta=None):
+    def baseQ_to_topoQ(self, motorQ_C2B_state, theta=None, model_theta=None):
         """
         Forward kinematics: Base frame → Topocentric frame.
         motorQ → [WFF] → [MAC] → [SGC] → [PGC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         theta: the motor angles (deg) motorQ_C2B_state was built from -- the control tick passes them to refresh the
-        worm feed-forward; other callers reuse the last one.
+        worm feed-forward and the alignment model at the current pose; other callers reuse the last ones.
+        model_theta: motor angles of a pose that isn't the current one: the alignment model for that pose only.
         """
         # Apply Worm Feed-Forward (WFF): the gear error after each motor, which the MCU can't see (control_pec)
         if theta is not None:
@@ -2263,10 +2322,14 @@ class SyncManager(PecMixin, WormMixin):
         corrQ_WFF = getattr(self, 'corrQ_WFF', None)      # not yet set while __init__ refreshes the setpoints
         motorQ_C2B_pv = corrQ_WFF * motorQ_C2B_state if corrQ_WFF is not None else motorQ_C2B_state
 
-        # Apply Mechanical Corrections (MAC)
-        if Config.advanced_align_mac:
-            self.corrQ_RBC, self.rbc_error = get_mechanical_correction_q(motorQ_C2B_state, self.params_RBC)
-            motorQ_C2B_pv = self.corrQ_RBC * motorQ_C2B_pv
+        # Apply the alignment model (MAC): M2/M3 offsets and M2 scale on the motor angles (after the worm error)
+        if theta is not None:
+            self.update_model_correction(np.asarray(theta, float) + getattr(self, 'worm_error_deg', 0.0))
+        if model_theta is not None:
+            motorQ_C2B_pv = self.model_correction_q(np.asarray(model_theta, float) + getattr(self, 'worm_error_deg', 0.0)) \
+                * motorQ_C2B_pv
+        elif Config.advanced_align_mac and self.corrQ_MODEL.degrees != 0:
+            motorQ_C2B_pv = self.corrQ_MODEL * motorQ_C2B_pv
 
         # Apply Sync Guide Corrections (SGC)
         motorQ_C2B_pv = self.q_syncguide_B * motorQ_C2B_pv
@@ -2396,7 +2459,7 @@ class SyncManager(PecMixin, WormMixin):
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
         if Config.advanced_alignment and Config.advanced_control:
-            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.corrQ_RBC * self.polaris._motorQ_state)
+            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.corrQ_MODEL * self.polaris._motorQ_state)
             entry["p_roll_pv"] = p_roll_pv   # MAC+QUEST corrected roll in T Frame for roll_adj computation
         self.sync_history.append(entry)
         self.optimize_roll_adj()
@@ -2452,8 +2515,10 @@ class SyncManager(PecMixin, WormMixin):
 
         pairs = []
         weights = []
-        self.params_RBC = MountModelParams.from_config(Config)
+        model_points = []                          # (motor angles + worm error, observed vector) for the model fit
         self.clear_guide_pulses(persist=persist)
+        if not Config.advanced_align_mac:
+            self.align_d2 = self.align_d3 = 0.0
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
@@ -2478,10 +2543,24 @@ class SyncManager(PecMixin, WormMixin):
 
             pairs.append((v_pred, v_obs))
             weights.append(w_total)
+            if Config.advanced_align_mac:
+                model_points.append((self.entry_model_theta(entry), v_obs))
 
 
         self.aligned_count = len(pairs)
-        if len(pairs) < 2:
+        if Config.advanced_align_mac and len(model_points) >= 2:
+            # Alignment model (MAC): QUEST's rotation fitted together with the M2/M3 offsets, unweighted (align_model)
+            th = np.array([t for t, _ in model_points]); obs = np.array([v for _, v in model_points])
+            d2, d3, s2 = self.model_terms()
+            fit = fit_alignment(th, obs, s2=s2, d_init=(d2, d3))
+            self.align_d2, self.align_d3 = float(fit.d2), float(fit.d3)
+            self.alignQ_B2T = fit.q
+            self.alignQ_B2T_inv = self.alignQ_B2T.inverse
+            if Config.advanced_scc_enabled and Config.advanced_scc_choice==0:
+                self.clear_sync_guiding()
+                self.apply_zero_last_residual_to_model()
+            self.alignQ_B2T_message = "Alignment model applied" + ("" if fit.offsets_fitted else " (offsets held)")
+        elif len(pairs) < 2:
             self.alignQ_B2T = self.optimise_alignQ_B2T_fallback_single_sync(pairs)
             self.alignQ_B2T_inv = self.alignQ_B2T.inverse
             self.alignQ_B2T_message = "Fallback rotation from single sync"
@@ -2531,6 +2610,7 @@ class SyncManager(PecMixin, WormMixin):
             self.alignQ_B2T_message = "QUEST solution applied"
 
 
+        self.update_model_correction()   # the current pose with the refitted model
         # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
@@ -2803,6 +2883,7 @@ class SyncManager(PecMixin, WormMixin):
             ch = Config.advanced_scc_choice
             self.logger.info(
                 f"  MAC: {'ON ' if Config.advanced_align_mac else 'OFF'}   | " 
+                f"{'Model: d2 ' + deg2dms(self.align_d2) + ' d3 ' + deg2dms(self.align_d3) + f' M2 scale {self.model_terms()[2] * 100:+.2f}% | ' if Config.advanced_align_mac else ''}" 
                 f"{'SCC: OFF  | ' if not en else 'ZLR: ON   | ' if ch==0 else 'LGA: ON   | ' if ch==1 else 'SGA: ON   | ' }"
                 f"RMS Residual: {deg2dms(rms)}  | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
