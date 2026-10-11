@@ -415,7 +415,7 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 **2. Review the result.**
 
-Each test is retained. The displayed profile is **pooled over the last five tests**.
+Each test is retained. The displayed profile under Test Results is **pooled over recent tests**, up to a maximum of five tests.
 
 The result row shows one line per motor in each column, under a first line that says what the column is:
 
@@ -423,7 +423,7 @@ The result row shows one line per motor in each column, under a first line that 
 
 * **Test Result:** `last 5 tests pooled`: the profile that **Approve** would apply. It is fitted over the recent tests together, not just the latest one (`last test` when there is only one). For each motor it shows the wobble's size and the angle where it peaks.
 
-  For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The angle after `@` is where in its worm turn that motor's error is largest (0-360 over one 6 degree worm turn, from the motor's angle). A motor whose wobble is too small to measure shows `off` and is left uncorrected.
+  For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The angle after @ indicates where, within the motor’s 6° worm turn, its error is largest (0–360°, relative to the worm’s angle). Motors with wobble too small to measure are marked `off` and left uncorrected.
 
 * **Change:** `from baseline`: how far each motor's correction would move from the Baseline if you approve the Test Result (`+0"` once it is the profile in use).
 
@@ -433,13 +433,16 @@ The result row shows one line per motor in each column, under a first line that 
 
   For example, for the Test Result above: `pooled 19.4" rms`, then `M1 ±3.9" 5.4σ`, `M2 ±3.7" 23.2σ`, `M3 ±3.1" 27.4σ`. Every line is for the pooled Test Result.
 
-  * `pooled 19.4" rms` is how far, on average, the plate solves sat from the fitted wobble. Seeing, wind and small pointing errors all add to it. The pooled fit is allowed up to 25"; it sits a little above a single test's 10-20" because pooling adds the small differences between tests.
-  * Each test must fit under 20" on its own to join the pool. If the last test didn't, a final line warns `⚠ last test left out: 24.1" rms`: it is kept in the history but not in the Test Result.
+  * `pooled 19.4" rms` is how far, on average, the plate solves sat from the fitted wobble. Seeing, wind and small pointing errors all add to it. The pooled fit is allowed up to 25".
+  * Each test must fit under 20" on its own to join the pool. If the last test didn't, a final line warns `⚠ last test left out: 24.1" rms`: it is kept in the history but not in the Pooled Test Result.
   * Until there is more than one test to pool, the first line is the single test's own `last test 11.9" rms`. `, 31 positions` is added when that test stopped before all 50 positions: it is the number measured. A test needs at least 16 to be used.
   * `±3.1"` is how much that motor's measured wobble could be out by. Read M3's `85"` with `±3.1"` as "about 82 to 88 arc seconds".
-  * `σ` (sigma) is how clearly the wobble stands out from the measurement noise: the wobble's size divided by its `±` value. M3's `27.4σ` (85 ÷ 3.1) means the wobble is 27 times larger than its uncertainty, so it is certainly real. A motor is corrected only at **4σ or more**; below that its wobble can't be told apart from noise, and Test Result shows it as `off`.
 
-  Bigger is better for σ. A motor just above 4σ, like M1 at `5.4σ`, is measured, but only just: another test, or a test at a different pose, will make it more certain. The σ values assume each plate solve's error is independent of the next, so treat them as a guide to how firmly each motor is measured rather than an exact probability.
+    Why is the motor’s wobble uncertainty (`±3.1"`) so much smaller than the plate-solve RMS (`19.4"`)? The RMS measures how far an individual plate solve typically deviates from the fitted wobble, while the `±` value represents the uncertainty in the estimated wobble amplitude after averaging across all measurements. Random noise largely cancels out when measurements are combined, so with up to 250 positions (50 steps across 5 pooled tests), the uncertainty in the worm-profile amplitude can be much smaller than the RMS error of a single plate solve.
+
+  * `σ` (sigma) measures how clearly the wobble stands out from measurement noise: the wobble amplitude divided by its `±` uncertainty. M3’s `27.4σ` (85 ÷ 3.1) means its wobble is 27 times larger than the uncertainty, providing very strong evidence that it is real. A motor is corrected only if its wobble reaches `4σ` or higher. Below this threshold, the wobble cannot be reliably distinguished from noise, so Test Result shows it as `off`.
+
+    Bigger is better for `σ`. A motor just above the 4σ threshold, such as M1 at `5.4σ`, has a measurable wobble, but the result is less robust. Another test, or a test at a different pose, can increase confidence in the measurement.
 
 * **Status:**
 
