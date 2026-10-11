@@ -2548,18 +2548,22 @@ class SyncManager(PecMixin, WormMixin):
 
 
         self.aligned_count = len(pairs)
+        fit = None
         if Config.advanced_align_mac and len(model_points) >= 2:
-            # Alignment model (MAC): QUEST's rotation fitted together with the M2/M3 offsets, unweighted (align_model)
+            # Alignment model (MAC): QUEST's rotation fitted together with the M2/M3 offsets, unweighted (align_model).
+            # When the points can't separate the offsets, keep them and use the weighted QUEST below (it fits best
+            # locally, by proximity), on predictions that already carry the held offsets.
             th = np.array([t for t, _ in model_points]); obs = np.array([v for _, v in model_points])
             d2, d3, s2 = self.model_terms()
             fit = fit_alignment(th, obs, s2=s2, d_init=(d2, d3))
+        if fit is not None and fit.offsets_fitted:
             self.align_d2, self.align_d3 = float(fit.d2), float(fit.d3)
             self.alignQ_B2T = fit.q
             self.alignQ_B2T_inv = self.alignQ_B2T.inverse
             if Config.advanced_scc_enabled and Config.advanced_scc_choice==0:
                 self.clear_sync_guiding()
                 self.apply_zero_last_residual_to_model()
-            self.alignQ_B2T_message = "Alignment model applied" + ("" if fit.offsets_fitted else " (offsets held)")
+            self.alignQ_B2T_message = "Alignment model applied"
         elif len(pairs) < 2:
             self.alignQ_B2T = self.optimise_alignQ_B2T_fallback_single_sync(pairs)
             self.alignQ_B2T_inv = self.alignQ_B2T.inverse
@@ -2607,7 +2611,7 @@ class SyncManager(PecMixin, WormMixin):
                 self.clear_sync_guiding()
                 self.apply_zero_last_residual_to_model()
                 
-            self.alignQ_B2T_message = "QUEST solution applied"
+            self.alignQ_B2T_message = "QUEST solution applied" + (" (alignment model offsets held)" if fit is not None else "")
 
 
         self.update_model_correction()   # the current pose with the refitted model

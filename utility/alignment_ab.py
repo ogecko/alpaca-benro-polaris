@@ -113,7 +113,7 @@ def _sep_arcmin(a, b):
 
 def loo_errors_arcmin(al, s2=DEFAULT_M2_SCALE):
     """Leave-one-out goto errors (arcmin) per point: 'quest' (the driver's weighted rotation-only QUEST, MAC off),
-    'model' (the alignment model with the M2 scale s2)."""
+    'model' (the alignment model with the M2 scale s2; the weighted QUEST when its points can't fix the offsets)."""
     n = len(al['obs'])
     quest, model = np.zeros(n), np.zeros(n)
     for k in range(n):
@@ -121,8 +121,13 @@ def loo_errors_arcmin(al, s2=DEFAULT_M2_SCALE):
         q = quest_weighted_q(al['pred'][m], al['obs'][m], driver_weights(al['pred'][m], al['dec'][m], al['pred'][k]))
         quest[k] = _sep_arcmin(np.asarray(q.rotate(al['pred'][k]), float), al['obs'][k])
         f = fit_alignment(al['theta'][m], al['obs'][m], s2=s2)
-        v = np.asarray(f.q.rotate(boresights(corrected_theta(al['theta'][k:k + 1], f.d2, f.d3, s2))[0]), float)
-        model[k] = _sep_arcmin(v, al['obs'][k])
+        target = boresights(corrected_theta(al['theta'][k:k + 1], f.d2, f.d3, s2))[0]
+        if f.offsets_fitted:
+            q = f.q
+        else:                   # as the driver: offsets held, the weighted QUEST on the model's predictions
+            pred = boresights(corrected_theta(al['theta'][m], f.d2, f.d3, s2))
+            q = quest_weighted_q(pred, al['obs'][m], driver_weights(pred, al['dec'][m], target))
+        model[k] = _sep_arcmin(np.asarray(q.rotate(target), float), al['obs'][k])
     return {'quest': quest, 'model': model}
 
 

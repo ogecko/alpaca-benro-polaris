@@ -169,3 +169,17 @@ def test_another_pose_uses_its_own_correction_not_the_current_poses(cfg):
     assert sep_arcmin(cam.rotate([0, 0, -1]), true_direction(other)) < 0.1
     cam, _ = sm.baseQ_to_topoQ(theta_to_q(*current))
     assert sep_arcmin(cam.rotate([0, 0, -1]), true_direction(current)) < 0.1
+
+
+def test_when_the_points_cant_fix_the_offsets_the_weighted_quest_rotation_is_kept(cfg):
+    """Points bunched together (or along one roll and altitude) can't separate the offsets from the rotation: the
+    alignment is then the existing weighted QUEST, whose proximity weighting fits best locally (A/B: greg 08-02)."""
+    bunched = [(150, 45, 10), (154, 46, 10), (150, 50, 11), (146, 43, 9)]      # > 1.5 deg apart: all four kept
+    cfg.align_m2_scale = 0.0                                    # the held model is then the identity: on == off
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    sync_all(sm, p, bunched)
+    q_on = sm.alignQ_B2T
+    assert sm.aligned_count == 4 and sm.align_d2 == 0 and sm.align_d3 == 0
+    cfg.advanced_align_mac = False
+    sm.optimize_alignQ_B2T()
+    assert abs(abs(float(np.dot(q_on.q, sm.alignQ_B2T.q))) - 1.0) < 1e-12
