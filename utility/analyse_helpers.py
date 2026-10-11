@@ -207,7 +207,7 @@ def find_site_location(log_filenames, log_dir='.'):
     return {'lat_deg':..., 'lon_deg':...}, or None if not present (this line isn't written by
     every driver version/config, e.g. it's absent when the site is left at its default and
     never explicitly set for that session). Needed to convert a PECLOG resid (RA/Dec) into an
-    Alt/Az/theta delta via the parallactic angle -- see docs/pec_theta_space_plan.md Phase 0.1.
+    Alt/Az/theta delta via the parallactic angle -- see docs/study_pec_motor_space_v2.md Phase 0.1.
     """
     paths = resolve_log_files(log_filenames, log_dir=log_dir)
     if not paths:
@@ -353,7 +353,7 @@ def load_sync_guiding_residuals(log_filenames, log_dir='.'):
     DataFrame with timestamp/resid_1 (RA, arcmin)/resid_2 (Dec, arcmin) -- same convention as
     PECLOG's own resid_1/resid_2. Unlike load_pec(), this works with Config.advanced_pec_drift off
     (a session with PEC disabled, sync-guiding enabled -- e.g. for a clean, uncontaminated
-    ground-truth capture per docs/pec_theta_space_plan.md): process_guide_sync() logs this
+    ground-truth capture per docs/study_pec_motor_space_v2.md): process_guide_sync() logs this
     line unconditionally, whether or not PECLOG exists at all for the session.
 
     Raises if no such lines are found -- if you have PECLOG for this session, use load_pec()
@@ -432,7 +432,7 @@ def find_tracking_segments(log_filenames, log_dir='.', min_duration_min=20):
     a real capture session routinely includes several of these (retargeting, dithering,
     meridian flips), and a segment spanning one would inject a large non-periodic-error
     discontinuity into any cumulative-motor-angle analysis (see
-    docs/pec_theta_space_plan.md Phase 0.2). Returns a list of (start_ts, end_ts,
+    docs/study_pec_motor_space_v2.md Phase 0.2). Returns a list of (start_ts, end_ts,
     duration_min) tuples for segments at least min_duration_min long, sorted chronologically;
     shorter segments are dropped rather than returned as noise.
 
@@ -481,7 +481,7 @@ def derive_theta_ground_truth(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
     """
     Per-motor pointing-error ground truth for each PECLOG guide-sync cycle, derived from the
     plate-solve's true observed sky position rather than the RA/Dec resid alone (see
-    docs/pec_theta_space_plan.md Phase 0.1). For each row:
+    docs/study_pec_motor_space_v2.md Phase 0.1). For each row:
       1. predicted_ra/dec = this row's az/alt/roll (the PID's PV) -> ra/dec, via
          kinematics.azalt_to_radec() -- the same conversion the driver itself uses.
       2. observed_ra/dec = predicted_ra/dec + resid (resid_1=RA, resid_2=Dec, both arcmin of
@@ -704,7 +704,7 @@ def derive_theta_from_sync_residuals(resid_df, kf_df, lat_deg, lon_deg, theta2_e
       3. Anchor ra0/dec0 at the first usable event, then true_ra/dec(t) = ra0/dec0 +
          cumsum(resid_1/2)(t)/60 (arcmin -> degrees) -- note this has no separate PEC term to
          add back (PEC is off, cumsum(resid) alone is the true uncorrected drift; see the
-         no-hidden-term reasoning for total_accum in docs/pec_theta_space_plan.md -- the same
+         no-hidden-term reasoning for total_accum in docs/study_pec_motor_space_v2.md -- the same
          applies here even more directly, since resid is the *only* correction mechanism
          active).
       4. true_az/alt(t) = true_ra/dec(t) -> az/alt via radec_to_altaz(), combined with this
@@ -804,7 +804,7 @@ def derive_theta_from_sglog(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
     theta_raw_1/2/3 (the real motor position at the moment of each sync) and az/alt/roll (the
     PID's PV) directly on every row, so there's no nearest-sample matching to do, and no
     separate cumsum(resid) bookkeeping either -- total_accum_1/2 (backed by the driver's own
-    delta_guide_accum, see docs/pec_theta_space_plan.md) is already that cumulative sum,
+    delta_guide_accum, see docs/study_pec_motor_space_v2.md) is already that cumulative sum,
     tracked live in the driver.
 
     For each row:
@@ -898,7 +898,7 @@ def lombscargle_periodogram(x, y, min_period=None, max_period=None, n_periods=20
     Lomb-Scargle periodogram of y against x, for irregularly-sampled data -- PECLOG's own
     guide-sync cadence isn't uniform, and this is used for both the time-domain (x=t_sec) and
     angle-domain (x=cumulative motor rotation, e.g. theta_pred_i) periodicity tests in
-    docs/pec_theta_space_plan.md Phase 0.2, so it needs to handle irregular spacing in either
+    docs/study_pec_motor_space_v2.md Phase 0.2, so it needs to handle irregular spacing in either
     axis without resampling artifacts. Returns (periods, power) with `periods` in the same
     units as `x` (minutes if x is t_sec/60, degrees if x is a theta_pred_i column) and `power`
     scipy's normalized Lomb-Scargle power at each period -- comparable in shape to (though not
@@ -962,7 +962,7 @@ def periodogram_false_alarm_probability(x, y, n_shuffles=200, rng=None, **period
     noise alone regularly produces a peak just as strong, i.e. the "peak" isn't trustworthy.
 
     This exists because of a real failure mode found while validating Phase 0.2 (see
-    docs/pec_theta_space_plan.md): with the small sample sizes PECLOG-cadence segments give
+    docs/study_pec_motor_space_v2.md): with the small sample sizes PECLOG-cadence segments give
     (tens to a few hundred points), the raw peak period/power alone kept landing near
     suspiciously round numbers of cycles across unrelated motors/segments even after
     detrending -- a classic small-sample periodogram bias (a long period has more freedom to
@@ -1115,7 +1115,7 @@ def load_high_cpu_events(log_filenames, log_dir='.'):
     triggered whenever a system_vitals() call -- i.e. any of load_vitals()'s three warning
     kinds -- observes CPU > 95%). This is the single most direct signal for "was this dropout
     caused by CPU contention on the machine running the driver" -- found essential while
-    investigating a real overnight dropout (docs/pec_theta_space_plan.md): the disconnect at
+    investigating a real overnight dropout (docs/study_pec_motor_space_v2.md): the disconnect at
     2026-09-01T00:21:52 was preceded by NINA.exe (imaging software) and the driver's own
     python.exe pushing CPU to 100%, starving the driver's asyncio event loop long enough that
     the connection was forcibly closed.
@@ -1368,7 +1368,7 @@ def load_connection_events(log_filenames, log_dir='.'):
     That sort is not optional: rotated log files are numbered by *reverse* recency (a fresh
     'alpaca.log' plus '.1', '.2', ... or an equivalent NN-suffixed archive naming), so
     concatenating them in filename order silently interleaves events backwards -- confirmed
-    the hard way while diagnosing a real overnight dropout (docs/pec_theta_space_plan.md): the
+    the hard way while diagnosing a real overnight dropout (docs/study_pec_motor_space_v2.md): the
     file holding the disconnect (...a12.log) chronologically *precedes* the file holding the
     successful reconnect (...a11.log), the opposite of their filename order.
 
@@ -1483,7 +1483,7 @@ def reconstruct_outages(connection_events_df):
     Walk load_connection_events()'s chronological event stream and collapse it into discrete
     outage spans -- a 'disconnect'/'reconnect_error' event through to the next 'init_done' --
     with full context on what happened in between. Exists because a real multi-file overnight
-    outage (docs/pec_theta_space_plan.md) turned out to span two separate driver-restart
+    outage (docs/study_pec_motor_space_v2.md) turned out to span two separate driver-restart
     attempts and a client config change (log_position toggled off, then back on, mid-outage),
     none of which is obvious from any single line. It also matters for a subtler reason: a
     naive KFLOG-gap-based estimate of "how long was the outage" can undershoot badly -- in
