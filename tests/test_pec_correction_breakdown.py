@@ -109,3 +109,26 @@ def test_wff_missing_on_early_rows_counts_as_none_applied_yet():
     x = correction_breakdown(df)['ra']
     early = x['t_sec'] < 600
     assert (x.loc[early, 'worm_ff'] == 0).all() and not np.isnan(x['worm_ff']).any()
+
+
+def test_rates_never_cross_a_reset():
+    """2026-10-10: the worm feed-forward switched off at 21:04:52 (a PEC reset) dropped its +40" correction at once;
+    +-5 min slopes across the reset spread that step over 21:00-21:10, showing a worm rate before it changed and
+    after it was off. Each PEC run's rates come from its own rows only."""
+    df = with_wff(peclog_df(reset_at=900.0))                                   # wff_1 near its 12" peak here
+    df.loc[df['t_sec'] >= 900.0, ['wff_1', 'wff_2']] = 0.0                    # switched off at the reset
+    x = correction_breakdown(df, rate_half_window_s=300)['ra']
+    after = x['t_sec'] >= 900.0
+    assert np.allclose(x.loc[after, 'worm_ff_rate'].dropna(), 0.0)            # off: no worm rate at all
+    before = (x['t_sec'] > 600) & (x['t_sec'] < 900)                           # the last 5 min before it
+    want = 0.2 * 60 * np.cos(x.loc[before, 't_sec'] / 600) / 600 * 60          # d(wff)/dt, arcsec/min
+    got = x.loc[before, 'worm_ff_rate']
+    ok = got.notna()
+    assert ok.sum() > 5 and np.allclose(got[ok], want[ok], atol=0.3)          # the worm's own rate, no step in it
+
+
+def test_drift_for_pec_is_the_drift_without_the_worm_feed_forward():
+    df = with_wff(peclog_df())
+    x = correction_breakdown(df)['ra']
+    assert np.allclose(x['drift_for_pec'], x['pulse_guide'] + x['sync_guide'] + x['pec_applied'])
+    assert np.allclose(x['drift_for_pec_rate'], x['drift_rate'] - x['worm_ff_rate'], equal_nan=True)

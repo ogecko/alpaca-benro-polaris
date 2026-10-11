@@ -1758,14 +1758,24 @@ def ramp_vs_next_step(comp, sync_times, before_s=(25, 2), after_s=(10, 35)):
     return pd.DataFrame(rows).T
 
 
-def _centred_slope_per_min(t_sec, y, half_window_s):
+def _centred_slope_per_min(t_sec, y, half_window_s, segment=None):
+    """Slope of y (per minute) over +-half_window_s around each row. With `segment` (an id per row, e.g. the PEC run
+    between resets), a window never crosses into another segment: near a boundary it is clipped to its own side, so a
+    step at a reset (worm feed-forward switched off, a goto) doesn't smear into the rates before and after it. A
+    window shorter than half_window_s in all (the very ends) gives NaN."""
+    t_sec = np.asarray(t_sec, float)
+    seg = np.zeros(len(t_sec), int) if segment is None else np.asarray(segment)
     out = np.full(len(t_sec), np.nan)
-    lo = np.searchsorted(t_sec, t_sec - half_window_s, side='left')
-    hi = np.searchsorted(t_sec, t_sec + half_window_s, side='right')
-    for k in range(len(t_sec)):
-        if t_sec[k] - half_window_s < t_sec[0] or t_sec[k] + half_window_s > t_sec[-1] or hi[k] - lo[k] < 3:
-            continue
-        out[k] = np.polyfit(t_sec[lo[k]:hi[k]] - t_sec[k], y[lo[k]:hi[k]], 1)[0] * 60
+    for s_id in np.unique(seg):
+        idx = np.flatnonzero(seg == s_id)
+        ts, ys = t_sec[idx], np.asarray(y, float)[idx]
+        lo = np.searchsorted(ts, ts - half_window_s, side='left')
+        hi = np.searchsorted(ts, ts + half_window_s, side='right')
+        for k in range(len(ts)):
+            span = min(ts[k] + half_window_s, ts[-1]) - max(ts[k] - half_window_s, ts[0])
+            if hi[k] - lo[k] < 3 or span < half_window_s:
+                continue
+            out[idx[k]] = np.polyfit(ts[lo[k]:hi[k]] - ts[k], ys[lo[k]:hi[k]], 1)[0] * 60
     return out
 
 
@@ -1776,7 +1786,10 @@ def correction_breakdown(df, rate_half_window_s=300.0):
                      convention), joined across PEC model resets (total_accum restarts at each reset; these don't)
       worm_ff      = the worm feed-forward's correction (PECLOG wff, Config.pec_worm_ff) since the first row: on those
                      nights the guide corrections lack what it corrected, so mount drift adds it back (0 when off)
-      *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min; drift_rate = sum of the others
+      drift_for_pec = mount_drift - worm_ff: the drift PEC drift correction is there to follow (the worm feed-forward
+                     handles the rest)
+      *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min, within each PEC run (a window never
+                     crosses a reset, e.g. the worm feed-forward switched on or off); drift_rate = sum of the others
       pec_model_rate   = the rate the driver's PEC model gave (fit_rate), arcsec/min (= arcmin/hr)
       pec_applied_logged_rate = the rate PEC actually applied (0 while inhibited); pec_active = inhibit == VALID
     A sync-guide row carries both axes' residuals, a pulse-guide row only one; pec_accum is counted only on that
@@ -1801,10 +1814,12 @@ def correction_breakdown(df, rate_half_window_s=300.0):
         else:
             x['worm_ff'] = 0.0
         x['mount_drift'] = x['pulse_guide'] + x['sync_guide'] + x['pec_applied'] + x['worm_ff']
+        x['drift_for_pec'] = x['mount_drift'] - x['worm_ff']
         t = x['t_sec'].values
-        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied', 'worm_ff'):
+        run = np.searchsorted(resets.values, x['timestamp'].values, side='right')      # PEC run: 0 before the 1st reset
+        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied', 'worm_ff', 'drift_for_pec'):
             name = 'drift_rate' if col == 'mount_drift' else f'{col}_rate'
-            x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s)
+            x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s, segment=run)
         x['pec_model_rate'] = d.loc[own, f'fit_rate_{i}'].values if f'fit_rate_{i}' in d else np.nan
         x['pec_applied_logged_rate'] = d.loc[own, f'applied_rate_{i}'].values if f'applied_rate_{i}' in d else np.nan
         x['pec_active'] = (d.loc[own, f'inhibit_{i}'] == 'VALID').values if f'inhibit_{i}' in d else True
