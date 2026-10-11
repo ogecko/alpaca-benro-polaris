@@ -336,9 +336,9 @@ def test_each_motors_worm_correction_is_kept_for_the_status(monkeypatch, profile
     assert np.all(sm.worm_error_deg == 0)
 
 
-def twin_mac_calibration(monkeypatch, profile_path, worm, seed, n=10):
-    """The twin with hidden MODEL_TRUE: AutoTune the M2 scale from 0, then refit with it. Returns (d2', d3', s2 %)."""
-    sky = Sky(seed, model_true=MODEL_TRUE)
+def twin_mac_calibration(monkeypatch, profile_path, worm, seed, n=10, model_true=MODEL_TRUE):
+    """The twin with hidden model_true: AutoTune the M2 scale from 0, then refit with it. Returns (d2', d3', s2 %)."""
+    sky = Sky(seed, model_true=model_true)
     tw = twin(monkeypatch, profile_path, worm=worm, mac=True)
     monkeypatch.setattr(Config, 'align_m2_scale', 0.0, raising=False)          # not yet calibrated
     sky.sync(tw, poses(np.random.default_rng(seed), n))
@@ -366,3 +366,24 @@ def test_without_the_worm_gear_correction_the_worm_moves_the_m2_scale_a_little(m
     d2, d3, s2 = twin_mac_calibration(monkeypatch, profile_path, worm=False, seed=seed)
     assert d2 == pytest.approx(MODEL_TRUE['d2'] * 60, abs=2.0) and d3 == pytest.approx(MODEL_TRUE['d3'] * 60, abs=2.0)
     assert s2 == pytest.approx(MODEL_TRUE['s2'] * 100, abs=0.25)
+
+
+HIDDEN = {                                   # (M2 offset ', M3 offset ', M2 scale %), from the archived alignments
+    'none':              (0.0, 0.0, 0.0),
+    'jdm 200 mm':        (50.0, -53.0, 0.335),   # with the scale AutoTuned on 2026-10-11
+    'jdm 300 mm':        (110.0, -2.0, 2.0),
+    'Mark, August':      (-96.0, 390.0, 1.0),    # M3 +6.5 deg
+    'Mark, July':        (-75.0, -284.0, 0.96),  # M3 -4.7 deg
+    'negative scale':    (20.0, 30.0, -0.5),
+}
+
+
+@pytest.mark.parametrize('case', list(HIDDEN))
+def test_mac_recovers_whatever_terms_are_hidden(monkeypatch, profile_path, case):
+    """Different hidden values -- none, the setups and mounts seen in the logs (M3 offsets up to 6.5 deg), a
+    negative scale: the driver's offsets within 0.5' and AutoTune's scale within 0.02%."""
+    d2, d3, s2 = HIDDEN[case]
+    got = twin_mac_calibration(monkeypatch, profile_path, worm=True, seed=5,
+                               model_true={'d2': d2 / 60, 'd3': d3 / 60, 's2': s2 / 100})
+    assert got[0] == pytest.approx(d2, abs=0.5) and got[1] == pytest.approx(d3, abs=0.5)
+    assert got[2] == pytest.approx(s2, abs=0.02)
