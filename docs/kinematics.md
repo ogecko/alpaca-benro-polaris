@@ -220,7 +220,7 @@ logs, run `uv run python alignment_ab.py` in `utility/`.
     offsets modelled, one fit holds everywhere. Slew & Center Correction and sync guiding handle what is left
     locally.
 *   **Forward kinematics:** the correction is applied to the motor angles after the worm gear correction, as a small
-    base-frame rotation at the current pose (`kinematics_kinematics_mac.correction_q`), before sync guiding, pulse guiding and
+    base-frame rotation at the current pose (`kinematics_mac.correction_q`), before sync guiding, pulse guiding and
     QUEST. The PID works in the corrected motor angles, as before.
 *   **Worm gear correction:** sync points keep their raw motor angles, so the model is refitted through the worm
     correction when that is switched, with no re-alignment.
