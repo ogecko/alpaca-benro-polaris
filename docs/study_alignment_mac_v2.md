@@ -17,7 +17,8 @@ Implemented on `feature/alignment_mac_v2`; user documentation in [kinematics.md 
 * `utility/alignment_ab.py` replays the archived sync tables: goto accuracy (leave-one-out) median 59.2′ (MAC off)
   → 9.6′ (on), better on 45 of 47 alignments. The two worse: 6 points at roll ~0 (greg, 9.4′ → 11.7′), and a
   narrow-roll alignment both models fit poorly (86′ → 88′).
-* Still to do: time the fit on nina01 and a Pi Zero 2 W; the live A/B on the sky (alignment RMS, first-goto error,
+* Timed on the Pi Zero 2 W and nina01 (Cost, below): 15.8 ms and 2.7 ms per fit, 53 µs and 9 µs per tick.
+* Still to do: the live A/B on the sky (alignment RMS, first-goto error,
   drift with MAC on and off from the same syncs); the scale-or-sag test with the 300 mm.
 
 ## Summary
@@ -124,40 +125,32 @@ The fit runs only when an alignment sync adds a point or a setting forces a refi
 handful of times a night. Sync-guiding syncs return before QUEST (`sync_az_alt`) and are unaffected. At every
 control tick the change is adding the offsets to the motor angles before `theta_to_q`: nothing measurable.
 
-Prototype timings (10 points; scipy `least_squares` with numerical derivatives), on nina01 (Celeron N5105, the
-driver running) — the platform to design for — and on a desktop for comparison:
+Measured on 2026-10-11 with the M11 alignment (10 points), the driver running on each machine:
 
-| Fit | nina01 | Desktop |
-|---|---|---|
-| Rotation only | 11 ms (max 20) | 2 ms |
-| Rotation + d2, d3 (s2 fixed) | 93 ms (max 108) | 20 ms |
-| Rotation + d2, d3, s2 | 160 ms (max 187) | — |
+| | Pi Zero 2 W (Cortex-A53 1.0 GHz) | nina01 (Celeron N5105) | Desktop |
+|---|---|---|---|
+| Prototype: rotation only (scipy, numerical derivatives) | 63 ms | 11 ms | 2 ms |
+| Prototype: rotation + d2, d3 | 576 ms | 95 ms | 20 ms |
+| Prototype: rotation + d2, d3, s2 | 1,023 ms | 161 ms | — |
+| **`kinematics_mac.fit_alignment`**: rotation + d2, d3 (each sync) | **15.8 ms** (max 17.6) | **2.7 ms** | 0.6 ms |
+| **`kinematics_mac.fit_alignment`**: + s2 (AutoTune) | 16.6 ms | 2.9 ms | — |
+| **`kinematics_mac.correction_q`**, per control tick | **53 µs** | 8.9 µs | ~1 µs |
 
-The slowest supported platform is the **Raspberry Pi Zero 2 W** (4 × Cortex-A53 at 1.0 GHz, 512 MB), roughly 4–6×
-slower per core than nina01. Not yet measured; scaled from nina01, the prototype would take 50–70 ms (rotation
-only) and 400–550 ms (with d2, d3). Design for the Pi Zero 2 W:
-
-1. **Target: under about 20 ms on the Pi Zero 2 W** (roughly 3–5 ms on nina01), so a refit never delays a control
-   tick noticeably.
-2. **numpy only, vectorised over the points, with analytic derivatives** and a few Gauss–Newton steps from QUEST's
-   closed-form rotation. Most of the prototype's time is Python overhead: a rotation object per point, and the
-   forward kinematics re-run for every parameter. numpy and scipy already ship with the driver.
-3. **Run the fit off the event loop** (`asyncio.to_thread`) and swap in the new model when it completes. On a Pi
-   this is only a safety margin: small numpy operations are mostly Python and hold the GIL, so a thread still
-   takes turns with the event loop (about 5 ms at a time). A separate process would avoid that but costs memory
-   the 512 MB Pi Zero can't spare, so the fit must be fast first.
-4. **Time it on both platforms** before merging: the prototype and the optimised fit, on nina01 and a Pi Zero 2 W
-   with the driver running.
+The fit is numpy only, vectorised over the points, with analytic derivatives and a few Gauss–Newton steps from
+QUEST's closed-form rotation; the per-tick correction is a closed form, Rz(a1) Ry(a2′) Rx(−d3) Ry(−a2) Rz(−a1),
+instead of building the forward kinematics twice (63 µs on a desktop). Both meet the Pi Zero 2 W target (under
+~20 ms per fit), so the fit runs inline at the sync, like QUEST did: running it off the event loop
+(`asyncio.to_thread`) isn't needed, and on a Pi would gain little anyway (small numpy operations hold the GIL).
 
 ### Interactions
 
 | Part | Change |
 |---|---|
 | Worm feed-forward | Unchanged: applied to the motor angles before the model |
-| MAC | Retired: off by default, its config kept for a transition period |
+| Earlier MAC | Retired: the Mechanical Alignment Correction switch now runs this model; the old code is in `utility/legacy_mac.py` for `fits_extract.py` |
 | Sync guiding, pulse guiding | Unchanged: applied after QUEST |
 | Slew & Center Correction (SCC) | Unchanged. These logs ran Sync Guiding Adjustment (SGA, `advanced_scc_choice = 2`), which seeds the sync guide offset from the QUEST residual at each sync: with smaller residuals the seeds shrink, and SGA's correction becomes a small local touch-up rather than the 13–27′ seen on 10 Oct |
-| Roll Adj | To check: d3 shifts roll, so the roll sync's adjustment may overlap |
+| Roll Adj | A roll sync's predicted roll is rebuilt from its raw motor angles with the current MAC and QUEST rotation, and `roll_adj` re-optimised after every refit (tests in `test_mac_sync.py`) |
 | Logging | QUEST table and model line add d2, d3, s2 and the unweighted RMS |
 | Pilot | Alignment page shows d2, d3, s2 |
 
