@@ -417,17 +417,29 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 Each test is retained. The displayed profile is **pooled over the last five tests**.
 
-The result row contains:
+The result row shows one line per motor in each column, under a first line that says what the column is:
 
-* **Test Result:** The measured wobble for each motor: its size, and the angle where it peaks.
+* **Baseline:** `profile in use`: the correction currently applied to each motor (`none` before any is approved).
 
-  For example: `M1 21"@177 M2 86"@179 M3 85"@224`. The angle after `@` is where in its worm turn that motor's error is largest (0-360 over one 6 degree worm turn, from the motor's angle). A motor whose wobble is too small to measure shows `off` and is left uncorrected.
+* **Test Result:** `last 5 tests pooled`: the profile that **Approve** would apply. It is fitted over the recent tests together, not just the latest one (`last test` when there is only one). For each motor it shows the wobble's size and the angle where it peaks.
 
-* **Change:** The change that would be made to each motor's correction if you approve the result.
+  For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The angle after `@` is where in its worm turn that motor's error is largest (0-360 over one 6 degree worm turn, from the motor's angle). A motor whose wobble is too small to measure shows `off` and is left uncorrected.
 
-  A ⚠ indicates a poor fit or insufficient separation between M1 and M3 at that pose (`low separation`). Repeat the test at another pose.
+* **Change:** `from baseline`: how far each motor's correction would move from the Baseline if you approve the Test Result (`+0"` once it is the profile in use).
 
-* **Test Stdev:** How closely the measurements fit the model, together with the number of positions used.
+  A ⚠ line below the motors flags a problem with the last test: a poor fit, or insufficient separation between M1 and M3 at that pose (`low separation`). Repeat the test at another pose.
+
+* **Test Stdev:** How closely the Test Result fitted the measurements, and how certain each motor's result is.
+
+  For example, for the Test Result above: `pooled 19.4" rms`, then `M1 ±3.9" 5.4σ`, `M2 ±3.7" 23.2σ`, `M3 ±3.1" 27.4σ`. Every line is for the pooled Test Result.
+
+  * `pooled 19.4" rms` is how far, on average, the plate solves sat from the fitted wobble. Seeing, wind and small pointing errors all add to it. The pooled fit is allowed up to 25"; it sits a little above a single test's 10-20" because pooling adds the small differences between tests.
+  * Each test must fit under 20" on its own to join the pool. If the last test didn't, a final line warns `⚠ last test left out: 24.1" rms`: it is kept in the history but not in the Test Result.
+  * Until there is more than one test to pool, the first line is the single test's own `last test 11.9" rms`. `, 31 positions` is added when that test stopped before all 50 positions: it is the number measured. A test needs at least 16 to be used.
+  * `±3.1"` is how much that motor's measured wobble could be out by. Read M3's `85"` with `±3.1"` as "about 82 to 88 arc seconds".
+  * `σ` (sigma) is how clearly the wobble stands out from the measurement noise: the wobble's size divided by its `±` value. M3's `27.4σ` (85 ÷ 3.1) means the wobble is 27 times larger than its uncertainty, so it is certainly real. A motor is corrected only at **4σ or more**; below that its wobble can't be told apart from noise, and Test Result shows it as `off`.
+
+  Bigger is better for σ. A motor just above 4σ, like M1 at `5.4σ`, is measured, but only just: another test, or a test at a different pose, will make it more certain. The σ values assume each plate solve's error is independent of the next, so treat them as a guide to how firmly each motor is measured rather than an exact probability.
 
 * **Status:**
 
@@ -437,7 +449,7 @@ The result row contains:
 
 Running the test again at a different pose reduces the effect of measurement noise.
 
-All tests, including their individual measurements, are retained in `worm_profile.json` in the driver's data folder.
+All tests, including their individual measurements, are retained in `worm_profile.json` in the driver's data folder. When the driver starts, the row is filled in from that file, so the results stay visible after a restart (or after a test that ended with `NO DATA`). The status shows `APPROVED` when the pooled profile is the one in use, and `COMPLETED` when there is a newer pooled result to approve.
 
 **3. Approve it.**
 
@@ -490,6 +502,17 @@ With `log_pec` enabled, the driver writes a `PECCONFIG` line once per session an
 The `PECCONFIG` line contains:
 
 `tau_sec`, `min_dt_sec`
+
+With PEC Worm Gear Correction on, the driver writes two lines each time it reads the worm profile (at the first motor telemetry after start, and after Approve or Reject):
+
+* `WORMPROFILE SUMMARY:` is the profile in a readable form, in the same format as the worm profile test's `WORM PROFILE TEST: END` line. Each motor shows its amplitude ± uncertainty @ peak angle and significance (σ), with `off` for a motor left uncorrected.
+* `WORMPROFILE {...}` is the profile itself as a Python dict (read it with `ast.literal_eval`):
+  * `motors` gives each motor's coefficients in arcsec (sin and cos for each harmonic);
+  * `worm_theta` and `harmonics` give the worm period and which harmonics are fitted;
+  * `angle_reference` gives which angle each motor's coefficients use (`zeta`: the 517 MCU angles);
+  * `applied` gives when the calibration was approved.
+
+  The profile file changes when a later calibration is approved, so this line keeps a record of the coefficients the session actually ran with. Match it with `WORMPROFILE {`, since the summary line also starts with `WORMPROFILE`.
 
 Each `PECLOG` entry is a Python dict. Read it with `ast.literal_eval`. Paired RA/Dec values are represented as `[ra, dec]`.
 

@@ -24,7 +24,7 @@ from control import CalibrationManager
 from control_worm import (POSITIONS, PROFILE_TEST, CALIBRATION_HISTORY, POOL_TESTS, SETTLE_HOLD_S, JUMP_ARCSEC, BACKLASH_DEG,
                           APPROACH_RELEASE_ARCSEC,
                           WormProfileTest, WormFeedForward, fit_worm_profile, store_profile_test, pooled_profile,
-                          apply_profile, revert_profile, profile_row_fields, row_status)
+                          apply_profile, revert_profile, profile_row_fields, row_status, row_fields_from_file)
 
 WORM = 6.0
 TRUE = {'M1': [24.2, 25.3, 3.0, -2.0], 'M2': [-60.0, 0.3, -6.0, -6.0], 'M3': [-40.2, -29.7, 1.0, 1.5]}   # a1 b1 a2 b2
@@ -349,8 +349,11 @@ def test_the_row_shows_the_pooled_profile_and_what_applying_it_changes():
     latest = fit_worm_profile([synthetic_test()])
     pooled = fit_worm_profile([synthetic_test(seed=k) for k in range(3)])
     f = profile_row_fields(latest, pooled, None)
-    assert f['test_result'].startswith('M1 ') and ' M3 ' in f['test_result'] and '"@' in f['test_result']
-    assert f['test_change'].startswith('pooled 3 tests:') and 'rms n50' in f['test_stdev']
+    assert f['test_result'].startswith('last 3 tests pooled M1 ') and ' M3 ' in f['test_result'] and '"@' in f['test_result']
+    assert f['test_change'].startswith('from baseline M1 ') and f['test_stdev'].startswith('pooled ')
+    assert 'positions' not in f['test_stdev']
+    one = profile_row_fields(latest, {}, None)                       # nothing pooled: the last test on its own
+    assert one['test_result'].startswith('last test M1 ') and one['test_change'].startswith('from baseline M1 ')
     bad = dict(latest, status='POOR FIT')
     assert '⚠' in profile_row_fields(bad, pooled, None)['test_change']
 
@@ -466,7 +469,8 @@ def test_the_row_shows_the_profile_in_use_as_its_baseline():
     coef = np.array([r['motors'][M]['coef'] for M in ('M1', 'M2', 'M3')])
     ff = WormFeedForward(worm_theta=6.0, harmonics=(1, 2), coef=coef)
     fields = profile_row_fields(r, r, ff)
-    assert fields['dps'] == profile_text(ff) == fields['test_result']        # the pooled profile is the one in use
+    assert fields['dps'] == f'profile in use {profile_text(ff)}'
+    assert fields['test_result'] == f'last test {profile_text(ff)}'           # the pooled profile is the one in use
     assert fields['test_change'].endswith('M1 +0" M2 +0" M3 +0"')
     assert profile_row_fields(r, r, None)['dps'] == 'none'
     off = WormFeedForward(worm_theta=6.0, harmonics=(1,), coef=np.array([[0.0, 0.0], [0.0, -86.2], [-58.8, -61.5]]))
@@ -485,3 +489,71 @@ def test_a_pool_of_tests_is_judged_by_the_pooled_limit():
     assert POOL_MAX_RMS_ARCSEC < single['checks']['rms_arcsec'] < POOLED_FIT_MAX_RMS_ARCSEC
     assert single['status'] == 'POOR FIT'
     assert pooled['checks']['rms_arcsec'] < POOLED_FIT_MAX_RMS_ARCSEC and pooled['status'] == 'COMPLETED'
+
+
+# ── Test Stdev: each motor's uncertainty; the row at driver start ─────────────────────────────
+
+def test_test_stdev_shows_each_motors_uncertainty_and_significance():
+    latest = fit_worm_profile([synthetic_test()])
+    pooled = fit_worm_profile([synthetic_test(seed=k) for k in range(3)])
+    f = profile_row_fields(latest, pooled, None)['test_stdev']
+    assert f.startswith(f'pooled {pooled["checks"]["rms_arcsec"]:.1f}" rms M1 ')       # the fit Test Result shows
+    assert '⚠' not in f                                                              # the last test is in the pool
+    one = profile_row_fields(latest, {}, None)['test_stdev']                          # nothing pooled: the last test's
+    assert one.startswith(f'last test {latest["checks"]["rms_arcsec"]:.1f}" rms M1 ')  # a full test: no position count
+    short = fit_worm_profile([synthetic_test()[:30]])
+    assert f' rms, {short["checks"]["positions"]} positions M1 ' in profile_row_fields(short, {}, None)['test_stdev']
+    for m in ('M1', 'M2', 'M3'):                                   # of the pooled profile, as Test Result
+        v = pooled['motors'][m]
+        assert f'{m} ±{v["se"]:.1f}" {v["significance"]:.1f}σ' in f
+
+
+def startup(path, status):
+    from control_worm import startup_row_fields
+    return startup_row_fields(path, status)
+
+
+def test_at_start_the_row_shows_the_profile_files_tests_after_a_test_with_no_data(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    stored(p, 2)
+    want = row_fields_from_file(p)
+    f = startup(p, 'NO DATA')
+    assert {k: f[k] for k in want} == want and 'σ' in f['test_stdev']
+    assert f['test_status'] == 'COMPLETED'                         # not approved yet: Approve applies it
+    assert apply_profile(p)
+    assert startup(p, 'STOPPED')['test_status'] == 'APPROVED'      # in use: Approve would reject it
+    assert startup(p, 'PENDING 3/50')['test_status'] == 'APPROVED'
+    stored(p, 1)                                                   # a newer test, not approved
+    assert startup(p, 'NO DATA')['test_status'] == 'COMPLETED'
+
+
+def test_at_start_a_row_with_a_result_keeps_its_status(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    stored(p, 2)
+    assert 'test_status' not in startup(p, 'REJECTED')
+    assert 'test_status' not in startup(p, 'COMPLETED')
+
+
+def test_at_start_without_a_profile_file_the_row_is_untested(tmp_path):
+    f = startup(str(tmp_path / 'none.json'), 'NO DATA')
+    assert f == {'dps': 'none', 'test_status': 'UNTESTED'}
+
+
+def test_the_calibration_manager_fills_the_row_from_the_profile_file(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    stored(p, 2)
+    cm = table()
+    cm.test_data[PROFILE_TEST].update(test_status='NO DATA', test_result='', test_stdev='')
+    cm.refreshWormProfileRow(p)
+    row = cm.test_data[PROFILE_TEST]
+    assert row['test_result'].startswith('last 2 tests pooled M1 ') and 'σ' in row['test_stdev']
+    assert row['dps'] == 'profile in use M1 off M2 off M3 off' and row['test_status'] == 'COMPLETED'
+    (tmp_path / 'bad.json').write_text('{not json')
+    cm.refreshWormProfileRow(str(tmp_path / 'bad.json'))          # unreadable: the driver still starts
+
+
+def test_a_last_test_the_pool_left_out_is_flagged_under_the_pooled_fit():
+    pooled = fit_worm_profile([synthetic_test(seed=k) for k in range(3)])
+    noisy = fit_worm_profile([synthetic_test(noise=60.0)])                         # well over POOL_MAX_RMS_ARCSEC
+    f = profile_row_fields(noisy, pooled, None)['test_stdev']
+    assert f.startswith('pooled ') and f.endswith(f' ⚠ last test left out: {noisy["checks"]["rms_arcsec"]:.1f}" rms')

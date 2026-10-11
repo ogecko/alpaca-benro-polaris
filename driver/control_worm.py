@@ -97,6 +97,35 @@ class WormFeedForward:
         theta = np.asarray(theta, float)
         return (theta_to_q(*(theta + self.error_deg(theta, zeta_offset))) * theta_to_q(*theta).inverse).normalised
 
+    def log_payload(self, path):
+        """The profile the feed-forward applies, for the WORMPROFILE log line (ast.literal_eval-able, as PECLOG):
+        the profile file can change after the session, so the log keeps the coefficients it ran with."""
+        applied = self.meta.get('applied_profile') or {}
+        return {'path': str(path), 'worm_theta': float(self.worm_theta), 'harmonics': [int(h) for h in self.harmonics],
+                'motors': {f'M{m + 1}': [round(float(v), 4) for v in self.coef[m]] for m in range(3)},
+                'angle_reference': dict(self.angle_reference), 'applied': applied.get('created'),
+                'learnt_from': self.meta.get('learnt_from')}
+
+    def summary(self):
+        """One line for the log, as the worm profile test's: per motor, amplitude @ peak (and SE, significance) of the
+        applied fit when the file has it, else from the coefficients alone; 'off' for a motor without correction."""
+        applied = (self.meta.get('applied_profile') or {}).get('motors')
+        if applied:
+            return profile_summary({'motors': applied})
+        parts = []
+        for m in range(3):
+            c = self.coef[m]
+            if not np.any(c):
+                parts.append(f'M{m + 1} off')
+                continue
+            s = ''
+            for j, h in enumerate(self.harmonics):
+                a, b = float(c[2 * j]), float(c[2 * j + 1])
+                if a or b:
+                    s += f' h{h}' * (h != 1) + f' {np.hypot(a, b):.1f}" @{peak_deg(a, b, harmonic=h):.0f}'
+            parts.append(f'M{m + 1}{s}')
+        return '; '.join(parts)
+
     def save(self, path):
         core = {'worm_theta': float(self.worm_theta), 'harmonics': [int(h) for h in self.harmonics],
                 'motors': {f'M{m + 1}': [round(float(v), 4) for v in self.coef[m]] for m in range(3)},
@@ -160,8 +189,8 @@ class WormMixin:
             if self._worm_ff is None:
                 self.logger.info(f"No worm gear profile at {full}: worm correction off")
             else:
-                self.logger.info(f"Worm feed-forward profile loaded from {full}: worm {self._worm_ff.worm_theta:g} deg, "
-                                 f"harmonics {list(self._worm_ff.harmonics)}, {self._worm_ff.meta.get('learnt_from', '')}")
+                self.logger.info(f"WORMPROFILE SUMMARY: {self._worm_ff.summary()}")
+                self.logger.info(f"WORMPROFILE {self._worm_ff.log_payload(full)}")
         return self._worm_ff
 
     def worm_ff_in_use(self):
@@ -556,7 +585,7 @@ def profile_summary(result):
     whether it is applied; a 2nd harmonic when applied."""
     parts = []
     for m, v in (result.get('motors') or {}).items():
-        s = f'{m} {v["amplitude"]:.1f}"+-{v["se"]:.1f} @{v.get("peak", (90 - v["phase"]) % 360):.0f} ({v["significance"]:.1f} sigma'
+        s = f'{m} {v["amplitude"]:.1f}"±{v["se"]:.1f} @{v.get("peak", (90 - v["phase"]) % 360):.0f} ({v["significance"]:.1f}σ'
         s += ')' if v.get('applied', True) else ', off)'
         if len(v.get('coef', [])) > 2 and any(v['coef'][2:]):
             s += f' h2 {v["h2_amplitude"]:.1f}" @{v.get("h2_peak", 0):.0f}'
@@ -681,20 +710,26 @@ def profile_text(ff):
     return ' '.join(parts)
 
 
+def baseline_text(ff):
+    """The row's Baseline: the profile in use, labelled; 'none' without one."""
+    return 'none' if ff is None else f'profile in use {profile_text(ff)}'
+
+
 def row_fields_from_file(path):
     """The row's columns from the profile file (its latest test, the pooled profile and the profile in use), e.g. after
     Approve/Reject changed the profile in use."""
     ff = _load_or_new(path)
     tests = [e for e in ff.meta.get('calibration_history', []) if e.get('test') == PROFILE_TEST and e.get('samples')]
     if not tests:
-        return {'dps': profile_text(WormFeedForward.load(path))}
+        return {'dps': baseline_text(WormFeedForward.load(path))}
     return profile_row_fields(fit_worm_profile([tests[-1]['samples']]), pooled_profile(path), WormFeedForward.load(path))
 
 
 def profile_row_fields(latest, pooled, current):
-    """The worm profile row's columns: test_result = the pooled profile per motor (amplitude @ peak angle), test_change =
-    the latest test and what applying the pooled profile would change, test_stdev = residual rms and positions.
-    `current`: the WormFeedForward in use (or None), shown in the Baseline column (dps)."""
+    """The worm profile row's columns, each labelled (Pilot shows the label under the motors): dps (Baseline) = the
+    profile in use (`current`, a WormFeedForward or None); test_result = the pooled profile Approve would apply, per
+    motor amplitude @ peak angle; test_change = how far approving moves each motor from the baseline; test_stdev = the pooled profile's uncertainty and
+    significance per motor, and the residual rms of that fit (pooled: with a warning when the last test was left out)."""
     def h1(info):
         if not info:
             return '-'
@@ -703,7 +738,10 @@ def profile_row_fields(latest, pooled, current):
         peak = info.get('peak', (90.0 - info['phase']) % 360)          # results saved before 'peak' was stored
         return f'{info["amplitude"]:.0f}"@{peak:.0f}'
     res = pooled if pooled.get('motors') else latest
-    fields = {'dps': profile_text(current), 'test_result': ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
+    n_pooled = pooled['checks'].get('tests', 1) if pooled.get('motors') else 1
+    source = f'last {n_pooled} tests pooled' if n_pooled > 1 else 'last test'
+    fields = {'dps': baseline_text(current),
+              'test_result': f'{source} ' + ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
               'test_change': '', 'test_stdev': ''}
     if not latest.get('motors'):
         return fields
@@ -716,10 +754,48 @@ def profile_row_fields(latest, pooled, current):
     warn = ' ⚠ poor fit' if latest['status'] != 'COMPLETED' else ''
     if latest['checks'].get('separation_deg', [90, 90])[1] < MIN_SEPARATION_DEG:
         warn += ' ⚠ low separation (Roll ~0)'
-    fields['test_change'] = ('pooled ' + str(pooled['checks'].get('tests', 1)) + ' tests: ' if pooled.get('motors') else '') \
-        + ' '.join(change) + warn
-    fields['test_stdev'] = f'{latest["checks"].get("rms_arcsec", 0):.1f}" rms n{latest["checks"].get("positions", 0)}'
+    fields['test_change'] = 'from baseline ' + ' '.join(change) + warn
+    # each motor's amplitude uncertainty and significance (amplitude / SE: applied from MIN_SIGNIFICANCE), as Test Result
+    unc = ' '.join(f'{m} ±{v["se"]:.1f}" {v["significance"]:.1f}σ' for m, v in res['motors'].items() if 'se' in v)
+    # the residual of the fit Test Result shows: the pooled fit's, flagging a last test the pool left out; or the last
+    # test's own, with its positions when it stopped short
+    n = latest['checks'].get('positions', 0)
+    last_rms = latest['checks'].get('rms_arcsec', 0)
+    if n_pooled > 1:
+        rms = f'pooled {pooled["checks"].get("rms_arcsec", 0):.1f}" rms'
+        left_out = not _poolable({'test': PROFILE_TEST, 'status': latest['status'], 'samples': True, 'result': latest})
+        warn_out = f' ⚠ last test left out: {last_rms:.1f}" rms' if left_out else ''
+    else:
+        rms = f'last test {last_rms:.1f}" rms' + (f', {n} positions' if n < len(POSITIONS) - 1 else '')
+        warn_out = ''
+    fields['test_stdev'] = rms + (f' {unc}' if unc else '') + warn_out
     return fields
+
+
+STALE_ROW_STATUS = ('UNTESTED', 'NO DATA', 'STOPPED')   # and PENDING...: the last attempt left no result to show
+
+
+def startup_row_fields(path, status):
+    """The row's columns at driver start, from the profile file (the saved row only has the last attempt's, blank after
+    a NO DATA test). Its status is kept unless it is stale: then APPROVED when the pooled profile is the one in use
+    (so Approve rejects it), else the pooled tests' own status (COMPLETED: Approve applies it)."""
+    current = WormFeedForward.load(path)
+    tests = [] if current is None else [e for e in current.meta.get('calibration_history', [])
+                                        if e.get('test') == PROFILE_TEST and e.get('samples')]
+    latest, pooled = (fit_worm_profile([tests[-1]['samples']]), pooled_profile(path)) if tests else ({}, {})
+    fields = profile_row_fields(latest, pooled, current) if tests else {'dps': baseline_text(current)}
+    if status in STALE_ROW_STATUS or str(status).startswith('PENDING'):
+        fields['test_status'] = 'UNTESTED' if not tests else 'APPROVED' if _pooled_in_use(pooled, current) else \
+            row_status(latest, pooled)
+    return fields
+
+
+def _pooled_in_use(pooled, current):
+    """True when the profile in use is the pooled one (approved, and no test since): Approve would then reject it."""
+    if current is None or not current.meta.get('applied_profile') or not pooled.get('motors'):
+        return False
+    coef = np.array([pooled['motors'][m]['coef'] for m in MOTORS], float)
+    return coef.shape == current.coef.shape and np.allclose(coef, current.coef, atol=1e-3)
 
 
 # ── profile file ──────────────────────────────────────────────────────────────────────────────

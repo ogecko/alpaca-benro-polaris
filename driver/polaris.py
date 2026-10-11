@@ -747,7 +747,7 @@ class Polaris:
         done = apply_profile(path) if approved else revert_profile(path)
         if done:
             self._sm.reload_worm_ff()
-            self.logger.info(f"WORM PROFILE: {'applied to' if approved else 'reverted in'} {path}")
+            self.logger.info(f"WORMPROFILE CHANGE: {'applied to' if approved else 'reverted in'} {path}")
             # the row's Baseline is the profile in use: show the new one (and Change against it)
             cm = getattr(self, '_cm', None)
             if cm is not None and PROFILE_TEST in cm.test_data:
@@ -757,7 +757,7 @@ class Polaris:
             if Config.advanced_pec_worm:
                 self.make_config_params_live({'advanced_pec_worm': True})
         else:
-            self.logger.warning(f"WORM PROFILE: nothing to {'apply' if approved else 'revert'} in {path}")
+            self.logger.warning(f"WORMPROFILE CHANGE: nothing to {'apply' if approved else 'revert'} in {path}")
         return done
 
 

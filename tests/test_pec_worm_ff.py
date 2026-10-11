@@ -170,3 +170,79 @@ def test_provenance_can_never_overwrite_the_coefficients(tmp_path):
     back = WormFeedForward.load(tmp_path / 'p.json')
     assert back is not None and np.allclose(back.coef, ff.coef)
     assert back.worm_theta == 6.0 and back.harmonics == (1, 2)
+
+
+# ── WORMPROFILE: the profile the feed-forward applies, logged when it is loaded ───────────
+
+def wormprofile_lines(caplog):
+    return [ast.literal_eval(r.getMessage()[len('WORMPROFILE '):]) for r in caplog.records
+            if r.getMessage().startswith('WORMPROFILE {')]
+
+
+def test_loading_the_profile_logs_its_coefficients(ff_config, caplog):
+    path = control_worm.WORM_PROFILE_PATH
+    ff = WormFeedForward.load(path)
+    ff.angle_reference = {'M2': 'zeta'}
+    ff.meta['applied_profile'] = {'created': '2026-10-01T21:00:00', 'previous': {'motors': {}}}
+    ff.save(path)
+    sm = SyncManager(logging.getLogger('test'), Polaris())
+    with caplog.at_level(logging.INFO, logger='test'):
+        sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+        sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+    [p] = wormprofile_lines(caplog)                                           # once per load, not per tick
+    assert p['path'] == str(path) and p['worm_theta'] == 6.0 and p['harmonics'] == [1, 2]
+    assert p['motors'] == {'M1': [0.0] * 4, 'M2': [15.0, 5.0, 0.0, 0.0], 'M3': [20.0, -12.0, 6.0, 4.0]}
+    assert p['angle_reference'] == {'M2': 'zeta'}
+    assert p['applied'] == '2026-10-01T21:00:00'
+
+
+def test_a_new_profile_is_logged_again_after_a_reload(ff_config, caplog):
+    sm = SyncManager(logging.getLogger('test'), Polaris())
+    sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+    profile(m2=(7.0, -3.0, 1.0, 0.5)).save(control_worm.WORM_PROFILE_PATH)     # a calibration was approved
+    sm.reload_worm_ff()
+    with caplog.at_level(logging.INFO, logger='test'):
+        sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+    [p] = wormprofile_lines(caplog)
+    assert p['motors']['M2'] == [7.0, -3.0, 1.0, 0.5] and p['applied'] is None
+
+
+def test_no_profile_is_logged_while_worm_correction_is_off(ff_config, caplog):
+    ff_config.advanced_pec_worm = False
+    sm = SyncManager(logging.getLogger('test'), Polaris())
+    with caplog.at_level(logging.INFO, logger='test'):
+        sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+    assert wormprofile_lines(caplog) == []
+
+
+def in_use_line(caplog):
+    [line] = [r.getMessage() for r in caplog.records if r.getMessage().startswith('WORMPROFILE SUMMARY: ')]
+    return line
+
+
+def test_the_profile_in_use_is_also_logged_as_the_worm_profile_test_reports_it(ff_config, caplog):
+    sm = SyncManager(logging.getLogger('test'), Polaris())
+    with caplog.at_level(logging.INFO, logger='test'):
+        sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+    # no fit statistics in this profile: amplitude @ peak from the coefficients
+    a2, p2 = np.hypot(15.0, 5.0), control_worm.peak_deg(15.0, 5.0)
+    a3, p3 = np.hypot(20.0, -12.0), control_worm.peak_deg(20.0, -12.0)
+    h2, q2 = np.hypot(6.0, 4.0), control_worm.peak_deg(6.0, 4.0, harmonic=2)
+    assert in_use_line(caplog) == (f'WORMPROFILE SUMMARY: M1 off; M2 {a2:.1f}" @{p2:.0f}; '
+                                   f'M3 {a3:.1f}" @{p3:.0f} h2 {h2:.1f}" @{q2:.0f}')
+
+
+def test_an_applied_calibration_is_logged_with_its_fit_statistics(ff_config, caplog):
+    path = control_worm.WORM_PROFILE_PATH
+    ff = WormFeedForward.load(path)
+    motors = {'M1': {'amplitude': 21.0, 'phase': 10.0, 'peak': 80.0, 'se': 9.0, 'significance': 2.3, 'applied': False,
+                     'coef': [0.0] * 4},
+              'M2': {'amplitude': 15.8, 'phase': 18.4, 'peak': 71.6, 'se': 1.2, 'significance': 13.2, 'applied': True,
+                     'coef': [15.0, 5.0, 0.0, 0.0]}}
+    ff.meta['applied_profile'] = {'created': '2026-10-01T21:00:00', 'motors': motors}
+    ff.save(path)
+    sm = SyncManager(logging.getLogger('test'), Polaris())
+    with caplog.at_level(logging.INFO, logger='test'):
+        sm.baseQ_to_topoQ(theta_to_q(*TH), theta=TH)
+    assert in_use_line(caplog) == (f'WORMPROFILE SUMMARY: {control_worm.profile_summary({"motors": motors})}')
+    assert 'M2 15.8"±1.2 @72 (13.2σ)' in in_use_line(caplog)

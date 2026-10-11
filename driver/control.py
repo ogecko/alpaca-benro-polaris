@@ -22,7 +22,7 @@ from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reacha
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
-from control_worm import WormMixin, PROFILE_TEST, TEST_SUMMARY
+from control_worm import WormMixin, PROFILE_TEST, TEST_SUMMARY, WORM_PROFILE_PATH, startup_row_fields
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
@@ -236,6 +236,7 @@ class CalibrationManager:
         if not self.loadTestDataFromFile():
             self.createTestDataFromBaseline()
         self.ensureWormProfileRow()
+        self.refreshWormProfileRow()
         self.updateCalibrationAndInterpolators()
 
     # ── the worm profile row: the worm profile test (control_worm), not a speed ──────────────────
@@ -252,6 +253,15 @@ class CalibrationManager:
         row['raw'] = TEST_SUMMARY                  # shown under Raw Command: the test's length
         rest = {k: v for k, v in self.test_data.items() if k != PROFILE_TEST and not str(k).endswith('-WORM-GEAR')}
         self.test_data = {PROFILE_TEST: row, **rest}
+
+    def refreshWormProfileRow(self, path=None):
+        """At start, show the profile file's latest test, pooled profile and the profile in use in the worm profile row
+        (the saved row is the last attempt's, blank after a test with no data)."""
+        row = self.test_data[PROFILE_TEST]
+        try:
+            row.update(startup_row_fields(str(path or WORM_PROFILE_PATH), row.get('test_status', 'UNTESTED')))
+        except Exception as e:                    # an unreadable profile must not stop the driver starting
+            logging.getLogger(__name__).warning(f"Worm profile row: could not read {path or WORM_PROFILE_PATH}: {e}")
 
     def pendingWormProfileTest(self, testNameList):
         """True (and the row PENDING) if the worm profile row is among the selected tests -- never for 'all'."""
