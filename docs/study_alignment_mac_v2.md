@@ -98,8 +98,38 @@ limits and the speed controller keep working in θ space, with one conversion at
   Correction and sync guiding stay for the remaining local error.
 * Fewer than 3 points, or points without a spread in roll (both signs) and altitude: fit the rotation only, with
   d2, d3 held at the last values (or a weak prior towards them), so a single sync cannot produce wild offsets.
-* QUEST's closed form gives the starting rotation; a few Gauss–Newton steps refine all five parameters (about
-  10 points: negligible cost).
+* QUEST's closed form gives the starting rotation; a few Gauss–Newton steps refine all five parameters.
+
+### Cost
+
+The fit runs only when an alignment sync adds a point or a setting forces a refit (worm on/off, site latitude): a
+handful of times a night. Sync-guiding syncs return before QUEST (`sync_az_alt`) and are unaffected. At every
+control tick the change is adding the offsets to the motor angles before `theta_to_q`: nothing measurable.
+
+Prototype timings (10 points; scipy `least_squares` with numerical derivatives), on nina01 (Celeron N5105, the
+driver running) — the platform to design for — and on a desktop for comparison:
+
+| Fit | nina01 | Desktop |
+|---|---|---|
+| Rotation only | 11 ms (max 20) | 2 ms |
+| Rotation + d2, d3 (s2 fixed) | 93 ms (max 108) | 20 ms |
+| Rotation + d2, d3, s2 | 160 ms (max 187) | — |
+
+The slowest supported platform is the **Raspberry Pi Zero 2 W** (4 × Cortex-A53 at 1.0 GHz, 512 MB), roughly 4–6×
+slower per core than nina01. Not yet measured; scaled from nina01, the prototype would take 50–70 ms (rotation
+only) and 400–550 ms (with d2, d3). Design for the Pi Zero 2 W:
+
+1. **Target: under about 20 ms on the Pi Zero 2 W** (roughly 3–5 ms on nina01), so a refit never delays a control
+   tick noticeably.
+2. **numpy only, vectorised over the points, with analytic derivatives** and a few Gauss–Newton steps from QUEST's
+   closed-form rotation. Most of the prototype's time is Python overhead: a rotation object per point, and the
+   forward kinematics re-run for every parameter. numpy and scipy already ship with the driver.
+3. **Run the fit off the event loop** (`asyncio.to_thread`) and swap in the new model when it completes. On a Pi
+   this is only a safety margin: small numpy operations are mostly Python and hold the GIL, so a thread still
+   takes turns with the event loop (about 5 ms at a time). A separate process would avoid that but costs memory
+   the 512 MB Pi Zero can't spare, so the fit must be fast first.
+4. **Time it on both platforms** before merging: the prototype and the optimised fit, on nina01 and a Pi Zero 2 W
+   with the driver running.
 
 ### Interactions
 
