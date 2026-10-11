@@ -3,8 +3,7 @@
       <div class="text-h6">Mechanical Alignment Correction Model</div>
       <div class="row">
         <div class="col text-grey text-caption">
-          Reduce pointing residuals. With every alignment sync, fit how the camera sits on the Polaris head and the
-          motors' zero positions, together with the alignment. Off: rotation-only alignment (for comparison).
+          Reduce pointing residuals by fitting the mount's and camera's mechanical geometry alongside the alignment. 
         </div>
         <q-space />
         <div class="q-gutter-md flex justify-end q-mr-md">
@@ -25,8 +24,7 @@
       <div class="col-12 text-h7 q-pt-md">M2 and M3 Offsets</div>
       <div class="row q-col-gutter-md">
         <div class="col-9 text-grey text-caption">
-          <div>Fitted automatically at every alignment sync. They change with the setup: the lens, how the camera
-            sits in its clamp, a focuser pulling the lens sideways.</div>
+          <div>Fitted automatically at every alignment sync, these offsets compensate for the current setup.</div>
           <div class="q-pl-md q-pt-sm text-body1">θ₂′ = θ₂ + M2 offset, &nbsp; θ₃′ = θ₃ + M3 offset</div>
         </div>
         <div class="col-3">
@@ -37,7 +35,7 @@
       <div class="col-12 text-h7 q-pt-sm">M2 Scale</div>
       <div class="row q-col-gutter-md q-pb-lg">
         <div class="col-9 text-grey text-caption">
-          <div>M2 turns slightly further than its reported angle (about +1% on the Polaris). A mount constant:
+          <div>M2 can turn slightly further than its reported angle. 
             AutoTune refines it from an alignment of 6 or more points spread in altitude.</div>
           <div class="q-pl-md q-pt-sm text-body1">θ₂′ = θ₂ + M2 offset + scale × (θ₂ − 45°)</div>
         </div>
