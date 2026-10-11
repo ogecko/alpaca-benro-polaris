@@ -711,13 +711,14 @@ def profile_text(ff):
 
 
 def baseline_text(ff):
-    """The row's Baseline: the profile in use, labelled; 'none' without one."""
-    return 'none' if ff is None else f'profile in use {profile_text(ff)}'
+    """The row's Baseline: the current (approved) profile, labelled; 'none' without one. It corrects the motors only
+    while PEC Worm Gear Correction is on."""
+    return 'none' if ff is None else f'current profile {profile_text(ff)}'
 
 
 def row_fields_from_file(path):
-    """The row's columns from the profile file (its latest test, the pooled profile and the profile in use), e.g. after
-    Approve/Reject changed the profile in use."""
+    """The row's columns from the profile file (its latest test, the pooled profile and the current profile), e.g.
+    after Approve/Reject changed the current profile."""
     ff = _load_or_new(path)
     tests = [e for e in ff.meta.get('calibration_history', []) if e.get('test') == PROFILE_TEST and e.get('samples')]
     if not tests:
@@ -727,7 +728,7 @@ def row_fields_from_file(path):
 
 def profile_row_fields(latest, pooled, current):
     """The worm profile row's columns, each labelled (Pilot shows the label under the motors): dps (Baseline) = the
-    profile in use (`current`, a WormFeedForward or None); test_result = the pooled profile Approve would apply, per
+    current profile (`current`, a WormFeedForward or None); test_result = the pooled profile Approve would apply, per
     motor amplitude @ peak angle; test_change = how far approving moves each motor from the baseline; test_stdev = the pooled profile's uncertainty and
     significance per motor, and the residual rms of that fit (pooled: with a warning when the last test was left out)."""
     def h1(info):
@@ -777,7 +778,7 @@ STALE_ROW_STATUS = ('UNTESTED', 'NO DATA', 'STOPPED')   # and PENDING...: the la
 
 def startup_row_fields(path, status):
     """The row's columns at driver start, from the profile file (the saved row only has the last attempt's, blank after
-    a NO DATA test). Its status is kept unless it is stale: then APPROVED when the pooled profile is the one in use
+    a NO DATA test). Its status is kept unless it is stale: then APPROVED when the pooled profile is the current one
     (so Approve rejects it), else the pooled tests' own status (COMPLETED: Approve applies it)."""
     current = WormFeedForward.load(path)
     tests = [] if current is None else [e for e in current.meta.get('calibration_history', [])
@@ -791,7 +792,7 @@ def startup_row_fields(path, status):
 
 
 def _pooled_in_use(pooled, current):
-    """True when the profile in use is the pooled one (approved, and no test since): Approve would then reject it."""
+    """True when the current profile is the pooled one (approved, and no test since): Approve would then reject it."""
     if current is None or not current.meta.get('applied_profile') or not pooled.get('motors'):
         return False
     coef = np.array([pooled['motors'][m]['coef'] for m in MOTORS], float)

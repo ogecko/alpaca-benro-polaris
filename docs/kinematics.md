@@ -419,13 +419,13 @@ Each test is retained. The displayed profile under Test Results is **pooled over
 
 The result row shows one line per motor in each column, under a first line that says what the column is:
 
-* **Baseline:** `profile in use`: the correction currently applied to each motor (`none` before any is approved).
+* **Baseline:** `current profile`: the approved profile, which corrects each motor while **PEC Worm Gear Correction** is switched on (`none` before any is approved).
 
 * **Test Result:** `last 5 tests pooled`: the profile that **Approve** would apply. It is fitted over the recent tests together, not just the latest one (`last test` when there is only one). For each motor it shows the wobble's size and the angle where it peaks.
 
   For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The angle after @ indicates where, within the motor’s 6° worm turn, its error is largest (0–360°, relative to the worm’s angle). Motors with wobble too small to measure are marked `off` and left uncorrected.
 
-* **Change:** `from baseline`: how far each motor's correction would move from the Baseline if you approve the Test Result (`+0"` once it is the profile in use).
+* **Change:** `from baseline`: how far each motor's correction would move from the Baseline if you approve the Test Result (`+0"` once it is the current profile).
 
   A ⚠ line below the motors flags a problem with the last test: a poor fit, or insufficient separation between M1 and M3 at that pose (`low separation`). Repeat the test at another pose.
 
@@ -452,7 +452,7 @@ The result row shows one line per motor in each column, under a first line that 
 
 Running the test again at a different pose reduces the effect of measurement noise.
 
-All tests, including their individual measurements, are retained in `worm_profile.json` in the driver's data folder. When the driver starts, the row is filled in from that file, so the results stay visible after a restart (or after a test that ended with `NO DATA`). The status shows `APPROVED` when the pooled profile is the one in use, and `COMPLETED` when there is a newer pooled result to approve.
+All tests, including their individual measurements, are retained in `worm_profile.json` in the driver's data folder. When the driver starts, the row is filled in from that file, so the results stay visible after a restart (or after a test that ended with `NO DATA`). The status shows `APPROVED` when the pooled profile is the current profile, and `COMPLETED` when there is a newer pooled result to approve.
 
 **3. Approve it.**
 

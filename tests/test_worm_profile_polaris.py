@@ -141,7 +141,7 @@ def test_the_test_runs_fits_keeps_the_test_and_shows_the_pooled_profile(tmp_path
     p._cm.toggleApproval(0, [PROFILE_TEST])
     assert row['test_status'] == 'APPROVED' and p._sm.reloaded == 1
     assert row['dps'].split(' M1 ')[1] == row['test_result'].split(' M1 ')[1]          # baseline: now the pooled profile
-    assert row['dps'].startswith('profile in use ') and row['test_change'].endswith('+0"')
+    assert row['dps'].startswith('current profile ') and row['test_change'].endswith('+0"')
     assert p.live == [{'advanced_pec_worm': True}]              # the switch is left on; the new profile is refitted
     ff = WormFeedForward.load(p._sm.path)
     assert ff.angle_reference == {'M1': 'zeta', 'M2': 'zeta', 'M3': 'zeta'}

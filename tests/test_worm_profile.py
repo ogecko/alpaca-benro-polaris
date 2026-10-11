@@ -462,14 +462,14 @@ def test_the_profile_file_starts_with_the_profile_in_use_and_ends_with_the_test_
 
 
 def test_the_row_shows_the_profile_in_use_as_its_baseline():
-    """Like the speed rows (baseline, test result, change): Baseline = the profile in use, Test Result = the pooled
+    """Like the speed rows (baseline, test result, change): Baseline = the current profile, Test Result = the pooled
     profile, Change = how far approving it moves each motor."""
     from control_worm import profile_text
     r = fit_worm_profile([synthetic_test()])
     coef = np.array([r['motors'][M]['coef'] for M in ('M1', 'M2', 'M3')])
     ff = WormFeedForward(worm_theta=6.0, harmonics=(1, 2), coef=coef)
     fields = profile_row_fields(r, r, ff)
-    assert fields['dps'] == f'profile in use {profile_text(ff)}'
+    assert fields['dps'] == f'current profile {profile_text(ff)}'
     assert fields['test_result'] == f'last test {profile_text(ff)}'           # the pooled profile is the one in use
     assert fields['test_change'].endswith('M1 +0" M2 +0" M3 +0"')
     assert profile_row_fields(r, r, None)['dps'] == 'none'
@@ -547,7 +547,7 @@ def test_the_calibration_manager_fills_the_row_from_the_profile_file(tmp_path):
     cm.refreshWormProfileRow(p)
     row = cm.test_data[PROFILE_TEST]
     assert row['test_result'].startswith('last 2 tests pooled M1 ') and 'σ' in row['test_stdev']
-    assert row['dps'] == 'profile in use M1 off M2 off M3 off' and row['test_status'] == 'COMPLETED'
+    assert row['dps'] == 'current profile M1 off M2 off M3 off' and row['test_status'] == 'COMPLETED'
     (tmp_path / 'bad.json').write_text('{not json')
     cm.refreshWormProfileRow(str(tmp_path / 'bad.json'))          # unreadable: the driver still starts
 
