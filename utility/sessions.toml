@@ -547,3 +547,20 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2)"
 records = ["pec"]
 notes = 'Block E: PEC drift + worm, 2.2 h. Roll +60, M3 -35..-11 deg (never calibrated): measured M3 50"@135 vs profile 99"@205, the worm correction added slow error. PHD2 2.0/2.0".'
+
+[sessions."jdm_Beta8.0_10_10_M11_200mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_10_M11_200mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_10_M11_200mm_worm_a1_PHD2_GuideLog_2026-10-10_192848.txt"
+date = "2026-10-10"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_10_NGC1763_200mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_10_NGC1763_200mm_worm_a*.log"]
+date = "2026-10-10"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
