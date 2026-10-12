@@ -251,6 +251,22 @@ def test_a_reversal_is_announced_without_pec_drift(monkeypatch, caplog):
     assert len(reversal_lines(caplog)) == 1
 
 
+def test_a_reversal_first_seen_after_it_says_how_much_is_left(monkeypatch, caplog):
+    """E.g. after a goto onto a target whose motor turned 15 min ago: past tense, and the take-up time left, not the
+    whole take-up from the turn (2026-10-12: "reverses its tracking direction 15 min ago ... drift for about 17 min")."""
+    caplog.set_level('INFO')
+    tw = tracking_twin(monkeypatch, (161.7, 43.7, 13.8))
+    sm = tw.polaris._sm
+    now = tw.clock.monotonic()
+    accel = 2 * BACKLASH / (17 * 60) ** 2                     # takes 17 min to take up the backlash
+    monkeypatch.setattr(sm, 'motor_turns', lambda t: [(1, now - 15 * 60, 45.0, accel)])
+    sm._reversals_announced, sm._reversal_announce_next = [], 0.0
+    sm.announce_motor_reversals(now)
+    lines = [r.getMessage() for r in caplog.records if 'tracking direction' in r.getMessage()]
+    assert lines and 'M2 reversed its tracking direction 15 min ago' in lines[-1], lines
+    assert 'for about 2 more min' in lines[-1], lines
+
+
 def test_no_reversal_is_announced_tracking_in_the_east(monkeypatch, caplog):
     caplog.set_level('INFO')
     tw = tracking_twin(monkeypatch, EAST)

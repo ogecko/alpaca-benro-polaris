@@ -343,11 +343,17 @@ class PecMixin:
             if any(mm == m and abs(t - tt) < REVERSAL_SAME_SEC for mm, t in self._reversals_announced):
                 continue
             self._reversals_announced.append((m, tt))
-            when = f"in {t_rel / 60:.0f} min" if t_rel > 30 else ("now" if t_rel > -30 else f"{-t_rel / 60:.0f} min ago")
-            slack = (f"its gear backlash (up to {backlash * 3600:.0f}\") can show as drift for about "
-                     f"{takeup / 60:.0f} min" if takeup <= REVERSAL_MAX_SEC else
+            # takeup runs from the turning point: a turn first seen after it (e.g. after a goto) has only the rest left
+            past = t_rel <= -30
+            left = takeup + min(t_rel, 0.0)
+            when = (f"reverses its tracking direction in {t_rel / 60:.0f} min" if t_rel > 30 else
+                    "reverses its tracking direction now" if not past else
+                    f"reversed its tracking direction {-t_rel / 60:.0f} min ago")
+            duration = f"under 1 min" if left < 60 else f"about {left / 60:.0f}{' more' if past else ''} min"
+            slack = (f"its gear backlash (up to {backlash * 3600:.0f}\") can show as drift for {duration}"
+                     if takeup <= REVERSAL_MAX_SEC else
                      f"slowly: its gear backlash is taken up over more than {REVERSAL_MAX_SEC / 60:.0f} min")
-            self.logger.info(f"->> Polaris: {MOTORS[m]} reverses its tracking direction {when}; {slack}")
+            self.logger.info(f"->> Polaris: {MOTORS[m]} {when}; {slack}")
 
     def _pec_reversal_paused(self, now):
         """True while a motor reversal pauses learning; logs when a pause starts and ends. Rechecked every
