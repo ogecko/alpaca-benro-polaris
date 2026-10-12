@@ -931,6 +931,17 @@ from `process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` i
 With `Config.pec_ignore_guider_calibration`, `GuiderCalibrationDetector` recognises a guider's
 calibration (PHD2, CCDciel) as 3+ identical same-axis, same-direction pulses: PEC is rolled back to
 its state before that run and learns nothing more until no repeated pulse has been seen for 20 s.
+With `Config.pec_reversal_pause`, learning also pauses while a motor reverses its tracking direction: the motor turns
+through its gear backlash (150-620" measured) before the output shaft follows, and the guider pulls back the drift that
+makes. `pec_reversal_check()` finds each motor's turning points along the tracked target's sidereal path
+(`pec_sidereal_path()`: the tracking reference rotated about the RA axis, as `feed_forward()` turns it), so the result
+is unaffected by noise, guide pulses or a driver restart; they are cached per target and refreshed every 5 minutes
+(8.6 ms on nina01). Learning pauses from `pec_reversal_lead_sec` (120 s) before a turning point until the motor has
+turned `pec_reversal_backlash_deg` (0.2°) past it, at most 30 minutes. A reversal too slow to take its slack up within
+30 minutes (e.g. M2 after a ZM2 roll, chosen to keep it still) doesn't pause: that drift lasts many time constants, and
+PEC should follow it. While paused, each residual is logged (PECLOG `paused`, e.g.
+`'M2'`) but not learned, the rate already learned keeps being applied, and the first residual after the pause restarts
+the rate's differencing.
 The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`); the worm feed-forward and the
 worm profile test in `driver/control_worm.py` (`WormMixin`, `WormProfileTest`, `fit_worm_profile`).
 

@@ -74,7 +74,7 @@ advanced_sync_guiding = false               # Enable the ASCOM Alpaca Pulse guid
 advanced_alignment = false                  # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
 advanced_scc_enabled = true                 # Enable correction to reduce the number of Slew & Center cycles. Method defined by advanced_scc_choice
 advanced_scc_choice = 2                     # 0 = Zero Last Residual, 1=Local Gausian Adjustment; 2=Sync Guiding Adjustment
-advanced_align_mac = false                  # Mechanical Alignment Correction: fit M2/M3 offsets (and the M2 scale) with the alignment (off: rotation-only QUEST)
+advanced_align_mac = true                   # Mechanical Alignment Correction: fit M2/M3 offsets (and the M2 scale) with the alignment (off: rotation-only QUEST)
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guide corrections and correct it
 advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json
@@ -85,6 +85,10 @@ restore_tracking_on_restart = true          # After a driver restart, resume the
                                             # session); otherwise stop a mount still running its last command (tracking_restore.py)
 pec_tau_sec = 450                           # PEC smoothing time constant (seconds) of its EMA drift rate: 7.5 min, the middle of the 5-10 min optimum
                                             # on the archived logs (utility/analyse_sessions.ipynb); averages more solves when sync guiding
+pec_reversal_pause = true                   # PEC pauses learning while a motor reverses its tracking direction: it turns through its gear
+                                            # backlash before the lens follows, and that drift would be learned and applied for the next tau
+pec_reversal_lead_sec = 120                 # ... from this long before the motor's turning point (its gear unloads as it slows)
+pec_reversal_backlash_deg = 0.2             # ... until it has turned this far past it (backlash measured at 150-620")
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.2547885891542383 ]
 kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 0.0001,                0.0001,                0.0001 ]
 measurement_dt = 0.2                        # KF Polaris' microcontroller emits 518 position updates on this fixed hardware cadence (seconds)

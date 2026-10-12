@@ -349,6 +349,7 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 * **Solution:** Switch on **PEC Drift Correction** in Pilot's settings. The driver learns the drift rate from the guide corrections (Pulse Guiding or Sync Guiding), averaged over about 7.5 minutes, and applies it every 200 ms, leaving the guider only what remains. It starts once it has enough corrections to be confident (see [Kinematics 2.6](./kinematics.md#26-periodic-error-correction-pec)).
 * **Tips:**
   * It ignores PHD2 and CCDciel guider calibration pulses, so it can stay on while calibrating.
+  * It pauses learning while a motor reverses its tracking direction, for example M2 as a target passes its highest point. The motor first turns through its gear backlash before the lens follows, so the star drifts for several minutes and the guider pulls it back. PEC keeps applying the rate it had learned, but doesn't learn that drift, so it doesn't keep correcting it after the gear has caught up. The driver log shows when learning pauses and resumes.
   * Switch it **off** if you dither: dither steps look like drift, and PEC would learn them.
   * A good Multi-Point Alignment (and Mechanical Alignment Correction) reduces the drift in the first place.
 
