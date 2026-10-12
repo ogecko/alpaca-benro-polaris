@@ -2071,6 +2071,8 @@ class PID_Controller():
         if not self.time_meas:  # Only process once we have a measurement
             return
         self.polaris._sm.step_pec_drift()   # PEC drift: this tick's step into the PV and omega_pec_B (feed_forward)
+        if self.mode == 'TRACK' and not self.move_pending() and not self._has_active_jog():
+            self.polaris._sm.announce_motor_reversals(time.monotonic())   # log a motor about to reverse (backlash)
         self.track_target()     # Update theta_ref with target's new position (ramping jog rates first)
         self.feed_forward()     # Feed forward tracking velocities when in TRACK mode
         self.errsignal()        # Update error_signal with deviation from theta_ref

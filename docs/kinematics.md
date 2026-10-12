@@ -942,6 +942,10 @@ turned `pec_reversal_backlash_deg` (0.2°) past it, at most 30 minutes. A revers
 PEC should follow it. While paused, each residual is logged (PECLOG `paused`, e.g.
 `'M2'`) but not learned, the rate already learned keeps being applied, and the first residual after the pause restarts
 the rate's differencing.
+Independently of PEC and guiding, `announce_motor_reversals()` (every control tick while tracking, checked every 10 s,
+skipped during gotos and jogs) logs each coming reversal once, about 5 minutes ahead, from the same cached turning
+points (`motor_turns()`, refreshed every 5 minutes or when the target changes): `->> Polaris: M2 reverses its tracking
+direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min`.
 The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`); the worm feed-forward and the
 worm profile test in `driver/control_worm.py` (`WormMixin`, `WormProfileTest`, `fit_worm_profile`).
 

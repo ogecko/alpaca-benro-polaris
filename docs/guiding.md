@@ -372,20 +372,42 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
   * M1 is never affected (its axis is vertical, so the payload's weight can't turn it).
   * If the kicks come back later in the night (the roll drifts as the target crosses the sky), choose ZM2 again.
 
-### 6.4 Computer Stalls
+### 6.4 Gear Backlash: a Motor Reversing or Barely Moving
+
+* **What you see:** Two distinct patterns, occurring at particular points in the sky rather than throughout the night:
+  * **Increased drift lasting several minutes:** The star suddenly requires much larger guiding corrections, sometimes reaching PHD2's maximum pulse duration. After 5–15 minutes, guiding settles again.
+  * **A steady back-and-forth every 8-10 seconds,** The star moves back and forth, usually in Dec, with a noticeable increase in guiding RMS Error.
+
+* **Cause:** Each motor drives its axis through gears with some mechanical slack, known as backlash. On the Polaris, this can amount to 150–620 arcseconds. While a motor takes up this slack, the motor turns but the axis doesn't move as expected, even though the driver assumes it does.
+  * **When a motor reverses:** During tracking, a motor sometimes needs to change direction. For example, M2 as a target passes its highest point, or M1 as a target near the pole changes direction. The motor must first take up the gear slack before the axis responds, allowing the star to drift by as much as the backlash. 
+  * **When a motor barely moves:** At very low tracking speeds (below approximately 4" per second), guiding corrections can repeatedly push the motor back and forth through the gear slack. Each correction takes effect late, causing overshoot and a repeating 8–10-second oscillation in the guiding loop.
+
+* **What the driver does and what you can do:**
+  * **PEC pauses learning during backlash:** PEC Drift Correction automatically pauses learning around a motor reversal. This prevents it from learning the temporary corrections needed to compensate for backlash and then mistakenly applying them as ongoing drift corrections after the gears re-engage.
+  * **Recognise an approaching reversal** The driver logs each tracking-direction reversal several minutes in advance, whether guiding is enabled or not. For example:
+
+    `->> Polaris: M2 reverses its tracking direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min`
+
+  * **Watch for oscillation with ZM2:** The ZM2 roll strategy (6.3) keeps M2 nearly stationary, which can help with a heavy payload but may leave the motor operating at very low speeds. If you see 8–10 second oscillations after selecting ZM2, try reducing RA and/or Dec aggressiveness.
+  * **Distinguish guiding errors from goto errors:** Backlash can also leave Slew & Center corrections a few arcminutes short or past the target, requiring another iteration. This is a separate effect from the guiding symptoms described above.
+  
+
+### 6.5 Computer Stalls
 
 * **What you see:** An occasional single large disturbance, not regular, often when the computer is busy (saving images, a virus scan or Windows update starting).
 * **Cause:** The driver's control loop runs on the guiding computer. If the computer stalls for a second or more, the motors keep their last speed for that time, and the guider then sees a jump. The driver log shows warnings such as `Event loop lag detected` and `HIGH CPU LOAD breakdown` at that time.
 * **Solution:** Keep the guiding computer free of heavy background work during imaging: exclude the driver, log and image folders from Windows Defender scans, pause Windows Update, and close programs you don't need.
 
-### 6.5 Quick Reference
+### 6.6 Quick Reference
 
 | What you see in the guide graph | Likely cause | What to do |
 | ------------------------------- | ------------ | ---------- |
 | Steady drift, mostly one-sided corrections | Imperfect alignment model | PEC Drift Correction (6.1); refresh Multi-Point Alignment |
 | Slow wave, minutes to an hour | Worm gear wobble | Worm profile test and PEC Worm Gear Correction (6.2) |
 | Regular sharp kicks every 10-40 s, heavy lens | M2 payload slip | ZM2 roll preset, better balance (6.3) |
-| A single large jump at random | Computer stall | Check the log for lag warnings; reduce background load (6.4) |
+| A drift bump for 5-15 minutes, at the same point in the sky | A motor reversing through its gear backlash | Check the log for "reverses its tracking direction"; PEC pauses learning (6.4) |
+| Back-and-forth every 8-10 s, calmer with lower aggressiveness | A slow motor going back and forth through its backlash | Lower the aggressiveness on that axis; longer guide exposures (6.4) |
+| A single large jump at random | Computer stall | Check the log for lag warnings; reduce background load (6.5) |
 | Rapid back-and-forth, high RA Osc | Guider over-correcting | Lower PHD2 aggressiveness or the Guide Rate (3.4) |
 | Drift after a dither | PEC learning the dither | Switch off PEC Drift Correction when dithering (6.1) |
 

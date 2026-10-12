@@ -51,6 +51,8 @@ REVERSAL_LOOKAHEAD_SEC = 600.0      # sampled this far past the lead, so a turni
 REVERSAL_MAX_SEC = 1800.0           # looked back this far: a pause never lasts longer
 REVERSAL_REFRESH_SEC = 300.0        # the turning points are recomputed this often (and when the PEC model resets)
 REVERSAL_CHECK_SEC = 10.0           # the pause is rechecked this often while learning (cheap: cached turning points)
+REVERSAL_ANNOUNCE_SEC = 300.0       # a coming reversal is logged this long before its turning point
+REVERSAL_SAME_SEC = 600.0           # turning points of one motor this close in time are the same reversal (logged once)
 REVERSAL_MIN_SWING_DEG = 1 / 3600   # a turning point needs the motor to move this far on both sides (not noise, not still)
 
 
@@ -215,6 +217,8 @@ class PecMixin:
         self._pec_generation = 0                # bumped by reset_pec_model(), invalidates a snapshot across resets
         self._pec_ingest_seq = 0                # bumped on every PEC seed/ingest, invalidates a snapshot if anything else ingests
         self._pec_paused = None                 # motors whose reversal pauses learning, e.g. 'M2' (None: learning)
+        self._reversals_announced = []          # (motor, monotonic turning time) already logged
+        self._reversal_announce_next = 0.0
         self.init_pec_model()
 
     def init_pec_model(self):
@@ -238,8 +242,9 @@ class PecMixin:
 
         self._pec_reversal_next = 0.0         # monotonic time of the next motor reversal check (0: at the next ingest)
         self._pec_reversals     = []
-        self._pec_turns         = None        # cached motor turning points [(motor, monotonic time, theta)] for the target
+        self._pec_turns         = None        # cached motor turning points [(motor, monotonic time, theta, accel)]
         self._pec_turns_next    = 0.0         # when to recompute them
+        self._pec_turns_target  = None        # the tracked target (delta_sp) they were computed for
 
         self._pec_var_alpha  = 0.05           # EMA factor for var estimate, more stable R2
         self._pec_sse_alpha  = 0.15           # EMA factor for sse estimate, faster tracking decay
@@ -283,28 +288,66 @@ class PecMixin:
             out[k] = last[side] = np.asarray(q_to_theta(q, lp), float)
         return out
 
-    def pec_reversal_check(self, now):
+    def motor_turns(self, now):
         """
-        The motor reversals that pause PEC learning now (reversal_pauses), [] when there are none or it is off.
-        A sidereal target's motor path is fixed, so its turning points are computed once (a few ms: ~20 inverse
-        kinematics solves) and refreshed every REVERSAL_REFRESH_SEC or when the PEC model resets (a new target); a
-        check compares them with the time and the motor angles now.
+        The tracked target's motor turning points [(motor, monotonic time, theta, accel)] (motor_turning_points), []
+        when not tracking a sidereal target. Its motor path is fixed, so they are computed once (a few ms: ~20 inverse
+        kinematics solves) and refreshed every REVERSAL_REFRESH_SEC, when the PEC model resets or the target changes.
         """
-        if not getattr(Config, 'pec_reversal_pause', True):
-            return []
-        lead = float(getattr(Config, 'pec_reversal_lead_sec', 120.0))
-        backlash = float(getattr(Config, 'pec_reversal_backlash_deg', 0.2))
-        if self._pec_turns is None or now >= self._pec_turns_next:
-            times = np.arange(-REVERSAL_MAX_SEC, lead + REVERSAL_LOOKAHEAD_SEC + 1e-9, REVERSAL_SAMPLE_SEC)
+        pid = getattr(self.polaris, '_pid', None)
+        sp = getattr(pid, 'delta_sp', None)
+        target = None if sp is None else np.asarray(sp, float).copy()
+        moved = (self._pec_turns_target is None or target is None or
+                 np.max(np.abs(target - self._pec_turns_target)) > 1 / 60)
+        if self._pec_turns is None or now >= self._pec_turns_next or moved:
+            lead = float(getattr(Config, 'pec_reversal_lead_sec', 120.0))
+            times = np.arange(-REVERSAL_MAX_SEC, max(lead, REVERSAL_ANNOUNCE_SEC) + REVERSAL_LOOKAHEAD_SEC + 1e-9,
+                              REVERSAL_SAMPLE_SEC)
             path = self.pec_sidereal_path(times)
+            self._pec_turns_target = target
             if path is None:
                 self._pec_turns = None
                 return []
             self._pec_turns = [(m, now + tc, xc, a) for m, tc, xc, a in motor_turning_points(times, path)]
             self._pec_turns_next = now + REVERSAL_REFRESH_SEC
-        pid = self.polaris._pid
-        return pauses_from_turning_points([(m, tt - now, xc, a) for m, tt, xc, a in self._pec_turns], pid.theta_pv,
-                                          lead, backlash)
+        return self._pec_turns
+
+    def pec_reversal_check(self, now):
+        """The motor reversals that pause PEC learning now (reversal_pauses), [] when there are none or it is off:
+        the cached turning points (motor_turns) against the time and the motor angles now."""
+        if not getattr(Config, 'pec_reversal_pause', True):
+            return []
+        lead = float(getattr(Config, 'pec_reversal_lead_sec', 120.0))
+        backlash = float(getattr(Config, 'pec_reversal_backlash_deg', 0.2))
+        turns = self.motor_turns(now)
+        if not turns:
+            return []
+        return pauses_from_turning_points([(m, tt - now, xc, a) for m, tt, xc, a in turns],
+                                          self.polaris._pid.theta_pv, lead, backlash)
+
+    def announce_motor_reversals(self, now):
+        """
+        Log a motor about to reverse its tracking direction, once per reversal (called every control tick, checked
+        every REVERSAL_CHECK_SEC; whether or not PEC drift or guiding is on): its gear backlash can then show as drift.
+        """
+        if now < self._reversal_announce_next:
+            return
+        self._reversal_announce_next = now + REVERSAL_CHECK_SEC
+        backlash = float(getattr(Config, 'pec_reversal_backlash_deg', 0.2))
+        self._reversals_announced = [(m, t) for m, t in self._reversals_announced if t > now - 3600]
+        for m, tt, _, accel in self.motor_turns(now):
+            t_rel = tt - now
+            takeup = math.sqrt(2 * backlash / accel) if accel > 0 else float('inf')
+            if not (-min(takeup, REVERSAL_MAX_SEC) < t_rel <= REVERSAL_ANNOUNCE_SEC):
+                continue
+            if any(mm == m and abs(t - tt) < REVERSAL_SAME_SEC for mm, t in self._reversals_announced):
+                continue
+            self._reversals_announced.append((m, tt))
+            when = f"in {t_rel / 60:.0f} min" if t_rel > 30 else ("now" if t_rel > -30 else f"{-t_rel / 60:.0f} min ago")
+            slack = (f"its gear backlash (up to {backlash * 3600:.0f}\") can show as drift for about "
+                     f"{takeup / 60:.0f} min" if takeup <= REVERSAL_MAX_SEC else
+                     f"slowly: its gear backlash is taken up over more than {REVERSAL_MAX_SEC / 60:.0f} min")
+            self.logger.info(f"->> Polaris: {MOTORS[m]} reverses its tracking direction {when}; {slack}")
 
     def _pec_reversal_paused(self, now):
         """True while a motor reversal pauses learning; logs when a pause starts and ends. Rechecked every

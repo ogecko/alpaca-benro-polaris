@@ -139,13 +139,13 @@ def test_the_driver_finds_the_m2_reversal_of_the_smc_night(monkeypatch):
     tps = motor_turning_points(TIMES, sidereal_path(tw))
     assert [tp[0] for tp in tps] == [1], tps
     assert abs(tps[0][1]) < 180                               # within a few minutes of 21:19, as on the night
-    assert [p['motor'] for p in tw.polaris._sm.pec_reversal_check(0.0)] == [1]
+    assert [p['motor'] for p in tw.polaris._sm.pec_reversal_check(tw.clock.monotonic())] == [1]
 
 
 def test_tracking_in_the_east_never_pauses(monkeypatch):
     tw = tracking_twin(monkeypatch, EAST)
     assert motor_turning_points(TIMES, sidereal_path(tw)) == []
-    assert tw.polaris._sm.pec_reversal_check(0.0) == []
+    assert tw.polaris._sm.pec_reversal_check(tw.clock.monotonic()) == []
 
 
 def test_the_motor_the_twin_turns_matches_the_path(monkeypatch):
@@ -208,13 +208,13 @@ def test_switched_off_it_never_pauses(monkeypatch):
     tw = tracking_twin(monkeypatch)
     monkeypatch.setattr(Config, 'pec_reversal_pause', False)
     sm = tw.polaris._sm
-    assert sm.pec_reversal_check(0.0) == []
+    assert sm.pec_reversal_check(tw.clock.monotonic()) == []
 
 
 def test_a_new_target_recomputes_the_turning_points(monkeypatch):
     tw = tracking_twin(monkeypatch)
     sm = tw.polaris._sm
-    assert [p['motor'] for p in sm.pec_reversal_check(0.0)] == [1]
+    assert [p['motor'] for p in sm.pec_reversal_check(tw.clock.monotonic())] == [1]
     tw.goto_altaz(*EAST[:2])                                  # a goto resets the PEC model, so the cache with it
     for _ in range(300):
         tw.run(1)
@@ -222,4 +222,46 @@ def test_a_new_target_recomputes_the_turning_points(monkeypatch):
             break
     tw.run(5)
     sm.reset_pec_model()
-    assert sm.pec_reversal_check(1.0) == []
+    assert sm.pec_reversal_check(tw.clock.monotonic()) == []
+
+
+# ── announcing a reversal in the log (whether or not PEC drift or guiding is on) ─────────────────────────────────
+def reversal_lines(caplog):
+    return [r.getMessage() for r in caplog.records if 'reverses its tracking direction' in r.getMessage()]
+
+
+def test_an_upcoming_reversal_is_logged_once_with_its_motor(monkeypatch, caplog):
+    caplog.set_level('INFO')
+    tw = tracking_twin(monkeypatch, (161.7, 43.7, 13.8))     # the SMC, about 5 min before M2 turned
+    tw.run(30)
+    lines = reversal_lines(caplog)
+    assert len(lines) == 1 and 'M2' in lines[0], lines
+    tw.polaris._sm._pec_turns = None                          # a refresh moves the estimate a little: still once
+    tw.run(60)
+    assert len(reversal_lines(caplog)) == 1
+
+
+def test_a_reversal_is_announced_without_pec_drift(monkeypatch, caplog):
+    caplog.set_level('INFO')
+    monkeypatch.setattr(Config, 'advanced_pec_drift', False, raising=False)
+    tw = Twin(monkeypatch, config={'advanced_pec_drift': False})
+    tw.place(azaltroll_to_theta_ik(161.7, 43.7, 13.8))
+    tw.start_tracking()
+    tw.run(30)
+    assert len(reversal_lines(caplog)) == 1
+
+
+def test_no_reversal_is_announced_tracking_in_the_east(monkeypatch, caplog):
+    caplog.set_level('INFO')
+    tw = tracking_twin(monkeypatch, EAST)
+    tw.run(30)
+    assert reversal_lines(caplog) == []
+
+
+def test_a_new_target_refreshes_the_turning_points(monkeypatch):
+    tw = tracking_twin(monkeypatch)                           # the SMC at its M2 turn
+    sm = tw.polaris._sm
+    assert [t[0] for t in sm.motor_turns(tw.clock.monotonic())] == [1]
+    tw.pid.set_alpha_target({'az': EAST[0], 'alt': EAST[1], 'roll': EAST[2]})   # a new target, PEC not reset
+    tw.run(0.4)                                               # the tracking reference moves to it
+    assert sm.motor_turns(tw.clock.monotonic()) == []
