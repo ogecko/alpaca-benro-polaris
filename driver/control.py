@@ -22,6 +22,7 @@ from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reacha
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
+from control_backlash import BacklashCompensator
 from control_worm import WormMixin, PROFILE_TEST, TEST_SUMMARY, WORM_PROFILE_PATH, startup_row_fields
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -932,6 +933,8 @@ class PID_Controller():
         self.omega_ff_shaped = np.zeros(3, dtype=float)  # jog/goto feed-forward already within motor limits, added after smoothing
         self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (coordinated_speed_control)
         self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (coordinated_speed_control)
+        self.backlash = BacklashCompensator(logger)    # Backlash Compensation (advanced_backlash): see control_backlash.py
+        self.omega_backlash = np.zeros(3, dtype=float)  # its take-up push, added after smoothing (coordinated_speed_control)
         self.move_planned = None                       # per goto: planned, or left to the PID (large move while tracking, unwind/flip)
         self.lock_checked = False                      # per goto: path checked for passing near gimbal lock (theta2 ~ 0)
         self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
@@ -1909,6 +1912,24 @@ class PID_Controller():
         self._theta_pv_last = pv
         return pv + self._theta_pv_unwrap
 
+    def _theta_motor(self):
+        """The MCU's own motor angles (518), before the KF and the alignment/PEC corrections: what the gears turn. (The
+        KF state smooths over M3's sample-and-hold and misses a quick reversal's overshoot by more.)"""
+        raw = getattr(self.polaris, '_theta_raw', None)
+        return np.asarray(raw if raw is not None else self.theta_pv, dtype=float)
+
+    def backlash_adjust(self, theta_pv):
+        """Backlash Compensation: the adjustment (deg) from the motor angles to the output shafts the PID controls,
+        nonzero only while a goto completes or through a planned tracking reversal (control_backlash.py). The dead band
+        follows the motor angles (sync guiding and PEC fold corrections into theta_pv that no gear turned)."""
+        tracking = self.mode == 'TRACK' and bool(getattr(self.polaris, '_tracking', False))
+        if not BacklashCompensator.enabled() or not tracking:
+            return self.backlash.update(theta_pv, self.omega_ff, False, False)
+        now = time.monotonic()
+        sm = getattr(self.polaris, '_sm', None)
+        turns = sm.motor_turns(now) if sm is not None and hasattr(sm, 'motor_turns') else []
+        return self.backlash.update(self._theta_motor(), self.omega_ff, True, self.move_pending(), turns, now)
+
     def errsignal(self):
         # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
@@ -1919,6 +1940,7 @@ class PID_Controller():
             # against a backdated copy so a stale measurement isn't compared against a target
             # that's since moved on, without touching theta_ref itself (used elsewhere as-is).
             theta_pv = self._theta_pv_held()
+            theta_pv = theta_pv - self.backlash_adjust(theta_pv)   # the output shafts, while compensating backlash
             if self.theta_ref_cache is None:
                 self.prevent_windup()
                 theta_ref_backdated = self.theta_ref - self.omega_ff * self.measurement_lag_s
@@ -2010,6 +2032,9 @@ class PID_Controller():
             # smoothing and acceleration clamp so it isn't delayed (see GotoTrajectory)
             self.omega_fb = self.omega_ctl.copy()
             self.omega_ctl = self.omega_ctl + self.omega_ff_shaped
+            # Backlash Compensation's take-up push, like the feed-forward outside the smoothing
+            self.omega_backlash = self.backlash.push(self.error_signal, self._theta_motor(), self.dt)
+            self.omega_ctl = self.omega_ctl + self.omega_backlash
         # Check zeta motor limits and constrain omega further if past limits
         if self.polaris._zeta_meas is None:
             self.omega_min = -self.Kv
@@ -2035,7 +2060,7 @@ class PID_Controller():
             # the smoothed feedback state is the feedback part of what is actually sent (after the speed
             # clip): taken before it, it wound up far past Kv on long moves (-39 deg/s against -8.9) and
             # held the motor at full speed for seconds after the error reversed (large overshoots)
-            self.omega_fb = self.omega_ctl - self.omega_ff_shaped
+            self.omega_fb = self.omega_ctl - self.omega_ff_shaped - self.omega_backlash
 
     async def control(self):
         self.omega_op = np.zeros(3, dtype=float)

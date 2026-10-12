@@ -81,6 +81,9 @@ advanced_pec_worm = true                    # PEC Worm Gear Correction: correct 
                                             # (the M1-M2-M3-WORM-PROFILE test); also used in the QUEST and MAC models
 coordinated_speed_control = true            # BETA: coordinated speed control - shared-level motor speed controller (driver/speed_controller.py),
                                             # planned goto trajectories, acceleration-shaped jogs and Ki freeze during gotos; switchable live
+advanced_backlash = false                   # Backlash Compensation: while a goto completes and through a planned tracking reversal, drive each
+                                            # motor through its gear backlash so it finishes engaged the way it tracks (control_backlash.py)
+backlash_deg = [0.04, 0.12, 0.08]           # ... each motor's gear backlash (deg, M1/M2/M3; worm profile tests measured ~125-160", 280-620", ~310")
 restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing (saved < 10 min ago, same Polaris
                                             # session); otherwise stop a mount still running its last command (tracking_restore.py)
 pec_tau_sec = 450                           # PEC smoothing time constant (seconds) of its EMA drift rate: 7.5 min, the middle of the 5-10 min optimum

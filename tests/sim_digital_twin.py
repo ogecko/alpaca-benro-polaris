@@ -175,7 +175,7 @@ class TwinPolaris:
 
 
 class Twin:
-    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0, m3_hold_s=M3_HOLD_S):
+    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0, m3_hold_s=M3_HOLD_S, backlash_deg=0.0):
         Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath="/nonexistent")
         for key, value in {**TWIN_CONFIG, **(config or {})}.items():
             monkeypatch.setattr(Config, key, value, raising=False)
@@ -212,12 +212,17 @@ class Twin:
         self._last_raw = None
         self.m3_hold_s = m3_hold_s
         self._m3_held, self._m3_next = None, self.clock.t
+        # Gear backlash after the motor: the MCU (and so the driver) measures the motor's angle, but the pointing
+        # follows the output shaft, which lags it by up to the dead band when the motor reverses
+        self.backlash = np.broadcast_to(np.asarray(backlash_deg, float), (3,)).copy()
+        self.output = self.mcu.position.copy()
         self.pid.check_latlon_configured()
 
     # ---- mount state -----------------------------------------------------------------
     def place(self, theta):
         """Put the mount at motor angles theta (deg) and let the loop settle idle."""
         self.mcu.position = np.array(theta, dtype=float)
+        self.output = self.mcu.position.copy()            # slack centred: neither side taken up
         self.kf = KalmanFilter(self.logger, np.concatenate([self.mcu.position, np.zeros(3)]))
         self._last_raw = None
         self._m3_held = None
@@ -227,6 +232,23 @@ class Twin:
     @property
     def theta(self):
         return self.mcu.position.copy()
+
+    @property
+    def true_theta(self):
+        """The output shafts' angles: the motors' less the backlash not yet taken up."""
+        return self.output.copy()
+
+    def true_radec(self):
+        """Where the camera really points (RA hours, Dec deg), from the output shafts (the twin has no hidden
+        alignment)."""
+        az, alt, _ = q_to_azaltroll(theta_to_q(*self.output))
+        return self.polaris.altaz2radec(alt, az)
+
+    def _update_output(self):
+        half = self.backlash / 2
+        lead = self.mcu.position - self.output
+        self.output = np.where(lead > half, self.mcu.position - half,
+                               np.where(lead < -half, self.mcu.position + half, self.output))
 
     # ---- the control loop --------------------------------------------------------------
     def _measure_and_control(self):
@@ -274,6 +296,7 @@ class Twin:
                 self.mcu.feed(self.clock.t, msg)
             self.clock.t = round(self.clock.t + SIM_DT, 9)
             self.mcu.advance(self.clock.t)
+            self._update_output()
 
     # ---- driver-level actions (mirror the thin glue in polaris.py) ---------------------
     def start_tracking(self):

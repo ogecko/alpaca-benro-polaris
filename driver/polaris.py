@@ -1870,6 +1870,8 @@ class Polaris:
                 self._sm.streamSyncData()
             elif param == "advanced_pec_drift":
                 self._sm.reset_pec_model()
+            elif param in ("advanced_backlash", "backlash_deg"):
+                self._pid.backlash.reset()          # start again from the motors' angles, engaged the way they track
             elif param == "ref_action":
                 if changed_params["ref_action"]=="update":    # Update Reference Position with Current Orientation
                     match Config.ref:

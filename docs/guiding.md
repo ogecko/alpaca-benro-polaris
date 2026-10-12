@@ -390,6 +390,7 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 
   * **Watch for oscillation with ZM2:** The ZM2 roll strategy (6.3) keeps M2 nearly stationary, which can help with a heavy payload but may leave the motor operating at very low speeds. If you see 8–10 second oscillations after selecting ZM2, try reducing RA and/or Dec aggressiveness.
   * **Distinguish guiding errors from goto errors:** Backlash can also leave Slew & Center corrections a few arcminutes short or past the target, requiring another iteration. This is a separate effect from the guiding symptoms described above.
+  * **Backlash Compensation (BETA, off by default):** With **Backlash Compensation** switched on in Pilot's settings, the driver drives each motor through its gear slack at the end of every goto, so Slew & Center corrections land first time, and through each planned tracking reversal, so the drift bump doesn't happen. Each motor's slack is set by `backlash_deg` in config.toml (see [Kinematics 2.7](./kinematics.md#27-backlash-compensation)). It doesn't change ordinary guiding: the 8–10 second back-and-forth of a barely moving motor still needs lower aggressiveness.
   
 
 ### 6.5 Computer Stalls
@@ -405,7 +406,8 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 | Steady drift, mostly one-sided corrections | Imperfect alignment model | PEC Drift Correction (6.1); refresh Multi-Point Alignment |
 | Slow wave, minutes to an hour | Worm gear wobble | Worm profile test and PEC Worm Gear Correction (6.2) |
 | Regular sharp kicks every 10-40 s, heavy lens | M2 payload slip | ZM2 roll preset, better balance (6.3) |
-| A drift bump for 5-15 minutes, at the same point in the sky | A motor reversing through its gear backlash | Check the log for "reverses its tracking direction"; PEC pauses learning (6.4) |
+| A drift bump for 5-15 minutes, at the same point in the sky | A motor reversing through its gear backlash | Check the log for "reverses its tracking direction"; PEC pauses learning; Backlash Compensation (6.4) |
+| Slew & Center needs extra iterations, a few arcminutes short or past | A goto ending with a motor's gear slack open | Backlash Compensation (6.4) |
 | Back-and-forth every 8-10 s, calmer with lower aggressiveness | A slow motor going back and forth through its backlash | Lower the aggressiveness on that axis; longer guide exposures (6.4) |
 | A single large jump at random | Computer stall | Check the log for lag warnings; reduce background load (6.5) |
 | Rapid back-and-forth, high RA Osc | Guider over-correcting | Lower PHD2 aggressiveness or the Guide Rate (3.4) |
