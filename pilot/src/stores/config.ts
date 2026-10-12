@@ -82,7 +82,7 @@ export const useConfigStore = defineStore('config', {
     advanced_alignment: false,
     advanced_scc_enabled: false,
     advanced_scc_choice: 2,
-    advanced_align_mac: true,
+    advanced_align_mac: false,
     advanced_orbitals: false,
     advanced_pec_drift: false,
     advanced_pec_worm: false,
