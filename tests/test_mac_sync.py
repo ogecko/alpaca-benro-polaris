@@ -118,6 +118,20 @@ def test_switching_the_model_off_drops_the_offsets(cfg):
     assert sm.mac_d2 == 0 and sm.mac_d3 == 0 and sm.corrQ_MAC.degrees == 0
 
 
+@pytest.mark.parametrize('switch', ['advanced_alignment', 'advanced_control'])
+def test_single_point_alignment_applies_no_mac_not_even_the_m2_scale(cfg, switch):
+    """MAC is part of Multi-Point Alignment: in Single-Point Alignment the Polaris' own model points, and the M2 scale
+    (from config, not the fit) would otherwise still bend it -- up to ~12' at 0.8%."""
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    sync_all(sm, p)
+    setattr(cfg, switch, False)
+    sm.optimize_alignQ_B2T()
+    theta = np.array([200.0, 20.0, -25.0])
+    sm.baseQ_to_topoQ(theta_to_q(*theta), theta=theta)
+    assert sm.mac_terms() == (0.0, 0.0, 0.0)
+    assert sm.corrQ_MAC.degrees == 0
+
+
 def test_the_m2_scale_comes_from_config(cfg):
     cfg.align_m2_scale = 0.0                                    # the model without the scale
     p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)

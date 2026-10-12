@@ -2248,8 +2248,9 @@ class SyncManager(PecMixin, WormMixin):
     # ── Mechanical Alignment Correction (MAC): M2/M3 zero offsets and M2 scale on the motor angles (kinematics_mac.py) ──────────
     def mac_terms(self):
         """(d2, d3, s2) in use: the fitted offsets (deg) and the M2 scale (fraction, config align_m2_scale %); zero
-        while the model (advanced_align_mac) is off."""
-        if not Config.advanced_align_mac:
+        while the model (advanced_align_mac) is off, or Multi-Point Alignment is not in use (Single-Point Alignment:
+        the Polaris' own model points, and the M2 scale would still bend it)."""
+        if not (Config.advanced_align_mac and Config.advanced_alignment and Config.advanced_control):
             return 0.0, 0.0, 0.0
         return self.mac_d2, self.mac_d3, float(getattr(Config, 'align_m2_scale', 0.0)) / 100.0
 
