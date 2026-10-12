@@ -15,6 +15,7 @@ its turning point at the target (under 0.5"/s: no settled tracking side). There 
 import math
 import os
 import sys
+import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -22,6 +23,7 @@ import numpy as np
 import pytest
 
 from kinematics import azaltroll_to_theta_ik, reachable_azaltroll
+from control_backlash import TURN_SOON_SEC
 from test_backlash_compensation import STEP, aligned_radec, engaged, tracking_twin
 from test_motion_outcomes import radec_sep_arcmin, run_goto
 
@@ -66,8 +68,11 @@ def run_pose(pose, on):
             tw.run(5.0)
             err = radec_sep_arcmin(tw.pid.delta_sp[0] / 15, tw.pid.delta_sp[1], *aligned_radec(tw))
             t2 = abs(azaltroll_to_theta_ik(*pose)[1])
+            now = time.monotonic()
+            turning = any(0.0 <= tc - now < TURN_SOON_SEC for _, tc, *_ in tw.polaris._sm.motor_turns(now))
             edge = (not NORMAL_THETA2[0] <= t2 <= NORMAL_THETA2[1] or not NORMAL_THETA2[0] <= abs(tw.theta[1]) <= NORMAL_THETA2[1]
-                    or float(np.min(np.abs(tw.pid.omega_ff))) * 3600 < TURNING_ARCSEC_S)
+                    or float(np.min(np.abs(tw.pid.omega_ff))) * 3600 < TURNING_ARCSEC_S
+                    or turning)                              # a motor about to turn: left alone
             out.append(dict(move=label, time=done, err=err, engaged=all(engaged(tw)), edge=edge))
         return out
     finally:

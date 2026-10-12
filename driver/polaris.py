@@ -1881,6 +1881,12 @@ class Polaris:
                 self._sm.reset_pec_model()
             elif param in ("advanced_backlash", "backlash_deg"):
                 self._pid.backlash.reset()          # start again from the motors' angles, engaged the way they track
+                if param == "advanced_backlash" and any(e.get('backlash') for e in self._sm.sync_history):
+                    # sync points taken while compensating keep their adjustment, factored in only while it is on:
+                    # refit QUEST/MAC with or without it, as for the worm gear correction
+                    self._sm.optimize_alignQ_B2T()
+                    self._sm.refresh_pid_setpoints_from_q1()
+                    self._sm.streamSyncData()
             elif param == "ref_action":
                 if changed_params["ref_action"]=="update":    # Update Reference Position with Current Orientation
                     match Config.ref:

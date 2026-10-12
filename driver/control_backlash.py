@@ -9,10 +9,12 @@
 # near transit) stalls the output while the motor crosses the slack: a drift bump the guider has to chase.
 #
 #   BacklashCompensator   one dead band per motor (backlash_deg) estimates where the output shaft is: it moves only
-#                         once the motor has crossed the slack. The PID's error signal uses that estimate instead of
-#                         the motor angle, offset so a motor engaged the way it tracks reads its own angle (alignment
-#                         and PEC are learnt engaged); theta_pv, the alignment, the KF, PEC and the logs keep the motor
-#                         angles. On a reversal the estimate stands still, the error stays, and a take-up push drives
+#                         once the motor has crossed the slack. While compensating, the forward kinematics applies it
+#                         as its first correction ([BLC], SyncManager.baseQ_to_topoQ), offset so a motor engaged the
+#                         way it tracks reads its own angle (alignment and PEC are learnt engaged): theta_pv, the sky
+#                         positions, ASCOM and syncs then describe the output shafts, and the PID controls them; the KF,
+#                         the worm's MCU angles and the motor limits keep the motor angles. A sync point keeps the
+#                         adjustment it was taken with. On a reversal the estimate stands still, the error stays, and a take-up push drives
 #                         the motor through the slack (on top of the PID, slowing as it nears the far flank: the motor
 #                         lags its speed command, and an overrun moves the output).
 #     when                only where a reversal is known: while a goto or rotate completes (and until the motor is
@@ -59,8 +61,8 @@ ENGAGED_ARCSEC = 1.0                # within this of engaged the way it tracks: 
 TURN_LEAD_SEC = 10.0                # latch a planned reversal from this long before its turning point ...
 TURN_LATE_SEC = 60.0                # ... until this long after it (not later: by then the camera has fallen behind)
 LATCH_ENGAGED_ARCSEC = 5.0          # ... and only a motor engaged on its old flank (within this)
-TURN_SOON_SEC = 300.0               # a goto doesn't compensate a motor turning within this of now: its tracking side is
-                                    # about to change
+TURN_SOON_SEC = 300.0               # a goto doesn't compensate a motor turning within this from now: its tracking side
+                                    # is about to change
 GIMBAL_LOCK_DEG = 12.0              # ... nor any motor with M2 within this of gimbal lock (theta2 0): M1/M3's tracking
                                     # sides swap within seconds as the pointing moves (a 5' correction swings them by degrees)
 M2_LIMIT_MARGIN_DEG = 1.0           # ... or within this of M2's limit (THETA2_MAX): the goto can't settle there anyway
@@ -152,7 +154,7 @@ class BacklashCompensator:
         # about to turn has no settled one: left alone
         turning = np.zeros(3, dtype=bool)
         for m, tc, *_ in turns:
-            turning[m] |= abs(tc - now) < TURN_SOON_SEC
+            turning[m] |= 0.0 <= tc - now < TURN_SOON_SEC    # ahead: once past, its new side is settled
         settled = moving & ~turning & ~edge
         self.active = ((((move_pending | (self.active & ~engaged)) & settled) | self.latched) & (self.flank != 0)
                        & ~self.given_up)

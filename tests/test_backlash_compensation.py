@@ -352,6 +352,52 @@ def test_tracking_restore_finishes_with_every_motor_engaged(monkeypatch, tmp_pat
     assert results[False][1] > 1.0, results                            # off: the slack left open
 
 
+def test_while_compensating_the_pv_and_sky_position_are_the_output_shafts(monkeypatch):
+    """[BLC] is the first correction in the forward kinematics: while it acts, theta_pv (and so Az/Alt, RA/Dec and
+    ASCOM) describe the output shafts, the motor angles less the adjustment; idle, they are the motor angles."""
+    tw = tracking_twin(monkeypatch)
+    sm, seen = tw.polaris._sm, []
+    cosd = math.cos(math.radians(tw.pid.delta_sp[1]))
+    tw.slew_relative(ra=-STEP / cosd / 15)                         # back against M1/M3's tracking: slack opens
+    for _ in range(100):
+        tw.run(0.2)
+        adj = sm.backlash_deg.copy()
+        if np.any(np.abs(adj) > 30 / ARCSEC):
+            pv = np.asarray(tw.pid.theta_pv, float)
+            expected = np.asarray(q_to_theta_pv(tw), float)
+            seen.append(np.max(np.abs(pv - expected)) * ARCSEC)
+    assert seen and max(seen) < 2.0, seen                          # arcsec
+    done, _, _ = run_goto(tw, lambda: None)
+    tw.run(5.0)
+    assert not np.any(sm.backlash_deg) and sm.corrQ_BLC.degrees == 0  # idle: identity
+
+
+def q_to_theta_pv(tw):
+    """The motor angles (KF state) less the backlash adjustment, through the same corrections as theta_pv."""
+    from kinematics import q_to_theta, THETA2_MIN_MEAS
+    sm = tw.polaris._sm
+    theta = np.asarray(tw.kf.get_state()[0], float) - sm.backlash_deg
+    q = sm.q_pulseguide_B * sm.q_syncguide_B * sm.corrQ_WFF * theta_to_q(*theta)
+    return q_to_theta(q, tw.pid._lp, theta2_min=THETA2_MIN_MEAS)
+
+
+def test_a_sync_point_keeps_the_adjustment_it_was_taken_with(monkeypatch):
+    tw = tracking_twin(monkeypatch)
+    sm = tw.polaris._sm
+    sm.backlash_deg = np.array([0.02, -0.05, 0.0])
+    entry = sm.standard_entry()
+    assert entry['backlash'] == [0.02, -0.05, 0.0]
+    assert np.allclose(sm.entry_mac_theta(entry), sm.entry_theta(entry) - [0.02, -0.05, 0.0] + sm.entry_worm_error_deg(entry))
+    assert sm.entry_backlash_q(entry).degrees > 0
+    monkeypatch.setattr(Config, 'advanced_backlash', False)            # switched off: factored out, as the worm term
+    assert np.allclose(sm.entry_mac_theta(entry), sm.entry_theta(entry) + sm.entry_worm_error_deg(entry))
+    assert sm.entry_backlash_q(entry).degrees == 0 and entry['backlash'] == [0.02, -0.05, 0.0]   # raw state kept
+    monkeypatch.setattr(Config, 'advanced_backlash', True)
+    sm.backlash_deg = np.zeros(3)
+    entry = sm.standard_entry()
+    assert entry['backlash'] is None and sm.entry_backlash_q(entry).degrees == 0
+
+
 def test_off_by_default():
     Config.load()
     assert Config.advanced_backlash is False

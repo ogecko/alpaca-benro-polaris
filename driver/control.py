@@ -1918,13 +1918,14 @@ class PID_Controller():
         raw = getattr(self.polaris, '_theta_raw', None)
         return np.asarray(raw if raw is not None else self.theta_pv, dtype=float)
 
-    def backlash_adjust(self, theta_pv):
-        """Backlash Compensation: the adjustment (deg) from the motor angles to the output shafts the PID controls,
-        nonzero only while a goto completes or through a planned tracking reversal (control_backlash.py). The dead band
-        follows the motor angles (sync guiding and PEC fold corrections into theta_pv that no gear turned)."""
+    def backlash_adjust(self):
+        """Backlash Compensation: refresh the adjustment (deg, motor angle - output shaft) from the MCU's motor angles,
+        nonzero only while a goto completes or through a planned tracking reversal (control_backlash.py). The forward
+        kinematics applies it as its first correction ([BLC], SyncManager.baseQ_to_topoQ), so theta_pv, the sky
+        positions, ASCOM and syncs describe the output shafts while it acts."""
         tracking = self.mode == 'TRACK' and bool(getattr(self.polaris, '_tracking', False))
         if not BacklashCompensator.enabled() or not tracking:
-            return self.backlash.update(theta_pv, self.omega_ff, False, False)
+            return self.backlash.update(self._theta_motor(), self.omega_ff, False, False)
         now = time.monotonic()
         sm = getattr(self.polaris, '_sm', None)
         turns = sm.motor_turns(now) if sm is not None and hasattr(sm, 'motor_turns') else []
@@ -1940,7 +1941,6 @@ class PID_Controller():
             # against a backdated copy so a stale measurement isn't compared against a target
             # that's since moved on, without touching theta_ref itself (used elsewhere as-is).
             theta_pv = self._theta_pv_held()
-            theta_pv = theta_pv - self.backlash_adjust(theta_pv)   # the output shafts, while compensating backlash
             if self.theta_ref_cache is None:
                 self.prevent_windup()
                 theta_ref_backdated = self.theta_ref - self.omega_ff * self.measurement_lag_s
@@ -2229,6 +2229,8 @@ class SyncManager(PecMixin, WormMixin):
         self._pulse_guide_last_time = None      # Monotomic time of last pulse guide application for dashboard status badges
         self._sync_guide_last_time = None       # Monotomic time of last sync guide application for dashboard status badges
         self._sync_guide_interval = None        # EMA interval between sync guides in seconds
+        self.corrQ_BLC = Quaternion()           # Backlash Compensation [BLC]: motor -> output shaft pose (identity when idle)
+        self.backlash_deg = np.zeros(3)         # ... its adjustment per motor (deg, motor - output shaft)
         self._pulse_guide_last_step_sec = 0     # last pulse guide request's duration in seconds
         self.refresh_pid_setpoints_from_q1()
         self.streamSyncDataReset()
@@ -2249,6 +2251,8 @@ class SyncManager(PecMixin, WormMixin):
             "p_roll": self.polaris._p_roll,     # store raw motorQ_state Roll
             "theta": theta,                     # raw motor angles of that pose (KF state, 518 space)
             "zeta": zeta,                       # the MCU's motor angles (517): the worm gear correction's reference
+            "backlash": [float(x) for x in self.backlash_deg] if np.any(self.backlash_deg) else None,
+                                                # Backlash Compensation's adjustment then (deg, motor - output shaft)
             "a_ra": None,
             "a_dec": None,
             "a_az": None,
@@ -2268,11 +2272,11 @@ class SyncManager(PecMixin, WormMixin):
             v = boresights(corrected_theta(self.entry_mac_theta(entry), *self.mac_terms()))[0]
             eff_az, eff_alt = vector_to_az_alt(v)
             return v, eff_az, eff_alt
-        wormQ = self.entry_worm_q(entry)
-        if wormQ.degrees == 0:
+        wormQ, blcQ = self.entry_worm_q(entry), self.entry_backlash_q(entry)
+        if wormQ.degrees == 0 and blcQ.degrees == 0:
             return azalt_to_vector(entry["p_az"], entry["p_alt"]), entry["p_az"], entry["p_alt"]
         motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
-        eff_az, eff_alt, _ = q_to_azaltroll((wormQ * motorQ_entry).normalised)
+        eff_az, eff_alt, _ = q_to_azaltroll((wormQ * blcQ * motorQ_entry).normalised)
         return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
 
     # ── Mechanical Alignment Correction (MAC): M2/M3 zero offsets and M2 scale on the motor angles (kinematics_mac.py) ──────────
@@ -2291,8 +2295,29 @@ class SyncManager(PecMixin, WormMixin):
         return np.asarray(q_to_theta(azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])), float)
 
     def entry_mac_theta(self, entry):
-        """A sync point's motor angles as the model sees them: raw, plus the worm gear error when it is corrected."""
-        return self.entry_theta(entry) + self.entry_worm_error_deg(entry)
+        """A sync point's motor angles as the model sees them: raw, less Backlash Compensation's adjustment when it was
+        acting, plus the worm gear error when it is corrected."""
+        return self.entry_theta(entry) - self.entry_backlash_deg(entry) + self.entry_worm_error_deg(entry)
+
+    @staticmethod
+    def entry_backlash_deg(entry):
+        """(3,) deg: Backlash Compensation's adjustment when the sync point was taken (motor - output shaft), factored
+        in only while Backlash Compensation is on -- as the worm term only while its correction is in use, so a point's
+        prediction follows the runtime chain. Unlike the worm error it can't be rebuilt from the raw motor angles (it
+        depends on which side of its slack each gear was), so the point keeps it next to them. Zeros when it wasn't
+        acting, or is off now."""
+        b = entry.get("backlash")
+        if b is None or not BacklashCompensator.enabled():
+            return np.zeros(3)
+        return np.asarray(b, float)
+
+    def entry_backlash_q(self, entry):
+        """The [BLC] rotation at a sync point (identity when Backlash Compensation wasn't acting)."""
+        b = self.entry_backlash_deg(entry)
+        if not np.any(b):
+            return Quaternion()
+        theta = self.entry_theta(entry)
+        return (theta_to_q(*(theta - b)) * theta_to_q(*theta).inverse).normalised
 
     def entry_roll_pv(self, entry):
         """A roll sync's predicted sky roll, rebuilt from its raw motor angles with the worm, MAC and QUEST rotation
@@ -2349,10 +2374,17 @@ class SyncManager(PecMixin, WormMixin):
     def baseQ_to_topoQ(self, motorQ_C2B_state, theta=None):
         """
         Forward kinematics: Base frame → Topocentric frame.
-        motorQ → [WFF] → [MAC] → [SGC] → [PGC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
+        motorQ → [BLC] → [WFF] → [MAC] → [SGC] → [PGC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
         theta: the motor angles (deg) motorQ_C2B_state was built from -- the control tick passes them to refresh the
-        worm feed-forward and MAC at the current pose; other callers reuse the last ones.
+        backlash compensation, worm feed-forward and MAC at the current pose; other callers reuse the last ones.
         """
+        # Apply Backlash Compensation (BLC): while it acts, the output shafts lag the motors by the slack not yet taken
+        # up (control_backlash.py); identity otherwise
+        if theta is not None:
+            self.update_backlash_correction(theta)
+        corrQ_BLC = getattr(self, 'corrQ_BLC', None)
+        motorQ_C2B_state = corrQ_BLC * motorQ_C2B_state if corrQ_BLC is not None else motorQ_C2B_state
+
         # Apply Worm Feed-Forward (WFF): the gear error after each motor, which the MCU can't see (control_pec)
         if theta is not None:
             self.update_worm_ff(theta)
@@ -2361,7 +2393,8 @@ class SyncManager(PecMixin, WormMixin):
 
         # Apply Mechanical Alignment Correction (MAC): M2/M3 offsets and M2 scale on the motor angles (after the worm)
         if theta is not None:
-            self.update_mac_correction(np.asarray(theta, float) + getattr(self, 'worm_error_deg', 0.0))
+            self.update_mac_correction(np.asarray(theta, float) - self.backlash_deg
+                                       + getattr(self, 'worm_error_deg', 0.0))
         if Config.advanced_align_mac and self.corrQ_MAC.degrees != 0:
             motorQ_C2B_pv = self.corrQ_MAC * motorQ_C2B_pv
 
@@ -2372,6 +2405,19 @@ class SyncManager(PecMixin, WormMixin):
         motorQ_C2B_pv = self.q_pulseguide_B * motorQ_C2B_pv
 
         return self.pvQ_to_topoQ(motorQ_C2B_pv), motorQ_C2B_pv
+
+    def update_backlash_correction(self, theta):
+        """Refresh the Backlash Compensation rotation [BLC] for the motor angles theta (deg): the PID's compensator
+        (control_backlash.py) gives each motor's adjustment (motor - output shaft), and the rotation takes the pose at
+        the motor angles to the pose at the output shafts, q(theta - adj) q(theta)^-1."""
+        pid = getattr(self.polaris, '_pid', None)
+        adj = pid.backlash_adjust() if pid is not None and hasattr(pid, 'backlash_adjust') else np.zeros(3)
+        self.backlash_deg = np.asarray(adj, float).copy()
+        if not np.any(self.backlash_deg):
+            self.corrQ_BLC = Quaternion()
+            return
+        theta = np.asarray(theta, float)
+        self.corrQ_BLC = (theta_to_q(*(theta - self.backlash_deg)) * theta_to_q(*theta).inverse).normalised
 
     def pvQ_to_topoQ(self, motorQ_C2B_pv):
         """
@@ -3037,6 +3083,7 @@ class SyncManager(PecMixin, WormMixin):
                     'p_roll_pv':  float(entry['p_roll_pv']) if entry.get('p_roll_pv') is not None else None,
                     'theta':      [float(x) for x in entry['theta']] if entry.get('theta') is not None else None,
                     'zeta':       [float(x) for x in entry['zeta']] if entry.get('zeta') is not None else None,
+                    'backlash':   [float(x) for x in entry['backlash']] if entry.get('backlash') is not None else None,
                     'a_ra':       float(entry['a_ra'])   if entry.get('a_ra')   is not None else None,
                     'a_dec':      float(entry['a_dec'])  if entry.get('a_dec')  is not None else None,
                     'a_az':       float(entry['a_az'])   if entry.get('a_az')   is not None else None,
