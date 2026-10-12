@@ -87,6 +87,7 @@ export const useConfigStore = defineStore('config', {
     advanced_pec_drift: false,
     advanced_pec_worm: false,
     coordinated_speed_control: false,
+    advanced_backlash: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
