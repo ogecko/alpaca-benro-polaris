@@ -372,7 +372,7 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 **To perform the worm profile calibration:**
 
-1. Point the mount at a clear area of sky **30-45 degrees above the horizon**, **a couple of hours east or west of the meridian**, and away from the celestial pole. Choose a target with about +/-9 degrees of clear sky around it and plenty of stars. 
+1. Point the mount at a patch of sky **30-45° above the horizon** in the **eastern or western sky: Azimuth roughly 45-135° (east) or 225-315° (west)**, as shown in Pilot. Avoid due north or south and the area around the celestial pole. Choose a field with plenty of stars and about ±9° of clear sky around it (no trees or buildings), as the test moves the mount up to 7.5° each way.
 
 2. In NINA (or similar), create a looping sequence of around 60 iterations. Within the loop
    * Run a repeating **Solve and Sync** using short exposures. 
