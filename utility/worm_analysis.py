@@ -9,6 +9,8 @@ Worm gear correction analysis for the notebooks (analyse_worm_profile.ipynb, ana
   worm_terms             each motor's worm (a sin + b cos per harmonic, arcsec of motor angle) in a PECLOG RA/Dec series:
                          the logged wff (returns the profile in use), the guide corrections (what the profile left), or
                          both (what the mount needed)
+  worm_gains             per motor, how much of its profile's worm the mount really had (gain and phase against the
+                         profile), from the drift rates with the slow drift taken out
 
 The worm is on the MCU's own motor angles (517 zeta = theta_raw - zeta_offset), the same every session.
 """
@@ -178,3 +180,81 @@ def wff_matches_profile(df, C, coef, harmonics=HARMONICS, worm_theta=WORM_THETA)
     wff = df[['wff_1', 'wff_2']].to_numpy(float)
     corr = min(float(np.corrcoef(wff[:, k], pred[:, k])[0, 1]) for k in range(2))
     return {'corr': corr, 'rms_diff_arcsec': float(np.sqrt(np.mean((wff - pred) ** 2)) * 60)}
+
+
+def _centred_slope(t, y, half, piece):
+    """Least-squares slope of y over t within +-half seconds of each row, inside its piece (NaN with under 5 rows)."""
+    out = np.full(len(t), np.nan)
+    for g in np.unique(piece):
+        k = np.flatnonzero(piece == g)
+        tt, yy = t[k], y[k]
+        c = lambda v: np.r_[0.0, np.cumsum(v)]
+        S1, St, Sy, Stt, Sty = c(np.ones_like(tt)), c(tt), c(yy), c(tt * tt), c(tt * yy)
+        lo, hi = np.searchsorted(tt, tt - half, 'left'), np.searchsorted(tt, tt + half, 'right')
+        n, st, sy, stt, sty = (S[hi] - S[lo] for S in (S1, St, Sy, Stt, Sty))
+        den = n * stt - st * st
+        ok = (n >= 5) & (den > 0)
+        out[k[ok]] = (n * sty - st * sy)[ok] / den[ok]
+    return out
+
+
+def _highpass(t, y, window):
+    """y minus its centred running mean over window seconds (NaNs left out of the mean)."""
+    ok = np.isfinite(y)
+    c = lambda v: np.r_[0.0, np.cumsum(v)]
+    s, n = c(np.where(ok, y, 0.0)), c(ok.astype(float))
+    lo, hi = np.searchsorted(t, t - window / 2, 'left'), np.searchsorted(t, t + window / 2, 'right')
+    return y - (s[hi] - s[lo]) / np.maximum(n[hi] - n[lo], 1)
+
+
+def worm_gains(df, C, coef, y, harmonics=HARMONICS, worm_theta=WORM_THETA, rate_half_window_s=60.0,
+               highpass_s=1800.0):
+    """
+    Per motor: how much of its profile's worm the mount really had. y ((n, 2) arcmin RA/Dec) is what all the
+    corrections removed -- the guide corrections plus the worm feed-forward (total_accum + pec_accum + wff, section 7's
+    "needed"). Its drift rate (a +-rate_half_window_s slope, inside each piece between PEC resets) is fitted, RA and
+    Dec together, to each motor's profile worm rate (predicted_wff with that motor only) and to the same worm advanced
+    90 deg in its own phase, after taking the slow drift out of every series (a highpass_s running mean).
+    gain 1 and quadrature 0: the profile is exact; ratio = true / profile amplitude, phase_deg = how far the true worm
+    leads the profile (in each harmonic's own phase). se is approximate (the rows' slopes overlap; scaled for it).
+    Returns (DataFrame per motor: gain, quadrature, ratio, phase_deg, se, worm_rate (the motor's profile worm rate,
+    std "/min), turns, reliable), and the std ("/min) of: left_now (what the profile left for the guider and PEC),
+    left_fitted (had it the fitted gains), worm_profile and worm_fitted (the worm rates).
+    """
+    coef = np.asarray(coef, float)
+    t = df['t_sec'].to_numpy(float)
+    piece = np.cumsum(np.r_[0, np.diff(df['n'].to_numpy()) < 0])
+    quad = coef.copy()                                   # each harmonic advanced 90 deg: a sin + b cos -> -b sin + a cos
+    for j in range(len(harmonics)):
+        quad[:, 2 * j], quad[:, 2 * j + 1] = -coef[:, 2 * j + 1], coef[:, 2 * j]
+    rate = lambda v: _highpass(t, _centred_slope(t, v, rate_half_window_s, piece) * 3600, highpass_s)   # "/min
+    y = np.asarray(y, float)
+    Y = np.concatenate([rate(y[:, k]) for k in range(2)])
+    cols = []
+    for c in (coef, quad):
+        for m in range(3):
+            one = np.zeros_like(c)
+            one[m] = c[m]
+            w = predicted_wff(df, C, one, harmonics, worm_theta)
+            cols.append(np.concatenate([rate(w[:, k]) for k in range(2)]))
+    X = np.column_stack(cols)
+    ok = np.isfinite(Y) & np.isfinite(X).all(axis=1)
+    X, Y = X[ok], Y[ok]
+    beta, *_ = np.linalg.lstsq(X, Y, rcond=None)
+    r = Y - X @ beta
+    s2 = float(r @ r) / max(len(Y) - X.shape[1], 1)
+    dt = float(np.median(np.diff(t))) if len(t) > 1 else 1.0
+    se = np.sqrt(np.maximum(np.diag(s2 * np.linalg.pinv(X.T @ X)), 0)) * np.sqrt(max(2 * rate_half_window_s / dt, 1.0))
+    turns = np.ptp(motor_angles(df), axis=0) / worm_theta
+    sep = separation_deg(C)
+    rows = []
+    for m in range(3):
+        g, q = beta[m], beta[3 + m]
+        rows.append(dict(motor=MOTORS[m], gain=float(g), quadrature=float(q), ratio=float(np.hypot(g, q)),
+                         phase_deg=float(np.degrees(np.arctan2(q, g))), se=float(max(se[m], se[3 + m])),
+                         worm_rate=float(np.std(X[:, m])), turns=round(float(turns[m]), 1),
+                         reliable=bool(turns[m] >= MIN_TURNS and (m == 1 or np.percentile(sep, 10) >= MIN_SEPARATION_DEG))))
+    ideal = np.r_[1.0, 1.0, 1.0, 0.0, 0.0, 0.0]
+    summary = {'left_now': float(np.std(Y - X @ ideal)), 'left_fitted': float(np.std(r)),
+               'worm_profile': float(np.std(X @ ideal)), 'worm_fitted': float(np.std(X @ beta))}
+    return pd.DataFrame(rows), summary

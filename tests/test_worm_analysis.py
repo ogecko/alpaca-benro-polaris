@@ -117,3 +117,67 @@ def test_each_term_reports_the_worm_phase_of_its_peak():
     for t in terms.itertuples():
         assert t.peak == pytest.approx(peak_deg(t.a, t.b, harmonic=t.harmonic), abs=1e-6)
 
+
+
+# ── worm_gains: how much of each motor's profile the mount really had ─────────────────────────────────────────────
+def tracking_rows(hours=3.0, dt=2.0, rates_arcsec_s=(20.0, 8.0, 15.0), roll_deg=25.0):
+    """PECLOG-like rows of a long track: each motor turning several worm periods, a fixed alignment, a PEC reset."""
+    align = Quaternion(axis=[0.1, 0.2, 1.0], degrees=12.0)
+    zeta_off = np.array([-179.5, 45.1, 0.0])
+    n = int(hours * 3600 / dt)
+    i = np.arange(n)
+    zeta = np.array([10.0, 20.0, roll_deg]) + np.outer(i * dt, np.array(rates_arcsec_s) / 3600)
+    rows = []
+    for k in range(n):
+        theta = zeta[k] + zeta_off
+        az, alt, roll = q_to_azaltroll((align * theta_to_q(*theta)).normalised)
+        rows.append(dict(t_sec=dt * k, n=k - n // 2 if k >= n // 2 else k + 5, az=az, alt=alt, roll=roll,
+                         **{f'theta_raw_{m + 1}': theta[m] for m in range(3)},
+                         **{f'zeta_offset_{m + 1}': zeta_off[m] for m in range(3)}))
+    return pd.DataFrame(rows)
+
+
+def shifted(coef, deg):
+    """Each harmonic's a sin + b cos advanced by deg of its own phase."""
+    c, s = np.cos(np.radians(deg)), np.sin(np.radians(deg))
+    out = np.array(coef, float).copy()
+    for j in range(out.shape[1] // 2):
+        a, b = out[:, 2 * j].copy(), out[:, 2 * j + 1].copy()
+        out[:, 2 * j], out[:, 2 * j + 1] = a * c - b * s, a * s + b * c
+    return out
+
+
+@pytest.fixture(scope='module')
+def track():
+    df = tracking_rows()
+    C, _ = wff_coupling(df, LAT)
+    return df, C
+
+
+def test_worm_gains_recover_each_motors_amplitude_and_phase_through_drift_and_resets(track):
+    from worm_analysis import worm_gains
+    df, C = track
+    true = COEF2.copy()
+    true[0] *= 1.0
+    true[1] = 1.1 * shifted(COEF2[1:2], 20.0)[0]                          # M2: 10% stronger, 20 deg later
+    true[2] *= 1.25                                                       # M3: 25% stronger (as 2B on 2026-10-11)
+    y = predicted_wff(df, C, true)
+    t = df['t_sec'].to_numpy() / 3600
+    y = y + np.column_stack([0.5 * t + 0.2 * t ** 2, -0.3 * t])           # slow drift (arcmin)
+    y = y + np.where((df['n'].diff() < 0).cumsum().to_numpy()[:, None] > 0, 1.0, 0.0)   # totals restart at a PEC reset
+    y = y + np.random.default_rng(0).normal(0, 2 / 60, y.shape)           # 2" of noise
+    gains, summary = worm_gains(df, C, COEF2, y)
+    g = gains.set_index('motor')
+    assert g.loc['M1', 'ratio'] == pytest.approx(1.0, abs=0.05) and abs(g.loc['M1', 'phase_deg']) < 3
+    assert g.loc['M2', 'ratio'] == pytest.approx(1.1, abs=0.05) and g.loc['M2', 'phase_deg'] == pytest.approx(20, abs=3)
+    assert g.loc['M3', 'ratio'] == pytest.approx(1.25, abs=0.05) and abs(g.loc['M3', 'phase_deg']) < 3
+    assert g['reliable'].all()
+    assert summary['left_fitted'] < summary['left_now']                    # the fitted gains explain what was left
+
+
+def test_worm_gains_of_an_exact_profile_are_one(track):
+    from worm_analysis import worm_gains
+    df, C = track
+    gains, summary = worm_gains(df, C, COEF2, predicted_wff(df, C, COEF2))
+    assert np.allclose(gains['gain'], 1.0, atol=0.01) and np.allclose(gains['quadrature'], 0.0, atol=0.01)
+    assert summary['left_now'] < 0.05                                      # "/min
