@@ -564,3 +564,20 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2) + sync"
 records = ["pec", "sg", "sync"]
 notes = ""
+
+[sessions."jdm_Beta8.0_10_11_NGC2006_200mm_worm_mac"]
+logs = ["alpaca.jdm_Beta8.0_10_11_NGC2006_200mm_worm_mac_a*.log"]
+date = "2026-10-11"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_11_SMC_200mm_worm_mac"]
+logs = ["alpaca.jdm_Beta8.0_10_11_SMC_200mm_worm_mac_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_11_SMC_200mm_worm_mac_a1_PHD2_GuideLog_2026-10-11_191748.txt"
+date = "2026-10-11"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["kf", "pec", "pid"]
+notes = ""
