@@ -579,10 +579,10 @@ When enabled, the driver estimates the output shaft's position and adjusts the P
 
 Compensation operates in two situations:
 
-1. **After a goto or rotate:** The driver takes up the slack until each motor is engaged in its tracking direction, helping the camera remain at the position measured by the subsequent plate solve.
+1. **After a goto or rotate:** The driver takes up the slack until each motor is engaged in its tracking direction, helping the camera remain at the position measured by the subsequent plate solve. The goto completes only once every compensated motor is engaged, so no take-up happens during the next exposure. Resuming tracking after a driver restart is treated the same way.
 2. **Before a planned tracking reversal:** Starting 10 seconds before the reversal, the driver holds the motor on its existing tracking side and drives it through the slack. This reduces camera drift as the motor changes direction. The latch remains active until the next goto.
 
-During slack take-up, the driver applies a push of **0.05°/s**, slowing near the end to reduce overshoot. Hysteresis thresholds prevent unnecessary reversals: 30 arcsec when moving away from the tracking side and 3 arcsec when moving towards it.
+During slack take-up, the driver applies a push of **0.05°/s**, slowing near the end to reduce overshoot. Pushes only ever go towards the side the motor will keep moving: its tracking side, or through a planned reversal its new direction. A motor that has overshot its target slightly (up to **120 arcsec**) never reverses back into its slack: it holds still while the sky catches up, and counts as arrived within 15 arcsec. Pushing back across the slack overshot in turn on the real mount, and the two became a back-and-forth oscillation. If a motor still needs more than two full crossings in one goto, compensation for it stops until the next goto and a warning is logged.
 
 Compensation is not active during ordinary tracking or guiding, where frequent reversals at low motor speeds could cause oscillation. It adjusts only the PID error; alignment, Kalman filtering, PEC and logged motor angles remain unchanged.
 
@@ -613,7 +613,7 @@ Changing either setting while running resets the backlash model using the curren
 
 #### V. Limitations
 
-- **Sampling:** The backlash model updates from motor-angle measurements every 0.2 seconds, with M3 updated approximately every 0.6 seconds. Reversals between samples can cause unmodelled motion. In testing, goto errors reached approximately 1.5 arcmin, still generally better than without compensation.
+- **Sampling:** The backlash model updates from motor-angle measurements every 0.2 seconds, with M3 updated approximately every 0.6 seconds. Reversals between samples can cause unmodelled motion. In testing, goto errors reached approximately 1.5 arcmin (one or two Slew & Center corrections in eight, always M3), still generally better than without compensation.
 - **Variable backlash:** M2 backlash changes with load and position. Gravity may also hold the gears against one side, reducing or eliminating the slack during a reversal. Digital-twin tests remained beneficial with backlash estimates 30% too low or too high and with M2 held by gravity.
 - **Offset after reversal:** A compensated motor retains its tracking-side offset until the next goto. The goto re-engages the motor for its current tracking direction; the subsequent plate solve and sync account for any remaining positional offset.
 
@@ -623,9 +623,13 @@ At a planned reversal:
 
 `->> Polaris: BACKLASH M2 reversing its tracking direction in 9 s: compensating its 432" slack until the next goto`
 
-When slack take-up starts:
+When a full slack take-up starts:
 
 `->> Polaris: BACKLASH taking up slack: M1 -142", M3 +288"`
+
+If a motor keeps crossing its slack (compensation for it stops until the next goto):
+
+`->> Polaris: BACKLASH compensation stopped until the next goto for M2: crossed its slack more than 2 times`
 
 Reversal warnings are issued approximately 5 minutes in advance, whether compensation is enabled or not (see [§4.4](#44-sync-guide-ingestion--residual--q_syncguide_b-and-pec-learning)).
 

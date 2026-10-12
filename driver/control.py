@@ -22,7 +22,7 @@ from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reacha
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
-from control_backlash import BacklashCompensator
+from control_backlash import BacklashCompensator, HOLD_ARRIVED_ARCSEC
 from control_worm import WormMixin, PROFILE_TEST, TEST_SUMMARY, WORM_PROFILE_PATH, startup_row_fields
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
@@ -1960,7 +1960,9 @@ class PID_Controller():
                 self.step_motor_targets(approach)
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
-        self.is_axis_deviating = np.abs(self.error_signal) > tollerance
+        # Backlash Compensation: an engaged motor a little ahead of its target holds while the sky catches up: arrived
+        held = self.backlash.holding(self.error_signal, HOLD_ARRIVED_ARCSEC)
+        self.is_axis_deviating = (np.abs(self.error_signal) > tollerance) & ~held
         # calc cost signal and flags
         self.is_deviating = np.any(self.is_axis_deviating)
         self.cost_signal = np.sum(self.error_signal ** 2)
@@ -2034,7 +2036,7 @@ class PID_Controller():
             self.omega_ctl = self.omega_ctl + self.omega_ff_shaped
             # Backlash Compensation's take-up push, like the feed-forward outside the smoothing
             self.omega_backlash = self.backlash.push(self.error_signal, self._theta_motor(), self.dt)
-            self.omega_ctl = self.omega_ctl + self.omega_backlash
+            self.omega_ctl = self.backlash.clutch(self.omega_ctl + self.omega_backlash, self.error_signal)
         # Check zeta motor limits and constrain omega further if past limits
         if self.polaris._zeta_meas is None:
             self.omega_min = -self.Kv
@@ -2127,8 +2129,9 @@ class PID_Controller():
             await asyncio.sleep(delay)
 
     def notify(self):
-        # a planned move (coordinated_speed_control) completes only once its trajectory has finished too
-        arrived = not self.is_deviating and not self.goto_in_progress()
+        # a planned move (coordinated_speed_control) completes only once its trajectory has finished too, and with
+        # Backlash Compensation once every compensated motor is engaged (no take-up pushes during the next exposure)
+        arrived = not self.is_deviating and not self.goto_in_progress() and not self.backlash.taking_up()
         if (arrived or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()
             self.goto_complete_callback = None

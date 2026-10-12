@@ -1650,6 +1650,15 @@ class Polaris:
             what = f"RA {hr2hms(ra / 15)} Dec {deg2dms(dec)} PA {pa:.2f}"
         age = time.time() - float(state['saved_at'])
         self.logger.info(f"==STARTUP== Tracking restored: {what} (saved {age:.0f} s ago)")
+        # the catch-up onto the target is a move like a goto: it completes once on target, and Backlash Compensation
+        # (advanced_backlash) finishes it with every motor engaged the way it tracks -- a mount that ran ahead while
+        # the driver was down comes back against tracking, which otherwise leaves the gear slack open
+        started = time.monotonic()
+
+        def settled():
+            how = 'timed out' if pid.goto_timeout() else 'on target'
+            self.logger.info(f"==STARTUP== Tracking restore settled {how} after {time.monotonic() - started:.0f} s")
+        pid.set_goto_complete_callback(settled)
 
     async def tracking_state_loop(self):
         """Keep data/tracking_state.json current: at once on any change (tracking on/off, target), and every

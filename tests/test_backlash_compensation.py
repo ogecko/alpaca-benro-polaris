@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 from config import Config
-from control_backlash import BacklashCompensator, PUSH_DPS, PUSH_MIN_ERR_ARCSEC, TURN_LEAD_SEC
+from control_backlash import BacklashCompensator, PUSH_DPS, PUSH_ENGAGE_ERR_ARCSEC, HOLD_ARCSEC, MAX_CROSSINGS, TURN_LEAD_SEC
 from kinematics import azaltroll_to_theta_ik, q_to_azaltroll, theta_to_q
 from sim_digital_twin import Twin
 from test_motion_outcomes import radec_sep_arcmin, run_goto
@@ -155,18 +155,53 @@ def test_a_turn_latches_only_a_motor_engaged_on_its_old_flank(comp):
     assert comp.latched[0]
 
 
-def test_the_push_needs_a_real_error_and_slows_into_the_far_flank(comp):
+def test_taking_up_until_every_compensated_motor_is_engaged(comp):
     comp.update([1.0, 45.0, 3.0], TRACK, True, True)
-    comp.update([1.0 - 0.06, 45.0, 3.0], TRACK, True, True)           # M1 inside its slack (0.04 to the far flank)
+    assert not comp.taking_up()
+    comp.update([1.0 - 0.06, 45.0, 3.0], TRACK, True, True)          # M1 inside its slack
+    assert comp.taking_up()
+    comp.update([1.0 + 0.1, 45.0, 3.0], TRACK, True, True)           # crossed: engaged
+    assert not comp.taking_up()
+
+
+def test_the_push_only_goes_towards_the_tracking_flank_and_slows_into_it(comp):
+    comp.update([1.0, 45.0, 3.0], TRACK, True, True)
+    comp.update([1.0 - 0.06, 45.0, 3.0], TRACK, True, True)          # M1 inside its slack (0.06 to its tracking flank)
     theta = [1.0 - 0.06, 45.0, 3.0]
-    small = np.array([(PUSH_MIN_ERR_ARCSEC - 5) / ARCSEC, 0.0, 0.0])
-    assert not np.any(comp.push(-small, theta, 0.2))                  # PID noise: no push (hysteresis)
-    big = np.array([-60 / ARCSEC, 0.0, 0.0])                          # the target is back the anti-tracking way
-    omega = comp.push(big, theta, 0.2)
-    assert omega[0] == pytest.approx(-PUSH_DPS)                       # towards the far flank, full rate
-    omega = comp.push(big, [1.0 - 0.06 - 0.039, 45.0, 3.0], 0.2)        # 0.001 deg left: a share of it per tick
-    assert -PUSH_DPS < omega[0] < 0 and abs(omega[0]) * 0.2 < 0.001
-    assert comp.push(-big, theta, 0.2)[0] > 0                         # the other way: back to the tracking flank
+    small = np.array([(PUSH_ENGAGE_ERR_ARCSEC - 1) / ARCSEC, 0.0, 0.0])
+    assert not np.any(comp.push(small, theta, 0.2))                   # PID noise: no push
+    towards = np.array([60 / ARCSEC, 0.0, 0.0])                       # M1 tracks +: the target is ahead
+    assert comp.push(towards, theta, 0.2)[0] == pytest.approx(PUSH_DPS)
+    omega = comp.push(towards, [1.0 - 0.001, 45.0, 3.0], 0.2)         # 0.001 deg left: a share of it per tick
+    assert 0 < omega[0] < PUSH_DPS and omega[0] * 0.2 < 0.001
+    assert not np.any(comp.push(-10 * towards, theta, 0.2))           # never back across, however large the error
+
+
+def test_an_engaged_motor_a_little_ahead_holds_instead_of_reversing(comp):
+    comp.update([1.0, 45.0, 3.0], TRACK, True, True)                  # engaged, M1 tracks +, M2 -
+    behind = np.array([-(HOLD_ARCSEC - 10) / ARCSEC, 0.0, 0.0])       # M1 ran ahead: its target is behind
+    assert comp.holding(behind)[0]
+    omega = comp.clutch(np.array([-20.0, -5.0, 1.0]) / ARCSEC, behind)
+    assert omega[0] == 0.0 and omega[1] == pytest.approx(-5.0 / ARCSEC)  # held at zero, not reversed; M2 untouched
+    far = np.array([-(HOLD_ARCSEC + 10) / ARCSEC, 0.0, 0.0])          # a real move back: not held
+    assert not comp.holding(far)[0]
+
+
+def test_a_motor_crossing_its_slack_again_and_again_is_given_up_until_the_next_goto(comp):
+    comp.update([1.0, 45.0, 3.0], TRACK, True, True)
+    towards = np.array([60 / ARCSEC, 0.0, 0.0])
+    theta = 1.0
+    for i in range(MAX_CROSSINGS + 1):
+        comp.update([theta, 45.0, 3.0], TRACK, True, True)            # engaged the way it tracks (+)
+        theta -= BACKLASH + 0.02                                      # something drives it back past the slack
+        comp.update([theta, 45.0, 3.0], TRACK, True, True)            # ... all the slack ahead again
+        comp.push(np.zeros(3), [theta, 45.0, 3.0], 0.2)               # (a fresh push each time)
+        comp.push(towards, [theta, 45.0, 3.0], 0.2)
+        theta += BACKLASH                                             # it crosses
+    assert comp.given_up[0] and not comp.active[0]
+    comp.update([theta, 45.0, 3.0], TRACK, True, False)
+    comp.update([theta, 45.0, 3.0], TRACK, True, True)                # the next goto
+    assert not comp.given_up[0]
 
 
 def test_not_tracking_resets_it(comp):
@@ -191,7 +226,7 @@ def test_corrections_land_with_every_motor_engaged(monkeypatch):
         assert done is not None and done < 40.0, (d, done)          # ~12-17 s (off: 4-6 s, two legs: ~19 s)
         errs.append(err)
         ok += all(engaged(tw))
-    assert ok >= 7 and sorted(errs)[-2] < 0.15 and max(errs) < 1.5, (ok, errs)     # off: 0.5-4.9'
+    assert ok >= 6 and sorted(errs)[-3] < 0.15 and max(errs) < 1.5, (ok, errs)     # off: 0.5-4.9'
 
 
 def test_a_larger_goto_lands_engaged(monkeypatch):
@@ -274,6 +309,47 @@ def test_guiding_is_unchanged(monkeypatch, pose):
         finally:
             mp.undo()
     assert rms[True] == pytest.approx(rms[False], rel=0.05), rms
+
+
+def test_tracking_restore_finishes_with_every_motor_engaged(monkeypatch, tmp_path):
+    """After a driver restart the Polaris has run its last speed command, so the mount can be ahead of its target: the
+    catch-up then turns every motor back against tracking. Restore completes like a goto, so compensated it finishes
+    with the slack taken up; off, the camera trails by up to the backlash until tracking takes it up again."""
+    import asyncio
+    import logging
+    import tracking_restore as tr
+    from polaris import Polaris
+
+    results = {}
+    for on in (False, True):
+        mp = pytest.MonkeyPatch()
+        try:
+            tw = tracking_twin(mp, on=on)
+            state = tr.capture(True, tw.pid, 0, [0.0, 0.0, 0.0])
+            ahead = np.sign(tw.pid.omega_ff) * 0.3                     # each motor 0.3 deg ahead the way it tracks
+            tw2 = Twin(mp, config=config(on), backlash_deg=BACKLASH)
+            tw2.place(tw.theta + ahead)
+            tw2.output = tw2.theta - np.sign(tw.pid.omega_ff) * BACKLASH / 2   # engaged: it was running forwards
+            p = tw2.polaris
+            p.logger = logging.getLogger('test')
+
+            async def start_tracking():
+                tw2.start_tracking()
+            p.start_tracking = start_tracking
+            asyncio.run(Polaris._restore_tracking(p, state))
+            assert tw2.pid.move_pending()
+            t0, done = tw2.clock.t, None
+            while tw2.clock.t - t0 < 60 and done is None:
+                tw2.run(0.2)
+                if not tw2.pid.move_pending():                            # the restore's completion callback ran
+                    done = tw2.clock.t - t0
+            tw2.run(5.0)
+            target = (tw2.pid.delta_sp[0] / 15, tw2.pid.delta_sp[1])
+            results[on] = (done, radec_sep_arcmin(*target, *aligned_radec(tw2)), all(engaged(tw2)))
+        finally:
+            mp.undo()
+    assert results[True][0] is not None and results[True][0] < 40 and results[True][1] < 0.25 and results[True][2], results
+    assert results[False][1] > 1.0, results                            # off: the slack left open
 
 
 def test_off_by_default():
