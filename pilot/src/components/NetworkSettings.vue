@@ -85,6 +85,22 @@
         <div class="row q-col-gutter-sm no-wrap">
             <q-toggle class='col-8' v-bind="bindField('enable_remote_shutdown', 'Allow Remote Shutdown of Driver Host OS')"/>
         </div>
+        <q-separator spaced />
+        <div class="text-subtitle1">Location Provider</div>
+        <q-select
+            v-bind="bindField('gps_provider', 'Provider')"
+            :options="gpsProviderOptions"
+            emit-value
+            map-options
+        />
+        <div v-if="cfg.gps_provider === 'gpsd'" class="row q-col-gutter-sm">
+            <q-input class="col-8" v-bind="bindField('gpsd_host', 'GPSD host')" />
+            <q-input class="col-4" v-bind="bindField('gpsd_port', 'Port')" type="number" input-class="text-right" />
+        </div>
+        <div v-else-if="cfg.gps_provider === 'nmea' || cfg.gps_provider === 'ubx'" class="row q-col-gutter-sm">
+            <q-input class="col-8" v-bind="bindField('gps_serial_device', 'Serial device / port path')" />
+            <q-input class="col-4" v-bind="bindField('gps_serial_baudrate', 'Baud rate')" type="number" input-class="text-right" />
+        </div>
     </q-card>
 
 </template>
@@ -98,6 +114,13 @@ import { debounce } from 'quasar'
 
 const $q = useQuasar()
 const cfg = useConfigStore()
+
+const gpsProviderOptions = [
+  { label: 'Browser/network', value: 'none' },
+  { label: 'GPSD', value: 'gpsd' },
+  { label: 'GPS Serial (NMEA)', value: 'nmea' },
+  { label: 'GPS Serial (UBX)', value: 'ubx' },
+]
 
 onMounted(async () => {
 })
@@ -145,4 +168,3 @@ async function save() {
 }
 
 </script>
-
