@@ -1961,6 +1961,7 @@ class PID_Controller():
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
         # Backlash Compensation: an engaged motor a little ahead of its target holds while the sky catches up: arrived
+        self.backlash.update_hold(self.error_signal)
         held = self.backlash.holding(self.error_signal, HOLD_ARRIVED_ARCSEC)
         self.is_axis_deviating = (np.abs(self.error_signal) > tollerance) & ~held
         # calc cost signal and flags
@@ -2036,7 +2037,7 @@ class PID_Controller():
             self.omega_ctl = self.omega_ctl + self.omega_ff_shaped
             # Backlash Compensation's take-up push, like the feed-forward outside the smoothing
             self.omega_backlash = self.backlash.push(self.error_signal, self._theta_motor(), self.dt)
-            self.omega_ctl = self.backlash.clutch(self.omega_ctl + self.omega_backlash, self.error_signal)
+            self.omega_ctl = self.backlash.clutch(self.omega_ctl + self.omega_backlash)
         # Check zeta motor limits and constrain omega further if past limits
         if self.polaris._zeta_meas is None:
             self.omega_min = -self.Kv
@@ -2177,6 +2178,13 @@ class PID_Controller():
             "connected": self.polaris._connected,
             "measurement_lag_s": self.measurement_lag_s,
         }
+        if self.backlash.output is not None:            # Backlash Compensation acting or tracking its slack state
+            b = self.backlash
+            payload["blc"] = {"adj": (b.adjust * 3600).round(1).tolist(), "active": b.active.astype(int).tolist(),
+                              "flank": b.flank.astype(int).tolist(), "latched": b.latched.astype(int).tolist(),
+                              "hold": b.hold.astype(int).tolist(),
+                              "push": (self.omega_backlash * 3600).round(1).tolist(),
+                              "given_up": b.given_up.astype(int).tolist()}
         pidlogger = logging.getLogger('pid')
         pidlogger.info(payload)
         if Config.log_position and self.mode in ("TRACK", "AUTO"):     # AUTO: gotos with tracking off

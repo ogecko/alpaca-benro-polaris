@@ -584,11 +584,13 @@ Compensation operates in two situations:
 
 Slack take-up and overshoot: 
 
-The driver applies a slack take-up push of 0.05°/s, slowing near the end to reduce overshoot. Pushes only ever go the way the motor will keep moving: towards its tracking side, or through a planned reversal its new direction. A motor that is engaged and has overshot ahead of its target by up to 120 arcsec never reverses back across its backlash: it holds still while the sky catches up, and counts as arrived once within 15 arcsec. If a motor requires more than two full backlash crossings during a goto, compensation for that motor is disabled until the next goto, and a warning is logged.
+The driver applies a slack take-up push of 0.05°/s, slowing near the end to reduce overshoot. Pushes only ever go the way the motor will keep moving: towards its tracking side, or through a planned reversal its new direction. A motor that is engaged and has overshot slightly ahead of its target never reverses back across its backlash: it holds still while the sky catches up, and counts as arrived once within 15 arcsec (other motors complete within the usual `pid_Kc` tolerance). It holds only as far ahead as the sky closes in about 6 seconds at that motor's tracking rate (between 15 and 120 arcsec); further ahead, the PID corrects it in the usual way. If a motor requires more than two full backlash crossings during a goto, compensation for that motor is disabled until the next goto, and a warning is logged.
 
 Reported position: 
 
-While compensation is active, the driver includes the backlash adjustment in its position model. Pilot's position displays, reported coordinates, and the PID controller therefore use the estimated camera position rather than the raw motor angle. This keeps the displayed position consistent with the position being controlled.
+While compensation is active, the driver includes the backlash adjustment in its position model. Each motor has an estimated output position, based on its motor angle (reported every 0.2 s) and its backlash. The estimate stays put while the motor turns within the slack, and is dragged along once the motor moves beyond it. When the motors are engaged in the direction of tracking, the backlash adjustment is zero. 
+
+Pilot's position displays, reported coordinates, and the PID controller therefore use the estimated camera position rather than the raw motor angle. This keeps the displayed position consistent with the position being controlled.
 
 A sync taken while compensation is acting keeps its adjustment alongside its raw motor angles, and the alignment factors it in only while Backlash Compensation is on, like the worm gear correction; switching it then refits the alignment. When compensation is inactive, its position correction is zero.
 

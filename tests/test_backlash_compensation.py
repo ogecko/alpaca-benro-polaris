@@ -171,20 +171,24 @@ def test_the_push_only_goes_towards_the_tracking_flank_and_slows_into_it(comp):
     small = np.array([(PUSH_ENGAGE_ERR_ARCSEC - 1) / ARCSEC, 0.0, 0.0])
     assert not np.any(comp.push(small, theta, 0.2))                   # PID noise: no push
     towards = np.array([60 / ARCSEC, 0.0, 0.0])                       # M1 tracks +: the target is ahead
-    assert comp.push(towards, theta, 0.2)[0] == pytest.approx(PUSH_DPS)
+    from control_backlash import PUSH_SHARE
+    assert comp.push(towards, theta, 0.2)[0] == pytest.approx(min(PUSH_DPS, PUSH_SHARE * 0.06 / 0.2))
     omega = comp.push(towards, [1.0 - 0.001, 45.0, 3.0], 0.2)         # 0.001 deg left: a share of it per tick
     assert 0 < omega[0] < PUSH_DPS and omega[0] * 0.2 < 0.001
     assert not np.any(comp.push(-10 * towards, theta, 0.2))           # never back across, however large the error
 
 
 def test_an_engaged_motor_a_little_ahead_holds_instead_of_reversing(comp):
-    comp.update([1.0, 45.0, 3.0], TRACK, True, True)                  # engaged, M1 tracks +, M2 -
-    behind = np.array([-(HOLD_ARCSEC - 10) / ARCSEC, 0.0, 0.0])       # M1 ran ahead: its target is behind
-    assert comp.holding(behind)[0]
-    omega = comp.clutch(np.array([-20.0, -5.0, 1.0]) / ARCSEC, behind)
+    from control_backlash import HOLD_MAX_SEC
+    comp.update([1.0, 45.0, 3.0], TRACK, True, True)                  # engaged, M1 tracks + at 10"/s
+    window = 10.0 * HOLD_MAX_SEC                                       # the sky closes this much in HOLD_MAX_SEC
+    behind = np.array([-(window - 5) / ARCSEC, 0.0, 0.0])             # M1 ran ahead: its target is behind
+    assert comp.update_hold(behind)[0]
+    omega = comp.clutch(np.array([-20.0, -5.0, 1.0]) / ARCSEC)
     assert omega[0] == 0.0 and omega[1] == pytest.approx(-5.0 / ARCSEC)  # held at zero, not reversed; M2 untouched
-    far = np.array([-(HOLD_ARCSEC + 10) / ARCSEC, 0.0, 0.0])          # a real move back: not held
-    assert not comp.holding(far)[0]
+    far = np.array([-(window + 5) / ARCSEC, 0.0, 0.0])                # too far for the sky to close soon: not held
+    assert not comp.update_hold(far)[0]
+    assert not np.any(comp.push(far, [1.0, 45.0, 3.0], 0.2))           # ... nor pushed back across (the PID corrects)
 
 
 def test_a_motor_crossing_its_slack_again_and_again_is_given_up_until_the_next_goto(comp):
@@ -399,6 +403,6 @@ def test_a_sync_point_keeps_the_adjustment_it_was_taken_with(monkeypatch):
 
 
 def test_off_by_default():
-    Config.load()
+    Config.load(pilotpath="/nonexistent")                 # config.toml's default (not this machine's Pilot settings)
     assert Config.advanced_backlash is False
     assert len(Config.backlash_deg) == 3
