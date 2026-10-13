@@ -28,6 +28,7 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.2 Beta 8
+- **[GPS Location]** Locate the observing site with a GPS receiver plugged into the Alpaca Driver's computer (thanks to @rbaranga for authorship).
 - **[PEC Drift]** PEC learns the remaining drift as a 7.5 minute moving average, ignoring PHD2/CCDciel calibration pulses, and ignoring backlash correction pulses, so it can always remain enabled.
 - **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. 
 - **[PEC Settings]** PEC Drift Correction and PEC Worm Gear Correction are switched separately in Pilot's settings; the status panel's PEC button switches both, and its badge shows which are on and the drift rate being applied.

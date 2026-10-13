@@ -102,6 +102,7 @@ export const useStatusStore = defineStore('status', {
         bleselected: '',
         bleisenablingwifi: false,
         bleiswifienabled: false,
+        platform: '',                       // the driver's OS: win32, linux, darwin
         polarisswver: '',
         polarishwver: '',
         polarisastrover: '',

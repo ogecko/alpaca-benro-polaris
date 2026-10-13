@@ -1,3 +1,4 @@
+import sys
 # =================================================================
 # POLARIS.PY - Proxy for Benro Polaris device
 # =================================================================
@@ -1801,6 +1802,7 @@ class Polaris:
                 'bleselected' : self._ble.selectedDevice,
                 'bleisenablingwifi': self._ble.isEnablingWifi,
                 'bleiswifienabled': self._ble.isWifiEnabled,
+                'platform': sys.platform,                # the driver's OS (win32, linux, darwin): Pilot offers what applies
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,

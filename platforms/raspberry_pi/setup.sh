@@ -8,6 +8,7 @@ STA_SSID=""
 STA_PASSWORD=""
 AP_PASSWORD=""
 BRANCH="main"
+INSTALL_GPSD="false"
 AP_SSID_GIVEN="false"
 BRANCH_GIVEN="false"
 AP_CONN="alpaca-hotspot-fallback"
@@ -17,7 +18,7 @@ REPO_URL="https://github.com/ogecko/alpaca-benro-polaris.git"
 define_usage() {
     read -r -d '' USAGE <<EOM || true
 
-Usage: $0 [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
+Usage: $0 [-g] [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
 
 Options:
     -n <ssid>      Defines the network SSID for the Alpaca Station Mode Wifi connection. 
@@ -31,6 +32,8 @@ Options:
     -p <password>  Password for the network named by -a, min 8 chars for WPA2.
                    (default: keep the existing password on a re-run, otherwise prompted interactively,
                    or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+
+    -g             Install gpsd and gpsd-clients for optional GPS receivers.
 
     -h             Print this help and exit.
 
@@ -47,8 +50,9 @@ help_exit() {
 }
 
 parse_args() {
-    while getopts ":n:w:a:p:h" opt; do
+    while getopts ":gn:w:a:p:h" opt; do
         case "$opt" in
+            g) INSTALL_GPSD="true" ;;
             n) STA_SSID="$OPTARG" ;;
             w) STA_PASSWORD="$OPTARG" ;;
             a) AP_SSID="$OPTARG"; AP_SSID_GIVEN="true" ;;
@@ -105,7 +109,14 @@ if [ -z "$AP_PASSWORD" ] || [ "${#AP_PASSWORD}" -lt 8 ]; then
 fi
 
 echo "==SETUP== 1. Update the software on the system, and install dependencies needed for git and uv."
-for pkg in git curl; do
+PACKAGES=(git curl)
+if [ "$INSTALL_GPSD" = "true" ]; then
+    echo "GPS setup enabled; also installing gpsd and gpsd-clients."
+    PACKAGES+=(gpsd gpsd-clients)
+else
+    echo "Skipping optional GPS packages; use -g to install gpsd and gpsd-clients."
+fi
+for pkg in "${PACKAGES[@]}"; do
     if ! dpkg -s "$pkg" >/dev/null 2>&1; then
         echo "Installing $pkg..."
         sudo apt-get update -qq   # run update only if a package is missing

@@ -41,18 +41,26 @@ async function getIPLocation(): Promise<{ lat: number; lon: number } | null> {
 }
 
 // Retrieve location name from OpenStreetMap Nominatim
+// Online lookups give up quickly: at a dark site there may be a network (the mount's hotspot) but no internet
+const LOOKUP_TIMEOUT_MS = 5000
+
+// A name for a site with no reverse-geocoded name, e.g. "−33.655°, 151.122°" (~100 m)
+function coordinateName(lat: number, lon: number): string {
+  const fmt = (v: number) => `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(3)}°`
+  return `${fmt(lat)}, ${fmt(lon)}`
+}
+
 async function getLocationName(lat: number, lon: number): Promise<string> {
   try {
     const { data } = await axios.get('https://nominatim.openstreetmap.org/reverse', {
-      params: { lat, lon, format: 'json', addressdetails: 1 }
+      params: { lat, lon, format: 'json', addressdetails: 1 },
+      timeout: LOOKUP_TIMEOUT_MS,
     });
     const { suburb, city, country } = data.address || {};
     const nameParts = [suburb, city, country].filter(Boolean);
-    const name = nameParts.join(', ');
-    // Optional: trim to 50 characters
-    return name || 'Unknown location';
+    return nameParts.join(', ') || coordinateName(lat, lon);
   } catch {
-    return 'Unknown location';
+    return coordinateName(lat, lon);   // offline (e.g. GPS at a dark site): name it by its coordinates
   }
 }
 
@@ -73,19 +81,20 @@ async function getLocationName(lat: number, lon: number): Promise<string> {
 // Retrieve elevation and pressure from Open-Meteo Weather API
 export async function getWeatherData(lat: number, lon: number): Promise<{ pressure: number; elevation: number }> {
     const { data } = await axios.get('https://api.open-meteo.com/v1/forecast', {
-        params: { latitude: lat, longitude: lon, hourly: 'surface_pressure', current_weather: true, timezone: 'auto' }
+        params: { latitude: lat, longitude: lon, hourly: 'surface_pressure', current_weather: true, timezone: 'auto' },
+        timeout: LOOKUP_TIMEOUT_MS,
     });
     const pressure = data.hourly?.surface_pressure?.[0] ?? 1013;
     const elevation = data.elevation ?? 100; // fallback if missing
     return { pressure, elevation };
 }
 
-export async function getLocationServices(inputLat?: number, inputLon?: number): Promise<LocationResult> {
+export async function getLocationServices(inputLat?: number, inputLon?: number, inputElevation?: number): Promise<LocationResult> {
 /**
  * Retrieves enriched location metadata based on latitude and longitude input.
  * If coordinates are not provided, attempts to infer location via browser geolocation or IP fallback.
  * Returns site coordinates, elevation, pressure, and a human-readable location name.
- * If no location can be determined or external lookups fail, returns a structured failure response.
+ * Metadata lookup use fallback values rather than failing the location lookup.
  */
   let lat = inputLat
   let lon = inputLon
@@ -107,24 +116,24 @@ export async function getLocationServices(inputLat?: number, inputLon?: number):
     }
   }
 
-  // Now we have lat/lon, get location name and weather data
-  try {
-    const [location, weather] = await Promise.all([
-      getLocationName(lat, lon),
-      getWeatherData(lat, lon)
-    ])
-    return {
-      success: true,
-      data: {
-        site_latitude: lat,
-        site_longitude: lon,
-        location,
-        site_elevation: weather.elevation,
-        site_pressure: weather.pressure
-      }
+  // Now we have lat/lon, get location name
+  const location = await getLocationName(lat, lon)
+  
+  // and weather data
+  const weather = await getWeatherData(lat, lon).catch(() => ({
+    pressure: 1013,
+    elevation: 100
+  }))
+
+  return {
+    success: true,
+    data: {
+      site_latitude: lat,
+      site_longitude: lon,
+      location,
+      site_elevation: inputElevation ?? weather.elevation,
+      site_pressure: weather.pressure
     }
-  } catch {
-    return { success: false, reason: 'lookup-failed' }
   }
 }
 
