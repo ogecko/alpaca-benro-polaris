@@ -149,7 +149,7 @@ QUEST determines the overall fixed-body rotation between the mount and the sky, 
 On the Benro Polaris, these errors include:
 
 - **M2 and M3 zero offsets:** Small differences between the reported motor angles and the actual camera orientation. These can change when you change lenses or reseat the camera.
-- **M2 scale error:** M2 may rotate slightly more or less than its reported angle indicates, causing pointing error to increase with its position.
+- **M2 scale error:** M2 may rotate slightly more or less than its reported angle indicates, causing pointing error to increase the further M2 moves from its mid-range.
 
 MAC models these errors alongside the QUEST alignment, improving pointing accuracy across the sky rather than just near individual alignment points.
 
@@ -191,13 +191,25 @@ The Alignment page displays the **Telescope Alignment Model** card, including th
 
 With MAC enabled, the driver retains up to **20 sync points**, compared with 10 when MAC is disabled. When the limit is reached, the oldest point is normally replaced, while the highest and lowest M2 points are preserved to support M2 scale fitting.
 
-#### V. Understanding the M2 Scale
+#### V. Understanding the MAC Model
 
-The M2 scale is refined automatically once the alignment has at least **6 sync points spanning 20° or more in M2**. The driver accepts a new value only when the fit improves significantly and the result falls within the permitted range of −2% to +4%.
+MAC corrects the reported M2 and M3 motor angles before the driver works out where the camera points:
 
-The default scale correction is +1.0%. An accepted value is saved with the alignment for use in subsequent sessions. Switching to Single-Point Alignment resets it to the default.
+```
+θ₂′ = θ₂ + M2 offset + M2 scale × (θ₂ − 45°)
+θ₃′ = θ₃ + M3 offset
+```
 
-You do not need to adjust this value manually.
+The model has three correction terms:
+
+- **M2 and M3 offsets:** Constant adjustments to each motor's reported angle. These are fitted automatically alongside the QUEST rotation during Multi-Point Alignment. They account for setup-dependent differences, such as changing lenses or reseating the camera.
+- **M2 scale:** Corrects for M2 rotating slightly more or less than its reported angle indicates. The correction is measured relative to M2's mid-range (45°). It is primarily a mount characteristic, though the lens and setup can also have an effect. Measurements on tested mounts have typically ranged from +0.3% to +2%.
+
+**Automatic M2 scale fitting:** The driver refines the M2 scale once the alignment contains **at least 6 sync points spanning 20° or more in M2**. A new value is accepted only if it significantly improves the fit and falls within the permitted range of −2% to +4%.
+
+The default M2 scale correction is +1.0%. An accepted value is saved with the alignment for subsequent sessions. Switching to Single-Point Alignment resets it to the default.
+
+All three corrections are managed automatically; no manual calibration is required.
 
 #### VI. Comparing MAC On and Off
 
