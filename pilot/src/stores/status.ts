@@ -107,6 +107,8 @@ export const useStatusStore = defineStore('status', {
         polarisastrover: '',
         rbcerror: 0,
         alignmodel: [0, 0, 0],              // alignment model: M2, M3 offsets (deg), M2 scale (%)
+        alignstatus: ['default', 'default'] as string[],  // MAC: offsets ('fitted'|'default'), M2 scale ('fitted'|'held'|'default')
+        alignguide: '',                     // how to improve the alignment ('' when nothing to add)
         sccerror: 0,
         mpastatus: [0,0],
         sgstatus: [0,0,0,0,0],

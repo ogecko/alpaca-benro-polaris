@@ -10,7 +10,7 @@ pose:
            and lens sit on the head (a constant sideways pull on the lens, e.g. a focuser, is indistinguishable
            from d3).
   s2       M2 scale (fraction), a mount constant: about +0.3 to +2% on the mounts measured. Config align_m2_scale
-           (%, default 1.0), calibrated by Pilot's AutoTune (fit_alignment with fit_s2).
+           (%, default 1.0), refitted at each sync and taken when significantly better (SyncManager.refit_m2_scale).
 docs/study_alignment_mac_v2.md: on 1,300 archived sync points these take residuals from 36-95' to 2-8';
 docs/kinematics.md section 2.3 is the user documentation.
 
@@ -30,6 +30,7 @@ Contents
 from dataclasses import dataclass, field
 import math
 import numpy as np
+from scipy import stats
 from quaternion import Q as Quaternion
 
 M2_SCALE_REF_DEG = 45.0     # the M2 scale acts about this angle, mid-range, so s2 and d2 stay separable
@@ -189,3 +190,15 @@ def fit_alignment(theta, obs, s2=0.0, d_init=(0.0, 0.0), fit_offsets=True, fit_s
     return AlignFit(q=Quaternion(matrix=R).normalised, d2=d2, d3=d3, s2=s2, offsets_fitted=n_free >= 2,
                     s2_fitted=n_free == 3, rms_arcmin=float(np.sqrt(np.mean(res ** 2))) if len(res) else 0.0,
                     residuals_arcmin=res, iterations=it)
+
+
+def significantly_better(held, free, n_points, extra_params, n_params, p_accept=0.05):
+    """F-test on two nested fits of the same n_points: does the fit with extra_params more free parameters (n_params in
+    all, rotation included) cut the misfit by more than chance would? Each point gives 2 residual components."""
+    rss0 = float(np.sum(np.asarray(held.residuals_arcmin) ** 2))
+    rss1 = float(np.sum(np.asarray(free.residuals_arcmin) ** 2))
+    dof = 2 * n_points - n_params
+    if dof <= 0 or rss1 <= 0 or rss0 <= rss1:
+        return False
+    f = ((rss0 - rss1) / extra_params) / (rss1 / dof)
+    return bool(stats.f.sf(f, extra_params, dof) < p_accept)

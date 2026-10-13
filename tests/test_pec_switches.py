@@ -337,23 +337,20 @@ def test_each_motors_worm_correction_is_kept_for_the_status(monkeypatch, profile
 
 
 def twin_mac_calibration(monkeypatch, profile_path, worm, seed, n=10, model_true=MODEL_TRUE):
-    """The twin with hidden model_true: AutoTune the M2 scale from 0, then refit with it. Returns (d2', d3', s2 %)."""
+    """The twin with hidden model_true, the M2 scale starting from 0: the per-sync refit takes the scale once a fit
+    is significantly better. Returns (d2', d3', s2 %)."""
     sky = Sky(seed, model_true=model_true)
     tw = twin(monkeypatch, profile_path, worm=worm, mac=True)
-    monkeypatch.setattr(Config, 'align_m2_scale', 0.0, raising=False)          # not yet calibrated
+    monkeypatch.setattr(Config, 'align_m2_scale', 0.0, raising=False)          # the default: no scale
     sky.sync(tw, poses(np.random.default_rng(seed), n))
     sm = tw.polaris._sm
-    r = sm.calibrate_m2_scale()
-    assert r['success'], r['message']
-    monkeypatch.setattr(Config, 'align_m2_scale', r['m2_scale'], raising=False)  # Pilot's Apply
-    sm.optimize_alignQ_B2T()
-    return sm.mac_d2 * 60, sm.mac_d3 * 60, r['m2_scale']
+    return sm.mac_d2 * 60, sm.mac_d3 * 60, sm.m2_scale() * 100
 
 
 @pytest.mark.parametrize('seed', [0, 1, 2, 3])
-def test_mac_recovers_the_hidden_offsets_and_autotune_the_m2_scale(monkeypatch, profile_path, seed):
+def test_mac_recovers_the_hidden_offsets_and_the_m2_scale(monkeypatch, profile_path, seed):
     """The values themselves, not just the pointing: with the worm gear correction on, the M2/M3 offsets the driver
-    fits are the hidden ones, and AutoTune finds the hidden M2 scale (10 syncs, 2" solve noise)."""
+    fits are the hidden ones, and the per-sync refit finds the hidden M2 scale (10 syncs, 2" solve noise)."""
     d2, d3, s2 = twin_mac_calibration(monkeypatch, profile_path, worm=True, seed=seed)
     assert d2 == pytest.approx(MODEL_TRUE['d2'] * 60, abs=0.5) and d3 == pytest.approx(MODEL_TRUE['d3'] * 60, abs=0.5)
     assert s2 == pytest.approx(MODEL_TRUE['s2'] * 100, abs=0.02)
@@ -361,7 +358,7 @@ def test_mac_recovers_the_hidden_offsets_and_autotune_the_m2_scale(monkeypatch, 
 
 @pytest.mark.parametrize('seed', [0, 1, 2, 3])
 def test_without_the_worm_gear_correction_the_worm_moves_the_m2_scale_a_little(monkeypatch, profile_path, seed):
-    """Twin 2026-10-11: the uncorrected worm (40-100") moves AutoTune's M2 scale by up to ~0.15% and the offsets by
+    """Twin 2026-10-11: the uncorrected worm (40-100") moves the fitted M2 scale by up to ~0.15% and the offsets by
     under 1' -- it can't explain a scale far from the others (e.g. 0.335% against ~1%) on its own."""
     d2, d3, s2 = twin_mac_calibration(monkeypatch, profile_path, worm=False, seed=seed)
     assert d2 == pytest.approx(MODEL_TRUE['d2'] * 60, abs=2.0) and d3 == pytest.approx(MODEL_TRUE['d3'] * 60, abs=2.0)
@@ -381,7 +378,7 @@ HIDDEN = {                                   # (M2 offset ', M3 offset ', M2 sca
 @pytest.mark.parametrize('case', list(HIDDEN))
 def test_mac_recovers_whatever_terms_are_hidden(monkeypatch, profile_path, case):
     """Different hidden values -- none, the setups and mounts seen in the logs (M3 offsets up to 6.5 deg), a
-    negative scale: the driver's offsets within 0.5' and AutoTune's scale within 0.02%."""
+    negative scale: the driver's offsets within 0.5' and its refitted scale within 0.02%."""
     d2, d3, s2 = HIDDEN[case]
     got = twin_mac_calibration(monkeypatch, profile_path, worm=True, seed=5,
                                model_true={'d2': d2 / 60, 'd3': d3 / 60, 's2': s2 / 100})

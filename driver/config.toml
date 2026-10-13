@@ -119,8 +119,8 @@ guide_rate_dec = 1.0                        # Declination guide rate multiple of
 
 [models]
 # Alignment model (Mechanical Alignment Correction, advanced_align_mac): the M2/M3 zero offsets are fitted at every
-# sync; the M2 scale is a mount constant (+1-2% on every Polaris measured), refined by Pilot's AutoTune.
-align_m2_scale    =     1.0                 # [%           ] M2 turns this much further than its reported angle (about 45 deg)
+# sync; the M2 scale (+0.3-2.2% on every Polaris measured) starts here and is refitted at each sync when significantly better.
+align_m2_scale    =     1.0                 # [%           ] default M2 scale: M2 turns this much further than its reported angle (about 45 deg)
 
 
 [device]
