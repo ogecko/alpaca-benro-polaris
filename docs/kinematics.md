@@ -184,25 +184,33 @@ Each motor angle is corrected before the forward kinematics:
 
 * **M2 and M3 offsets** are fitted at **every alignment sync**, together with QUEST's rotation: nothing to set up.
   Change the lens or reseat the camera, and the next alignment finds the new offsets. The Alignment page shows them.
-* **M2 scale** (`align_m2_scale`, %) is a mount constant. About +0.3 to +2% on the mounts measured; the default is
-  +1.0%. AutoTune refines it for your mount (below).
+* **M2 scale** is mostly a property of the mount, with a little from the lens. About +0.3 to +2% on the mounts
+  measured; it starts at the default, +1.0% (`align_m2_scale`), and is refitted at each sync (below).
 
 The fit needs points that separate the offsets from the rotation: at least 3, spread in azimuth and altitude (and
 ideally roll). When they don't (too few, or bunched together), the offsets are kept at their last values and the
 rotation is the usual weighted QUEST fit.
 
-#### **IV. AutoTuning the M2 scale**
-The M2 offsets and M3 offsets need no tuning. AutoTune calibrates the M2 scale once, or after a hardware change:
+#### **IV. The M2 scale: refitted at each sync**
+There is nothing to calibrate. At each sync, once the alignment has **6 or more sync points** spread **20° or more in
+M2** (about altitude at Roll 0), the driver refits the M2 scale with the rotation and offsets, and takes the new value
+only when it fits **significantly better** than the current one (an F-test at 5%) and lies within −2% to +4%. The
+value taken is kept with the alignment (`data/sync_points.json`), so the next session starts from it. Switching to
+Single-Point Alignment resets it to the default.
 
-1. Do a Multi-Point Alignment with **6 or more sync points** spread **20° or more in altitude**. The standard 6-point
-   alignment is enough; a sequence like the one below adds more.
+Replayed on the archived alignments in session order, scoring the goto to the next sync point after each refit
+(`utility/alignment_scale_replay.py`), this was never more than 3′ worse than an AutoTuned scale carried from the
+mount's previous alignment, and up to 14′ better. Refitting the scale without the significance test was no better
+than AutoTune, and gating the offsets the same way was worse (they change with the setup between sessions), so the
+offsets are refitted freely at every sync.
 
-   ![Gathering Autotune Sync Points](images/control-autotune.png)
+The Alignment page shows each term's status in the **Telescope Alignment Model** card, under **Mechanical
+Alignment**: the offsets **Fitted** or **Default**, the M2 scale **Fitted** (taken at the last refit), **Held** (an
+earlier fit) or **Default**. A **Guidance** line suggests what would improve the model: more sync points, a wider
+altitude spread, or points further apart.
 
-2. On the **Alignment** page, in the **Mechanical Alignment Correction Model** card, click **AutoTune**, then
-   **Run**. It fits the scale with the rotation and offsets, and reports the new scale and the alignment RMS before
-   and after.
-3. Click **Apply** to use and save the new scale. A result within 0.1% of the current scale has nothing to apply.
+With MAC on, up to **20 sync points** are kept (10 with MAC off). When full, the oldest is replaced, but never the
+highest or lowest in M2, which the scale depends on.
 
 #### **V. Comparing MAC on and off (A/B)**
 The **Mechanical Alignment Correction** switch refits the alignment from the same sync points either way, so one
@@ -445,7 +453,7 @@ Pressing it again rejects the profile and restores the previous correction.
 
 Approve and Reject only choose the profile: whether it is applied is the **PEC Worm Gear Correction** switch in Pilot's settings, which they leave as it is.
 
-The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. The alignment model and its M2 scale AutoTune do the same. Sync points keep their raw motor angles, so this needs no re-alignment.
+The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. The alignment model, and its M2 scale refit, do the same. Sync points keep their raw motor angles, so this needs no re-alignment.
 
 For this reason, approve the profile **before** aligning and slewing for the night, and do a fresh Multi-Point Alignment after the test: the test moves the mount well away from its alignment points, and a clean, well-spread set of alignment points matters more than the profile itself. Approving, rejecting or switching it while guiding shifts the pointing once, by up to the measured wobble size, and restarts the drift correction.
 

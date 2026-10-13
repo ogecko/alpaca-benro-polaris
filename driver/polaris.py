@@ -1797,6 +1797,8 @@ class Polaris:
                 'polarisastrover': self._polaris_astro_ver,
                 'rbcerror': self._sm.mac_error,
                 'alignmodel': [self._sm.mac_d2, self._sm.mac_d3, self._sm.mac_terms()[2] * 100],
+                'alignstatus': [self._sm.mac_offsets_status, self._sm.mac_s2_status],   # Pilot: Fitted/Held/Default
+                'alignguide': self._sm.align_guidance,
                 'sccerror': self._sm.scc_error,
                 'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
                 'sgstatus': [self._sm.valid_sync_guide, sg_interval, sg_last_time, pulseg_last_time, pecg_last_time],

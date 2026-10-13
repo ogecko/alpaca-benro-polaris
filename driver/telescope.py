@@ -1519,7 +1519,7 @@ class supportedactions:
             "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
             "Polaris:ReplayMark",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
-            "Polaris:SyncRoll", "Polaris:SyncRemove", "Polaris:AutotuneMAC",
+            "Polaris:SyncRoll", "Polaris:SyncRemove",
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
             "Polaris:GetCatalog", "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:RemoveOrbital",
@@ -1886,17 +1886,6 @@ class action:
             resp.text = await PropertyResponse('Polaris PanoOffset ok', req)
             return
 
-        elif actionName == "Polaris:AutotuneMAC":
-            logger.info('Polaris:AutotuneMAC')
-            result = polaris._sm.calibrate_m2_scale()     # the M2 scale from the current sync points (with the worm)
-            if result['success']:
-                logger.info(f"AutotuneMAC: {result['message']} | RMS {result['rms_before']:.2f}' to "
-                            f"{result['rms_after']:.2f}' ({result['rms_improv']:+.1f}%) | "
-                            f"offsets M2 {result['d2'] * 60:+.1f}' M3 {result['d3'] * 60:+.1f}'")
-            else:
-                logger.info(f"AutotuneMAC: {result['message']}")
-            resp.text = await PropertyResponse(result, req)
-            return
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))

@@ -132,14 +132,16 @@ def test_single_point_alignment_applies_no_mac_not_even_the_m2_scale(cfg, switch
     assert sm.corrQ_MAC.degrees == 0
 
 
-def test_the_m2_scale_comes_from_config(cfg):
-    cfg.align_m2_scale = 0.0                                    # the model without the scale
+def test_the_m2_scale_starts_from_config_until_a_fit_is_significantly_better(cfg):
+    cfg.align_m2_scale = 0.0                                    # the default: no scale
     p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
-    sync_all(sm, p)
-    assert residuals_arcmin(sm).max() > 0.5                    # the data has a 1% scale the model now lacks
-    cfg.align_m2_scale = S2 * 100
-    sm.optimize_alignQ_B2T()
+    sync_all(sm, p, POSES[:5])                                  # 5 points: too few to refit the scale
+    assert sm.mac_s2 is None and sm.m2_scale() == 0.0 and sm.mac_s2_status == 'default'
+    sync_all(sm, p, POSES[5:])                                  # the 6th: the data's +1% is significantly better
+    assert sm.mac_s2 == pytest.approx(S2, abs=5e-4) and sm.mac_s2_status == 'fitted'
     assert residuals_arcmin(sm).max() < 0.1
+    sm.optimize_alignQ_B2T()                                    # refitted again: the same scale, now held
+    assert sm.mac_s2_status == 'held' and sm.m2_scale() == pytest.approx(S2, abs=5e-4)
 
 
 def test_the_model_logs_its_terms(cfg, caplog):
@@ -151,24 +153,74 @@ def test_the_model_logs_its_terms(cfg, caplog):
     assert "d2 +000d50'" in line and "d3 -000d53'" in line and 'M2 scale +1.00%' in line
 
 
-# ── M2 scale calibration (Pilot's AutoTune, Polaris:AutotuneMAC) ──────────────────────────────
+# ── the M2 scale refitted at each sync (no AutoTune), statuses and guidance for Pilot ─────────────────────────
 
-def test_calibration_fits_the_m2_scale_from_the_current_points(cfg):
-    cfg.align_m2_scale = 0.0                                    # not yet calibrated
+def test_a_scale_that_isnt_significantly_better_is_not_taken(cfg):
+    """The data has exactly the configured scale: freeing it can't do significantly better, so it stays the default."""
     p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
     sync_all(sm, p)
-    r = sm.calibrate_m2_scale()
-    assert r['success'] and r['n_points'] == 6
-    assert r['m2_scale'] == pytest.approx(S2 * 100, abs=0.05)           # %
-    assert r['rms_after'] < 0.1 < r['rms_before'] and r['rms_improv'] > 90
-    assert cfg.align_m2_scale == 0.0                                    # reported, not applied: Pilot's Apply saves it
+    assert sm.mac_s2 is None and sm.mac_s2_status == 'default' and sm.m2_scale() == pytest.approx(S2)
 
 
-def test_calibration_needs_enough_well_spread_points(cfg):
+def test_single_point_alignment_resets_the_scale_to_its_default(cfg):
+    cfg.align_m2_scale = 0.0
     p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
-    sync_all(sm, p, POSES[:3])
-    r = sm.calibrate_m2_scale()
-    assert not r['success'] and 'points' in r['message']
+    sync_all(sm, p)
+    assert sm.mac_s2 is not None
+    cfg.advanced_alignment = False
+    sm.optimize_alignQ_B2T()
+    assert sm.mac_s2 is None and sm.mac_s2_status == 'default'
+
+
+def test_the_taken_scale_is_kept_with_the_alignment(cfg, tmp_path):
+    cfg.align_m2_scale = 0.0
+    cfg.apply_changes = lambda changes: changes                 # (loading sets advanced_alignment through Config)
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    sync_all(sm, p)
+    path = tmp_path / 'sync_points.json'
+    sm.saveSyncDataToFile(path)
+    sm2 = SyncManager(logging.getLogger('test'), Polaris())
+    assert sm2.loadSyncDataFromFile(path)
+    assert sm2.mac_s2 == pytest.approx(sm.mac_s2) and sm2.mac_s2_status == 'held'
+
+
+@pytest.mark.parametrize('n, expected', [
+    (2, "Add 3 or more plate-solve syncs spread across the sky."),
+    (3, "Add additional sync points to improve mechanical alignment."),
+    (5, "Add additional sync points to improve mechanical alignment."),
+    (6, "Good alignment. Add more sync points to refine it further (up to 20)."),
+])
+def test_guidance_follows_the_points(cfg, n, expected):
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    sync_all(sm, p, POSES[:n])
+    assert sm.align_guidance == expected
+    assert sm.mac_offsets_status == ('fitted' if n >= 3 else 'default')
+
+
+def test_guidance_asks_for_more_altitude_spread(cfg):
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    bunched = [(az, alt, 0) for az, alt in ((100, 40), (140, 42), (180, 44), (220, 41), (260, 43), (300, 45))]
+    sync_all(sm, p, bunched)
+    g = sm.align_guidance
+    assert g.startswith("Add sync points above ") and g.endswith("\N{DEGREE SIGN} altitude."), g
+    above = int(g.split()[4].rstrip("\N{DEGREE SIGN}"))
+    assert 60 <= above <= 66, g                                 # M2 40-45 deg at roll 0: 20 deg above the lowest
+
+
+def test_with_mac_up_to_20_points_are_kept_dropping_the_oldest_but_never_the_m2_extremes(cfg):
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    poses = [(10 + 17 * i, 30 + (i * 37) % 45, 0) for i in range(22)]       # spread, none within 1.5 deg
+    sync_all(sm, p, poses)
+    active = [e for e in sm.sync_history if not e['deleted']]
+    assert len(active) == 20
+    m2 = [float(sm.entry_theta(e)[1]) for e in active]
+    all_m2 = [float(q_to_theta_pose(*pp)[1]) for pp in poses]
+    assert min(m2) == pytest.approx(min(all_m2), abs=0.01) and max(m2) == pytest.approx(max(all_m2), abs=0.01)
+
+
+def q_to_theta_pose(az, alt, roll):
+    from kinematics import azaltroll_to_theta_ik
+    return azaltroll_to_theta_ik(az, alt, roll)
 
 
 def test_when_the_points_cant_fix_the_offsets_the_weighted_quest_rotation_is_kept(cfg):

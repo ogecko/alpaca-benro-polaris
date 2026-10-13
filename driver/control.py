@@ -15,10 +15,10 @@ from shr import rad2deg, deg2rad, deg2dms, format_timestamp, ratio_string
 from threading import Lock
 from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl, ensure_data_dir_exists
 from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
-from kinematics_mac import fit_alignment, corrected_theta, boresights, correction_q as mac_correction
+from kinematics_mac import fit_alignment, corrected_theta, boresights, correction_q as mac_correction, significantly_better
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
-from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll
+from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
@@ -2177,6 +2177,12 @@ class SyncManager(PecMixin, WormMixin):
         self.corrQ_MAC = Quaternion(1,0,0,0)  # MAC correction at the current pose (M2/M3 offsets, M2 scale), forward path only
         self.mac_d2 = 0.0                     # MAC: M2 zero offset (deg), fitted with QUEST's rotation (kinematics_mac.py)
         self.mac_d3 = 0.0                     # MAC: M3 zero offset (deg)
+        self.mac_s2 = None                    # MAC: M2 scale (fraction) taken from a significantly better fit; None: the
+                                              # default (config align_m2_scale) -- reset by Single-Point Alignment
+        self.mac_s2_accepted = None           # ... when it was taken (ISO time)
+        self.mac_offsets_status = 'default'   # Pilot: 'fitted' or 'default' (the M2/M3 offsets)
+        self.mac_s2_status = 'default'        # Pilot: 'fitted' (taken at the last refit), 'held' (an earlier fit), 'default'
+        self.align_guidance = ''              # Pilot: how to improve the alignment ('' when nothing to add)
         self._mac_theta_w = None              # current pose's motor angles + worm error: recomputes corrQ_MAC on a refit
         self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
         self.mac_error = 0                    # MAC correction magnitude at the current pose (deg, Kinematics page)
@@ -2254,7 +2260,11 @@ class SyncManager(PecMixin, WormMixin):
         the Polaris' own model points, and the M2 scale would still bend it)."""
         if not (Config.advanced_align_mac and Config.advanced_alignment and Config.advanced_control):
             return 0.0, 0.0, 0.0
-        return self.mac_d2, self.mac_d3, float(getattr(Config, 'align_m2_scale', 0.0)) / 100.0
+        return self.mac_d2, self.mac_d3, self.m2_scale()
+
+    def m2_scale(self):
+        """The M2 scale (fraction) the model uses: the last significantly better fit, else config's default."""
+        return self.mac_s2 if self.mac_s2 is not None else float(getattr(Config, 'align_m2_scale', 0.0)) / 100.0
 
     def entry_theta(self, entry):
         """A sync point's raw motor angles (deg): stored with it, or rebuilt from its pose (points saved before v2.2)."""
@@ -2279,31 +2289,6 @@ class SyncManager(PecMixin, WormMixin):
         if d2 == 0 and d3 == 0 and s2 == 0:
             return Quaternion(1, 0, 0, 0)
         return mac_correction(theta_w, d2, d3, s2)
-
-    def calibrate_m2_scale(self, min_points=6, min_m2_span_deg=20.0):
-        """Fit the M2 scale (with the rotation and the M2/M3 offsets) on the current sync points: Pilot's AutoTune.
-        Reported, not applied -- Pilot's Apply saves it as align_m2_scale (%). Needs points spread in M2."""
-        pts = [e for e in self.sync_history if not e["deleted"] and e["a_az"] is not None and e["a_alt"] is not None]
-        th = np.array([self.entry_mac_theta(e) for e in pts]) if pts else np.zeros((0, 3))
-        obs = np.array([azalt_to_vector(e["a_az"], e["a_alt"]) for e in pts]) if pts else np.zeros((0, 3))
-        out = {'success': False, 'n_points': len(pts), 'm2_scale': float(getattr(Config, 'align_m2_scale', 0.0)),
-               'rms_before': 0.0, 'rms_after': 0.0, 'rms_improv': 0.0, 'message': ''}
-        span = float(np.ptp(th[:, 1])) if len(th) else 0.0
-        if len(pts) < min_points or span < min_m2_span_deg:
-            out['message'] = (f"Needs {min_points} or more sync points spread {min_m2_span_deg:.0f} deg or more in "
-                              f"altitude (M2): have {len(pts)} points over {span:.0f} deg")
-            return out
-        s2_now = out['m2_scale'] / 100.0
-        before = fit_alignment(th, obs, s2=s2_now)
-        after = fit_alignment(th, obs, s2=s2_now, d_init=(before.d2, before.d3), fit_s2=True)
-        if not after.s2_fitted:
-            out['message'] = "The sync points can't separate the M2 scale from the offsets: add points at other altitudes"
-            return out
-        out.update(success=True, m2_scale=round(after.s2 * 100, 3), d2=after.d2, d3=after.d3,
-                   rms_before=before.rms_arcmin, rms_after=after.rms_arcmin,
-                   rms_improv=(1 - after.rms_arcmin / before.rms_arcmin) * 100 if before.rms_arcmin > 0 else 0.0,
-                   message=f"M2 scale {after.s2 * 100:+.2f}% from {len(pts)} points")
-        return out
 
     def update_mac_correction(self, theta_w=None):
         """Refresh corrQ_MAC at the current pose (theta_w: its motor angles + worm error; None: the last ones), e.g.
@@ -2436,11 +2421,17 @@ class SyncManager(PecMixin, WormMixin):
                 v_angular_distance(new_obs_vec,  existing_obs_vec)  < threshold_rad):
                 self.sync_remove(entry["timestamp"], optimise=False)
 
-        # If limit reached, remove the lowest-weighted entry
+        # If limit reached, remove one: QUEST the lowest weighted; MAC (one global fit, which needs the spread) the
+        # oldest, never the highest or the lowest in M2
         active_entries = [e for e in self.sync_history if not e.get("deleted", False)]
-        if len(active_entries) >= 10:
-            # Find entry with lowest weight
-            lowest_entry = min(active_entries, key=lambda e: e.get("w_total", 0.0))
+        mac = Config.advanced_align_mac
+        if len(active_entries) >= (self.ALIGN_MAX_POINTS_MAC if mac else self.ALIGN_MAX_POINTS):
+            if mac:
+                m2 = [float(self.entry_theta(e)[1]) for e in active_entries]
+                keep = {int(np.argmin(m2)), int(np.argmax(m2))}
+                lowest_entry = next(e for i, e in enumerate(active_entries) if i not in keep)
+            else:
+                lowest_entry = min(active_entries, key=lambda e: e.get("w_total", 0.0))
             timestamp_to_remove = lowest_entry.get("timestamp")
             self.sync_remove(timestamp_to_remove, optimise=False)
 
@@ -2507,6 +2498,75 @@ class SyncManager(PecMixin, WormMixin):
         p_az, p_alt = vector_to_az_alt(v_pred)
         return p_az, p_alt
 
+    # ── MAC: the M2 scale refitted at each sync, taken only when significantly better (no AutoTune) ──────────────
+    M2_SCALE_MIN_POINTS = 6           # sync points before the M2 scale is refitted ...
+    M2_SCALE_MIN_SPAN_DEG = 20.0      # ... spread at least this far in M2 (about altitude at Roll 0)
+    M2_SCALE_RANGE = (-0.02, 0.04)    # a fit outside this is not taken (every Polaris in the logs: +0.3 to +2.2%)
+    M2_SCALE_P = 0.05                 # F-test significance: the free scale must cut the misfit by more than chance
+    ALIGN_MAX_POINTS = 10             # sync points kept (QUEST: the lowest weighted is replaced) ...
+    ALIGN_MAX_POINTS_MAC = 20         # ... with MAC: the oldest, never the highest or lowest in M2
+
+    def refit_m2_scale(self, theta, obs, fit):
+        """With the offsets fitted (fit, at the current M2 scale): refit with the M2 scale free and take it when the
+        points determine it and it fits significantly better (F-test); otherwise keep the current scale. Returns the
+        fit to use. Replay of the archived alignments (utility/alignment_scale_replay.py): never more than 3' worse
+        than Pilot's AutoTune carried between sessions, up to 14' better, without AutoTune."""
+        n, s2_now = len(theta), self.m2_scale()
+        self.mac_s2_status = 'held' if self.mac_s2 is not None else 'default'
+        if n < self.M2_SCALE_MIN_POINTS or float(np.ptp(theta[:, 1])) < self.M2_SCALE_MIN_SPAN_DEG:
+            return fit
+        free = fit_alignment(theta, obs, s2=s2_now, d_init=(fit.d2, fit.d3), fit_s2=True)
+        lo, hi = self.M2_SCALE_RANGE
+        if (not free.s2_fitted or not lo <= free.s2 <= hi
+                or not significantly_better(fit, free, n, extra_params=1, n_params=6, p_accept=self.M2_SCALE_P)):
+            return fit
+        if self.logger:
+            self.logger.info(f"->> Polaris: MAC M2 scale {s2_now * 100:+.2f}% -> {free.s2 * 100:+.2f}% "
+                             f"(significantly better fit of {n} points over {np.ptp(theta[:, 1]):.0f} deg of M2; "
+                             f"RMS {fit.rms_arcmin:.1f}' -> {free.rms_arcmin:.1f}')")
+        self.mac_s2 = float(free.s2)
+        self.mac_s2_accepted = datetime.datetime.now().isoformat(timespec='seconds')
+        self.mac_s2_status = 'fitted'
+        return free
+
+    def alignment_guidance(self, theta, fit):
+        """One line for Pilot on improving the alignment model ('' when nothing to add): the first that applies.
+        theta: the sync points' motor angles (MAC's points), fit: the last joint fit."""
+        n = 0 if theta is None else len(theta)
+        if not Config.advanced_alignment or n < 3:
+            return "Add 3 or more plate-solve syncs spread across the sky."
+        if not Config.advanced_align_mac:
+            return ''
+        if n < self.M2_SCALE_MIN_POINTS:
+            return "Add additional sync points to improve mechanical alignment."
+        t2 = theta[:, 1]
+        if float(np.ptp(t2)) < self.M2_SCALE_MIN_SPAN_DEG:
+            return self._altitude_guidance(theta)
+        if fit is None or not fit.offsets_fitted:
+            return "Add sync points further apart in azimuth and altitude."
+        if n < self.ALIGN_MAX_POINTS_MAC:
+            return f"Good alignment. Add more sync points to refine it further (up to {self.ALIGN_MAX_POINTS_MAC})."
+        return "Good alignment. New sync points replace the oldest."
+
+    def _altitude_guidance(self, theta):
+        """Where to add sync points to spread them M2_SCALE_MIN_SPAN_DEG in M2, as an altitude at the sync points'
+        typical roll (cos M2 = cos alt cos roll): above when there is room, else below."""
+        t2 = np.abs(theta[:, 1])
+        roll = float(np.median([q_to_azaltroll(theta_to_q(*t))[2] for t in theta]))
+        cr = max(math.cos(math.radians(roll)), 1e-6)
+
+        def alt_for(m2):
+            c = math.cos(math.radians(m2)) / cr
+            return math.degrees(math.acos(min(1.0, c))) if c <= 1.0 else None
+
+        above = alt_for(float(t2.min()) + self.M2_SCALE_MIN_SPAN_DEG)
+        if above is not None and float(t2.min()) + self.M2_SCALE_MIN_SPAN_DEG <= THETA2_MAX - 5 and above <= 80:
+            return f"Add sync points above {math.ceil(above)}\N{DEGREE SIGN} altitude."
+        below = alt_for(float(t2.max()) - self.M2_SCALE_MIN_SPAN_DEG)
+        if below is not None and below >= 15:
+            return f"Add sync points below {math.floor(below)}\N{DEGREE SIGN} altitude."
+        return "Add sync points further apart in azimuth and altitude."
+
     def optimize_alignQ_B2T(self, persist=True):
         """
         Implement the QUEST algorithm to find the optimal rotation quaternion
@@ -2516,7 +2576,8 @@ class SyncManager(PecMixin, WormMixin):
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
         if Config.advanced_alignment == False:
-            self.set_alignQ_to_identity()
+            self.set_alignQ_to_identity()        # (Single-Point Alignment: also resets the M2 scale to its default)
+            self.align_guidance = self.alignment_guidance(None, None)
             return
 
         pairs = []
@@ -2563,6 +2624,7 @@ class SyncManager(PecMixin, WormMixin):
             d2, d3, s2 = self.mac_terms()
             fit = fit_alignment(th, obs, s2=s2, d_init=(d2, d3))
         if fit is not None and fit.offsets_fitted:
+            fit = self.refit_m2_scale(th, obs, fit)
             self.mac_d2, self.mac_d3 = float(fit.d2), float(fit.d3)
             self.alignQ_B2T = fit.q
             self.alignQ_B2T_inv = self.alignQ_B2T.inverse
@@ -2621,6 +2683,11 @@ class SyncManager(PecMixin, WormMixin):
 
 
         self.update_mac_correction()   # the current pose with the refitted model
+        if fit is None or not fit.offsets_fitted:
+            self.mac_s2_status = 'held' if self.mac_s2 is not None else 'default'
+        self.mac_offsets_status = 'fitted' if (self.mac_d2 or self.mac_d3) else 'default'
+        self.align_guidance = self.alignment_guidance(np.array([t for t, _ in mac_points]) if mac_points else None,
+                                                      fit)
         # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
@@ -2894,7 +2961,7 @@ class SyncManager(PecMixin, WormMixin):
             ch = Config.advanced_scc_choice
             self.logger.info(
                 f"  MAC: {'ON ' if Config.advanced_align_mac else 'OFF'}   | " 
-                f"{'d2 ' + deg2dms(self.mac_d2) + ' d3 ' + deg2dms(self.mac_d3) + f' M2 scale {self.mac_terms()[2] * 100:+.2f}% | ' if Config.advanced_align_mac else ''}" 
+                f"{'d2 ' + deg2dms(self.mac_d2) + ' d3 ' + deg2dms(self.mac_d3) + f' M2 scale {self.mac_terms()[2] * 100:+.2f}% ({self.mac_s2_status}) | ' if Config.advanced_align_mac else ''}" 
                 f"{'SCC: OFF  | ' if not en else 'ZLR: ON   | ' if ch==0 else 'LGA: ON   | ' if ch==1 else 'SGA: ON   | ' }"
                 f"RMS Residual: {deg2dms(rms)}  | "
                 f"Az Correction: {deg2dms(self.az_adj)} | "
@@ -2969,7 +3036,8 @@ class SyncManager(PecMixin, WormMixin):
             "q_syncguide_B":      list(self.q_syncguide_B.q),
             "valid_sync_guide":   bool(self.valid_sync_guide),
         }
-        data = {"sync_points": entries_to_save, "guide_state": guide_state}
+        data = {"sync_points": entries_to_save, "guide_state": guide_state,
+                "alignment_model": {"m2_scale": self.mac_s2, "m2_scale_accepted": self.mac_s2_accepted}}
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
 
@@ -3027,6 +3095,11 @@ class SyncManager(PecMixin, WormMixin):
 
             # Restore guide correction state, if present (older files won't have it —
             # q_pulseguide_B/q_syncguide_B simply stay at identity, same as before this change).
+            model = loaded.get('alignment_model') if isinstance(loaded, dict) else None
+            if model and model.get('m2_scale') is not None:
+                self.mac_s2 = float(model['m2_scale'])          # the M2 scale last taken from a significant fit
+                self.mac_s2_accepted = model.get('m2_scale_accepted')
+                self.mac_s2_status = 'held'
             if guide_state:
                 try:
                     self.q_pulseguide_B    = Quaternion(*guide_state['q_pulseguide_B']).normalised
