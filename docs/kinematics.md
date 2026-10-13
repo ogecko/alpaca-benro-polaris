@@ -6,7 +6,7 @@
 [Overview](#1-overview) | 
 [QUEST](#21-quest-alignment-optimisation) |
 [SCC](#22-slew--center-correction) |
-[MAC](#23-mechanical-alignment-corrections) |
+[MAC](#23-mechanical-alignment-corrections-mac) |
 [Sync Guiding](#24-plate-solvedsync-guiding) |
 [Pulse Guiding](#25-pulse-guiding) |
 [PEC](#26-periodic-error-correction-pec) |
@@ -138,104 +138,75 @@ The formula for the weight is:
 
 
 ---
-### 2.3 Mechanical Alignment Corrections
+### 2.3 Mechanical Alignment Corrections (MAC)
 
-#### **I. What it is and What it Solves**
-**Mechanical Alignment Correction (MAC)** fits the mount's and camera's geometry alongside the QUEST alignment. QUEST
-alone finds one rotation between the mount and the sky. That corrects tripod tilt, leveling and the North reference,
-but not errors that change with the mount's pose. Two such errors dominate on the Benro Polaris:
+#### I. What Is MAC?
 
-* **M2 and M3 zero offsets.** M2's and M3's reported angles are each off by a constant, or, equivalently, the camera
-  sits slightly tilted on the head. A focuser pulling the lens sideways looks exactly like an M3 offset. These change
-  with the setup: the lens, how the camera sits in its clamp.
-* **An M2 scale error.** M2 turns slightly further than its reported angle says, so the altitude error grows the
-  further M2 moves from mid-range. It is a property of the mount, not the setup.
+Mechanical Alignment Correction (MAC) improves pointing accuracy by modelling mechanical errors that a standard QUEST alignment cannot correct.
 
-A rotation can't absorb either. They are why Multi-Point Alignment residuals were typically 30–60′, and up to 2°,
-and why the pointing error then changed along a target's path, showing up as large drift for PEC Drift Correction
-to absorb.
+QUEST determines the overall fixed-body rotation between the mount and the sky, correcting for tripod tilt, levelling and the North reference. However, it cannot correct errors that change with the mount's position.
 
-#### **II. Benefits of the Model**
-Replayed on 47 archived alignments (1,300 sync points, four mounts), predicting each sync point from a model fitted
-on the others, as at a goto to a new target (`utility/alignment_ab.py`):
+On the Benro Polaris, these errors include:
 
-| | MAC off (QUEST rotation) | MAC on |
-|---|---|---|
-| Median goto error | 59.2′ | **9.6′** |
-| 200 mm, three nights (10-04, 10-06, 10-10) | 31–62′ | 5–7′ |
-| Mark's mount, 11 nights | 29–198′ | 3–8′ |
-| Better on | 2 alignments | 45 alignments |
+- **M2 and M3 zero offsets:** Small differences between the reported motor angles and the actual camera orientation. These can change when you change lenses or reseat the camera.
+- **M2 scale error:** M2 may rotate slightly more or less than its reported angle indicates, causing pointing error to increase with its position.
 
-* **Smaller alignment residuals:** a 6-point alignment typically fits to a few arcminutes instead of 30–60′.
-* **Gotos and Slew & Center:** the model holds across the sky, not just near the sync points, so targets away from
-  them land much closer and need fewer centering slews.
-* **Less drift:** the pointing error no longer changes as the pose moves along a target's path, so PEC Drift
-  Correction and the guider have less to correct.
+MAC models these errors alongside the QUEST alignment, improving pointing accuracy across the sky rather than just near individual alignment points.
 
-The full study is in [study_alignment_mac_v2.md](study_alignment_mac_v2.md).
+#### II. How to Get the Best Results
 
-#### **III. The Model**
-Each motor angle is corrected before the forward kinematics:
+**Enable MAC and sync at six or more well-spaced points.** QUEST and the M2/M3 offsets work from three well-spread points; the M2 scale needs six or more.
 
-```
-θ₂′ = θ₂ + M2 offset + M2 scale × (θ₂ − 45°)
-θ₃′ = θ₃ + M3 offset
-```
+For best results:
 
-* **M2 and M3 offsets** are fitted at **every alignment sync**, together with QUEST's rotation: nothing to set up.
-  Change the lens or reseat the camera, and the next alignment finds the new offsets. The Alignment page shows them.
-* **M2 scale** is mostly a property of the mount, with a little from the lens. About +0.3 to +2% on the mounts
-  measured; it starts at the default, +1.0% (`align_m2_scale`), and is refitted at each sync (below).
+- Enable **Mechanical Alignment Correction** in Pilot's Settings.
+- Collect at least **6 sync points**, spread across different altitudes and azimuths.
+- Spread them at least **20°** in altitude (the M2 range) so the driver can fit the M2 scale.
+- Avoid clustering all sync points in one small region of the sky.
 
-The fit needs points that separate the offsets from the rotation: at least 3, spread in azimuth and altitude (and
-ideally roll). When they don't (too few, or bunched together), the offsets are kept at their last values and the
-rotation is the usual weighted QUEST fit.
+No separate mechanical calibration is required. The driver fits the M2 and M3 offsets during multi-point alignment and refines the M2 scale when sufficient data is available.
 
-#### **IV. The M2 scale: refitted at each sync**
-There is nothing to calibrate. At each sync, once the alignment has **6 or more sync points** spread **20° or more in
-M2** (about altitude at Roll 0), the driver refits the M2 scale with the rotation and offsets, and takes the new value
-only when it fits **significantly better** than the current one (an F-test at 5%) and lies within −2% to +4%. The
-value taken is kept with the alignment (`data/sync_points.json`), so the next session starts from it. Switching to
-Single-Point Alignment resets it to the default.
+#### III. What Improvements Can You Expect?
 
-Replayed on the archived alignments in session order, scoring the goto to the next sync point after each refit
-(`utility/alignment_scale_replay.py`), this was never more than 3′ worse than an AutoTuned scale carried from the
-mount's previous alignment, and up to 14′ better. Refitting the scale without the significance test was no better
-than AutoTune, and gating the offsets the same way was worse (they change with the setup between sessions), so the
-offsets are refitted freely at every sync.
+MAC can substantially improve pointing accuracy, reduce centring iterations and reduce position-dependent drift during tracking.
 
-The Alignment page shows each term's status in the **Telescope Alignment Model** card, under **Mechanical
-Alignment**: the offsets **Fitted** or **Default**, the M2 scale **Fitted** (taken at the last refit), **Held** (an
-earlier fit) or **Default**. A **Guidance** line suggests what would improve the model: more sync points, a wider
-altitude spread, or points further apart.
+Replay tests using 47 archived alignments from four mounts, with approximately 1,300 sync points, showed:
 
-With MAC on, up to **20 sync points** are kept (10 with MAC off). When full, the oldest is replaced, but never the
-highest or lowest in M2, which the scale depends on.
+| Measurement | MAC off | MAC on |
+|---|---:|---:|
+| Median predicted goto error | 59.2′ | **9.6′** |
+| Better results across archived alignments | 2 of 47 | **45 of 47** |
 
-#### **V. Comparing MAC on and off (A/B)**
-The **Mechanical Alignment Correction** switch refits the alignment from the same sync points either way, so one
-alignment gives both:
+In these tests, MAC also reduced typical alignment residuals from tens of arcminutes to a few arcminutes. Actual results depend on the mount, lens, sync-point distribution and observing conditions.
 
-* **On:** QUEST's rotation and the M2/M3 offsets fitted together, with the M2 scale.
-* **Off:** the QUEST rotation alone, as before v2.2 Beta 9.
+MAC reduces systematic pointing errors across the sky, leaving less for Slew & Center and guiding corrections to compensate.
 
-Compare the alignment RMS, the first goto's error to a new target, and the drift on a long track. To replay archived
-logs, run `uv run python alignment_ab.py` in `utility/`.
+#### IV. Checking the Alignment Model
 
-#### **VI. Important Implementation Details**
-*   **Unweighted fit:** with MAC on and enough spread, every sync point counts equally. QUEST's recency, proximity and
-    polar weights made a rotation-only model fit well near the target at the expense of the rest of the sky; with the
-    offsets modelled, one fit holds everywhere. Slew & Center Correction and sync guiding handle what is left
-    locally.
-*   **Forward kinematics:** the correction is applied to the motor angles after the worm gear correction, as a small
-    base-frame rotation at the current pose (`kinematics_mac.correction_q`), before sync guiding, pulse guiding and
-    QUEST. The PID works in the corrected motor angles, as before.
-*   **Worm gear correction:** sync points keep their raw motor angles, so the model is refitted through the worm
-    correction when that is switched, with no re-alignment.
-*   **Cost:** the fit takes under a millisecond on a desktop and is designed for a Raspberry Pi Zero 2 W; the
-    correction adds microseconds per control tick.
-*   **Earlier MAC:** the v2.0–v2.2 model (M2/M3 axis tilt terms fitted from plate-solved image surveys) has been
-    retired. `utility/fits_extract.py` keeps a copy (`utility/legacy_mac.py`) for its image analysis.
+The Alignment page displays the **Telescope Alignment Model** card, including the status of each mechanical correction:
+
+- **M2 and M3 Offsets - Fitted or Default:** Whether the M2 and M3 offsets have been fitted from the collected sync points.
+- **M2 scale - Fitted, Held or Default:** Whether the scale has been updated, retained from an earlier fit, or is still using its default value.
+- **Guidance:** Suggestions for improving the model, such as adding sync points or increasing their spread.
+
+With MAC enabled, the driver retains up to **20 sync points**, compared with 10 when MAC is disabled. When the limit is reached, the oldest point is normally replaced, while the highest and lowest M2 points are preserved to support M2 scale fitting.
+
+#### V. Understanding the M2 Scale
+
+The M2 scale is refined automatically once the alignment has at least **6 sync points spanning 20° or more in M2**. The driver accepts a new value only when the fit improves significantly and the result falls within the permitted range of −2% to +4%.
+
+The default scale correction is +1.0%. An accepted value is saved with the alignment for use in subsequent sessions. Switching to Single-Point Alignment resets it to the default.
+
+You do not need to adjust this value manually.
+
+#### VI. Comparing MAC On and Off
+
+The **Mechanical Alignment Correction** toggle in Pilot's Settings allows you to compare the standard QUEST alignment with MAC using the same sync points.
+
+- **MAC on:** Fits the QUEST rotation together with the M2 and M3 offsets and, when sufficient data is available, the M2 scale.
+- **MAC off:** Uses the standard QUEST rotation alone.
+
+**Note:** MAC improves the underlying alignment model but does not eliminate all pointing errors. Slew & Center and guiding remain useful for correcting remaining residual errors.
 
 
 ### 2.4 **Plate-Solved/Sync Guiding**
