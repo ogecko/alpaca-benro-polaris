@@ -388,7 +388,7 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 **While the test is running:**
 
 * Your syncs are used only as measurements. They do not change the pointing model.
-* Any existing PEC and worm gear correction are paused.
+* Any existing PEC, worm gear correction and Backlash Compensation are paused (the test approaches each position the tracking way and measures each motor's backlash itself).
 * **Don't guide, slew, park, or jog the mount.** Any of these actions stops the test.
 * If no Solve and Sync arrives for 1 minute, the test stops with **NO DATA**.
 * You can press **Stop** at any time.
@@ -601,7 +601,7 @@ When enabled, Backlash Compensation operates only:
 - **After a Goto, Rotate, SlewAbsolute or SlewRelative:** Until each motor is engaged in its final tracking direction.
 - **During a planned motor tracking reversal:**  To carry the motor through its backlash as it changes direction, so the camera doesn't stall; the offset is carried until the next goto.
 
-It is inactive during ordinary tracking and guiding, jogging, and whenever tracking is off, or the mount is parked.
+It is inactive during ordinary tracking and guiding, jogging, the worm profile test, and whenever tracking is off, or the mount is parked.
 
 Compensation is also inhibited on a motor under the following conditions:
 

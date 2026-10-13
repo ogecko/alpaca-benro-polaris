@@ -1924,7 +1924,9 @@ class PID_Controller():
         kinematics applies it as its first correction ([BLC], SyncManager.baseQ_to_topoQ), so theta_pv, the sky
         positions, ASCOM and syncs describe the output shafts while it acts."""
         tracking = self.mode == 'TRACK' and bool(getattr(self.polaris, '_tracking', False))
-        if not BacklashCompensator.enabled() or not tracking:
+        # paused through the worm profile test, as PEC and the worm correction are: the test approaches each position
+        # the tracking way and fits each motor's backlash itself, and a shift in theta_pv mid-test would spoil its samples
+        if not BacklashCompensator.enabled() or not tracking or self.worm_test_active():
             return self.backlash.update(self._theta_motor(), self.omega_ff, False, False)
         now = time.monotonic()
         sm = getattr(self.polaris, '_sm', None)

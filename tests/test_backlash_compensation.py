@@ -402,6 +402,25 @@ def test_a_sync_point_keeps_the_adjustment_it_was_taken_with(monkeypatch):
     assert entry['backlash'] is None and sm.entry_backlash_q(entry).degrees == 0
 
 
+def test_the_worm_profile_test_pauses_it_even_through_a_planned_reversal(monkeypatch):
+    """The worm profile test approaches each position the tracking way and fits each motor's backlash itself: Backlash
+    Compensation pauses for it (as PEC and the worm correction do), even through a motor's planned reversal, which
+    would otherwise latch and shift theta_pv mid-test."""
+    from control_worm import WormProfileTest
+    tw = tracking_twin(monkeypatch, pose=SMC_BEFORE_TURN, settle_s=60)
+    flank = np.sign(tw.pid.omega_ff)
+    tw.output = tw.theta - flank * tw.backlash / 2                     # engaged, as after hours of tracking
+    tw.pid.backlash.output = np.asarray(tw.polaris._theta_raw, float) - flank * BACKLASH / 2
+    sm = tw.polaris._sm
+    sm.worm_test = WormProfileTest(now=tw.clock.monotonic())
+    seen = []
+    tw.run(900, on_measure=lambda t: seen.append((bool(np.any(sm.backlash_deg)), bool(np.any(t.pid.backlash.active)),
+                                                  bool(np.any(t.pid.backlash.latched)), bool(np.any(t.pid.omega_backlash)))))
+    assert np.sign(tw.pid.omega_ff[1]) != flank[1]                     # M2 did reverse
+    assert seen and not any(any(x) for x in seen), [i for i, x in enumerate(seen) if any(x)][:5]
+    assert sm.corrQ_BLC.degrees == 0
+
+
 def test_off_by_default():
     Config.load(pilotpath="/nonexistent")                 # config.toml's default (not this machine's Pilot settings)
     assert Config.advanced_backlash is False
