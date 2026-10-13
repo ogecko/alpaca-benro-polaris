@@ -14,10 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "driver"))
 import pytest
 
 import gps_location
-import gps_nmea_location
-import gps_serial_common
-import gps_ubx_location
-import gpsd_location
 from config import Config
 
 
@@ -42,7 +38,7 @@ def _install_gpsd(monkeypatch, payload, *, feed_eof=True, host="127.0.0.1", port
 
     async def open_connection(actual_host, actual_port, *, limit):
         assert (actual_host, actual_port) == (host, port)
-        assert limit == gpsd_location.GPSD_LINE_LIMIT
+        assert limit == gps_location.GPSD_LINE_LIMIT
         reader = asyncio.StreamReader()
         reader.feed_data(payload)
         if feed_eof:
@@ -50,7 +46,7 @@ def _install_gpsd(monkeypatch, payload, *, feed_eof=True, host="127.0.0.1", port
         state["reader"] = reader
         return reader, writer
 
-    monkeypatch.setattr(gpsd_location.asyncio, "open_connection", open_connection)
+    monkeypatch.setattr(gps_location.asyncio, "open_connection", open_connection)
     return state, writer
 
 
@@ -157,11 +153,11 @@ def test_run_all_does_not_start_gps_at_startup(monkeypatch):
     ],
 )
 def test_parse_tpv_rejects_invalid_positions(report):
-    assert gpsd_location._parse_tpv(report) is None
+    assert gps_location._parse_tpv(report) is None
 
 
 def test_parse_tpv_ignores_altitude_for_a_2d_fix():
-    assert gpsd_location._parse_tpv({
+    assert gps_location._parse_tpv({
         "mode": 2,
         "lat": 51.5,
         "lon": -0.12,
@@ -190,7 +186,7 @@ def test_gpsd_reads_a_3d_fix_and_closes_connection(monkeypatch):
     ])
     _, writer = _install_gpsd(monkeypatch, payload)
 
-    fix = asyncio.run(gpsd_location.get_gps_location(
+    fix = asyncio.run(gps_location._read_gpsd_fix(
         1.0,
         {"gpsd_host": "127.0.0.1", "gpsd_port": 2947},
     ))
@@ -208,7 +204,7 @@ def test_gpsd_skips_garbage_and_returns_a_2d_fix_at_eof(monkeypatch):
     ])
     _install_gpsd(monkeypatch, payload)
 
-    fix = asyncio.run(gpsd_location.get_gps_location(1.0, {}))
+    fix = asyncio.run(gps_location._read_gpsd_fix(1.0, {}))
 
     assert fix.latitude == pytest.approx(51.5)
     assert fix.longitude == pytest.approx(-0.12)
@@ -221,7 +217,7 @@ def test_gpsd_returns_a_2d_fix_after_read_timeout(monkeypatch):
         feed_eof=False,
     )
 
-    fix = asyncio.run(gpsd_location.get_gps_location(0.02, {}))
+    fix = asyncio.run(gps_location._read_gpsd_fix(0.02, {}))
 
     assert fix.latitude == pytest.approx(51.5)
     assert fix.longitude == pytest.approx(-0.12)
@@ -236,7 +232,7 @@ def test_gpsd_times_out_on_a_partial_report(monkeypatch):
         feed_eof=False,
     )
 
-    fix = asyncio.run(gpsd_location.get_gps_location(0.02, {}))
+    fix = asyncio.run(gps_location._read_gpsd_fix(0.02, {}))
 
     assert fix is None
     assert not state["reader"].at_eof()
@@ -246,7 +242,7 @@ def test_gpsd_uses_configured_host_and_port(monkeypatch):
     host, port = "gps.example.test", 2948
     _install_gpsd(monkeypatch, b"", host=host, port=port)
 
-    assert asyncio.run(gpsd_location.get_gps_location(
+    assert asyncio.run(gps_location._read_gpsd_fix(
         1.0,
         {"gpsd_host": host, "gpsd_port": port},
     )) is None
@@ -259,7 +255,7 @@ def test_gpsd_unreachable_fails_immediately_without_config_mutation(monkeypatch)
         attempts.append((host, port))
         raise ConnectionRefusedError("connection refused")
 
-    monkeypatch.setattr(gpsd_location.asyncio, "open_connection", refused_connection)
+    monkeypatch.setattr(gps_location.asyncio, "open_connection", refused_connection)
     monkeypatch.setattr(gps_location, "_sleep", lambda delay: pytest.fail("provider errors must not retry"))
     before = Config.as_dict()
 
@@ -274,20 +270,20 @@ def test_gpsd_unreachable_fails_immediately_without_config_mutation(monkeypatch)
 
 
 @pytest.mark.parametrize(
-    ("provider", "module"),
+    ("provider", "reader"),
     [
-        ("nmea", gps_nmea_location),
-        ("ubx", gps_ubx_location),
+        ("nmea", "_read_nmea_fix"),
+        ("ubx", "_read_ubx_fix"),
     ],
 )
-def test_shared_workflow_dispatches_selected_serial_provider(monkeypatch, provider, module):
+def test_shared_workflow_dispatches_selected_serial_provider(monkeypatch, provider, reader):
     calls = []
 
     async def read_fix(timeout, settings):
         calls.append((timeout, settings["gps_provider"]))
         return gps_location.GPSFix(51.5, -0.12, 35.0)
 
-    monkeypatch.setattr(module, "get_gps_location", read_fix)
+    monkeypatch.setattr(gps_location, reader, read_fix)
     monkeypatch.setattr(gps_location, "_sleep", lambda delay: asyncio.sleep(0))
 
     result = asyncio.run(gps_location.get_gps_location({
@@ -301,17 +297,17 @@ def test_shared_workflow_dispatches_selected_serial_provider(monkeypatch, provid
 
 
 @pytest.mark.parametrize(
-    ("provider", "module", "error"),
+    ("provider", "reader", "error"),
     [
-        ("nmea", gps_nmea_location, "No valid NMEA GPS fix found after 1 attempts."),
-        ("ubx", gps_ubx_location, "No valid UBX GPS fix found after 1 attempts."),
+        ("nmea", "_read_nmea_fix", "No valid NMEA GPS fix found after 1 attempts."),
+        ("ubx", "_read_ubx_fix", "No valid UBX GPS fix found after 1 attempts."),
     ],
 )
-def test_no_fix_error_identifies_serial_protocol(monkeypatch, provider, module, error):
+def test_no_fix_error_identifies_serial_protocol(monkeypatch, provider, reader, error):
     async def no_fix(timeout, settings):
         return None
 
-    monkeypatch.setattr(module, "get_gps_location", no_fix)
+    monkeypatch.setattr(gps_location, reader, no_fix)
 
     result = asyncio.run(gps_location.get_gps_location({
         "gps_provider": provider,
@@ -383,9 +379,9 @@ def test_retry_delay_doubles_to_the_configured_maximum():
 
 def test_shared_workflow_averages_three_compatible_fixes_across_dateline(monkeypatch):
     fixes = [
-        gps_location.GPSFix(51.5, 179.8),
-        gps_location.GPSFix(51.6, -179.9, 10.0),
-        gps_location.GPSFix(51.7, 179.9, 14.0),
+        gps_location.GPSFix(51.5000, 179.9995),
+        gps_location.GPSFix(51.5005, -179.9995, 10.0),
+        gps_location.GPSFix(51.5010, 179.9997, 14.0),
     ]
     monkeypatch.setattr(gps_location, "_sleep", lambda delay: asyncio.sleep(0))
 
@@ -396,18 +392,18 @@ def test_shared_workflow_averages_three_compatible_fixes_across_dateline(monkeyp
 
     assert result.found
     assert result.attempts == 3
-    assert result.fix.latitude == pytest.approx(51.6)
-    assert result.fix.longitude == pytest.approx(179.9333333333)
+    assert result.fix.latitude == pytest.approx(51.5005)
+    assert result.fix.longitude == pytest.approx(179.9999, abs=1e-6)
     assert result.fix.altitude == pytest.approx(12.0)
 
 
 def test_shared_workflow_finds_consensus_after_outliers(monkeypatch):
     fixes = [
         gps_location.GPSFix(0.0, 0.0),
-        gps_location.GPSFix(51.5, -0.12),
+        gps_location.GPSFix(51.5000, -0.1002),
         gps_location.GPSFix(20.0, 80.0),
-        gps_location.GPSFix(51.6, -0.1),
-        gps_location.GPSFix(51.7, -0.08),
+        gps_location.GPSFix(51.5005, -0.1000),
+        gps_location.GPSFix(51.5010, -0.0998),
     ]
     monkeypatch.setattr(gps_location, "_sleep", lambda delay: asyncio.sleep(0))
 
@@ -417,18 +413,18 @@ def test_shared_workflow_finds_consensus_after_outliers(monkeypatch):
     result = asyncio.run(gps_location.acquire_location(read_fix, max_attempts=5))
 
     assert result.attempts == 5
-    assert result.fix.latitude == pytest.approx(51.6)
+    assert result.fix.latitude == pytest.approx(51.5005)
     assert result.fix.longitude == pytest.approx(-0.1)
     assert result.fix.altitude is None
 
 
 def test_shared_workflow_searches_for_compatible_altitude(monkeypatch):
     fixes = [
-        gps_location.GPSFix(51.5, -0.12),
-        gps_location.GPSFix(51.6, -0.1),
-        gps_location.GPSFix(51.7, -0.08),
+        gps_location.GPSFix(51.5000, -0.1002),
+        gps_location.GPSFix(51.5005, -0.1000),
+        gps_location.GPSFix(51.5010, -0.0998),
         gps_location.GPSFix(54.0, -0.12, 100.0),
-        gps_location.GPSFix(51.6, -0.1, 35.7),
+        gps_location.GPSFix(51.5005, -0.1000, 35.7),
     ]
     monkeypatch.setattr(gps_location, "_sleep", lambda delay: asyncio.sleep(0))
 
@@ -438,7 +434,7 @@ def test_shared_workflow_searches_for_compatible_altitude(monkeypatch):
     result = asyncio.run(gps_location.acquire_location(read_fix, max_attempts=5))
 
     assert result.attempts == 5
-    assert result.fix.latitude == pytest.approx(51.6)
+    assert result.fix.latitude == pytest.approx(51.5005)
     assert result.fix.longitude == pytest.approx(-0.1)
     assert result.fix.altitude == pytest.approx(35.7)
 
@@ -507,7 +503,7 @@ def test_shared_workflow_reports_attempt_progress(monkeypatch):
 
 
 def test_parse_gga_nmea_fix_with_altitude():
-    fix = gps_nmea_location._parse_nmea_sentence(
+    fix = gps_location._parse_nmea_sentence(
         _nmea("GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,")
     )
 
@@ -517,7 +513,7 @@ def test_parse_gga_nmea_fix_with_altitude():
 
 
 def test_parse_rmc_nmea_fix_without_altitude():
-    fix = gps_nmea_location._parse_nmea_sentence(
+    fix = gps_location._parse_nmea_sentence(
         _nmea("GNRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,,,A")
     )
 
@@ -527,7 +523,7 @@ def test_parse_rmc_nmea_fix_without_altitude():
 
 
 def test_serial_stream_parser_reads_nmea_fix():
-    parser = gps_nmea_location._NMEAStreamParser()
+    parser = gps_location._NMEAStreamParser()
 
     fixes = parser.feed(
         b"garbage" + _nmea("GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,").encode()
@@ -565,9 +561,9 @@ def test_serial_provider_reads_ubx_nav_sol_position(monkeypatch):
                 return data
             return b""
 
-    monkeypatch.setattr(gps_serial_common.serial, "Serial", FakeSerial)
+    monkeypatch.setattr(gps_location.serial, "Serial", FakeSerial)
 
-    fix = asyncio.run(gps_ubx_location.get_gps_location(
+    fix = asyncio.run(gps_location._read_ubx_fix(
         0.1,
         {"gps_serial_device": "/dev/ttyACM0", "gps_serial_baudrate": 9600},
     ))
@@ -580,7 +576,7 @@ def test_serial_provider_reads_ubx_nav_sol_position(monkeypatch):
 
 def test_serial_stream_parser_rejects_ubx_checksum_and_no_fix():
     frame = _ubx_nav_sol(51.5, -0.12, 35.0)
-    parser = gps_ubx_location._UBXStreamParser()
+    parser = gps_location._UBXStreamParser()
 
     assert parser.feed(frame[:-1] + bytes((frame[-1] ^ 1,))) == []
 
@@ -603,28 +599,28 @@ def test_serial_stream_parser_rejects_ubx_checksum_and_no_fix():
     ],
 )
 def test_nmea_parser_rejects_no_fix_or_invalid_coordinates(body):
-    assert gps_nmea_location._parse_nmea_sentence(_nmea(body)) is None
+    assert gps_location._parse_nmea_sentence(_nmea(body)) is None
 
 
 def test_nmea_parser_rejects_bad_checksum():
     sentence = _nmea("GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,")
 
-    assert gps_nmea_location._parse_nmea_sentence(sentence[:-4] + "00\r\n") is None
+    assert gps_location._parse_nmea_sentence(sentence[:-4] + "00\r\n") is None
 
 
 def test_serial_open_error_is_provider_specific(monkeypatch):
     device = "/dev/ttyUSB-test"
 
     def fail_open(**kwargs):
-        raise gps_serial_common.serial.SerialException("permission denied")
+        raise gps_location.serial.SerialException("permission denied")
 
-    monkeypatch.setattr(gps_serial_common.serial, "Serial", fail_open)
+    monkeypatch.setattr(gps_location.serial, "Serial", fail_open)
 
     with pytest.raises(
         gps_location.GPSProviderError,
         match=r"Cannot open NMEA GPS serial device '/dev/ttyUSB-test' at 9600 baud: permission denied",
     ):
-        asyncio.run(gps_nmea_location.get_gps_location(
+        asyncio.run(gps_location._read_nmea_fix(
             0.1,
             {"gps_serial_device": device, "gps_serial_baudrate": 9600},
         ))
@@ -632,13 +628,13 @@ def test_serial_open_error_is_provider_specific(monkeypatch):
 
 def test_serial_configuration_error_is_immediate():
     with pytest.raises(gps_location.GPSProviderError, match="NMEA GPS serial device path must be configured"):
-        asyncio.run(gps_nmea_location.get_gps_location(
+        asyncio.run(gps_location._read_nmea_fix(
             0.1,
             {"gps_serial_device": "", "gps_serial_baudrate": 9600},
         ))
 
     with pytest.raises(gps_location.GPSProviderError, match="Invalid serial GPS baud rate"):
-        asyncio.run(gps_nmea_location.get_gps_location(
+        asyncio.run(gps_location._read_nmea_fix(
             0.1,
             {"gps_serial_device": "/dev/ttyUSB0", "gps_serial_baudrate": 0},
         ))
@@ -659,12 +655,12 @@ def test_serial_provider_times_out_and_logs_when_no_data_arrives(monkeypatch, ca
             time.sleep(self.timeout)
             return b""
 
-    monkeypatch.setattr(gps_serial_common.serial, "Serial", EmptySerial)
-    monkeypatch.setattr(gps_serial_common, "SERIAL_READ_TIMEOUT", 0.01)
+    monkeypatch.setattr(gps_location.serial, "Serial", EmptySerial)
+    monkeypatch.setattr(gps_location, "SERIAL_READ_TIMEOUT", 0.01)
     started_at = time.monotonic()
 
-    with caplog.at_level(logging.DEBUG, logger="gps_serial_common"):
-        fix = asyncio.run(gps_nmea_location.get_gps_location(
+    with caplog.at_level(logging.DEBUG, logger="gps_location"):
+        fix = asyncio.run(gps_location._read_nmea_fix(
             0.05,
             {"gps_serial_device": "/dev/ttyUSB-test", "gps_serial_baudrate": 9600},
         ))
@@ -682,8 +678,8 @@ def test_serial_blocking_read_runs_off_the_event_loop(monkeypatch):
         worker_threads.append(threading.get_ident())
         return gps_location.GPSFix(51.5, -0.12)
 
-    monkeypatch.setattr(gps_serial_common, "_read_serial_fix", fake_read)
-    fix = asyncio.run(gps_nmea_location.get_gps_location(0.1, {}))
+    monkeypatch.setattr(gps_location, "_read_serial_fix", fake_read)
+    fix = asyncio.run(gps_location._read_nmea_fix(0.1, {}))
 
     assert fix == gps_location.GPSFix(51.5, -0.12)
     assert worker_threads and worker_threads[0] != event_loop_thread
@@ -963,3 +959,80 @@ def test_config_fetch_does_not_probe_gpsd_or_return_runtime_status(monkeypatch):
         "site_elevation": 3.0,
     }
     assert "gpsd_listening" not in response.text
+
+
+# ── a real u-blox puck on Windows (nina01, 2026-10-13): RMC before GGA, one open per Locate, ports listed ──────────
+RMC = _nmea("GPRMC,105917.00,A,3339.31734,S,15107.33579,E,0.292,,131026,,,A")
+GGA = _nmea("GPGGA,105917.00,3339.31734,S,15107.33579,E,1,06,1.47,188.1,M,19.9,M,,")
+
+
+class ChunkSerial:
+    """A serial port that hands out its chunks one read at a time; counts opens and closes."""
+    opened = 0
+    closed = 0
+    fail_opens = 0
+
+    def __init__(self, **kwargs):
+        if ChunkSerial.fail_opens:
+            ChunkSerial.fail_opens -= 1
+            raise gps_location.serial.SerialException("PermissionError(13, 'A device attached ...')")
+        ChunkSerial.opened += 1
+        self.timeout = kwargs["timeout"]
+        self.chunks = [RMC.encode(), GGA.encode()] * 50
+
+    def read(self, size):
+        return self.chunks.pop(0) if self.chunks else b""
+
+    def close(self):
+        ChunkSerial.closed += 1
+
+
+@pytest.fixture
+def chunk_serial(monkeypatch):
+    ChunkSerial.opened = ChunkSerial.closed = ChunkSerial.fail_opens = 0
+    monkeypatch.setattr(gps_location.serial, "Serial", ChunkSerial)
+    monkeypatch.setattr(gps_location, "OPEN_RETRY_DELAY", 0.0)
+    return ChunkSerial
+
+
+def test_a_fix_without_altitude_waits_for_the_gga_that_follows(chunk_serial):
+    """u-blox sends RMC (no altitude) before GGA: the reader returns the GGA, with the altitude."""
+    fix = asyncio.run(gps_location._read_nmea_fix(2.0, {"gps_serial_device": "COM9"}))
+    assert fix.altitude == pytest.approx(188.1)
+    assert fix.latitude == pytest.approx(-33.6552890, abs=1e-6)
+
+
+def test_one_locate_opens_the_port_once_and_closes_it(chunk_serial, monkeypatch):
+    monkeypatch.setattr(gps_location, "_sleep", lambda delay: asyncio.sleep(0))
+    result = asyncio.run(gps_location.get_gps_location({"gps_provider": "nmea", "gps_serial_device": "COM9"}))
+    assert result.found and result.fix.altitude == pytest.approx(188.1)
+    assert result.attempts == 3                          # three agreeing fixes, each with its altitude
+    assert chunk_serial.opened == 1 and chunk_serial.closed == 1
+
+
+def test_a_port_that_refuses_once_is_retried(chunk_serial):
+    chunk_serial.fail_opens = 1                          # Windows PermissionError 13 on a busy hub, then fine
+    fix = asyncio.run(gps_location._read_nmea_fix(2.0, {"gps_serial_device": "COM9"}))
+    assert fix is not None and chunk_serial.opened == 1
+
+
+def test_ports_are_listed_without_opening_them(monkeypatch):
+    from serial.tools import list_ports
+    port = lambda device, description, vid=None, pid=None: SimpleNamespace(
+        device=device, description=description, vid=vid, pid=pid, manufacturer=None,
+        hwid=f"USB VID:PID={vid}:{pid}" if vid else "")
+    monkeypatch.setattr(list_ports, "comports", lambda: [
+        port("COM9", "USB Serial Device (COM9)", 0x1546, 0x01A7),
+        port("COM7", "USB-SERIAL CH340 (COM7)", 0x1A86, 0x7523),
+        port("/dev/ttyS5", "n/a"),                                  # an empty legacy port: hidden
+        port("/dev/ttyS0", "n/a"),                                  # a Pi's GPIO UART (GPS HAT): kept
+    ])
+    monkeypatch.setattr(gps_location.serial, "Serial", lambda **kw: pytest.fail("a port was opened"))
+    telescope, request, response = _install_telescope_action(monkeypatch, "Polaris:SerialPorts")
+    asyncio.run(telescope.action().on_put(request, response, 0))
+    assert [p["device"] for p in response.text] == ["/dev/ttyS0", "COM7", "COM9"]
+    assert response.text[2]["description"] == "USB Serial Device (COM9)" and response.text[2]["vid"] == 0x1546
+    kinds = {p["device"]: (p["kind"], p["gps"]) for p in response.text}
+    assert kinds["COM9"] == ("u-blox GPS receiver", True)               # the vendor only makes GPS receivers
+    assert kinds["COM7"] == ("USB-serial adapter (CH340)", False)       # could be a GPS puck or a focuser: no guess
+    assert kinds["/dev/ttyS0"] == ("Built-in serial port (GPIO UART)", False)

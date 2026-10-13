@@ -27,10 +27,11 @@ preset_action = ''                          # Action to trigger preset "<verb>_<
 preset_name = ''                            # name of the preset to take action on
 
 [server]
-gps_provider = 'none'                        # Location source: none, gpsd, nmea, or ubx
+location_source = 'browser'                 # Pilot's Locate: 'browser' (the browser's location services) or 'gps' (a GPS receiver)
+gps_provider = 'nmea'                        # GPS receiver protocol: nmea (serial/USB, all platforms), gpsd (Linux), ubx (serial)
 gpsd_host = '127.0.0.1'                     # GPSD server hostname or IP address
 gpsd_port = 2947                             # GPSD server TCP port
-gps_serial_device = '/dev/ttyUSB0'          # GPS serial device path for NMEA or UBX
+gps_serial_device = ''                      # GPS serial port (e.g. COM9, /dev/ttyACM0): chosen in Pilot's GPS Receiver Settings
 gps_serial_baudrate = 9600                   # GPS serial baud rate
 gps_max_attempts = 10                       # Maximum GPS polls (1-20)
 gps_retry_max_delay = 15.0                  # Maximum wait between polls; intervals double every two attempts

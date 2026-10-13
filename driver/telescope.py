@@ -1584,7 +1584,7 @@ class supportedactions:
             "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:ShutdownOS", "Polaris:ShutdownMount",
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
-            "Polaris:GpsLocate", "Polaris:GPSLocationStatus",
+            "Polaris:GpsLocate", "Polaris:GPSLocationStatus", "Polaris:SerialPorts",
             "Polaris:ReplayMark",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
             "Polaris:SyncRoll", "Polaris:SyncRemove",
@@ -1696,6 +1696,12 @@ class action:
             gps_location_error = None
             lifecycle.create_task(_run_gps_location(), name="GPSLocation")
             resp.text = await MethodResponse(req)
+            return
+
+        elif actionName == "Polaris:SerialPorts":
+            # the serial ports present, listed not opened (gps_location.list_serial_ports): e.g. to choose the GPS receiver
+            from gps_location import list_serial_ports
+            resp.text = await PropertyResponse(list_serial_ports(), req)
             return
 
         elif actionName == "Polaris:GPSLocationStatus":
