@@ -8,19 +8,34 @@
         </div>
         <div class="q-gutter-y-md">
             <!-- Connection: gpsd is only offered when the driver runs on Linux -->
-            <q-select v-if="protocolOptions.length > 1" v-model="draft.gps_provider" :options="protocolOptions"
-                      label="Connection" emit-value map-options/>
+            <div v-if="protocolOptions.length > 1">
+                <q-select v-model="draft.gps_provider" :options="protocolOptions"
+                          label="Connection to GPS Receiver" emit-value map-options :popup-content-style="FIT_FIELD"/>
+                <div v-if="draft.gps_provider === 'gpsd'" class="text-caption text-grey-6 q-pt-xs wrap-to-fit">
+                    GPSD is a Linux service that makes GPS data available to multiple programs. It must be running on
+                    a computer accessible to the Alpaca Driver.
+                </div>
+            </div>
+            <!-- Invisible copies of the port names and connection choices: they set the panel's width, whichever
+                 is selected, so the longest one shows in full and switching never resizes the panel -->
+            <div class="port-sizer" aria-hidden="true">
+                <div v-for="label in sizerLabels" :key="label">{{ label }}</div>
+            </div>
             <template v-if="draft.gps_provider === 'gpsd'">
-                <div class="row q-col-gutter-md">
-                    <q-input class="col-8" v-model="draft.gpsd_host" label="gpsd Host"/>
-                    <q-input class="col-4" v-model.number="draft.gpsd_port" label="Port" type="number" input-class="text-right"/>
+                <div>
+                    <q-input v-model="draft.gpsd_host" label="GPSD Host"/>
+                    <div class="text-caption text-grey-6 q-pt-xs wrap-to-fit">
+                        The hostname or IP address of the computer running GPSD.
+                    </div>
+                </div>
+                <div>
+                    <q-input v-model.number="draft.gpsd_port" label="GPSD Port" type="number"/>
+                    <div class="text-caption text-grey-6 q-pt-xs wrap-to-fit">
+                        The network port used by GPSD.
+                    </div>
                 </div>
             </template>
             <template v-else>
-                <!-- Invisible copies of the port names: they set the panel's width, so the longest one shows in full -->
-                <div class="port-sizer" aria-hidden="true">
-                    <div v-for="o in portOptions" :key="o.value">{{ o.label }}</div>
-                </div>
                 <!-- Serial Port: what each device is, likely GPS receivers marked -->
                 <q-select v-model="draft.gps_serial_device" :options="portOptions" label="Serial Port"
                           emit-value map-options :loading="portsLoading">
@@ -45,13 +60,14 @@
                         </q-btn>
                     </template>
                 </q-select>
-                <div v-if="noPorts" class="text-caption text-grey-6">
+                <div v-if="noPorts" class="text-caption text-grey-6 wrap-to-fit">
                     No serial ports found. Connect the GPS receiver, then refresh.
                 </div>
                 <div>
-                    <q-select v-model="draft.gps_serial_baudrate" :options="BAUD_RATES" label="Baud Rate"/>
-                    <div class="text-caption text-grey-6 q-pt-xs">
-                        Ignored by GPS receivers that connect directly over USB, such as u-blox receivers.
+                    <q-select v-model="draft.gps_serial_baudrate" :options="BAUD_RATES" label="Baud Rate"
+                              :popup-content-style="FIT_FIELD"/>
+                    <div class="text-caption text-grey-6 q-pt-xs wrap-to-fit">
+                        Baud rate is not used by GPS receivers that connect directly over USB, such as u-blox receivers.
                     </div>
                 </div>
             </template>
@@ -77,6 +93,8 @@ const dev = useDeviceStore()
 const p = useStatusStore()
 
 const BAUD_RATES = [4800, 9600, 38400, 115200]
+// A dropdown list is as wide as its field (Quasar sets that as its min-width); this stops it growing wider
+const FIT_FIELD = { width: 'min-content' }
 
 // Edits are held here until OK; Cancel (or clicking away) leaves the config untouched
 const draft = reactive({
@@ -88,7 +106,7 @@ const draft = reactive({
 })
 
 const protocolOptions = computed(() => p.platform === 'linux'
-  ? [{ label: 'USB / Serial (NMEA)', value: 'nmea' }, { label: 'gpsd', value: 'gpsd' }]
+  ? [{ label: 'USB / Serial (NMEA)', value: 'nmea' }, { label: 'GPS Daemon (GPSD)', value: 'gpsd' }]
   : [{ label: 'USB / Serial (NMEA)', value: 'nmea' }])
 
 // Ports are listed by the driver without opening them (opening can reset a device such as a focuser)
@@ -110,6 +128,8 @@ const portOptions = computed(() => {
   }
   return options
 })
+
+const sizerLabels = computed(() => [...portOptions.value, ...protocolOptions.value].map(o => o.label))
 
 // Nothing to choose: say so (and OK stays off) rather than show an empty dropdown
 const noPorts = computed(() => !portsLoading.value && portOptions.value.length === 0)
@@ -152,7 +172,7 @@ onMounted(loadSerialPorts)
   height: 0;
   overflow: hidden;
   visibility: hidden;
-  padding-right: 80px;
+  padding-right: 104px;   /* dropdown arrow + refresh button beside the port name */
   margin: 0 !important;
 }
 </style>
