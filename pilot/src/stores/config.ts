@@ -36,10 +36,11 @@ export const useConfigStore = defineStore('config', {
     mdns_name: 'alpacapailot.local',
 
     // Site Info
-    gps_provider: 'none' as 'none' | 'gpsd' | 'nmea' | 'ubx',
+    location_source: 'browser' as 'browser' | 'gps',
+    gps_provider: 'nmea' as 'none' | 'gpsd' | 'nmea' | 'ubx',
     gpsd_host: '127.0.0.1',
     gpsd_port: 2947,
-    gps_serial_device: '/dev/ttyUSB0',
+    gps_serial_device: '',
     gps_serial_baudrate: 9600,
     gps_max_attempts: 10,
     gps_retry_max_delay: 15,

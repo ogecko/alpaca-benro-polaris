@@ -7,6 +7,17 @@ import type { ConfigResponse } from 'src/stores/config'
 import type { OrbitalExport, DsoType, CatalogItem } from 'src/stores/catalog'
 import { AppVisibility } from 'quasar'
 
+export type SerialPort = {
+  device: string
+  description: string
+  kind: string            // what the USB ID says the device is, e.g. "u-blox GPS receiver"
+  gps: boolean            // almost certainly a GPS receiver (vendor makes nothing else)
+  manufacturer: string
+  vid: number | null
+  pid: number | null
+  hwid: string
+}
+
 type GPSLocationStatus = {
   state: 'idle' | 'running' | 'found' | 'no_fix' | 'error'
   attempts: number
@@ -227,6 +238,10 @@ export const useDeviceStore = defineStore('device', {
 
     async alpacaGpsLocate() {
       await this.apiAction<void>('Polaris:GpsLocate')
+    },
+
+    async alpacaSerialPorts() {
+      return await this.apiAction<SerialPort[]>('Polaris:SerialPorts')
     },
 
     async alpacaGpsLocationStatus() {
