@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# gps_location.py - the observing site's location from a GPS receiver
+# gps_receiver.py - the observing site's location from a GPS receiver
 # -----------------------------------------------------------------------------
 #
 # Pilot's Locate (location_source = 'gps') asks the driver for a fix: polls are repeated until three fixes agree
@@ -31,7 +31,7 @@ import serial
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GPS_MAX_ATTEMPTS = 10
+DEFAULT_GPS_MAX_ATTEMPTS = 5            # 3 agreeing fixes needed; a receiver with no fix gives up in ~1 min
 MAX_GPS_ATTEMPTS = 20
 DEFAULT_GPS_RETRY_MAX_DELAY = 15.0
 GPS_ATTEMPT_TIMEOUT = 10.0
@@ -54,6 +54,21 @@ class GPSLocationResult:
     @property
     def found(self) -> bool:
         return self.fix is not None
+
+
+# The driver's GPS Locate, as Pilot sees it: sent in the Polaris status (gpsrun, gpsstate, gpsattempts, gpserror), so
+# every Pilot window shows its progress and result. run counts Locates, so a window knows which result is the one it
+# started or joined. state: idle | running | found | no_fix | error
+locate_status = {"run": 0, "state": "idle", "attempts": 0, "error": None}
+
+# log_gps_receiver: log what the receiver sends (NMEA sentences, UBX frames, GPSD reports) and each attempt's result,
+# for diagnosing a receiver that gives no fix. Set from the config at the start of each Locate.
+_log_receiver = False
+
+
+def _log_traffic(protocol: str, message: str) -> None:
+    if _log_receiver:
+        logger.info("==GPS-%s== %s", protocol, message)
 
 
 class GPSProviderError(Exception):
@@ -157,11 +172,13 @@ async def acquire_location(
     *,
     max_attempts=DEFAULT_GPS_MAX_ATTEMPTS,
     retry_max_delay=DEFAULT_GPS_RETRY_MAX_DELAY,
-    attempt_timeout=GPS_ATTEMPT_TIMEOUT,
+    attempt_timeout: Optional[float] = None,
     on_attempt: Optional[GPSAttemptCallback] = None,
 ) -> GPSLocationResult:
     """Acquire a three-fix consensus without changing application configuration."""
     attempts = _configured_attempts(max_attempts)
+    if attempt_timeout is None:
+        attempt_timeout = GPS_ATTEMPT_TIMEOUT          # read at call time (tests shorten it)
     retry_delay_cap = _configured_retry_max_delay(retry_max_delay)
     fix_history: list[GPSFix] = []
     consensus: Optional[tuple[GPSFix, GPSFix, GPSFix]] = None
@@ -176,6 +193,11 @@ async def acquire_location(
         attempt_started_at = asyncio.get_running_loop().time()
         raw_fix = await read_fix(attempt_timeout)
         fix = _validated_fix(raw_fix)
+        if fix is None:
+            _log_traffic("FIX", f"attempt {attempt_number}/{attempts}: no fix")
+        else:
+            altitude = "no altitude" if fix.altitude is None else f"{fix.altitude:.1f} m"
+            _log_traffic("FIX", f"attempt {attempt_number}/{attempts}: {fix.latitude:.6f}, {fix.longitude:.6f}, {altitude}")
         if raw_fix is not None and fix is None:
             logger.debug(
                 "==GPS== Rejected invalid fix in acquisition attempt %d/%d",
@@ -324,6 +346,7 @@ ALTITUDE_GRACE = 1.5          # after a fix without altitude (RMC), wait this lo
 # driver's event loop on Windows and, once, left the port refusing to reopen
 _session_active = False
 _sessions: dict = {}
+_received: dict[str, bool] = {}    # per port this Locate: did it send anything? (no fix vs no data, in the error)
 
 
 class serial_session:
@@ -331,6 +354,7 @@ class serial_session:
     def __enter__(self):
         global _session_active
         _session_active = True
+        _received.clear()
         return self
 
     def __exit__(self, *_):
@@ -364,6 +388,16 @@ def _open_serial(device: str, baudrate: int, timeout: float):
     raise error
 
 
+def _discard_session_port(device: str, baudrate: int, connection) -> None:
+    """Forget and close a port that failed, rather than keep reading a broken connection."""
+    if _sessions.get((device, baudrate)) is connection:
+        del _sessions[(device, baudrate)]
+    try:
+        connection.close()
+    except Exception:
+        pass
+
+
 class GPSStreamParser(Protocol):
     def feed(self, data: bytes) -> list[GPSFix]: ...
 
@@ -378,7 +412,7 @@ def _configured_serial(
     raw_device = settings.get("gps_serial_device", DEFAULT_SERIAL_DEVICE)
     if not isinstance(raw_device, str) or not raw_device.strip():
         raise GPSProviderError(
-            f"{protocol_name} GPS serial device path must be configured in Network Services."
+            "No GPS receiver serial port is chosen. Choose it in Pilot's GPS Receiver settings (beside Locate)."
         )
 
     raw_baudrate = settings.get("gps_serial_baudrate", DEFAULT_SERIAL_BAUDRATE)
@@ -427,10 +461,13 @@ def _read_serial_fix(
                     device,
                 )
                 return None
-            connection.timeout = min(SERIAL_READ_TIMEOUT, remaining)
+            # the read timeout is set once, at open: setting it here reconfigures the port on every read (pyserial),
+            # which a u-blox on a busy Windows USB hub eventually refuses ("device ... not functioning", error 31)
             chunk = connection.read(256)
             if not chunk:
+                _received.setdefault(device, False)
                 continue
+            _received[device] = True
             fixes = parser.feed(chunk)
             if not fixes:
                 continue
@@ -442,7 +479,11 @@ def _read_serial_fix(
                 deadline = min(deadline, time.monotonic() + ALTITUDE_GRACE)
             without_altitude = fixes[-1]
     except (serial.SerialException, OSError) as error:
-        raise GPSProviderError(f"{protocol_name} GPS serial device '{device}' failed: {error}") from error
+        # one failed attempt, not a failed Locate: the next attempt reopens the port (and if it cannot be reopened,
+        # that open error ends the Locate)
+        logger.info("==GPS== %s GPS serial device '%s' failed, reopening it: %s", protocol_name, device, error)
+        _discard_session_port(device, baudrate, connection)
+        return None
     finally:
         if not _session_active:
             close = getattr(connection, "close", None)
@@ -589,6 +630,7 @@ class _NMEAStreamParser:
                 line = raw_line.decode("ascii").strip()
             except UnicodeDecodeError:
                 continue
+            _log_traffic("NMEA", line)
             fix = _parse_nmea_sentence(line)
             if fix is not None:
                 fixes.append(fix)
@@ -711,6 +753,7 @@ class _UBXStreamParser:
                     break
                 frame = bytes(self.buffer[:frame_length])
                 del self.buffer[:frame_length]
+                _log_traffic("UBX", f"class 0x{frame[2]:02X} id 0x{frame[3]:02X} ({payload_length} bytes) {frame.hex()}")
                 fix = _parse_ubx_frame(frame)
                 if fix is not None:
                     fixes.append(fix)
@@ -779,7 +822,7 @@ def _parse_tpv(report: dict) -> Optional[GPSFix]:
 def _configured_endpoint(settings: Mapping[str, object]) -> tuple[str, int]:
     raw_host = settings.get("gpsd_host", GPSD_HOST)
     if not isinstance(raw_host, str) or not raw_host.strip():
-        raise GPSProviderError("GPSD host must be configured in Network Services.")
+        raise GPSProviderError("No GPSD host is set. Set it in Pilot's GPS Receiver settings (beside Locate).")
 
     raw_port = settings.get("gpsd_port", GPSD_PORT)
     if isinstance(raw_port, bool):
@@ -847,6 +890,7 @@ async def _read_gpsd_fix(timeout: float, settings: Mapping[str, object]) -> Opti
             if not line:
                 break
 
+            _log_traffic("GPSD", line.decode("utf-8", "replace").strip() if isinstance(line, bytes) else str(line).strip())
             try:
                 report = json.loads(line)
             except (json.JSONDecodeError, UnicodeDecodeError):
@@ -909,6 +953,18 @@ async def get_gps_location(
     async def read_fix(timeout: float) -> Optional[GPSFix]:
         return await read_provider_fix(timeout, settings)
 
+    global _log_receiver
+    _log_receiver = bool(settings.get("log_gps_receiver", False))
+    provider_label = {"gpsd": "GPSD", "nmea": "NMEA", "ubx": "UBX"}[provider_name]
+    max_attempts = settings.get("gps_max_attempts", DEFAULT_GPS_MAX_ATTEMPTS)
+    if provider_name == "gpsd":
+        host, port = _configured_endpoint(settings)
+        where = f"GPSD at {host}:{port}"
+    else:
+        device, baudrate = _configured_serial(settings, provider_label)
+        where = f"{provider_label} on {device} at {baudrate} baud"
+    logger.info("==GPS== Locating with %s, up to %s attempts", where, max_attempts)
+
     if provider_name in ("nmea", "ubx"):
         session = serial_session()            # one open port for all the attempts
     else:
@@ -916,12 +972,18 @@ async def get_gps_location(
     with session:
         result = await acquire_location(
             read_fix,
-            max_attempts=settings.get("gps_max_attempts", DEFAULT_GPS_MAX_ATTEMPTS),
+            max_attempts=max_attempts,
             retry_max_delay=settings.get("gps_retry_max_delay", DEFAULT_GPS_RETRY_MAX_DELAY),
             on_attempt=on_attempt,
         )
     if result.fix is None:
-        provider_label = {"gpsd": "GPSD", "nmea": "NMEA", "ubx": "UBX"}[provider_name]
-        error = f"No valid {provider_label} GPS fix found after {result.attempts} attempts."
+        # what was used is in the log ("Locating with NMEA on COM10 ..."); the message says what to do about it
+        attempts = f"{result.attempts} attempt{'' if result.attempts == 1 else 's'}"
+        error = f"No valid GPS fix after {attempts}."
+        if provider_name != "gpsd" and _received.get(device) is True:
+            error += (f" The receiver on {device} is sending data but hasn't acquired satellites yet. Give it a clear"
+                      " view of the sky; the first fix can take several minutes.")
+        elif provider_name != "gpsd" and _received.get(device) is False:
+            error += f" No data from {device}. Check that it is the GPS receiver's port, and its baud rate."
         return GPSLocationResult(None, result.attempts, error)
     return result

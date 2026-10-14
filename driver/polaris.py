@@ -56,6 +56,7 @@ from control_worm import ROLL_TARGET_DEG, ROLL_TOLERANCE_DEG, POSITIONS, SYNC_CY
 from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
+from gps_receiver import locate_status
 import tracking_restore
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
@@ -1803,6 +1804,10 @@ class Polaris:
                 'bleisenablingwifi': self._ble.isEnablingWifi,
                 'bleiswifienabled': self._ble.isWifiEnabled,
                 'platform': sys.platform,                # the driver's OS (win32, linux, darwin): Pilot offers what applies
+                'gpsrun': locate_status['run'],          # GPS Locate: which one (counts Locates)
+                'gpsstate': locate_status['state'],      # idle | running | found | no_fix | error
+                'gpsattempts': locate_status['attempts'],
+                'gpserror': locate_status['error'],
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,
