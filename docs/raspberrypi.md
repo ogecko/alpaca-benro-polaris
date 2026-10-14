@@ -150,11 +150,25 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
     Once you have completed compass and single star alignment, the Polaris should be ready to use.
 
-## Optional GPS
+## Optional GPS Receiver
 
-The Alpaca Pilot **Locate** button uses browser / network  location by default. To use a GPS receiver instead, select **GPSD**, **GPS Serial (NMEA)**, or **GPS Serial (UBX)** under **Network Services**. A tested receiver is for example the [G-Mouse USB GPS/GLONASS receiver](https://amzn.eu/d/050xUKar) working both with gpsd or UBX serial.
+Alpaca Pilot's **Locate** button uses the browser's location by default, which needs internet and is often only approximate. At a dark site, a USB GPS receiver plugged into the Pi gives the observing site's latitude, longitude and elevation instead, with no internet needed. How to use it in Pilot is described in [Set Observing Site Location](./pilot.md#e-setup-the-polaris-for-astro-mode); the notes below are specific to the Pi.
 
-### GPSD
+### Connecting the receiver
+* **Pi Zero 2 W:** plug the receiver into the micro-USB port marked **USB** with an OTG adapter (not the **PWR** port). Other Pis: any USB port.
+* **Plug it directly into the Pi.** A cheap USB hub, and cameras or USB 3 cables close by, can block the GPS signal completely. In testing, a receiver that got a fix plugged directly into the computer never got one through a hub shared with a guide camera.
+* u-blox receivers appear as `/dev/ttyACM0`, and receivers using a CH340 USB-serial chip as `/dev/ttyUSB0`. To check, run `ls /dev/ttyACM* /dev/ttyUSB*`.
+* The Pi user running the driver must be in the `dialout` group to read the receiver. The default `pi` user already is. To check, run `groups`.
+
+### USB / Serial (NMEA) (recommended)
+The driver reads the receiver directly. Nothing extra needs to be installed.
+1. In Pilot **Settings**, click the arrow beside **Locate** and choose **Use GPS Receiver**.
+2. Leave **Connection to GPS Receiver** as **USB / Serial (NMEA)**, and choose the **Serial Port**. GPS receivers are marked in the list, and if only one is plugged in it is chosen for you.
+3. Leave **Baud Rate** at `9600` unless your receiver's documentation says otherwise. u-blox receivers ignore it.
+4. Click **OK**, then **Locate (GPS)**.
+
+### GPS Daemon (GPSD) (optional)
+GPSD is a Linux service that shares a GPS receiver between programs, for example with KStars/Ekos, or to keep the Pi's clock on GPS time. Use it only if you need that: while GPSD is running it holds the receiver, so choose **GPS Daemon (GPSD)** in Pilot rather than USB / Serial.
 
 1. Install gpsd and its status client:
     ```Bash
@@ -172,11 +186,8 @@ The Alpaca Pilot **Locate** button uses browser / network  location by default. 
     sudo systemctl restart gpsd
     cgps -s
     ```
-    Exit `cgps` with **Ctrl+C** after confirming it reports a fix. In **Network Services**, select **GPSD** and configure its host and port (defaults: `127.0.0.1:2947`). In **Observing Site Information**, click **Locate (GPSD)** to update the site.
-
-### Serial
-
-Serial modes read the receiver directly and do not require gpsd. In **Network Services**, choose **Serial (NMEA)** for NMEA-0183 receivers or **Serial (UBX)** for u-blox binary output. Set the serial device path (for example `/dev/serial/by-id/usb-your-receiver`) and baud rate (default `9600`); the **Locate** button is labeled **Locate (NMEA)** or **Locate (UBX)** for the selected mode.
+    Exit `cgps` with **Ctrl+C** after confirming it reports a fix.
+4. In Pilot **Settings**, click the arrow beside **Locate**, choose **Use GPS Receiver**, and set **Connection to GPS Receiver** to **GPS Daemon (GPSD)**. The defaults (host `127.0.0.1`, port `2947`) are correct when gpsd runs on the Pi itself. Click **OK**, then **Locate (GPS)**.
 
 ## Setup.sh Command Reference
 You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
