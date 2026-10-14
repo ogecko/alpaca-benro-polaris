@@ -581,3 +581,12 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2)"
 records = ["kf", "pec", "pid"]
 notes = ""
+
+[sessions."jdm_Beta8.0_10_14_Tuc47_Pegasus_200mm_worm_mac_blc"]
+logs = ["alpaca.jdm_Beta8.0_10_14_Tuc47_Pegasus_200mm_worm_mac_blc_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_14_Tuc47_Pegasus_200mm_worm_mac_blc_a1_PHD2_GuideLog_2026-10-14_175056.txt"
+date = "2026-10-14"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = "19:56 SPA, 19:57 MPA6, 20:10 WormProfile, 20:33 SCC Gotos, 20:48 PHD2Calib, 20:50 Tuc47, 22:22 Pegasus, 22:24 Rotate0, 22:42 Rotate18, 22:34 PHDCalib, 22:48 Pegasus PG, 23:15 Pegasus SG"
