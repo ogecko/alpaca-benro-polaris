@@ -147,10 +147,15 @@ async function loadSerialPorts() {
   }
 }
 
-async function save() {
+// OK, and Locate pressed while the panel is open: apply the edits and close (false when there is no port to apply)
+async function save(): Promise<boolean> {
+  if (!canSave.value) return false
   await cfg.configUpdate({ location_source: 'gps', ...draft })
   emit('close')
+  return true
 }
+
+defineExpose({ save })
 
 onMounted(loadSerialPorts)
 </script>

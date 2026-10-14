@@ -18,12 +18,6 @@ export type SerialPort = {
   hwid: string
 }
 
-type GPSLocationStatus = {
-  state: 'idle' | 'running' | 'found' | 'no_fix' | 'error'
-  attempts: number
-  error: string | null
-}
-
 export const useDeviceStore = defineStore('device', {
   state: () => ({
     _connecting: false,             // used in connectRestAPI to manage connecting state
@@ -236,17 +230,15 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:ShutdownMount')
     },
 
+    // starts a GPS Locate, or joins the one running; its progress and result arrive in the status (gpsrun, gpsstate)
     async alpacaGpsLocate() {
-      await this.apiAction<void>('Polaris:GpsLocate')
+      return await this.apiAction<{ run: number, joined: boolean }>('Polaris:GpsLocate')
     },
 
     async alpacaSerialPorts() {
       return await this.apiAction<SerialPort[]>('Polaris:SerialPorts')
     },
 
-    async alpacaGpsLocationStatus() {
-      return await this.apiAction<GPSLocationStatus>('Polaris:GPSLocationStatus')
-    },
 
     async bleSelectDevice(name:string) {
       await this.apiAction<void>('Polaris:bleSelectDevice', `{"name": "${name}"}`)
