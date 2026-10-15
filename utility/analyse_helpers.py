@@ -6,10 +6,13 @@ observe()/errsignal() logging). analyse_pec.ipynb and analyse_kf_pid.ipynb both 
 the same underlying log files and payload convention -- analyse_pec.ipynb's outcome
 overview even loads KFLOG as an optional secondary diagnostic -- so keeping this in one
 place means a fix (e.g. to the None/bool handling below) only has to happen once.
+Also the goto response analysis (utility/goto_response.py runs) for analyse_goto_response.ipynb.
 """
 import os
 import re
 import ast
+import math
+import datetime
 from glob import glob
 
 import numpy as np
@@ -1897,4 +1900,220 @@ def m2_slip_summary(steps, frames=None, speed_bins=SLIP_SPEED_BINS, sky_jump_arc
         if 'seen' in s:
             row['seen by guider %'] = round(100 * slips['seen'].mean()) if len(slips) else np.nan
         rows.append(row)
+    return pd.DataFrame(rows)
+
+
+# ── Goto response (utility/goto_response.py runs, utility/analyse_goto_response.ipynb) ─────────
+# Analysis of utility/goto_response.py runs, from a driver log with log_position on (used by
+# utility/analyse_goto_response.ipynb). Each run is split from the log by its REPLAYLOG 'begin' marker and each
+# leg by its 'start'/'end' markers; PIDLOG (every control tick, ~0.2 s) gives the planned motor angles (θ_sp),
+# the measured ones (θ_pv), the speed commanded to each motor (ω_op) and the PID terms.
+#
+# Per leg and moving motor: the theoretical minimum time of an independent-motor move (each motor accelerating,
+# cruising, decelerating within its limits, the slowest deciding), the arrival (within 1' from then on; tracking:
+# of the tracked setpoint, and also the time to the tracking tolerance pid_Kc/20), the commanded vs measured
+# speed, the response delay, how far the motor fell behind its reference, overshoot and the final error. See
+# docs/study_goto_response.md.
+
+GR_GOTO_RATE_SHARE = 0.8                      # the planner moves at this share of Kv (control.PID_Controller)
+GR_KV_DEFAULT = (8.92, 7.66, 7.99)            # the motors' max speeds, deg/s (the FAST 2500 calibration)
+GR_KA_DEFAULT = 5.0                           # acceleration, deg/s^2 (pid_Ka 0 -> 5)
+GR_KP_DEFAULT = (1.0, 1.0, 1.0)               # config.toml pid_Kp
+GR_KD_DEFAULT = (0.5, 0.5, 0.8)               # config.toml pid_Kd
+GR_ARRIVE_DEG = 1.0 / 60                      # arrival: within 1'
+GR_TIGHT_DEG = 0.75 / 60 / 20                 # the tracking completion tolerance: pid_Kc / 20
+GR_REF_SETTLED_DEG = 0.2                      # tracking: the setpoint has reached the target (sky motion aside)
+GR_SIDEREAL_DEG_S = 0.0042
+GR_MOVING_DEG = 0.2                           # a motor moves in a leg if its target is this far away
+
+def load_goto_response(path):
+    """(pid ticks [(t, θ_sp, θ_pv, ω_op, terms, mode)], goto_response markers [(t, dict)], battery [(t, %, charging)])."""
+    pid, marks, battery = [], [], []
+    for line in open(path, encoding="utf-8", errors="replace"):
+        if " PIDLOG " in line:
+            r = parse_payload_line(line, "PIDLOG")
+            if r is None:
+                continue
+            v = lambda k: np.array([r[f"{k}_{i}"] for i in (1, 2, 3)], dtype=float)
+            pid.append((pd.Timestamp(r["timestamp"]).timestamp(), v("θ_sp"), v("θ_pv"), v("ω_op"),
+                        {k: v(k) for k in ("ω_kp", "ω_ki", "ω_kd", "ω_ff")}, r["mode"]))
+        elif " REPLAYLOG " in line or "BATTERY status changed: 778" in line:
+            ts, _, body = line.partition(" INFO ")
+            t = pd.Timestamp(ts.strip()).timestamp()
+            d = ast.literal_eval(body[body.index("{"):].strip())
+            if "REPLAYLOG" in body:
+                if d.get("test") == "goto_response":
+                    marks.append((t, d))
+            else:
+                battery.append((t, int(d["capacity"]), d["charge"] == "1"))
+    return pid, marks, battery
+
+
+def goto_response_runs(marks):
+    """One run per 'begin' marker: [(t_begin, t_end, tracking, markers)]."""
+    out = []
+    for t, d in marks:
+        if d.get("event") == "begin":
+            out.append([t, None, bool(d.get("tracking")), []])
+        elif out:
+            out[-1][3].append((t, d))
+            if d.get("event") == "finish":
+                out[-1][1] = t
+    return [(a, b if b is not None else (m[-1][0] if m else a), tr, m) for a, b, tr, m in out]
+
+
+def goto_response_legs(run_marks):
+    """[(name, t_start, t_end, target θ, seconds the script waited for completion)]."""
+    out, start = [], {}
+    for t, d in run_marks:
+        if d.get("event") == "start":
+            start[d["leg"]] = (t, np.array(d["target"]))
+        elif d.get("event") == "end" and d["leg"] in start:
+            t0, target = start.pop(d["leg"])
+            out.append((d["leg"], t0, t, target, d["seconds"]))
+    return out
+
+
+def _gr_axis_time(d, v, a):
+    """Minimum time for one motor to move d deg from rest to rest at max speed v and acceleration a."""
+    d = abs(d)
+    return d / v + v / a if d >= v * v / a else 2.0 * math.sqrt(d / a)
+
+
+def _gr_arrival(t, err, ok=None, tol=GR_ARRIVE_DEG):
+    """First time from which every motor stays within tol (and ok holds), or None."""
+    good = np.all(np.abs(err) < tol, axis=1)
+    if ok is not None:
+        good &= ok
+    bad = np.where(~good)[0]
+    if not len(bad):
+        return float(t[0])
+    return float(t[bad[-1] + 1]) if bad[-1] + 1 < len(t) else None
+
+
+def _gr_lag_s(cmd, vel, dt):
+    """Delay (s) of the measured speed behind the commanded, by cross-correlation (0 to 1.5 s)."""
+    best, best_k = -np.inf, 0
+    for k in range(0, int(1.5 / dt) + 1):
+        a, b = cmd[:len(cmd) - k], vel[k:]
+        if len(a) < 5 or np.std(a) < 1e-6 or np.std(b) < 1e-6:
+            continue
+        c = np.corrcoef(a, b)[0, 1]
+        if c > best:
+            best, best_k = c, k
+    return best_k * dt
+
+
+def goto_response_leg_series(pid, t0, t1):
+    """One leg's PIDLOG ticks as a DataFrame (t from the leg's start), per motor: sp, pv, op, measured speed vel,
+    and the PID terms kp/ki/kd/ff."""
+    sel = [p for p in pid if t0 <= p[0] <= t1]
+    if len(sel) < 2:
+        return pd.DataFrame()
+    t = np.array([p[0] for p in sel]) - t0
+    sp, pv, op = (np.array([p[i] for p in sel]) for i in (1, 2, 3))
+    vel = np.gradient(pv, t, axis=0)
+    cols = {"t": t, "mode": [p[5] for p in sel]}
+    for a in range(3):
+        m = f"m{a + 1}"
+        cols.update({f"{m}_sp": sp[:, a], f"{m}_pv": pv[:, a], f"{m}_op": op[:, a], f"{m}_vel": vel[:, a]})
+        for k in ("ω_kp", "ω_ki", "ω_kd", "ω_ff"):
+            cols[f"{m}_{k[2:]}"] = [p[4][k][a] for p in sel]
+    return pd.DataFrame(cols)
+
+
+def goto_response_leg_table(pid, run_marks, track, kv=GR_KV_DEFAULT, ka=GR_KA_DEFAULT):
+    """One row per leg and moving motor."""
+    rate = np.array(kv, dtype=float) * GR_GOTO_RATE_SHARE
+    rows = []
+    for case, (name, t0, t1, target, done) in enumerate(goto_response_legs(run_marks)):
+        s = goto_response_leg_series(pid, t0, t1)
+        if len(s) < 5:
+            continue
+        t = s["t"].to_numpy()
+        sp = s[["m1_sp", "m2_sp", "m3_sp"]].to_numpy()
+        pv = s[["m1_pv", "m2_pv", "m3_pv"]].to_numpy()
+        op = s[["m1_op", "m2_op", "m3_op"]].to_numpy()
+        vel = s[["m1_vel", "m2_vel", "m3_vel"]].to_numpy()
+        delta = target - pv[0]
+        moving = [a for a in range(3) if abs(delta[a]) > GR_MOVING_DEG]
+        if not moving:
+            continue
+        t_min = max(_gr_axis_time(delta[a], rate[a], ka) for a in range(3))
+        dt = float(np.median(np.diff(t)))
+        if track:
+            # tracking: the setpoint steps to the target and then moves on with the sky
+            err = pv - sp
+            ref_done = np.all(np.abs(sp - sp[-1]) < GR_REF_SETTLED_DEG + np.abs(t - t[-1])[:, None] * GR_SIDEREAL_DEG_S, axis=1)
+            t_arr, t_tight = _gr_arrival(t, err, ref_done), _gr_arrival(t, err, ref_done, GR_TIGHT_DEG)
+        else:
+            err, ref_done = pv - target, np.ones(len(t), dtype=bool)
+            t_arr, t_tight = _gr_arrival(t, err), None
+        during = t <= (t_arr if t_arr is not None else t[-1])
+        for a in moving:
+            sgn = np.sign(delta[a])
+            cruise = np.abs(op[:, a]) > 0.5 * np.max(np.abs(op[:, a]))
+            ratio = np.median(np.abs(vel[cruise, a])) / np.median(np.abs(op[cruise, a])) if cruise.sum() >= 3 else np.nan
+            rows.append({
+                "case": case, "leg": name, "motor": f"M{a + 1}", "move_deg": delta[a], "t_min_s": t_min,
+                "t_arrive_s": t_arr, "t_tight_s": t_tight, "done_s": done,
+                "cmd_peak_dps": float(np.max(np.abs(op[:, a]))), "meas_peak_dps": float(np.max(np.abs(vel[:, a]))),
+                "meas_per_cmd": ratio, "lag_s": _gr_lag_s(np.abs(op[:, a]), np.abs(vel[:, a]), dt),
+                "behind_ref_arcmin": float(np.max(np.abs(sp[during, a] - pv[during, a]))) * 60,
+                "overshoot_arcmin": max(0.0, float(np.max(sgn * err[ref_done, a]))) * 60 if ref_done.any() else np.nan,
+                "final_arcmin": float(err[-1, a]) * 60,
+            })
+    df = pd.DataFrame(rows)
+    if len(df):
+        df["late_s"] = df["t_arrive_s"] - df["t_min_s"]
+        df["tight_after_s"] = df["t_tight_s"] - df["t_arrive_s"]
+    return df
+
+
+def goto_response_summary(pid, marks, battery, kv=GR_KV_DEFAULT, ka=GR_KA_DEFAULT, exclude=()):
+    """(runs table, {run: leg table}). exclude: (run, case) pairs to leave out of the summary, e.g. a leg stopped by hand."""
+    out, tables = [], {}
+    for i, (t0, t1, track, run_marks) in enumerate(goto_response_runs(marks), 1):
+        df = goto_response_leg_table(pid, run_marks, track, kv, ka)
+        tables[i] = df
+        bat = [b for b in battery if t0 - 120 <= b[0] <= t1]
+        keep = df[~df["case"].isin([c for r, c in exclude if r == i])] if len(df) else df
+        big = keep[keep["move_deg"].abs() >= 25] if len(keep) else keep
+        row = {"run": i, "start": datetime.datetime.fromtimestamp(t0).strftime("%H:%M"),
+               "tracking": track, "battery": f"{bat[0][1]}->{bat[-1][1]}%" if bat else "not reported",
+               "charging_reports": f"{sum(b[2] for b in bat)}/{len(bat)}" if bat else "",
+               "legs": len(goto_response_legs(run_marks)),
+               "late_median_s": keep["late_s"].median() if len(keep) else np.nan,
+               "overshoot_median_arcmin": keep["overshoot_arcmin"].median() if len(keep) else np.nan,
+               "tight_after_median_s": keep["tight_after_s"].median() if track and len(keep) else np.nan}
+        for m in ("M1", "M2", "M3"):
+            b = big[big["motor"] == m] if len(big) else big
+            row[f"{m}_meas_per_cmd"] = b["meas_per_cmd"].median() if len(b) else np.nan
+            row[f"{m}_peak_dps"] = b["meas_peak_dps"].max() if len(b) else np.nan
+        out.append(row)
+    return pd.DataFrame(out), tables
+
+
+def goto_response_kd_effect(pid, run_marks, legs_axes, kp=GR_KP_DEFAULT, kd=GR_KD_DEFAULT):
+    """The Kd term with coordinated speed control damps the PID's own feedback command toward the feed-forward
+    (ω_kd = -Kd (ω_fb - ω_ff)), so a sustained error e gets ω_fb = Kp e / (1 + Kd): the effective gain is
+    1/(1 + Kd) and the error closes as a first-order decay with time constant (1 + Kd) / Kp, before the
+    response delay and Ke smoothing slow it further. Per (leg, motor): the measured gain ratio and decay time
+    constant against those predictions."""
+    by_name = {name: (t0, t1) for name, t0, t1, _, _ in goto_response_legs(run_marks)}
+    rows = []
+    for name, a in legs_axes:
+        if name not in by_name:
+            continue
+        s = goto_response_leg_series(pid, *by_name[name])
+        m = f"m{a + 1}"
+        t, k_p, op, ff = s["t"].to_numpy(), s[f"{m}_kp"].to_numpy(), s[f"{m}_op"].to_numpy(), s[f"{m}_ff"].to_numpy()
+        e = (s[f"{m}_sp"] - s[f"{m}_pv"]).to_numpy()
+        chase = (np.abs(k_p) > 0.5) & (np.abs(k_p) < 0.9 * np.abs(k_p).max())
+        ratio = float(np.median((op[chase] - ff[chase]) / k_p[chase])) if chase.sum() > 3 else np.nan
+        tail = (np.abs(e) < 3) & (np.abs(e) > 0.05) & (t > t[np.argmax(np.abs(e))])
+        tau = float(-1 / np.polyfit(t[tail], np.log(np.abs(e[tail])), 1)[0]) if tail.sum() > 4 else np.nan
+        rows.append({"leg": name, "motor": f"M{a + 1}", "gain_ratio": ratio, "predicted_ratio": 1 / (1 + kd[a]),
+                     "decay_tau_s": tau, "predicted_tau_s": (1 + kd[a]) / kp[a],
+                     "close_5deg_to_1arcmin_s": tau * math.log(300) if not np.isnan(tau) else np.nan})
     return pd.DataFrame(rows)
