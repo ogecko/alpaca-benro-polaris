@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from alignment_ab import parse_sync_tables, alignments, quest_weighted_q, loo_errors_arcmin
+from alignment_ab import parse_sync_tables, alignments, quest_weighted_q, loo_errors_arcmin, point_errors, blc_at_points
 from kinematics_mac import corrected_theta, boresights
 from kinematics import q_to_theta, azaltroll_to_q, q_to_azaltroll, theta_to_q, vector_to_az_alt
 from quaternion import Q as Quaternion
@@ -70,3 +70,66 @@ def test_the_model_predicts_held_out_points_where_rotation_only_quest_cannot():
     err = loo_errors_arcmin(a, s2=0.01)
     assert np.max(err['model']) < 0.1                                     # the hidden terms, recovered
     assert np.sqrt(np.mean(err['quest'] ** 2)) > 20                       # the driver's QUEST with MAC off
+
+
+def test_point_errors_held_out_match_the_ab_and_follow_the_sync_order():
+    a = alignments(synthetic_rows(POSES), min_points=4)[0]
+    pe = point_errors(a, s2=0.01, min_fit=3)
+    err = loo_errors_arcmin(a, s2=0.01)
+    assert np.allclose(pe['loo_quest'], err['quest']) and np.allclose(pe['loo_model'], err['model'])
+    assert list(pe['k']) == list(range(len(POSES)))
+    assert pe['next_model'].iloc[:3].isna().all() and pe['next_model'].iloc[3:].notna().all()
+
+
+def test_the_next_point_is_predicted_from_earlier_points_only():
+    """Changing a later point must not change the prediction of an earlier one (no look-ahead)."""
+    rows = synthetic_rows(POSES)
+    a = point_errors(alignments(rows, min_points=4)[0], s2=0.01)
+    rows.loc[len(POSES) - 1, ['obs_az', 'obs_alt']] += 2.0                # move the last observation by degrees
+    b = point_errors(alignments(rows, min_points=4)[0], s2=0.01)
+    assert np.allclose(a['next_model'].iloc[3:-1], b['next_model'].iloc[3:-1])
+    assert np.allclose(a['next_quest'].iloc[3:-1], b['next_quest'].iloc[3:-1])
+    assert not np.isclose(a['loo_model'].iloc[3], b['loo_model'].iloc[3])   # the held-out fit does see it
+
+
+def test_error_components_make_up_the_error():
+    """Horizontal and vertical parts (arcmin) add up to the total for these small errors, and point from the
+    prediction to the observed star."""
+    a = alignments(synthetic_rows(POSES), min_points=4)[0]
+    pe = point_errors(a, s2=0.01)
+    assert np.allclose(np.hypot(pe['loo_quest_h'], pe['loo_quest_v']), pe['loo_quest'], rtol=0.02, atol=0.05)
+    rows = synthetic_rows(POSES)
+    rows.loc[2, 'obs_alt'] += 0.5                                         # star 30' higher than the model expects
+    pe2 = point_errors(alignments(rows, min_points=4)[0], s2=0.01)
+    assert pe2['loo_model_v'].iloc[2] > 20 and abs(pe2['loo_model_h'].iloc[2]) < 10
+
+
+BLC_LOG = """\
+2026-10-14T23:50:00.000 INFO 1.2.3.4 -> PUT /api/v1/telescope/0/slewtocoordinatesasync {'RightAscension': '1.0'}
+2026-10-14T23:50:05.000 INFO ->> Polaris: BACKLASH taking up slack: M2 -432"
+2026-10-14T23:50:30.000 INFO 1.2.3.4 -> PUT /api/v1/telescope/0/synctocoordinates {'RightAscension': '1.0'}
+2026-10-14T23:59:50.000 INFO 1.2.3.4 -> PUT /api/v1/telescope/0/slewtocoordinatesasync {'RightAscension': '2.0'}
+2026-10-14T23:59:55.000 INFO ->> Polaris: BACKLASH taking up slack: M1 -144"
+2026-10-15T00:00:02.000 WARNING ->> Polaris: BACKLASH compensation stopped until the next goto or planned reversal for M1, M3: crossed its slack more than 2 times
+2026-10-15T00:00:20.000 INFO 1.2.3.4 -> PUT /api/v1/telescope/0/synctocoordinates {'RightAscension': '2.0'}
+2026-10-15T00:05:00.000 INFO 1.2.3.4 -> PUT /api/v1/rotator/0/movemechanical {'Position': '18.5'}
+2026-10-15T00:05:40.000 INFO 1.2.3.4 -> PUT /api/v1/telescope/0/synctocoordinates {'RightAscension': '2.0'}
+"""
+
+
+def test_blc_at_points_classifies_the_move_before_each_sync_across_midnight(tmp_path):
+    f = tmp_path / 'alpaca.blc.log'
+    f.write_text(BLC_LOG)
+    d = blc_at_points(f, ['23:50:30', '00:00:20', '00:05:40'], '2026-10-15T00:06:00.000')
+    assert list(d['blc']) == ['compensated', 'given up', 'no slack']
+    assert d['move_time'].iloc[0].startswith('2026-10-14T23:50:00')
+    assert d['move_time'].iloc[1].startswith('2026-10-14T23:59:50')       # the evening before, not 00:00
+    assert d['giveups'].iloc[1] == 'M1, M3' and d['takeups'].iloc[1] == 1
+    assert d['move_time'].iloc[2].startswith('2026-10-15T00:05:00')       # a rotate is a move too
+
+
+def test_blc_at_points_is_off_without_any_backlash_lines(tmp_path):
+    f = tmp_path / 'alpaca.old.log'
+    f.write_text('\n'.join(l for l in BLC_LOG.splitlines() if 'BACKLASH' not in l) + '\n')
+    d = blc_at_points(f, ['23:50:30'], '2026-10-14T23:55:00.000')
+    assert list(d['blc']) == ['off']

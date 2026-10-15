@@ -22,7 +22,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 from kinematics_mac import fit_alignment, corrected_theta, boresights          # noqa: E402
-from kinematics import q_to_theta, azaltroll_to_q, azalt_to_vector          # noqa: E402
+from kinematics import q_to_theta, azaltroll_to_q, azalt_to_vector, vector_to_az_alt          # noqa: E402
 from quaternion import Q as Quaternion                                       # noqa: E402
 
 LOG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'logs', 'archive'))
@@ -62,7 +62,8 @@ def parse_sync_tables(paths):
 def alignments(tables, min_points=6):
     """Sets of points fitted together: each log's tables that are the largest before its point count drops (or its
     last), without points already in an earlier set. Each: name, theta (raw motor angles), pred (raw boresights),
-    obs (observed directions), dec."""
+    obs (observed directions), dec; and log, table_time, mac (as logged with that table) and points (the table rows,
+    in sync order)."""
     out, seen = [], set()
     for log, g in tables.groupby('log', sort=True):
         times = sorted(g['table_time'].unique())
@@ -80,7 +81,9 @@ def alignments(tables, min_points=6):
             out.append(dict(name=f"{log.replace('alpaca.', '').replace('.log', '')}@{t[5:16]}", theta=theta,
                             pred=np.array([azalt_to_vector(a, b) for a, b in zip(x['p_az'], x['p_alt'])]),
                             obs=np.array([azalt_to_vector(a, b) for a, b in zip(x['obs_az'], x['obs_alt'])]),
-                            dec=x['dec'].to_numpy(float)))
+                            dec=x['dec'].to_numpy(float), log=log, table_time=t,
+                            mac=x['mac'].iloc[0] if 'mac' in x else None,
+                            points=x.reset_index(drop=True)))
     return out
 
 
@@ -111,24 +114,113 @@ def _sep_arcmin(a, b):
     return np.degrees(np.arctan2(np.linalg.norm(np.cross(a, b)), np.dot(a, b))) * 60
 
 
+def predict(al, m, k, s2=DEFAULT_M2_SCALE):
+    """Where each alignment points for point k when fitted on the points in mask m: (QUEST's direction, the model's
+    direction, the model's AlignFit). QUEST = the driver's weighted rotation-only QUEST (MAC off); the model = QUEST +
+    MAC with the M2 scale s2 (the weighted QUEST on the model's predictions when its points can't fix the offsets)."""
+    q = quest_weighted_q(al['pred'][m], al['obs'][m], driver_weights(al['pred'][m], al['dec'][m], al['pred'][k]))
+    v_quest = np.asarray(q.rotate(al['pred'][k]), float)
+    f = fit_alignment(al['theta'][m], al['obs'][m], s2=s2)
+    target = boresights(corrected_theta(al['theta'][k:k + 1], f.d2, f.d3, s2))[0]
+    if f.offsets_fitted:
+        q = f.q
+    else:                       # as the driver: offsets held, the weighted QUEST on the model's predictions
+        pred = boresights(corrected_theta(al['theta'][m], f.d2, f.d3, s2))
+        q = quest_weighted_q(pred, al['obs'][m], driver_weights(pred, al['dec'][m], target))
+    return v_quest, np.asarray(q.rotate(target), float), f
+
+
 def loo_errors_arcmin(al, s2=DEFAULT_M2_SCALE):
     """Leave-one-out goto errors (arcmin) per point: 'quest' (the driver's weighted rotation-only QUEST, MAC off),
     'model' (QUEST + MAC with the M2 scale s2; the weighted QUEST when its points can't fix the offsets)."""
     n = len(al['obs'])
     quest, model = np.zeros(n), np.zeros(n)
     for k in range(n):
-        m = np.arange(n) != k
-        q = quest_weighted_q(al['pred'][m], al['obs'][m], driver_weights(al['pred'][m], al['dec'][m], al['pred'][k]))
-        quest[k] = _sep_arcmin(np.asarray(q.rotate(al['pred'][k]), float), al['obs'][k])
-        f = fit_alignment(al['theta'][m], al['obs'][m], s2=s2)
-        target = boresights(corrected_theta(al['theta'][k:k + 1], f.d2, f.d3, s2))[0]
-        if f.offsets_fitted:
-            q = f.q
-        else:                   # as the driver: offsets held, the weighted QUEST on the model's predictions
-            pred = boresights(corrected_theta(al['theta'][m], f.d2, f.d3, s2))
-            q = quest_weighted_q(pred, al['obs'][m], driver_weights(pred, al['dec'][m], target))
-        model[k] = _sep_arcmin(np.asarray(q.rotate(target), float), al['obs'][k])
+        vq, vm, _ = predict(al, np.arange(n) != k, k, s2)
+        quest[k], model[k] = _sep_arcmin(vq, al['obs'][k]), _sep_arcmin(vm, al['obs'][k])
     return {'quest': quest, 'model': model}
+
+
+def _azalt_error_arcmin(v_pred, v_obs):
+    """(horizontal, vertical) arcmin from where the alignment pointed to where the star was: dAz x cos(Alt), dAlt."""
+    az_p, alt_p = vector_to_az_alt(v_pred)
+    az_o, alt_o = vector_to_az_alt(v_obs)
+    return ((az_o - az_p + 180) % 360 - 180) * np.cos(np.radians(alt_o)) * 60, (alt_o - alt_p) * 60
+
+
+def point_errors(al, s2=DEFAULT_M2_SCALE, min_fit=3):
+    """Per point, in sync order: its pose, and each alignment's goto error (arcmin, total and horizontal/vertical
+    components) predicting it two ways -- 'loo' (fitted on every other point: the alignment's accuracy once complete)
+    and 'next' (fitted only on the points synced before it, from min_fit on: the goto to a new target as the
+    alignment grows; NaN before) -- plus the model's d2, d3 (deg) on the 'next' fit and whether it could fit them."""
+    n = len(al['obs'])
+    rows = []
+    for k in range(n):
+        p = al['points'].iloc[k] if 'points' in al else None
+        r = dict(k=k, point_time=None if p is None else p['point_time'], az=None if p is None else p['obs_az'],
+                 alt=None if p is None else p['obs_alt'], roll=None if p is None else p['p_roll'],
+                 theta2=al['theta'][k, 1], theta3=al['theta'][k, 2])
+        fits = [('loo', np.arange(n) != k)]
+        if k >= min_fit:
+            fits.append(('next', np.arange(n) < k))
+        for tag, m in fits:
+            vq, vm, f = predict(al, m, k, s2)
+            for side, v in (('quest', vq), ('model', vm)):
+                r[f'{tag}_{side}'] = _sep_arcmin(v, al['obs'][k])
+                r[f'{tag}_{side}_h'], r[f'{tag}_{side}_v'] = _azalt_error_arcmin(v, al['obs'][k])
+            if tag == 'next':
+                r.update(next_d2=f.d2, next_d3=f.d3, next_offsets_fitted=f.offsets_fitted)
+        rows.append(r)
+    return pd.DataFrame(rows)
+
+
+_BLC_TAKEUP = re.compile(r'BACKLASH taking up slack: (.*)')
+_BLC_GIVEUP = re.compile(r'BACKLASH compensation stopped until .*?for (M[\d, M]+)')
+_MOVE = ('slewtocoordinatesasync', 'slewtocoordinates ', 'J2000Goto {', 'SlewAbsolute {', 'movemechanical', 'moveabsolute')
+
+
+def _point_timestamp(point_time, table_time):
+    """A sync table's HH:MM:SS as a full ISO time: the latest such time not after the table (a point is always
+    synced before the table that lists it, possibly the day before)."""
+    t = pd.Timestamp(f'{table_time[:10]}T{point_time}')
+    if t > pd.Timestamp(table_time) + pd.Timedelta(seconds=1):
+        t -= pd.Timedelta(days=1)
+    return t.isoformat(timespec='milliseconds')
+
+
+def blc_at_points(path, point_times, table_time):
+    """How Backlash Compensation ended the move before each sync point (HH:MM:SS, as in the sync table written at
+    table_time): the last goto / slew / rotate request before it, and the BLC lines between that and the point:
+    'compensated' (slack taken up), 'given up' (compensation stopped for a motor), 'no slack' (BLC lines elsewhere in
+    the log, none here), or 'off' (no BLC lines in the log: switched off, or a driver without it)."""
+    events, blc_seen = [], False
+    with open(path, errors='replace') as fh:
+        for line in fh:
+            m = _TS.match(line)
+            if not m:
+                continue
+            t = m.group(1)
+            if any(k in line for k in _MOVE):
+                events.append((t, 'move', None))
+            elif (g := _BLC_TAKEUP.search(line)):
+                events.append((t, 'takeup', g.group(1).strip()))
+                blc_seen = True
+            elif (g := _BLC_GIVEUP.search(line)):
+                events.append((t, 'giveup', g.group(1)))
+                blc_seen = True
+    rows = []
+    for pt in point_times:
+        ts = _point_timestamp(pt, table_time)
+        moves = [i for i, e in enumerate(events) if e[1] == 'move' and e[0] <= ts]
+        if not moves:
+            rows.append(dict(point_time=pt, move_time=None, takeups=0, giveups='', blc='off' if not blc_seen else 'no move'))
+            continue
+        seg = [e for e in events[moves[-1] + 1:] if e[0] <= ts]
+        tu = [e[2] for e in seg if e[1] == 'takeup']
+        gu = [e[2] for e in seg if e[1] == 'giveup']
+        state = 'off' if not blc_seen else 'given up' if gu else 'compensated' if tu else 'no slack'
+        rows.append(dict(point_time=pt, move_time=events[moves[-1]][0], takeups=len(tu), giveups=';'.join(gu), blc=state))
+    return pd.DataFrame(rows)
 
 
 def ab_table(pattern='*.log', log_dir=LOG_DIR, s2=DEFAULT_M2_SCALE, min_points=6):
