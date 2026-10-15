@@ -250,7 +250,7 @@ and minimise duplication:
 a **Raspberry Pi Zero 2 W** (4 × Cortex-A53 at 1 GHz, 512 MB) and an **Intel N1505** mini PC. Goto planning must
 have minimal impact on the 200 ms control loop and speed controller on that hardware.
 
-* **The current planner as a baseline (2026-10-16)**: all of its work happens in the goto's first tick, inside the
+* **The current planner as a baseline (2026-10-17)**: all of its work happens in the goto's first tick, inside the
   asyncio loop that also runs the speed controller, the Polaris socket and Alpaca. Measured in the twin on a Ryzen 9
   7950X (a fast desktop, so a lower bound):
 
