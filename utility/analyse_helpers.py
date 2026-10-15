@@ -2117,3 +2117,242 @@ def goto_response_kd_effect(pid, run_marks, legs_axes, kp=GR_KP_DEFAULT, kd=GR_K
                      "decay_tau_s": tau, "predicted_tau_s": (1 + kd[a]) / kp[a],
                      "close_5deg_to_1arcmin_s": tau * math.log(300) if not np.isnan(tau) else np.nan})
     return pd.DataFrame(rows)
+
+
+# ── Eq mode reachability (utility/analyse_span.ipynb) ──────────────────────────────────────────────────────────
+# Which poses (pointing + position angle) a Polaris on an ideal wedge can reach, what the tripod cone and the rig
+# tilt limit take away, and how a straight motor-angle goto between two reachable poses can pass through the tripod
+# cone. Frames as the driver's: topocentric x East, y North, z Up; camera -z boresight, +x camera-up; PA the angle of
+# camera-up from the direction of the north celestial pole (the driver's delta[2] = roll + parallactic angle,
+# checked by eq_check_against_driver()). Motor reach is the driver's rule: camera-up (the M3 axis) within
+# THETA2_MAX of the M1 axis, which the wedge points at the visible celestial pole (control_eq.wedge_alignQ_B2T). The
+# vector maths is vectorised here for whole-sky grids; eq_check_against_driver() compares it with the driver's own
+# kinematics (reachable_azaltroll, theta_to_q, q_to_theta). See docs/study_goto_response.md (R1).
+
+EQ_THETA2_MAX = 81.5            # kinematics.THETA2_MAX
+EQ_TRIPOD_CONE_DEG = 8.5        # the tripod: pointings within this of the nadir (altitude below -81.5)
+EQ_RIG_TILT_OFF = 180.0         # config.toml eq_rig_tilt_limit default: off
+
+
+def _eq_rot(q):
+    """3x3 rotation matrix of a driver Quaternion (its action on the basis vectors)."""
+    return np.column_stack([q.rotate(np.array(v, dtype=float)) for v in ([1, 0, 0], [0, 1, 0], [0, 0, 1])])
+
+
+def eq_m1_axis(lat_deg):
+    """The M1 axis (topocentric unit vector) of an ideal wedge at this latitude: the visible celestial pole."""
+    from control_eq import celestial_pole_topo
+    return celestial_pole_topo(lat_deg)
+
+
+def eq_azalt_vec(az, alt):
+    """Unit vectors (..., 3) for azimuth (from North through East) and altitude, degrees."""
+    a, e = np.radians(az), np.radians(alt)
+    return np.stack([np.cos(e) * np.sin(a), np.cos(e) * np.cos(a), np.sin(e)], axis=-1)
+
+
+def eq_vec_azalt(v):
+    """Azimuth (0-360) and altitude (deg) of unit vectors (..., 3)."""
+    v = np.asarray(v, dtype=float)
+    return np.degrees(np.arctan2(v[..., 0], v[..., 1])) % 360, np.degrees(np.arcsin(np.clip(v[..., 2], -1, 1)))
+
+
+def eq_hadec_to_azalt(ha, dec, lat_deg):
+    """Hour angle (deg, + west) and declination to azimuth / altitude at this latitude."""
+    h, d, L = np.radians(ha), np.radians(dec), math.radians(lat_deg)
+    alt = np.degrees(np.arcsin(np.clip(np.sin(d) * math.sin(L) + np.cos(d) * math.cos(L) * np.cos(h), -1, 1)))
+    az = np.degrees(np.arctan2(-np.cos(d) * np.sin(h), np.sin(d) * math.cos(L) - np.cos(d) * math.sin(L) * np.cos(h)))
+    return az % 360, alt
+
+
+def eq_pose_vectors(az, alt, pa, lat_deg):
+    """Boresight and camera-up (..., 3) for pointings (az, alt) at position angle pa (deg, all broadcast together)."""
+    L = math.radians(lat_deg)
+    ncp = np.array([0.0, math.cos(L), math.sin(L)])
+    az, alt, pa = np.broadcast_arrays(*(np.asarray(x, dtype=float) for x in (az, alt, pa)))
+    b = eq_azalt_vec(az, alt)
+    n = ncp - np.sum(b * ncp, axis=-1, keepdims=True) * b              # celestial north on the sky at b
+    nn = np.linalg.norm(n, axis=-1, keepdims=True)
+    n = np.where(nn > 1e-9, n / np.maximum(nn, 1e-12), np.array([0.0, 0.0, 1.0]))   # at the poles: any reference
+    e = np.cross(n, b)
+    p = np.radians(pa)[..., None]
+    return b, np.cos(p) * n + np.sin(p) * e
+
+
+def eq_constraints(bore, up, lat_deg, rig_tilt_limit=EQ_RIG_TILT_OFF, tripod_cone_deg=EQ_TRIPOD_CONE_DEG, level=False):
+    """Boolean arrays for poses given by boresight / camera-up vectors: 'motor' (camera-up within THETA2_MAX of the
+    M1 axis: the zenith when level, the pole on the wedge), 'rig' (camera-up within rig_tilt_limit of the zenith),
+    'tripod' (boresight outside the tripod cone round the nadir), 'above' (boresight above the horizon), and
+    'ok' (motor, rig and tripod all allow it)."""
+    m1 = np.array([0.0, 0.0, 1.0]) if level else eq_m1_axis(lat_deg)
+    motor = up @ m1 >= math.cos(math.radians(EQ_THETA2_MAX)) - 1e-12
+    rig = up[..., 2] >= math.cos(math.radians(min(rig_tilt_limit, 180.0))) - 1e-12
+    tripod = bore[..., 2] > -math.cos(math.radians(tripod_cone_deg))
+    return {"motor": motor, "rig": rig, "tripod": tripod, "above": bore[..., 2] > 0, "ok": motor & rig & tripod}
+
+
+def eq_sky_grid(lat_deg, az_step=2.0, alt_step=2.0, pa_step=5.0, rig_tilt_limit=EQ_RIG_TILT_OFF,
+                tripod_cone_deg=EQ_TRIPOD_CONE_DEG, level=False):
+    """Over an Az x Alt grid of pointings, the share (0-1) of position angles each constraint allows:
+    {'az', 'alt', 'motor', 'motor_rig', 'ok', 'tripod' (0/1, the same at every PA), 'rig_tilt_min' (the least
+    rig tilt any motor-reachable PA has: what a rig tilt limit must allow for the pointing to stay reachable)}."""
+    az = np.arange(0, 360 + 1e-9, az_step)
+    alt = np.arange(-90, 90 + 1e-9, alt_step)
+    pa = np.arange(-180, 180, pa_step)
+    AZ, ALT = np.meshgrid(az, alt)
+    bore, up = eq_pose_vectors(AZ[..., None], ALT[..., None], pa, lat_deg)
+    c = eq_constraints(bore, up, lat_deg, rig_tilt_limit, tripod_cone_deg, level)
+    tilt = np.degrees(np.arccos(np.clip(up[..., 2], -1, 1)))
+    tilt_min = np.where(c["motor"], tilt, np.nan)
+    with np.errstate(all="ignore"):
+        tilt_min = np.nanmin(np.where(np.isnan(tilt_min), np.inf, tilt_min), axis=-1)
+    tilt_min[np.isinf(tilt_min)] = np.nan
+    return {"az": az, "alt": alt, "pa": pa, "motor": c["motor"].mean(-1), "motor_rig": (c["motor"] & c["rig"]).mean(-1),
+            "ok": c["ok"].mean(-1), "tripod": c["tripod"].all(-1).astype(float), "rig_tilt_min": tilt_min}
+
+
+def eq_pa_grid(lat_deg, dec, ha_step=2.0, pa_step=2.0, rig_tilt_limit=EQ_RIG_TILT_OFF, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
+    """For one declination, over hour angle x PA: what limits each pose, as codes 0 reachable, 1 motor reach,
+    2 rig tilt, 3 tripod cone (first that applies, in the order tripod, motor, rig), plus the altitude per HA."""
+    ha = np.arange(-180, 180 + 1e-9, ha_step)
+    pa = np.arange(-180, 180 + 1e-9, pa_step)
+    az, alt = eq_hadec_to_azalt(ha, np.full_like(ha, dec), lat_deg)
+    bore, up = eq_pose_vectors(az[:, None], alt[:, None], pa[None, :], lat_deg)
+    c = eq_constraints(bore, up, lat_deg, rig_tilt_limit, tripod_cone_deg)
+    code = np.zeros(up.shape[:-1], dtype=int)
+    code[~c["rig"]] = 2
+    code[~c["motor"]] = 1
+    code[~c["tripod"]] = 3
+    return {"ha": ha, "pa": pa, "alt": alt, "code": code.T}            # code[pa, ha]
+
+
+def eq_fk_vectors(theta, alignQ_B2T):
+    """Boresight and camera-up (..., 3), topocentric, for motor angles theta (..., 3): the driver's theta_to_q
+    (camera-up = the M3 axis, set by M1/M2; M3 turns the boresight about it) followed by the base->topo rotation."""
+    t1, t2, t3 = (np.radians(np.asarray(theta, float)[..., i]) for i in range(3))
+    up = np.stack([-np.sin(t2) * np.sin(t1), -np.sin(t2) * np.cos(t1), np.cos(t2)], axis=-1)
+    b0 = np.stack([np.cos(t2) * np.sin(t1), np.cos(t2) * np.cos(t1), np.sin(t2)], axis=-1)
+    bore = b0 * np.cos(t3)[..., None] - np.cross(up, b0) * np.sin(t3)[..., None]
+    R = _eq_rot(alignQ_B2T)
+    return bore @ R.T, up @ R.T
+
+
+def eq_check_against_driver(lat_deg, n=2000, seed=0):
+    """Compare this section's vector maths with the driver's kinematics on random poses: PA convention (deg),
+    boresight, motor reach (count of disagreements: poses on the boundary can differ), and FK (deg)."""
+    from kinematics import azaltroll_to_q, calc_parallactic_angle, q_to_azaltroll, reachable_azaltroll, theta_to_q
+    from control_eq import wedge_alignQ_B2T
+    rng = np.random.default_rng(seed)
+    A = wedge_alignQ_B2T(lat_deg)
+    Ai = A.inverse
+    pa_err, bore_err, fk_err, reach_diff = [], [], [], 0
+    for _ in range(n):
+        az, alt, pa = rng.uniform(0, 360), rng.uniform(-85, 85), rng.uniform(-180, 180)
+        q = azaltroll_to_q(az, alt, (pa - calc_parallactic_angle(az, alt, lat_deg) + 180) % 360 - 180)
+        b_d, u_d = np.array(q.rotate([0, 0, -1.0])), np.array(q.rotate([1.0, 0, 0]))
+        b, u = eq_pose_vectors(az, alt, pa, lat_deg)
+        pa_err.append(math.degrees(math.acos(np.clip(u @ u_d, -1, 1))))
+        bore_err.append(math.degrees(math.acos(np.clip(b @ b_d, -1, 1))))
+        mine = bool(eq_constraints(b, u, lat_deg)["motor"])
+        a_B = q_to_azaltroll(Ai * q)
+        r_B = reachable_azaltroll(*a_B)
+        drv = math.degrees(math.acos(np.clip(eq_azalt_vec(r_B[0], r_B[1]) @ eq_azalt_vec(a_B[0], a_B[1]), -1, 1))) < 0.05 \
+            and abs((r_B[2] - a_B[2] + 180) % 360 - 180) < 0.05
+        reach_diff += mine != drv
+        th = rng.uniform([-180, -10, -180], [180, 82, 180])
+        qt = A * theta_to_q(*th)
+        bf, uf = eq_fk_vectors(th, A)
+        fk_err.append(max(math.degrees(math.acos(np.clip(bf @ np.array(qt.rotate([0, 0, -1.0])), -1, 1))),
+                          math.degrees(math.acos(np.clip(uf @ np.array(qt.rotate([1.0, 0, 0])), -1, 1)))))
+    return {"poses": n, "pa_max_err_deg": max(pa_err), "bore_max_err_deg": max(bore_err),
+            "reach_disagreements": reach_diff, "fk_max_err_deg": max(fk_err)}
+
+
+def eq_random_poses(lat_deg, n, rng, min_alt=10.0, rig_tilt_limit=EQ_RIG_TILT_OFF):
+    """n random reachable poses (az, alt, pa) above min_alt, uniform over the sky, PA uniform over the reachable
+    ones (motor reach, and the rig tilt limit if set)."""
+    out = []
+    while len(out) < n:
+        v = rng.normal(size=3)
+        v /= np.linalg.norm(v)
+        if v[2] < math.sin(math.radians(min_alt)):
+            continue
+        az, alt = eq_vec_azalt(v)
+        pa = rng.uniform(-180, 180)
+        b, u = eq_pose_vectors(az, alt, pa, lat_deg)
+        if eq_constraints(b, u, lat_deg, rig_tilt_limit)["ok"]:
+            out.append((float(az), float(alt), float(pa)))
+    return np.array(out)
+
+
+def eq_straight_gotos(lat_deg, n_pairs=1000, samples=61, min_alt=10.0, rig_tilt_limit=EQ_RIG_TILT_OFF,
+                      tripod_cone_deg=EQ_TRIPOD_CONE_DEG, seed=0):
+    """Gotos between random reachable poses above min_alt, moved straight in motor angles (the end angles from the
+    driver's q_to_theta; M1 and M3 the shorter way round): per goto the least boresight nadir distance and the
+    largest rig tilt along the path, and whether it enters the tripod cone / passes the rig tilt limit. Returns
+    (DataFrame, paths) with paths[i] the (samples, 3) motor angles and the path's boresight az/alt."""
+    from kinematics import azaltroll_to_q, calc_parallactic_angle, q_to_theta
+    from control_eq import wedge_alignQ_B2T
+    rng = np.random.default_rng(seed)
+    A = wedge_alignQ_B2T(lat_deg)
+    Ai = A.inverse
+    poses = eq_random_poses(lat_deg, 2 * n_pairs, rng, min_alt, rig_tilt_limit)
+
+    def ik(p):
+        az, alt, pa = p
+        q = azaltroll_to_q(az, alt, (pa - calc_parallactic_angle(az, alt, lat_deg) + 180) % 360 - 180)
+        return np.array(q_to_theta(Ai * q)[:3], dtype=float)
+
+    f = np.linspace(0, 1, samples)[:, None]
+    rows, paths = [], []
+    for i in range(n_pairs):
+        p0, p1 = poses[2 * i], poses[2 * i + 1]
+        t0, t1 = ik(p0), ik(p1)
+        d = t1 - t0
+        d[[0, 2]] = (d[[0, 2]] + 180) % 360 - 180
+        th = t0 + f * d
+        bore, up = eq_fk_vectors(th, A)
+        nadir = 90 + np.degrees(np.arcsin(np.clip(bore[:, 2], -1, 1)))
+        tilt = np.degrees(np.arccos(np.clip(up[:, 2], -1, 1)))
+        az, alt = eq_vec_azalt(bore)
+        rows.append({"az0": p0[0], "alt0": p0[1], "pa0": p0[2], "az1": p1[0], "alt1": p1[1], "pa1": p1[2],
+                     "m1_0": t0[0], "m2_0": t0[1], "m3_0": t0[2], "m1_1": t1[0], "m2_1": t1[1], "m3_1": t1[2],
+                     "min_nadir_deg": nadir.min(), "max_rig_tilt_deg": tilt.max(),
+                     "enters_cone": bool(nadir.min() < tripod_cone_deg), "passes_tilt": bool(tilt.max() > rig_tilt_limit)})
+        paths.append({"theta": th, "az": az, "alt": alt})
+    return pd.DataFrame(rows), paths
+
+
+def eq_cone_motor_map(lat_deg, step=2.5, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
+    """Motor angles (M1, M3 over -180..180, M2 over -10..82 in step) and the boresight's topocentric altitude at
+    each, to show where in motor space the tripod cone lies. Returns (m1, m2, m3, alt[m2, m3, m1])."""
+    from control_eq import wedge_alignQ_B2T
+    m1 = np.arange(-180, 180 + 1e-9, step)
+    m2 = np.arange(-10, 82 + 1e-9, step)
+    m3 = np.arange(-180, 180 + 1e-9, step)
+    T2, T3, T1 = np.meshgrid(m2, m3, m1, indexing="ij")
+    bore, _ = eq_fk_vectors(np.stack([T1, T2, T3], axis=-1), wedge_alignQ_B2T(lat_deg))
+    return m1, m2, m3, np.degrees(np.arcsin(np.clip(bore[..., 2], -1, 1)))
+
+
+def eq_latitude_summary(lats, rig_tilt_limits=(EQ_RIG_TILT_OFF, 100.0, EQ_THETA2_MAX), n_pairs=400,
+                        tripod_cone_deg=EQ_TRIPOD_CONE_DEG, seed=0):
+    """Per latitude: the mean share of PA reachable over the sky above the horizon (motor reach alone, and with
+    each rig tilt limit), the share of that sky not reachable at any PA, and the share of straight motor-angle
+    gotos (between poses above 10 deg) that enter the tripod cone."""
+    rows = []
+    for lat in lats:
+        g = {lim: eq_sky_grid(lat, 4, 4, 10, rig_tilt_limit=lim, tripod_cone_deg=tripod_cone_deg) for lim in rig_tilt_limits}
+        first = g[rig_tilt_limits[0]]
+        above = first["alt"][:, None] > 0
+        w = np.cos(np.radians(first["alt"]))[:, None] * np.ones_like(first["motor"])     # area weights
+        w = np.where(above, w, 0)
+        row = {"lat": lat, "pa_share_motor": float((first["motor"] * w).sum() / w.sum()),
+               "sky_unreachable": float(((first["motor"] == 0) * w).sum() / w.sum())}
+        for lim in rig_tilt_limits:
+            row[f"pa_share_tilt_{lim:g}"] = float((g[lim]["motor_rig"] * w).sum() / w.sum())
+        df, _ = eq_straight_gotos(lat, n_pairs, 41, tripod_cone_deg=tripod_cone_deg, seed=seed)
+        row["gotos_enter_cone"] = float(df["enters_cone"].mean())
+        row["gotos_min_nadir_p01"] = float(df["min_nadir_deg"].quantile(0.01))
+        rows.append(row)
+    return pd.DataFrame(rows)
