@@ -109,8 +109,12 @@ Where that needs more:
 
 * **Constrained paths**: holding Az/Alt through a roll change, or RA/Dec through a PA change, can't be faster than a
   free move. Following a fixed path as fast as each motor's limits allow is time-optimal path following (Bobrow;
-  Shin & McKay, 1985), which `GotoTrajectory` approximates. Constrain the path only when what the camera sees during
-  the move matters (a rotation on the same target, small corrections); slews between targets move freely.
+  Shin & McKay, 1985), which `GotoTrajectory` approximates. Constrain the path when what the camera sees during the
+  move matters (a rotation on the same target, small corrections); slews between targets move freely.
+* **A rotation must keep the pointing**, or the pose is lost: M3 turns the camera about camera-up (the M3 axis), so M3
+  alone pans the boresight - a roll or PA change is never a single-motor move but M1, M2 and M3 together, and a
+  straight motor-space move to the rotated pose swings the pointing far from the Az/Alt or RA/Dec on the way.
+  Rotations (and the rotation part of a goto) follow the pointing-held path.
 * **Constraints that aren't motor limits**: eq mode's rig tilt, the camera or cables against the tripod, the Sun.
   These can rule out straight lines.
 * **What else matters than speed**: tracking room (below) and cable wrap (M1 and M3 turning the same way) decide
@@ -160,9 +164,10 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
    limit, then tracking room up to a night (8 h, both modes: project the target's sky motion), then the move time,
    with cable wrap (M1/M3 the same way) as a penalty. Fix the end angles for the goto; nothing re-decides mid-goto.
    This replaces UNWIND / EQ ROOM / LOCK / FLIP during a goto; `prevent_windup` stays as the guard while tracking.
-2. **Plan every goto, tracking ones too**: a time-optimal motor-space trajectory with feed-forward to where the target
-   will be on arrival, then hand over to tracking. Free moves straight in motor angles; constrained paths only for
-   roll/PA moves and small corrections. Removes the PID chase (τ ≈ 2 s) and the sky-path lead on combined moves.
+2. **Plan every goto, tracking ones too**: a time-optimal trajectory with feed-forward to where the target will be on
+   arrival, then hand over to tracking. Slews between targets straight in motor angles; rotations (roll/PA) and small
+   corrections along the pointing-held path, time-optimally (path following). Removes the PID chase (τ ≈ 2 s) and the
+   sky-path lead on combined moves, without losing the pose in a rotation.
 3. **Compensate the dead time** (0.2-0.4 s): feedback against the plan delayed by the dead time, braking that much
    earlier. Removes the ~1-1.5 deg overshoot.
 4. **Complete a goto only once the motors have stopped**, not on one tick within tolerance.
@@ -213,6 +218,25 @@ from the driver's kinematics, 4 h from reachable eq poses):
 * QUEST needs syncs spread over the sky to see the pole axis error (its test uses four); with fewer, tracking drifts
   at about the error × the sidereal rate.
 
+### Orbitals
+
+Orbitals can be tracked (`advanced_orbitals`, tracking rates 1-3 in `orbital2delta`) but never stayed on target well
+at longer focal lengths. That is more a tracking than a goto problem, but the two meet:
+
+* **How it works now**: every tick the setpoint is the orbital's RA/Dec computed 2.5 s ahead. While the orbital is
+  below 10 deg altitude the setpoint isn't updated and the mount tracks sidereal where it is; once it is above, the
+  setpoint jumps to the orbital - an unplanned goto while tracking, chased by the PID (τ ≈ 2 s, overshoot on large
+  moves), onto a target that keeps moving.
+* **A moving target needs its velocity (and acceleration) in the feed-forward**: a PID that closes errors with
+  τ ≈ 2 s lags a target moving at rate v by about v × τ unless the feed-forward carries the motion. The fixed 2.5 s
+  lead should match the loop's real lag instead - the measured dead time is 0.2-0.4 s - and at 1 deg/s every 0.1 s
+  of mismatch is 6'.
+* PEC (worm feed-forward) and BLC have since addressed periodic error and backlash, two of the problems that made
+  orbitals hard; what's left is the moving-target feed-forward, the dead time and planning the acquisition: a
+  planned goto to where the orbital will be on arrival (design item 2), then tracking with its rate.
+* An orbital response test like `goto_response.py` could measure this without the sky: follow a recorded or
+  synthetic pass (in the twin, then on the mount in daylight) and compare θ_sp with θ_pv.
+
 ### Acceptance criteria
 
 * Twin sweep (to become a test: a seeded subset in the suite, the full sweep marked slow): no LIMIT, no mid-goto
@@ -236,3 +260,5 @@ from the driver's kinematics, 4 h from reachable eq poses):
 * The twin's M3 speed: recalibrate it from these runs.
 * Eq mode rig tilt: a constraint on the path, not just the end pose, once moves go straight in motor angles.
 * Eq mode with a single-point alignment: how much of the wedge's error it leaves, and the drift that follows.
+* Orbitals: the 2.5 s lead against the measured lag; acquiring an orbital as it rises past 10 deg as a planned goto.
+* A goto that also changes roll/PA: rotate along the pointing-held path at the end of the slew, or blend it in?
