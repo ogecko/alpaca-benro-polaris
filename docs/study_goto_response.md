@@ -65,7 +65,9 @@ Run 4's case 15 (`m3_5_back`) was stopped by hand and is left out.
 
 See [Design](#design). In order of what they gain: plan gotos while tracking too; compensate the dead time;
 complete only once stopped; choose the end solution once per goto for both modes; then tune the final settle
-(Kc/20, BLC).
+(Kc/20, BLC). Throughout: the [requirements](#requirements-2026-10-16) - no path into the tripod cone, gotos
+interruptible from a moving state, and new code in `control_plan.py` / `kinematics.py` reusing what exists, with
+FAST speed calibration re-enabled.
 
 ---
 
@@ -174,6 +176,76 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
 5. **Goto timeout from the planned time** plus a margin, not a fixed 45 s.
 6. **Then tune the final settle**: Kc/20 while tracking and BLC pushes, once the overshoot is gone.
 
+### Requirements (2026-10-16)
+
+The design must also meet these three requirements.
+
+**R1. Tripod collision prevention.** The tripod fills the cone around the nadir: altitude -81.5 to -90 deg, at any
+azimuth. On a level mount the motors can't reach it: M2's 81.5 deg limit holds the boresight within -81.5 to +81.5
+deg altitude, so this mode is unaffected. A wedge tilts that range: M2's limit is now measured from the M1 axis (the
+pole), and the nadir comes within reach.
+
+* **Which poses.** The clearest description is in sky terms, by two directions of the pose:
+  * **boresight nadir distance**: the angle from the nadir to where the lens points (= 90 + boresight altitude). The
+    tripod cone is nadir distance < 8.5 deg (`tripod_cone_deg`, new; 8.5 is the level mount's own margin, so alt/az
+    poses never trip it; set it larger from the rig's measured clearance for long lenses).
+  * **rig tilt**: the angle of camera-up (the M3 axis) from the zenith. This is `rig_tilt_deg` and
+    `eq_rig_tilt_limit`, which already exist (the rig hanging under the Polaris).
+
+  These are separate constraints. Every pose in the tripod cone has a rig tilt of 81.5-98 deg (camera-up is roughly
+  horizontal when the lens points down), so `eq_rig_tilt_limit` ≤ 81.5 would exclude the cone too, but at a cost of
+  much of the PA range near the poles. The tripod cone is the narrow constraint that must always apply.
+* **In motor terms** (Sydney wedge, lat -33.9, computed from the driver's kinematics on a 5 deg grid): 0.46% of
+  motor space points into the cone. Every such pose has |M2| ≥ ~25 deg and M1 + M3 within about ±40 deg of 180.
+  Few end poses are lost, but a straight motor-angle move between two clear poses can pass through it.
+* **What the planner must do.** Every planned path, braking and interrupted paths included (R2), is checked for
+  boresight nadir distance (and rig tilt) along its length, not only at its end. If a path enters the cone, the
+  planner tries the other end solutions (item 1). If none is clear, it adds a waypoint around the cone. If no route
+  is clear, the goto is refused with a warning; the planner never clips mid-move. A target inside the cone goes to
+  the nearest pose on the cone's edge, as reachability does for other targets out of reach.
+* **Tracking** into the cone (a target setting below the tripod) stops at its edge, as at the motor limits.
+
+**R2. Fully interruptible gotos.** A goto in progress can be redirected mid-flight: a new SlewTo/target, a sync, a
+tracking change, AbortSlew, or an orbital's moving setpoint.
+
+* **Replan from the current state, not from rest.** Each motor's position and velocity (the measured θ_pv and ω, and
+  the commands still in flight during the dead time, i.e. the state predicted one dead time ahead) are the start of
+  the new trajectory. A motor moving away from the new target first brakes within Ka, and that braking time and
+  distance count in the plan.
+* **The end solution is chosen again** for the new target, scored from that moving state. An interruption is a new
+  goto: "choose once" applies per goto, never mid-goto for the same target. Reversing a fast-moving M1 can cost more
+  than a slightly worse solution in its direction of travel, and the scoring has to see that.
+* **No step in the commands.** The speed commands stay continuous across the replan (within Ka), and the dead-time
+  compensation (item 3) carries over.
+* Abort is the same planner with "stop" as the target: a planned stop within Ka, not a hard stop. Afterwards the
+  goto completes only once stopped (item 4).
+* `GotoTrajectory` already replans "from the current speed" on retarget (per path, not per motor); build on that
+  rather than writing a new planner.
+
+**R3. Architecture consistency.** Put new code where the existing modules say it belongs, reuse existing functions,
+and minimise duplication:
+
+| Concern | Module | Reuse / move |
+|---|---|---|
+| Goto planning: end-solution choice, scoring, trajectories, path checks (R1), replanning (R2), timeout | `control_plan.py` (new) | move `GotoTrajectory`, `MotorTrajectory`, `ramp_rates` out of `control.py`; `plan_goto` stays the PID's hook and calls it |
+| Kinematics: IK solutions (both branches, M1/M3 turns), reachability, boresight nadir distance, rig tilt geometry | `kinematics.py` | extend `q_to_theta` / `LastPosition`, `reachable_azaltroll`, `altitude_to_maxroll`, `theta_to_jacobian`; move `rig_tilt_deg` here from `control_eq.py` |
+| Eq mode policy: wedge alignment, tracking room, rig tilt limiting | `control_eq.py` | `wedge_alignQ_B2T`, `limit_rig_tilt`, `eq_theta1_with_room` (as a scoring input) |
+| Motor speeds and accelerations (Kv, Ka, SLOW/FAST) | `speed_controller.py` | `RateUnits`, `_speeds_at`; the planner reads its limits from here, no second speed table |
+| Backlash, PEC | `control_backlash.py`, `control_pec.py` / `control_worm.py` | unchanged |
+| Twin and tests | `tests/sim_digital_twin.py`, `tests/test_control_plan.py` (new) | twin sweep as a test; existing `test_goto_trajectory.py` cases move with the trajectories |
+
+* Before adding a function, search for an existing one (`wrap180`, `angular_difference`,
+  `calculate_angular_velocity`, `theta_to_jacobian`, `quaternion_difference` ...). Any new module is reviewed for
+  duplicates of existing code before it's committed.
+* Config keys follow the existing names and comments in `config.toml` (`tripod_cone_deg` beside
+  `eq_rig_tilt_limit`).
+* **Speed calibration, FAST commands only.** `CalibrationManager` was marked deprecated when the coordinated speed
+  controller came in, and `RateUnits` now uses only the baseline FAST points. The measurements show those
+  underestimate the speed by 10-25% (M1 10-11 deg/s against 8.92), and a time-optimal plan is only as good as its Kv.
+  Re-enable the SpeedTest calibration (`moveaxis_speed_test`, Pilot's Speed Calibration page) for the FAST speed
+  units only (RAW 200-2500 per axis), and feed the approved points to `RateUnits` in place of the baseline. The SLOW
+  levels keep the firmware table. The worm profile row stays as it is.
+
 ### Poses, reachability and what is left to choose
 
 Az/Alt/Roll is only how a pose is written, and it writes some poses twice and is singular at the zenith - hence
@@ -244,6 +316,10 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
   arrival within 1.3× T_best.
 * Hardware, `goto_response.py` idle and `--track`: median arrival - theoretical minimum under 3 s; overshoot under
   5' on moves ≤ 5 deg and under 15' on large ones; no completion while moving.
+* Tripod cone (R1): in the twin sweep (eq mode, several latitudes) no sample of any planned path, braking included,
+  has a boresight nadir distance under `tripod_cone_deg`.
+* Interruption (R2): twin tests that redirect gotos at random times mid-flight show continuous speed commands (no
+  step beyond Ka), no LIMIT, and arrival within 1.3× the T_best of a plan from the moving state.
 * The existing test suite passes, including the pano, reachability and zenith transit tests.
 
 ---
@@ -252,13 +328,17 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 
 * Tracking room: 8 h in both modes? Alt/az tracking turns M1 and M3 at rates that vary with the pointing, so its room
   needs the projected motor path, not a rate.
-* Battery: Kv from calibration underestimates the speed at these charges. Measure Kv live (it shows in the measured
-  speed of every FAST move) or plan with a margin?
+* Battery: Kv from the baseline underestimates the speed at these charges. FAST calibration (R3) fixes the table;
+  is it enough, or does it also need a live Kv (it shows in the measured speed of every FAST move) or a margin?
 * Dead-time compensation: the delay is ~0.2 s of sample age plus the MCU's FAST lag; is it stable enough to
   compensate as a constant?
 * BLC's share of the final settle while tracking: separate it with a run with BLC off.
 * The twin's M3 speed: recalibrate it from these runs.
-* Eq mode rig tilt: a constraint on the path, not just the end pose, once moves go straight in motor angles.
+* Eq mode rig tilt and the tripod cone (R1): both are path constraints. How fine must the path sampling be, and
+  is a waypoint around the cone enough or does it need a planned detour? What cone suits long lenses, and does the
+  tripod's leg spread (not a full cone) matter?
+* Interrupting a goto (R2): how far ahead to predict the state (one dead time?), and how much replanning every
+  tick an orbital's moving setpoint needs.
 * Eq mode with a single-point alignment: how much of the wedge's error it leaves, and the drift that follows.
 * Orbitals: the 2.5 s lead against the measured lag; acquiring an orbital as it rises past 10 deg as a planned goto.
 * A goto that also changes roll/PA: rotate along the pointing-held path at the end of the slew, or blend it in?
