@@ -2224,6 +2224,16 @@ def eq_pa_grid(lat_deg, dec, ha_step=2.0, pa_step=2.0, rig_tilt_limit=EQ_RIG_TIL
     return {"ha": ha, "pa": pa, "alt": alt, "code": code.T}            # code[pa, ha]
 
 
+def eq_motor_pa_by_dec(lat_deg, decs, pas):
+    """Motor reach alone over declination x PA (it doesn't depend on hour angle: tracking turns M1 about the pole):
+    codes[dec, pa] 2 reachable, 1 reachable only upside down (PA + 180 is), 0 neither."""
+    decs, pas = np.asarray(decs, float), np.asarray(pas, float)
+    az, alt = eq_hadec_to_azalt(np.zeros_like(decs), decs, lat_deg)
+    reach = [eq_constraints(*eq_pose_vectors(az[:, None], alt[:, None], (pas + k)[None, :], lat_deg), lat_deg)["motor"]
+             for k in (0.0, 180.0)]
+    return np.where(reach[0], 2, np.where(reach[1], 1, 0))
+
+
 def eq_fk_vectors(theta, alignQ_B2T):
     """Boresight and camera-up (..., 3), topocentric, for motor angles theta (..., 3): the driver's theta_to_q
     (camera-up = the M3 axis, set by M1/M2; M3 turns the boresight about it) followed by the base->topo rotation."""
