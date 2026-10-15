@@ -518,10 +518,8 @@ def derive_theta_ground_truth(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
     kinematics.azaltroll_to_theta()'s IK is multi-valued (two mechanically-distinct motor
     poses can point at the same sky position) and needs a LastPosition to pick the branch
     continuous with the previous row and to unwrap through +/-360 -- called with no lastPos
-    at all it silently returns (None, None, None) for *every* row (its own default argument
-    is passed through as a literal None to kinematics.q_to_theta(), which then fails on
-    None.unwrap() and gets swallowed by azaltroll_to_theta()'s try/except; found by testing
-    this function empirically, not from reading the signature). A single LastPosition is
+    it uses a fresh LastPosition per call, so rows aren't continuous with each other (before
+    2026-10-17 it silently returned (None, None, None) for every row instead). A single LastPosition is
     carried across rows here, advanced by theta_pred only (the real trajectory) after both
     theta_pred and theta_obs are computed against it -- mirroring how the driver carries one
     persistent self._pid._lp across a session, and keeping theta_obs from ever nudging the

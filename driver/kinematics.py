@@ -692,7 +692,7 @@ def azaltroll_to_theta(p_az: float, p_alt: float, p_roll: float,
     """Az/alt/roll (degrees) -> (theta1, theta2, theta3) via IK. Returns (None,None,None) on error."""
     try:
         motorQ = azaltroll_to_q(p_az, p_alt, p_roll)
-        return q_to_theta(motorQ, lastPos)
+        return q_to_theta(motorQ, lastPos if lastPos is not None else LastPosition())
     except Exception:
         return None, None, None
 
