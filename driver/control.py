@@ -1818,8 +1818,15 @@ class PID_Controller():
         if self.goto_traj is not None and self.goto_traj.space == 'THETA':
             return                                        # a straight motor-angle move is already under way
         zeta = np.array(self.zeta_meas)
-        d1 = max(angular_difference(self.alpha_pv[0],self.alpha_ref[0]), angular_difference(self.theta_pv[0],self.theta_ref[0]), key=abs)
-        d3 = max(angular_difference(self.alpha_pv[2],self.alpha_ref[2]), angular_difference(self.theta_pv[2],self.theta_ref[2]), key=abs)
+        if Config.advanced_eq_mode:
+            # on a wedge M1/M3 are not the azimuth/roll axes: a change in sky Az/Roll says nothing of their travel
+            # (near the zenith Az swings ~90 deg for a few deg of M1), so go by the target's motor angles
+            theta_goal = self._alpha_to_theta(self.alpha_ref, self.theta_pv)
+            d1 = angular_difference(self.theta_pv[0], theta_goal[0])
+            d3 = angular_difference(self.theta_pv[2], theta_goal[2])
+        else:
+            d1 = max(angular_difference(self.alpha_pv[0],self.alpha_ref[0]), angular_difference(self.theta_pv[0],self.theta_ref[0]), key=abs)
+            d3 = max(angular_difference(self.alpha_pv[2],self.alpha_ref[2]), angular_difference(self.theta_pv[2],self.theta_ref[2]), key=abs)
         z1_implied = zeta[0] + d1
         z3_implied = zeta[2] + d3
         safety = Config.zeta_safety_margin

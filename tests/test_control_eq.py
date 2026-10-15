@@ -319,6 +319,27 @@ class TestEqGotos:
         tw.close()
         assert done is not None and miss < 60, f"goto done {done}, miss {miss}"
 
+    @pytest.mark.parametrize("theta1", [360.8, 0.8], ids=["m1_turned_for_room", "m1_unturned"])
+    def test_goto_to_the_zenith_does_not_unwind(self, monkeypatch, caplog, theta1):
+        # The 2026-10-15 session: after an EQ ROOM turn left M1 at +360.8 (z1 ~+181), a goto to the zenith judged
+        # M1's travel by the sky Az swinging ~90 deg near the zenith (implied z1 +271, past the limit), unwound a
+        # turn down and then back up: 358 deg of M1 for a move that takes 81
+        tw = eq_twin(monkeypatch, (theta1, 78.7, 0.0))
+        t0, m1 = tw.clock.t, [tw.theta[0]]
+        with caplog.at_level("INFO"):
+            tw.goto_altaz(179.77, 90.0)
+            while tw.clock.t - t0 < 120 and tw.polaris.goto_complete_at is None:
+                tw.run(0.5)
+                m1.append(tw.theta[0])
+            tw.run(10)                                                   # settle: tracking from the zenith
+        alt_miss = abs(tw.pid.alpha_pv[1] - tw.pid.alpha_ref[1]) * 60      # Az is ill-defined up here, Alt is not
+        tw.close()
+        travel = float(np.sum(np.abs(np.diff(m1))))
+        assert tw.polaris.goto_complete_at is not None, "goto did not complete"
+        assert alt_miss < 1.0, f"Alt {alt_miss:.1f}' from the target"
+        assert travel < 90, f"M1 travelled {travel:.0f} deg"
+        assert not [r for r in caplog.records if "UNWIND" in r.getMessage()]
+
     def test_level_goto_keeps_sky_roll_as_before(self, monkeypatch):
         tw = Twin(monkeypatch, config={"coordinated_speed_control": True}, seed=0)
         tw.place((150.0, 40.0, 20.0))
