@@ -2211,17 +2211,22 @@ def eq_sky_grid(lat_deg, az_step=2.0, alt_step=2.0, pa_step=5.0, rig_tilt_limit=
 
 def eq_pa_grid(lat_deg, dec, ha_step=2.0, pa_step=2.0, rig_tilt_limit=EQ_RIG_TILT_OFF, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
     """For one declination, over hour angle x PA: what limits each pose, as codes 0 reachable, 1 motor reach,
-    2 rig tilt, 3 tripod cone (first that applies, in the order tripod, motor, rig), plus the altitude per HA."""
+    2 rig tilt, 3 tripod cone (first that applies, in the order tripod, motor, rig), plus the altitude per HA.
+    'code_flip' is the same for the upside-down frame (PA + 180)."""
     ha = np.arange(-180, 180 + 1e-9, ha_step)
     pa = np.arange(-180, 180 + 1e-9, pa_step)
     az, alt = eq_hadec_to_azalt(ha, np.full_like(ha, dec), lat_deg)
-    bore, up = eq_pose_vectors(az[:, None], alt[:, None], pa[None, :], lat_deg)
-    c = eq_constraints(bore, up, lat_deg, rig_tilt_limit, tripod_cone_deg)
-    code = np.zeros(up.shape[:-1], dtype=int)
-    code[~c["rig"]] = 2
-    code[~c["motor"]] = 1
-    code[~c["tripod"]] = 3
-    return {"ha": ha, "pa": pa, "alt": alt, "code": code.T}            # code[pa, ha]
+
+    def codes(pa_):
+        bore, up = eq_pose_vectors(az[:, None], alt[:, None], pa_[None, :], lat_deg)
+        c = eq_constraints(bore, up, lat_deg, rig_tilt_limit, tripod_cone_deg)
+        code = np.zeros(up.shape[:-1], dtype=int)
+        code[~c["rig"]] = 2
+        code[~c["motor"]] = 1
+        code[~c["tripod"]] = 3
+        return code.T                                                   # [pa, ha]
+
+    return {"ha": ha, "pa": pa, "alt": alt, "code": codes(pa), "code_flip": codes(pa + 180.0)}
 
 
 def eq_motor_pa_by_dec(lat_deg, decs, pas):
