@@ -32,7 +32,8 @@
 #                         (as far as the sky closes in HOLD_MAX_SEC, up to HOLD_ARCSEC), and it counts as arrived. A push
 #                         back across the slack overran in turn on the real mount (its speed lags the command by more
 #                         than the twin's), and the two became a limit cycle.
-#                         A motor that still crosses its slack more than MAX_CROSSINGS times in a goto is given up.
+#                         A motor that still crosses its slack more than MAX_CROSSINGS times in a goto is given up
+#                         until the next goto or planned reversal (each gets its own MAX_CROSSINGS).
 #     limits              the dead band follows the 518 motor angles, sampled every 0.2 s and M3's held ~0.6 s, so an
 #                         overshoot reversing between samples can move the output further than the estimate sees: it
 #                         can then end a goto up to ~1.5' off (M3 in the twin, about one Slew & Center correction in
@@ -90,8 +91,8 @@ class BacklashCompensator:
         self.adjust = np.zeros(3)                    # motor angle - controlled angle (deg)
         self._pushing = np.zeros(3, dtype=bool)
         self._latched_turns = set()
-        self._crossings = np.zeros(3, dtype=int)     # full slack crossings pushed this goto
-        self.given_up = np.zeros(3, dtype=bool)      # ... too many: not compensated until the next goto
+        self._crossings = np.zeros(3, dtype=int)     # full slack crossings pushed this goto (or planned reversal)
+        self.given_up = np.zeros(3, dtype=bool)      # ... too many: not compensated until the next goto (or reversal)
         self._was_pending = False
         self._heading = np.zeros(3)
         self._rate = np.zeros(3)
@@ -151,6 +152,10 @@ class BacklashCompensator:
                 self.flank[m] = f
                 self.latched[m] = True
                 self._latched_turns.add(key)
+                # a reversal has its own crossing budget: a motor given up during the goto (often one with many
+                # back-and-forth crossings, 2026-10-14 Tuc47) is otherwise left uncompensated through its reversal
+                self._crossings[m] = 0
+                self.given_up[m] = False
                 if self.logger:
                     self.logger.info(f"->> Polaris: BACKLASH M{m + 1} reversing its tracking direction "
                                      f"{'in' if tc >= now else 'since'} {abs(tc - now):.0f} s: compensating its "
@@ -225,8 +230,9 @@ class BacklashCompensator:
             omega = np.where(over, 0.0, omega)
             starting = starting & ~over
             if self.logger:
-                self.logger.warning("->> Polaris: BACKLASH compensation stopped until the next goto for " + ", ".join(
-                    f"M{m + 1}" for m in np.flatnonzero(over)) + f": crossed its slack more than {MAX_CROSSINGS} times")
+                self.logger.warning("->> Polaris: BACKLASH compensation stopped until the next goto or planned reversal "
+                                    "for " + ", ".join(f"M{m + 1}" for m in np.flatnonzero(over))
+                                    + f": crossed its slack more than {MAX_CROSSINGS} times")
         crossing = crossing & ~over
         if self.logger and np.any(crossing):                          # (not the small top-ups after it)
             self.logger.info("->> Polaris: BACKLASH taking up slack: " + ", ".join(
