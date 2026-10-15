@@ -66,8 +66,8 @@ Run 4's case 15 (`m3_5_back`) was stopped by hand and is left out.
 See [Design](#design). In order of what they gain: plan gotos while tracking too; compensate the dead time;
 complete only once stopped; choose the end solution once per goto for both modes; then tune the final settle
 (Kc/20, BLC). Throughout: the [requirements](#requirements-2026-10-16) - no path into the tripod cone, gotos
-interruptible from a moving state, and new code in `control_plan.py` / `kinematics.py` reusing what exists, with
-FAST speed calibration re-enabled.
+interruptible from a moving state, new code in `control_plan.py` / `kinematics.py` reusing what exists, with
+FAST speed calibration re-enabled, and planning that never blocks the 200 ms tick on a Pi Zero 2 W or N1505.
 
 ---
 
@@ -246,6 +246,49 @@ and minimise duplication:
   units only (RAW 200-2500 per axis), and feed the approved points to `RateUnits` in place of the baseline. The SLOW
   levels keep the firmware table. The worm profile row stays as it is.
 
+**R4. Platform performance.** The driver runs on Windows, macOS, Linux and Raspberry Pi OS. The minimum hardware is
+a **Raspberry Pi Zero 2 W** (4 × Cortex-A53 at 1 GHz, 512 MB) and an **Intel N1505** mini PC. Goto planning must
+have minimal impact on the 200 ms control loop and speed controller on that hardware.
+
+* **The current planner as a baseline (2026-10-16)**: all of its work happens in the goto's first tick, inside the
+  asyncio loop that also runs the speed controller, the Polaris socket and Alpaca. Measured in the twin on a Ryzen 9
+  7950X (a fast desktop, so a lower bound):
+
+  | | Idle goto | Goto while tracking |
+  |---|---|---|
+  | Normal tick (`control_step_calculate`) | 0.3 ms | 0.4 ms |
+  | First tick of a goto | 40 ms | 10 ms |
+  | Of which `plan_goto` (`GotoTrajectory.start`: 201 path samples, each a slerp + IK) | 30-41 ms | - (large moves not planned) |
+  | Each later tick (`GotoTrajectory.step`) | 0.2 ms | 0.2 ms |
+
+  The same path is sampled twice at the start of a goto: `prevent_windup`'s `_path_passes_gimbal_lock` (91
+  samples) and the planner (201). A Pi Zero 2 W runs Python an estimated 10-20× slower than this desktop (to be
+  measured), which puts the first tick of an idle goto at 0.4-0.8 s: two to four whole ticks.
+* **The field logs show it already.** The Windows field PC (logs 2026-10-06 to 10-14) logs heartbeat lags (the
+  100 ms pulse late) of 0.2-0.8 s right after gotos and rotates, with `plan_goto` / `prevent_windup` /
+  `GotoTrajectory._interp` in the stack. This is the likely cause of the pause seen when a new goto is issued. The
+  longest lags (2-15 s) come with "CPU: 100%" and position updates 1-3 s late: the whole machine saturated (imaging
+  and plate solving on the same PC), not planning. Even so, planning must not add to that.
+* **Requirements:**
+  * **Budget**: a tick's planning work under 10% of the tick (20 ms) on the minimum hardware, with no single tick
+    over 50 ms of planning. The control tick itself is unchanged.
+  * **Never block the tick for a plan.** Plan in slices across ticks, or in a worker (`asyncio.to_thread`). Under
+    the GIL a thread still competes for the CPU unless the work is in numpy, and a separate process costs memory a
+    512 MB Pi can't spare. Until the new plan is ready the mount keeps following the current trajectory, or brakes
+    within Ka. The new plan starts from the state predicted for its handover tick (R2), so a plan taking one or two
+    ticks costs no pause.
+  * **Do less work**: closed-form trapezoid/triangle profiles per motor for straight motor-angle moves (Design item
+    2's slews: no path sampling at all). Path sampling only for the pointing-held paths (rotations, small
+    corrections), with the samples shared by every check that needs them (gimbal lock, tripod cone R1, rig tilt,
+    the trajectory), not one pass each.
+  * **Vectorised kinematics**: IK/FK over an array of poses in one numpy call, in `kinematics.py` (R3), in place of
+    one `Quaternion` per sample in Python.
+  * **Cross-platform**: pure Python and numpy/scipy (already dependencies). No compiled extensions or OS-specific
+    code in the planner (numba and the like don't install cleanly on a Pi Zero or every Windows Python).
+  * **Measure it**: one log line per goto with the planning time and the number of ticks it spanned, so field logs
+    show it alongside the heartbeat lags; a twin test that counts planning operations per goto, not wall time, so
+    it is stable on any machine; a benchmark run on a Pi Zero 2 W and on the N1505 before release.
+
 ### Poses, reachability and what is left to choose
 
 Az/Alt/Roll is only how a pose is written, and it writes some poses twice and is singular at the zenith - hence
@@ -320,6 +363,9 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
   has a boresight nadir distance under `tripod_cone_deg`.
 * Interruption (R2): twin tests that redirect gotos at random times mid-flight show continuous speed commands (no
   step beyond Ka), no LIMIT, and arrival within 1.3× the T_best of a plan from the moving state.
+* Platform performance (R4): in the twin, no tick does more than its planning budget of operations (none over 50 ms
+  equivalent on a Pi Zero 2 W); on a Pi Zero 2 W and the N1505, no heartbeat lag over 0.15 s from planning across a
+  `goto_response.py` run.
 * The existing test suite passes, including the pano, reachability and zenith transit tests.
 
 ---
@@ -342,3 +388,6 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 * Eq mode with a single-point alignment: how much of the wedge's error it leaves, and the drift that follows.
 * Orbitals: the 2.5 s lead against the measured lag; acquiring an orbital as it rises past 10 deg as a planned goto.
 * A goto that also changes roll/PA: rotate along the pointing-held path at the end of the slew, or blend it in?
+* Platform performance (R4): the Pi Zero 2 W's real slowdown against the desktop for this code; slices across ticks
+  or a worker thread (and how much of the planning numpy can hold without the GIL); the exact N1505 model to
+  benchmark; whether the field PC's 100% CPU episodes need the driver to lower its own load, or to warn.
