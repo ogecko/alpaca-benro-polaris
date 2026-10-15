@@ -2193,7 +2193,9 @@ def eq_sky_grid(lat_deg, az_step=2.0, alt_step=2.0, pa_step=5.0, rig_tilt_limit=
                 tripod_cone_deg=EQ_TRIPOD_CONE_DEG, level=False):
     """Over an Az x Alt grid of pointings, the share (0-1) of position angles each constraint allows:
     {'az', 'alt', 'motor', 'motor_rig', 'ok', 'tripod' (0/1, the same at every PA), 'rig_tilt_min' (the least
-    rig tilt any motor-reachable PA has: what a rig tilt limit must allow for the pointing to stay reachable)}."""
+    rig tilt any motor-reachable PA has: what a rig tilt limit must allow for the pointing to stay reachable)}, and
+    'motor_either', 'motor_rig_either', 'ok_either': the same allowing an upside-down frame (PA or PA + 180).
+    pa_step must divide 180."""
     az = np.arange(0, 360 + 1e-9, az_step)
     alt = np.arange(-90, 90 + 1e-9, alt_step)
     pa = np.arange(-180, 180, pa_step)
@@ -2205,8 +2207,13 @@ def eq_sky_grid(lat_deg, az_step=2.0, alt_step=2.0, pa_step=5.0, rig_tilt_limit=
     with np.errstate(all="ignore"):
         tilt_min = np.nanmin(np.where(np.isnan(tilt_min), np.inf, tilt_min), axis=-1)
     tilt_min[np.isinf(tilt_min)] = np.nan
-    return {"az": az, "alt": alt, "pa": pa, "motor": c["motor"].mean(-1), "motor_rig": (c["motor"] & c["rig"]).mean(-1),
-            "ok": c["ok"].mean(-1), "tripod": c["tripod"].all(-1).astype(float), "rig_tilt_min": tilt_min}
+    half = int(round(180 / pa_step))
+    assert abs(half * pa_step - 180) < 1e-9, "pa_step must divide 180"
+    either = lambda m: (m | np.roll(m, half, axis=-1)).mean(-1)          # PA or PA + 180 (upside down)
+    motor_rig = c["motor"] & c["rig"]
+    return {"az": az, "alt": alt, "pa": pa, "motor": c["motor"].mean(-1), "motor_rig": motor_rig.mean(-1),
+            "ok": c["ok"].mean(-1), "tripod": c["tripod"].all(-1).astype(float), "rig_tilt_min": tilt_min,
+            "motor_either": either(c["motor"]), "motor_rig_either": either(motor_rig), "ok_either": either(c["ok"])}
 
 
 def eq_pa_grid(lat_deg, dec, ha_step=2.0, pa_step=2.0, rig_tilt_limit=EQ_RIG_TILT_OFF, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
@@ -2351,7 +2358,7 @@ def eq_cone_motor_map(lat_deg, step=2.5, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
 def eq_latitude_summary(lats, rig_tilt_limits=(EQ_RIG_TILT_OFF, 100.0, EQ_THETA2_MAX), n_pairs=400,
                         tripod_cone_deg=EQ_TRIPOD_CONE_DEG, seed=0):
     """Per latitude: the mean share of PA reachable over the sky above the horizon (motor reach alone, and with
-    each rig tilt limit), the share of that sky not reachable at any PA, and the share of straight motor-angle
+    each rig tilt limit; '_either' also allowing an upside-down frame), the share of that sky not reachable at any PA, and the share of straight motor-angle
     gotos (between poses above 10 deg) that enter the tripod cone."""
     rows = []
     for lat in lats:
@@ -2364,6 +2371,7 @@ def eq_latitude_summary(lats, rig_tilt_limits=(EQ_RIG_TILT_OFF, 100.0, EQ_THETA2
                "sky_unreachable": float(((first["motor"] == 0) * w).sum() / w.sum())}
         for lim in rig_tilt_limits:
             row[f"pa_share_tilt_{lim:g}"] = float((g[lim]["motor_rig"] * w).sum() / w.sum())
+            row[f"pa_share_tilt_{lim:g}_either"] = float((g[lim]["motor_rig_either"] * w).sum() / w.sum())
         df, _ = eq_straight_gotos(lat, n_pairs, 41, tripod_cone_deg=tripod_cone_deg, seed=seed)
         row["gotos_enter_cone"] = float(df["enters_cone"].mean())
         row["gotos_min_nadir_p01"] = float(df["min_nadir_deg"].quantile(0.01))
