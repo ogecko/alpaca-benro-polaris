@@ -314,6 +314,52 @@ the target is out of reach. Panorama panels are gotos like any other (the driver
 existing pano, reachability and zenith transit tests (`test_pano_wrap.py`, `test_reachable_azaltroll.py`,
 `test_zenith_transit.py`) define the behaviour to keep.
 
+### Eq mode reachability, PA and upside-down frames (2026-10-17)
+
+From `utility/analyse_span.ipynb` (eq sections; vector maths checked against the driver's `reachable_azaltroll`,
+`theta_to_q` and `q_to_theta`). PA is the driver's: camera-up from the direction of the north celestial pole.
+
+* **Motor reach on a wedge depends on Dec and PA only, not hour angle.** The rule is the level mount's (camera-up
+  within 81.5 deg of the M1 axis) with the M1 axis on the pole; tracking turns M1 about the pole and leaves
+  camera-up's angle to it unchanged. So a target that is reachable at some PA stays reachable at that PA all night,
+  as far as the motors go (the rig tilt limit and the tripod cone depend on hour angle).
+* **Upright, camera-up must lean toward the visible pole**: in the south, |PA| beyond about 98 deg at Dec 0.
+  **Upside down** (PA + 180, the same footprint) covers the centre band, |PA| below about 82 deg. Neither works
+  where camera-up would be within 8.5 deg of square to the pole (PA near ±90 at Dec 0); that gap widens toward the
+  poles until nothing is left beyond |Dec| 81.5 (the polar caps):
+
+  | Dec | Upright | Upside down only | Either |
+  |---|---|---|---|
+  | 0 | 45% | 45% | 91% |
+  | -45 | 43% | 43% | 86% |
+  | -75 | 31% | 31% | 62% |
+  | -85 | 0% | 0% | 0% |
+
+* **Allowing upside down exactly doubles the reachable PA**, at every latitude and every rig tilt limit (sky above
+  the horizon: 43% -> 87% with motor reach alone). A PA and its upside-down twin are never both reachable (camera-up
+  and camera-down can't both be within 81.5 deg of the M1 axis, nor both within a tilt limit of the zenith), so the
+  flip only ever adds PAs. This is the "upside down is not a choice" rule above, seen in eq terms: for any requested
+  framing at most one of the two is reachable, and reachability decides which.
+* **What the driver does today**: `reachable_azaltroll` tries the upside-down frame first and clamps to the nearest
+  reachable roll only if neither is reachable; eq mode applies it in the base frame (`_reachable_alpha`). With
+  `eq_rig_tilt_limit` set, `limit_rig_tilt` then takes the smallest allowed PA turn, which can be a nearer edge
+  than the flipped frame (see Open questions).
+* **The rig tilt limit costs PA, most near the equator** (where the M1 axis is nearly horizontal). Mean share of
+  PA reachable over the sky above the horizon, upright / either way up:
+
+  | Latitude | Motor reach alone | Rig tilt ≤ 100 | Rig tilt ≤ 81.5 |
+  |---|---|---|---|
+  | 5 | 43 / 86% | 27 / 54% | 20 / 40% |
+  | 35 | 43 / 87% | 35 / 70% | 28 / 56% |
+  | 70 | 43 / 87% | 43 / 86% | 38 / 75% |
+
+* **Tripod cone (R1)**: no end pose above the horizon is affected at any latitude. Straight motor-angle gotos
+  between poses above 10 deg enter the cone in 0.9% of cases at Sydney, about 1.2% near the equator and none
+  from about 50 deg latitude (the wedge nearly level). Every one first tips the rig past 81.5 deg, and those gotos
+  swing M1 and M3 a long way (median 159 and 162 deg against 90 and 76 for all gotos). The rig tilt passes 100 deg
+  partway through 43% of straight gotos, so with `eq_rig_tilt_limit` set the path check matters far more for the
+  rig tilt than for the cone.
+
 ### Tracking in eq mode
 
 With QUEST's alignment matching the real wedge, tracking turns the pose about the true pole and the IK spreads it
@@ -391,3 +437,6 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 * Platform performance (R4): the Pi Zero 2 W's real slowdown against the desktop for this code; slices across ticks
   or a worker thread (and how much of the planning numpy can hold without the GIL); the exact N1505 model to
   benchmark; whether the field PC's 100% CPU episodes need the driver to lower its own load, or to warn.
+* Out-of-reach PA with a rig tilt limit: `limit_rig_tilt` takes the smallest allowed PA turn, `reachable_azaltroll`
+  the upside-down frame first. Should eq mode prefer the upside-down frame (the requested footprint exactly) over a
+  nearer PA edge, as level mode does?
