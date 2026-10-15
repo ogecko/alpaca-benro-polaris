@@ -87,10 +87,12 @@ Each heuristic estimates motor travel its own way, some from sky angles, and the
 
 ## Theory
 
-**A pointing has a small, finite set of motor solutions.** M1-M2-M3 is a three-axis wrist: for one camera orientation
-there are exactly two IK branches (normal and flipped), each with M1 and M3 a whole turn either way. Within the motor
-limits that's about 2-18 candidates. It is the same on a wedge: the wedge only changes the base -> sky rotation
-(`alignQ_B2T`), not the motors' geometry.
+**A pose has a small, finite set of motor solutions.** M1-M2-M3 is a three-axis wrist: for one camera orientation
+there are two IK branches (normal, and flipped: M1 ±180, -M2, M3 ∓180), but with M2's range -8 to 81.5 deg both are
+valid only where |M2| ≤ 8 (the flipped branch needs -M2 in range too): outside that 16 deg slice by gimbal lock a pose
+has one branch. Each solution can also have M1 and M3 a whole turn either way. So the choice is almost always the
+M1/M3 turns, and the branch only in the slice. It is the same on a wedge: the wedge only changes the base -> sky
+rotation (`alignQ_B2T`), not the motors' geometry.
 
 **With independent motors the fastest move to a chosen solution is known exactly.** If each motor has its own speed
 and acceleration limit and doesn't constrain the others (confirmed in the measurements above), the minimum time is
@@ -152,12 +154,12 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
 
 ## Design
 
-1. **Choose the end solution once, at the start of the goto, for both modes.** List every motor solution of the
-   target pose (both branches × M1/M3 turns), drop those outside the motor limits, M2's range, through gimbal lock on
-   the way, or (eq) past the rig tilt; score the rest lexicographically: never a limit, then tracking room up to a
-   night (8 h, both modes: project the target's sky motion), then the move time, with cable wrap (M1/M3 the same way)
-   as a penalty. Fix the end angles for the goto; nothing re-decides mid-goto. This replaces UNWIND / EQ ROOM / LOCK /
-   FLIP during a goto; `prevent_windup` stays as the guard while tracking.
+1. **Choose the end solution once, at the start of the goto, for both modes.** Make the target pose reachable
+   (below), list its motor solutions (M1/M3 turns, and the second branch only when the target's |M2| ≤ 8), drop
+   those outside the motor limits or (eq) past the rig tilt on the way; score the rest lexicographically: never a
+   limit, then tracking room up to a night (8 h, both modes: project the target's sky motion), then the move time,
+   with cable wrap (M1/M3 the same way) as a penalty. Fix the end angles for the goto; nothing re-decides mid-goto.
+   This replaces UNWIND / EQ ROOM / LOCK / FLIP during a goto; `prevent_windup` stays as the guard while tracking.
 2. **Plan every goto, tracking ones too**: a time-optimal motor-space trajectory with feed-forward to where the target
    will be on arrival, then hand over to tracking. Free moves straight in motor angles; constrained paths only for
    roll/PA moves and small corrections. Removes the PID chase (τ ≈ 2 s) and the sky-path lead on combined moves.
@@ -167,6 +169,50 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
 5. **Goto timeout from the planned time** plus a margin, not a fixed 45 s.
 6. **Then tune the final settle**: Kc/20 while tracking and BLC pushes, once the overshoot is gone.
 
+### Poses, reachability and what is left to choose
+
+Az/Alt/Roll is only how a pose is written, and it writes some poses twice and is singular at the zenith - hence
+the wrap and flip rules in `reachable_azaltroll` (`kinematics.py`). In the design a target becomes a camera
+orientation (quaternion) once, and the rules separate into:
+
+* **Altitude over the top** (vertoramas, poles): alt 120 at az is alt 60 at az + 180 with roll + 180 - the *same*
+  orientation written differently. Nothing to choose: its motor solutions are the same.
+* **Upside down** (roll ± 180, the same footprint): *not a choice*. Camera-up is the M3 axis and M2 keeps it within
+  81.5 deg of the M1 axis (the zenith on a level base, the pole on a wedge); up and its opposite are 180 deg apart,
+  so they can't both be inside that cone. Hence `altitude_to_maxroll` ≤ 81.5 deg and roll and roll ± 180 are never
+  both reachable: reachability decides which one the frame gets, though M3 itself can turn fully.
+* **Reachability** (M2 and M3): the reachable poses are those with a motor solution inside the limits;
+  `altitude_to_maxroll`'s `cos(roll) = cos(θ2max)/cos(alt)` is that boundary written in sky angles. A target outside
+  it goes to the nearest reachable pose with today's priority - pointing first, then roll (the zenith zone: directly
+  below on the same azimuth) - in motor space, which also covers eq mode, where `_reachable_alpha` now goes through
+  the base frame and back.
+* **Continuity**: a target tracked through the zenith zone keeps its side (`test_zenith_transit.py`) - choosing once
+  and holding the solution, not re-choosing as the target moves.
+
+So per goto the choices are the M1/M3 turns, the branch in the |M2| ≤ 8 slice, and the nearest reachable pose when
+the target is out of reach. Panorama panels are gotos like any other (the driver doesn't control their timing); the
+existing pano, reachability and zenith transit tests (`test_pano_wrap.py`, `test_reachable_azaltroll.py`,
+`test_zenith_transit.py`) define the behaviour to keep.
+
+### Tracking in eq mode
+
+With QUEST's alignment matching the real wedge, tracking turns the pose about the true pole and the IK spreads it
+over all three motors: M1 at the sidereal rate, M2 and M3 correcting in proportion to the wedge's error (computed
+from the driver's kinematics, 4 h from reachable eq poses):
+
+| Wedge error | M1 over 4 h | M2 over 4 h | M3 over 4 h | Peak M2/M3 rate |
+|---|---|---|---|---|
+| none | 60.16 deg (sidereal) | 0 | 0 | 0 |
+| 0.5 deg | 59.9-60.8 deg | 4-25' | 4-45' | 4-14'/h |
+| 2 deg | 59.0-62.6 deg | 17-100' | 16-182' | 16-55'/h |
+
+* M3 takes out the field rotation a misaligned wedge leaves, which a two-axis equatorial mount can't.
+* M2/M3 creep at ~0.1"/s, far below the slowest SLOW speed (~21"/s): start-stop pulses (the speed controller's PWM),
+  reversing direction during a night, where backlash takes up (BLC).
+* Tracking room in eq mode is M1's: M2/M3 use a few degrees a night at most.
+* QUEST needs syncs spread over the sky to see the pole axis error (its test uses four); with fewer, tracking drifts
+  at about the error × the sidereal rate.
+
 ### Acceptance criteria
 
 * Twin sweep (to become a test: a seeded subset in the suite, the full sweep marked slow): no LIMIT, no mid-goto
@@ -174,7 +220,7 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
   arrival within 1.3× T_best.
 * Hardware, `goto_response.py` idle and `--track`: median arrival - theoretical minimum under 3 s; overshoot under
   5' on moves ≤ 5 deg and under 15' on large ones; no completion while moving.
-* The existing test suite passes.
+* The existing test suite passes, including the pano, reachability and zenith transit tests.
 
 ---
 
@@ -189,3 +235,4 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
 * BLC's share of the final settle while tracking: separate it with a run with BLC off.
 * The twin's M3 speed: recalibrate it from these runs.
 * Eq mode rig tilt: a constraint on the path, not just the end pose, once moves go straight in motor angles.
+* Eq mode with a single-point alignment: how much of the wedge's error it leaves, and the drift that follows.
