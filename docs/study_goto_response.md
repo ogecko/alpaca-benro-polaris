@@ -167,9 +167,20 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
    with cable wrap (M1/M3 the same way) as a penalty. Fix the end angles for the goto; nothing re-decides mid-goto.
    This replaces UNWIND / EQ ROOM / LOCK / FLIP during a goto; `prevent_windup` stays as the guard while tracking.
 2. **Plan every goto, tracking ones too**: a time-optimal trajectory with feed-forward to where the target will be on
-   arrival, then hand over to tracking. Slews between targets straight in motor angles; rotations (roll/PA) and small
-   corrections along the pointing-held path, time-optimally (path following). Removes the PID chase (τ ≈ 2 s) and the
-   sky-path lead on combined moves, without losing the pose in a rotation.
+   arrival, then hand over to tracking. Removes the PID chase (τ ≈ 2 s) and the sky-path lead on combined moves.
+   The path depends on how far the pointing moves (agreed 2026-10-17):
+   * **Pointing moves 15 deg or less** (`goto_controlled_path_deg`, the angle between the two pointings) **and every
+     roll/PA-only change: a controlled pointing path.** The pointing travels the great circle from start to target
+     (RA/Dec while tracking), and roll/PA changes in proportion to progress along it, so the rotation never swings
+     the pointing off that natural path (a straight motor move would: M3 alone pans the pointing). As fast as the
+     motors allow along that path (path following, `GotoTrajectory` today). If the twin sweep shows these moves much
+     slower than straight ones, allow the pointing a small corridor around the great circle (e.g. 1 deg or a few % of
+     the move) for the motors to cut corners.
+   * **Pointing moves more than 15 deg: fast and straight in motor angles**, closed-form per motor from the current
+     state; the path through the sky isn't controlled. Path checks (tripod cone, rig tilt) apply here; a controlled
+     path of 15 deg or less between targets above the horizon stays within 15 deg of them and can't reach the cone.
+   * **Fallback**: a controlled path that needs an IK branch change or passes the motor limits goes straight instead.
+   * Redirects mid-goto (R2) can switch between the two, both starting from the current motor speeds.
 3. **Compensate the dead time** (0.2-0.4 s): feedback against the plan delayed by the dead time, braking that much
    earlier. Removes the ~1-1.5 deg overshoot.
 4. **Complete a goto only once the motors have stopped**, not on one tick within tolerance.
@@ -433,7 +444,7 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
   tick an orbital's moving setpoint needs.
 * Eq mode with a single-point alignment: how much of the wedge's error it leaves, and the drift that follows.
 * Orbitals: the 2.5 s lead against the measured lag; acquiring an orbital as it rises past 10 deg as a planned goto.
-* A goto that also changes roll/PA: rotate along the pointing-held path at the end of the slew, or blend it in?
+* A goto that also changes roll/PA over more than 15 deg: blended into the straight motor move (as now planned), or rotate along a controlled path at the end of the slew?
 * Platform performance (R4): the Pi Zero 2 W's real slowdown against the desktop for this code; slices across ticks
   or a worker thread (and how much of the planning numpy can hold without the GIL); the exact N1505 model to
   benchmark; whether the field PC's 100% CPU episodes need the driver to lower its own load, or to warn.
