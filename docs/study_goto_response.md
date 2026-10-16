@@ -270,6 +270,27 @@ the committed code also chose (it missed by 31 deg at the timeout). Its motors n
 moving `_flip_motor_angles` onto `choose_end_solution` (step 5). The ~11 s left between arrival and best is still the
 final settle (design items 4 and 6).
 
+**Where the ~11 s goes (level idle, calibrated twin, median).** Best 13.7 s; the plan at 0.8 Kv adds 2.6 s; the
+response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the settle after the move 5.5 s.
+
+* *Twin MCU, FAST to SLOW* (twin bug): after a FAST move the twin ignored SLOW commands until the lagged FAST speed
+  had decayed below 1e-4 deg/s, so it was deaf to the PID's corrections for 2-3 s. The mount reverses on a SLOW
+  correction ~0.6 s after a FAST move (10-15 log). Fixed in `sim_polaris_mcu`: the FAST residual eases off while SLOW
+  acts at once. Sweep: tracking gotos 17.4 -> 13.2 s over best (level), 20.7 -> 17.5 s (eq); eq idle 14.3 -> 12.4 s.
+* *The KF dominates what is left, on the mount too.* `kf_measure_noise` gives the 518 positions a variance of
+  0.0032 deg² (σ 3.4') on M1, against 5e-5 of process noise: the filter integrates velocity and trusts position
+  little (position gain ~0.15 per sample, τ ≈ 1.3 s). Every fast stop leaves its estimate off, and it converges
+  slowly. On the mount (10-15 log, KFLOG `θ_state - θ_meas`) that's **25-80' at the end of a deceleration,
+  taking ~3 s to converge**, sometimes overshooting to the other side by 5-11'. The raw positions vary only 0.35'
+  step to step. The PID chases the transient, and goto completion waits for it (or, before the settle rule,
+  completed on it). In the twin, with the position variance ×0.1, median arrival − best goes 10.3 -> 7.4 s and the
+  settle after the move 2.8 -> 0.4 s. Misses just over 2' (2.5-3.5', 11 gotos) are the KF still 2-3' off at
+  completion (seed 1143: M1 2.2' off, 3.2' miss; ×0.1: 0.03' off, 0.5' miss). Retuning it also changes tracking and
+  guiding: open question below.
+* *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
+  even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
+  no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.
+
 ---
 
 ## Design
@@ -542,6 +563,13 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 ---
 
 ## Open questions
+
+* **KF position trust (2026-10-16).** Lower `kf_measure_noise`'s position terms (M1-M3) toward the measured 518
+  noise (0.35' step to step on the mount, about 10x less in σ than configured)? It would remove most of the
+  goto settle (above), but the filter also smooths tracking and guiding. Needs a twin run with mount-like
+  position noise (the twin's 0.006' is far below the mount's) and a night's tracking check. Alternatives:
+  re-anchor the position on the raw measurement when a fast move stops, or raise the trust only while
+  not tracking.
 
 * Tracking room: 8 h in both modes? Alt/az tracking turns M1 and M3 at rates that vary with the pointing, so its room
   needs the projected motor path, not a rate.

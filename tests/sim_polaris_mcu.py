@@ -72,8 +72,13 @@ class McuModel:
         return float(np.sign(s) * _fast_to_dps(abs(s))) if s and self.t < self.fast_until[axis] else 0.0
 
     def dps(self, axis):
-        if self.fast_lag_s and (self.t < self.fast_until[axis] or abs(self.fast_actual[axis]) > 1e-4):
+        if self.fast_lag_s and self.t < self.fast_until[axis]:
             return self.fast_actual[axis]
+        if self.fast_lag_s and abs(self.fast_actual[axis]) > 1e-4:
+            # FAST no longer refreshed: its speed eases off while SLOW takes over at once. Hardware (10-15 goto log)
+            # reverses on a SLOW correction ~0.6 s after a FAST move; holding SLOW off until FAST had decayed
+            # deafened the twin to it for 2-3 s
+            return self.fast_actual[axis] + self.slow_dps(axis)
         if self.t < self.fast_until[axis]:
             return self.fast_dps(axis)
         return self.slow_dps(axis)
