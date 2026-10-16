@@ -60,7 +60,9 @@ class GotoTrajectory:
 
     to_theta(alpha, theta_near) converts Az/Alt/Roll to motor angles on the branch nearest theta_near.
     """
-    SAMPLES = 200
+    SAMPLES = 200                                            # at most; fewer for a short path (SAMPLE_DEG)
+    SAMPLE_DEG = 0.5                                         # motor travel per sample
+    MIN_SAMPLES = 6
     TURN_SHARE = 0.5
     BRANCH_JUMP_DEG = 30.0                                   # one sample step this large is an IK branch change
 
@@ -82,7 +84,15 @@ class GotoTrajectory:
     def retarget(self, goal):
         """New goal: re-plan from the current reference position and speed."""
         self.goal = np.asarray(goal, dtype=float)
-        fracs = np.linspace(0.0, 1.0, self.SAMPLES + 1)
+        # samples for the path's motor travel end to end (one conversion): each sample costs a sky -> motor
+        # conversion, and 200 of them took ~1,400 kinematics calls in one tick for a 5 deg PA change (R4)
+        end = self.to_theta(self.goal, self._theta)
+        n = int(np.clip(math.ceil(float(np.max(np.abs(end - self._theta))) / self.SAMPLE_DEG), self.MIN_SAMPLES, self.SAMPLES))
+        # plus samples packed near both ends, where the reference speeds up and brakes: read off a coarse profile
+        # the start crept (0.21 deg/s takes 0.004 deg at 5 deg/s^2, the first uniform sample is 0.5 deg away)
+        ends = np.array([1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2])
+        ends = ends[ends < 1.0 / n]
+        fracs = np.unique(np.concatenate([np.linspace(0.0, 1.0, n + 1), ends, 1.0 - ends]))
         thetas = [self._theta]
         for f in fracs[1:]:
             thetas.append(self.to_theta(self._interp(self._alpha, self.goal, f), thetas[-1]))

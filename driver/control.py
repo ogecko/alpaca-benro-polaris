@@ -1582,6 +1582,8 @@ class PID_Controller():
             self.goto_traj = None                         # needs an IK branch change: the PID and its FLIP
             self.move_planned = False                     # handling take this goto (not walkable by the planner)
             return False
+        self.lock_checked = True                          # the planned path was sampled and stays on its branch: no
+                                                          # gimbal-lock path check on top (~360 kinematics calls)
         if self.mode == 'TRACK' and self.goto_traj.done:
             self.goto_traj = None                         # arrived: normal tracking takes over from here,
             self.move_planned = False                     # and the PID finishes this goto (no re-planning)

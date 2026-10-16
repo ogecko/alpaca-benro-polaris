@@ -336,6 +336,13 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   arrival − best 9.5/12.1 s, kinematics per tick 10/26 (were 369/380), within R4's 40. Idle gotos unchanged
   (7.4/11.2 s). In eq mode a 0.2 deg move from a pose short of M1 tracking room still turns M1 360 deg (51 s): the room
   policy, as the old EQ ROOM did on a session's first goto.
+  **PA/roll changes while tracking** stay on the sampled GotoTrajectory: they must hold the pointing while all three
+  motors turn (M3 isn't the camera's roll axis), and a straight motor move drifts the pointing 13' (median, up to
+  145') over a 10 deg PA change (fine only to ~1 deg). Their cost came from the fixed 200 samples and the old
+  gimbal-lock path check on top. Now the path is sampled per 0.5 deg of motor travel (at least 6, plus a few packed
+  near each end for the speed-up and braking), and a planned path marks the lock check done. PA change cost per tick
+  1,383 -> 111 (1 deg) / 316 (10 deg), same time (12/14 s) and accuracy. Still over R4's 40: spreading the sampling
+  over ticks is the next step there, with the idle gotos of 15 deg or less (1,054 level / 1,433 eq per tick).
 * *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
   even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
   no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.
