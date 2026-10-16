@@ -1541,6 +1541,7 @@ class PID_Controller():
                 if theta_goal is not None:
                     self.goto_traj = self._motor_move(theta_goal)
                     self.goto_traj.alpha_goal = goal.copy()
+                    self.room_checked = self.lock_checked = True    # the plan chose the end solution (with room)
                     d1 = theta_goal[0] - theta_pv[0]
                     flip = f' (FLIP {"CW" if d1 > 0 else "CCW"})' if is_flip(theta_pv, theta_goal) else ''
                     self.logger.info(f'GOTO straight in motor angles{flip} to {theta_goal[0]:+.1f},{theta_goal[1]:+.1f},'
@@ -1553,10 +1554,12 @@ class PID_Controller():
                     self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
                     return True
             travel = float(np.max(np.abs(to_theta(goal, theta_pv) - theta_pv)))
-            if self.mode == 'TRACK' and travel > self.SMALL_MOVE_DEG and not self._is_roll_move(start, goal):
-                move = self._tracking_move(goal)
+            if self.mode == 'TRACK' and not self._is_roll_move(start, goal):
+                move = self._tracking_move(goal, small=travel <= self.SMALL_MOVE_DEG)
                 if move is not None:
                     self.goto_traj = move
+                    self.room_checked = self.lock_checked = True    # the plan chose the end solution: no EQ ROOM
+                                                                    # turn on top (a 0.02 deg dither turned M1 360)
                     self.logger.info(f'GOTO straight in motor angles while tracking to {move.goal[0]:+.1f},'
                                      f'{move.goal[1]:+.1f},{move.goal[2]:+.1f} ({move.duration:.1f} s planned)')
                     if self.time_goto:                    # the goto timeout allows for the planned move
@@ -1628,31 +1631,36 @@ class PID_Controller():
                                  f'{slower:.0f} s slower)')
         return None if i is None else solutions[i]
 
-    def _tracking_move(self, delta_goal):
+    def _tracking_move(self, delta_goal, small=False):
         """A straight MotorMove for a goto while tracking: to the end solution for where the target will be when the
         move ends (planned once to know how long it takes, then aimed that far ahead). None if no end solution is in
-        reach (the PID then takes the goto as before)."""
-        theta_goal = self._straight_goal(np.array(self.alpha_ref, dtype=float))
+        reach (the PID then takes the goto as before). small (a dither, a re-centre): on the current IK branch at
+        SLOW speeds, where straight in motor angles is straight on the sky; the sampled GotoTrajectory it replaces
+        cost ~1,400 kinematics calls in a tick (R4)."""
+        rate = self.SMALL_MOVE_RATE if small else None
+        theta_pv = np.array(self.theta_pv, dtype=float)
+        theta_goal = (self._delta_to_theta(delta_goal, theta_pv) if small
+                      else self._straight_goal(np.array(self.alpha_ref, dtype=float)))
         if theta_goal is None:
             return None
-        lo, hi = self._theta_limits()
-        for _ in range(2):
-            move = self._motor_move(theta_goal)
-            ahead = move.duration + float(Config.pid_Kt) + 3 * float(Config.pid_Kl)
-            theta_ahead = self._alpha_to_theta(self._delta_to_alpha(delta_goal, ahead), theta_goal)
-            if np.any(theta_ahead < lo) or np.any(theta_ahead > hi) or np.max(np.abs(theta_ahead - theta_goal)) > 5.0:
-                break                                     # past a limit or onto another branch by then: aim at now
-            theta_goal = theta_ahead
-        move = self._motor_move(theta_goal)
+        # the target's motion in motor angles at the goal (its tracking rates there): the move is planned moving with it
+        drift = self._alpha_to_theta(self._delta_to_alpha(delta_goal, 1.0), theta_goal) - theta_goal
+        if np.max(np.abs(drift)) > 1.0:
+            drift = np.zeros(3)                           # onto another branch within a second (gimbal lock): none
+        move = self._motor_move(theta_goal, rate, drift)
         move.delta_goal = np.array(delta_goal, dtype=float)
         return move
 
-    def _motor_move(self, theta_goal):
-        """A MotorMove to theta_goal from the measured angles and the speeds commanded now."""
+    def _motor_move(self, theta_goal, rate=None, drift=None):
+        """A MotorMove to theta_goal from the measured angles and the speeds commanded now, at rate (deg/s; default the
+        planner's share of Kv), moving with drift (deg/s; a goto while tracking). At SLOW speeds (SMALL_MOVE_RATE) the
+        motors take a new speed on the MCU's next tick, without the FAST lag pid_Kl: only the dead time is modelled
+        (twin: 0.1 deg tracking moves 7.1 -> 5.8 s)."""
         self.set_Ka_array(Config.pid_Ka)
         self.set_Kv_array(Config.pid_Kv)
-        move = MotorMove(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE,
-                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), float(Config.pid_Kt), float(Config.pid_Kl))
+        move = MotorMove(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE if rate is None else rate,
+                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), float(Config.pid_Kt),
+                         float(Config.pid_Kl) if rate is None or rate > self.SMALL_MOVE_RATE else 0.0, drift)
         move.start(np.array(self.theta_pv, dtype=float), theta_goal, self.omega_ff_shaped)
         return move
 

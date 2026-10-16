@@ -313,6 +313,29 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   now returns the reference. Tracking restore without BLC now ends engaged and on target in ~10 s (tracking takes
   the slack up after the planned catch-up), against ~23 s with BLC: BLC's take-up now costs time here (open).
   The end solution chosen for eq tracking room is logged ("for tracking room, N s slower").
+  Then: **small moves while tracking** (dithers, re-centring; under `SMALL_MOVE_DEG` of motor travel) are straight
+  `MotorMove`s too, on the current IK branch at `SMALL_MOVE_RATE`. The sampled GotoTrajectory they used cost ~1,375
+  kinematics calls in a tick. Every planned move while tracking now moves **with the target**: `MotorMove(drift=...)`
+  adds the target's motor rates at the goal to the reference and the commands, in place of aiming ahead with the
+  tracking held off (that made M1/M3 jump in one tick and wait). Fixes found on the way:
+  - `MotorMove.step` commanded the plan's speed at one instant, so a move shorter than a tick (a 0.02 deg dither lasts
+    0.13 s) commanded nothing. It now commands the mean speed over a tick centred on that instant (the same on a
+    ramp; a mean over the tick just past was half a tick late and cost 1.8 s on level idle gotos).
+  - The old EQ ROOM and gimbal-lock checks in `prevent_windup` still ran during a planned move: a 0.02 deg dither in
+    eq mode turned M1 a full 360 deg. A planned move marks both checked (the plan chose the end solution).
+  - At SLOW speeds the twin takes a new speed on the MCU tick with no FAST lag, so small moves model the dead time
+    only (0.1 deg: 7.1 -> 5.8 s).
+
+  | Tracking move (level, 20 seeds) | 0.02 deg | 0.1 deg | 0.2 deg | kinematics/tick |
+  |---|---|---|---|---|
+  | sampled GotoTrajectory (before) | 4.1 s | 5.7 s | 7.2 s | 1,375 |
+  | MotorMove with drift | 5.2 s | 6.3 s | 7.2 s | 11 |
+
+  Most of a small move is the PID's final approach to the TRACK tolerance (2.25"). Below 0.02 deg the PID alone is
+  0.5 s quicker but costs 373 calls a tick (the room/lock checks), so small moves stay planned. Sweep: level/eq tracking
+  arrival − best 9.5/12.1 s, kinematics per tick 10/26 (were 369/380), within R4's 40. Idle gotos unchanged
+  (7.4/11.2 s). In eq mode a 0.2 deg move from a pose short of M1 tracking room still turns M1 360 deg (51 s): the room
+  policy, as the old EQ ROOM did on a session's first goto.
 * *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
   even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
   no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.

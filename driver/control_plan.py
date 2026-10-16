@@ -232,8 +232,12 @@ class MotorMove:
     from every stop (0.3 deg at 5 deg/s^2 and 0.35 s)."""
     space = 'THETA'
 
-    def __init__(self, max_rate, max_accel, dead_time_s=0.0, lag_s=0.0):
+    def __init__(self, max_rate, max_accel, dead_time_s=0.0, lag_s=0.0, drift=None):
         self.max_rate = np.broadcast_to(np.asarray(max_rate, dtype=float), (3,)).copy()
+        # the goal's own motion (deg/s per motor), for a goto while tracking: the move is planned in a frame moving
+        # with the target, so the reference and the commands carry the tracking on through it and arrive tracking
+        self.drift = np.zeros(3) if drift is None else np.broadcast_to(np.asarray(drift, dtype=float), (3,)).copy()
+        self._T0 = 0.0                                   # time since start() when the current plan began
         self.max_accel = float(max_accel)
         self.dead_time_s = float(dead_time_s)
         self.lag_s = float(lag_s)
@@ -247,15 +251,18 @@ class MotorMove:
         """Plan from the measured angles theta and the speeds commanded now (omega): the motors are commanded to be
         a dead time ahead of where they are measured."""
         v0 = np.zeros(3) if omega is None else np.asarray(omega, dtype=float)
-        self._plan(np.asarray(theta, dtype=float) + v0 * (self.dead_time_s + self.lag_s), v0, goal)
+        self._T0 = 0.0
+        self._plan(np.asarray(theta, dtype=float) + v0 * (self.dead_time_s + self.lag_s), v0 - self.drift, goal)
         self._lagged = np.asarray(theta, dtype=float).copy()
 
     def retarget(self, goal):
-        """New goal mid-move: re-plan from where the plan has the motors now, at their speed now."""
-        p, v = self._state(self._t)
-        self._plan(p, v, goal)
+        """New goal (where it is now) mid-move: re-plan from where the plan has the motors now, at their speed now."""
+        p, v = self._profile(self._t)
+        self._T0 += self._t
+        self._plan(p, v, np.asarray(goal, dtype=float) - self.drift * self._T0)
 
     def _plan(self, p0, v0, goal):
+        """Plan the profile (in the frame moving with the drift) from p0 at v0 to goal."""
         self.goal = np.asarray(goal, dtype=float)
         self._p0, self._v0, self._t = p0.copy(), v0.copy(), 0.0
         self._segments = [_axis_profile(float(self.goal[i] - p0[i]), float(v0[i]), float(self.max_rate[i]),
@@ -264,7 +271,12 @@ class MotorMove:
         self.done = False
 
     def _state(self, t):
-        """Commanded angles and speeds at time t into the plan (before it: carrying on at the start speed)."""
+        """Commanded angles and speeds at time t into the plan: the profile plus the drift."""
+        p, v = self._profile(t)
+        return p + self.drift * (self._T0 + t), v + self.drift
+
+    def _profile(self, t):
+        """The profile's angles and speeds at time t into the plan (before it: carrying on at the start speed)."""
         p, v = self._p0.copy(), self._v0.copy()
         if t <= 0:
             return p + v * t, v
@@ -282,7 +294,8 @@ class MotorMove:
         return p, v
 
     def step(self, dt):
-        """Returns (theta_ref, omega_ff): the plan dead_time_s ago through the motor lag, and its speeds now."""
+        """Returns (theta_ref, omega_ff): the plan dead_time_s ago through the motor lag, and its mean speeds over
+        this tick."""
         self._t += dt
         delayed, _ = self._state(self._t - self.dead_time_s)
         if self.lag_s > 0:
@@ -290,8 +303,12 @@ class MotorMove:
         else:
             self._lagged = delayed
         ref = self._lagged.copy()
-        _, omega = self._state(self._t)
-        if self._t >= self.duration + self.dead_time_s + 3 * self.lag_s:
+        # the command: the plan's mean speed over a tick centred on t (on a ramp, its speed at t, as the reference),
+        # so a move shorter than a tick (a 0.02 deg dither lasts 0.13 s) is still commanded, not sampled as 0
+        p_then, _ = self._state(self._t - dt / 2)
+        p_next, _ = self._state(self._t + dt / 2)
+        omega = (p_next - p_then) / dt
+        if self._t - dt / 2 >= self.duration + self.dead_time_s + 3 * self.lag_s - 1e-9:   # its last command sent
             self.done = True
-            ref, omega = self.goal.copy(), np.zeros(3)
+            ref = self.goal + self.drift * (self._T0 + self._t)
         return ref, omega
