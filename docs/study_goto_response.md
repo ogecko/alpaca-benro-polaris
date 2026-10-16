@@ -368,6 +368,29 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   and the old UNWIND remapped it mid-goto (45 s, 95 deg off). A controlled path whose sampled motor angles leave the
   limits now goes straight to the chosen end solution (design item 2's fallback). Sweep: level idle 149 -> 150/150,
   remaps 1 -> 0. **All four cases: LIMIT 0, mid-goto remaps 0, every miss in level tracking (5) a target past M2's reach.**
+  **Field test, 2026-10-16 evening (level, tracking).** Idle gotos 13.5-29 s, on target. Three failures, all reproduced
+  in the twin and fixed:
+  - *Goto to Alt 0 while tracking never completed, oscillating*: level Alt 0 is M2 = 0, gimbal lock. Tracking's
+    feed-forward solved J^-1 exactly and demanded the roll the motors can't make there (M1/M3 counter-rotating at
+    2.4 deg/s), and the PID fought how reference and measurement split theta1 + theta3 (+1932" M1, -1802" M3). Now
+    `kinematics.theta_rates` is a least-squares solve that drops singular values under 3.5% (|theta2| within ~2 deg),
+    for tracking and PEC feed-forward, and within 1 deg of the lock M1 and M3 each get half the combined error.
+    Twin: 45 s timeout -> on target in 14.6 s (`test_guard_goto_to_alt_0_while_tracking_completes`).
+  - *Rotator moves straight after a goto went straight in motor angles*: a roll change was recognised only with
+    the pointing under 0.5' from the measurement, and the mount was still settling (Backlash Compensation taking up
+    slack): 17 deg off the target mid-roll. Now a pointing change under `SMALL_MOVE_DEG` and less than a quarter of
+    the roll counts as a roll change.
+  - *Roll changes on the pointing-holding path still left the pointing ~60' off* (205-417' before today): it scales
+    with the speed (~9' per deg/s). M1 runs at its cap along a curve, and M3's sample-and-hold makes it read
+    ~0.3 s later than M1/M2. Roll changes now run at `ROLL_MOVE_RATE` 1 deg/s, and the sampled trajectory's
+    reference has the same response model as MotorMove (dead time + lag, M3 +0.3 s). Worst pointing error during the
+    field sequence (roll -30, +30, -60, 0): 60-1065' -> 5-6'; rotation times about the same (~22 s), settling
+    decides them (`test_guard_roll_change_after_a_goto_keeps_the_pointing`). PA 10 deg changes 14 -> 18 s.
+  - Pilot's status showed no Flip/Unwind for planned moves (only the old theta_ref_cache ones): a MotorMove now
+    carries `FLIP CW`/`FLIP CCW` (is_flip) or `UNWIND` (M1 or M3 turning > 180 deg) as the status.
+  - A long move (47 s planned, 64.7 s) was forced: the roll -60 at Alt -30 left M3 at -236, and the next target
+    needed +56 (-304 is past the limit). Open: leave M3 room as M1 gets it in eq mode. The ~17 s over plan is likely
+    M3's FAST speed uncalibrated on this mount.
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).

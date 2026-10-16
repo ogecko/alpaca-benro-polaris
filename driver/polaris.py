@@ -1724,6 +1724,9 @@ class Polaris:
         pec_ra_status = pec_ra.r2   if pec_ra.converged() else -pec_ra.inhibit
         pec_dec_status = pec_dec.r2 if pec_dec.converged() else -pec_dec.inhibit
         pidmode = self._pid.mode if self._pid.theta_ref_cache is None else self._pid.theta_ref_cache_cause
+        traj = self._pid.goto_traj
+        if self._pid.theta_ref_cache is None and traj is not None and not traj.done and getattr(traj, 'cause', None):
+            pidmode = traj.cause                     # a planned flip / long M1 or M3 turn (control_plan.MotorMove)
         with self._lock:
             res = {
                 'polarismode': self._polaris_mode,

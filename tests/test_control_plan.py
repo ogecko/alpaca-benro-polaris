@@ -366,6 +366,52 @@ def test_guard_redirect_at_speed_keeps_every_motor_speed_continuous():
     assert done is not None and step < 10.0, f"command stepped {step:.1f} deg/s^2"
 
 
+def test_guard_goto_to_alt_0_while_tracking_completes():
+    """Field 2026-10-16: a goto to Alt 0 while tracking (level: M2 = 0, gimbal lock) timed out oscillating. Tracking's
+    feed-forward demanded the roll the motors can't make there (M1/M3 counter-rotating at 2.4 deg/s), and the PID
+    fought how the reference and the measurement split theta1 + theta3 (+1932" M1, -1802" M3)."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((251.7, 42.4, 0.0))
+        tw.start_tracking()
+        tw.run(5)
+        t0 = tw.clock.t
+        tw.goto_altaz(251.76, 0.0)
+        while tw.clock.t - t0 < 45 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2)
+        done = tw.polaris.goto_complete_at
+        tw.close()
+    finally:
+        mp.undo()
+    assert done is not None and done - t0 < 30, f"done {done and done - t0}"
+
+
+def test_guard_roll_change_after_a_goto_keeps_the_pointing():
+    """Field 2026-10-16: rotator moves (roll -30 etc.) straight after a goto went straight in motor angles (17 deg
+    off the target mid-roll), and on the pointing-holding path at full speed still left it ~60' off. Roll changes are
+    classed by a pointing change small next to the roll, and run at ROLL_MOVE_RATE."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((290.0, 50.0, 0.0))
+        tw.start_tracking()
+        tw.run(5)
+        ra, dec = tw.polaris.altaz2radec(42.4, 251.9)
+        tw.goto_radec(ra, dec)
+        tw.run(16.0)                                                       # as in the field: before it has settled
+        tw.pid.set_alpha_target({"roll": -30.0})
+        tw.pid.set_rotate_complete_callback(lambda: None)
+        worst = 0.0
+        for _ in range(100):
+            tw.run(0.2)
+            worst = max(worst, radec_sep_arcmin(ra, dec, *tw.true_radec()))
+        tw.close()
+    finally:
+        mp.undo()
+    assert worst < 10.0, f"pointing {worst:.1f}' off the target during the roll"
+
+
 def test_motor_move_retarget_keeps_the_speed():
     move = MotorMove(8.0, 5.0)
     move.start(np.zeros(3), (60.0, 0.0, 0.0))

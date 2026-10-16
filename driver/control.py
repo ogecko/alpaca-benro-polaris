@@ -19,7 +19,7 @@ from kinematics_mac import fit_alignment, corrected_theta, boresights, correctio
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
-from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q, theta_solutions
+from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q, theta_solutions, theta_rates
 from control_eq import wedge_alignQ_B2T, limit_rig_tilt, rig_tilt_deg, eq_theta1_with_room, EQ_MIN_TRACK_ROOM_DEG, THETA2_MIN
 from control_plan import GotoTrajectory, MotorMove, choose_end_solution, is_flip, wraps_cables, ramp_rates, move_time
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
@@ -1491,6 +1491,9 @@ class PID_Controller():
 
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
+    ROLL_MOVE_RATE = 1.0                             # roll/PA changes: motor rate (deg/s) that keeps the pointing
+    M3_HOLD_DELAY_S = 0.3                            # M3's 518 value is sample-and-hold (refreshed every ~0.6 s): on
+                                                     # a coordinated path it reads this much later than M1/M2
     GOTO_RETARGET_DEG = 0.5 / 60                     # re-plan when the goto target moves more than this
     GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback)
     GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
@@ -1585,7 +1588,15 @@ class PID_Controller():
                 if not self.move_planned:
                     return False
             rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
-            self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
+            if self._is_roll_move(start, goal):
+                # a roll/PA change: M1/M3 counter-rotate along a curve, and how far the pointing leaves it scales
+                # with the speed (~9' per deg/s in the twin: 60' at full speed, 6' at 1 deg/s); settling, not the
+                # speed, decides how long it takes
+                rate = np.minimum(rate, self.ROLL_MOVE_RATE)
+            slow = travel <= self.SMALL_MOVE_DEG                 # SLOW speeds: no FAST lag (see _motor_move)
+            self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL),
+                                            float(Config.pid_Kt) + np.array([0.0, 0.0, self.M3_HOLD_DELAY_S]),
+                                            0.0 if slow else float(Config.pid_Kl))
             self.goto_traj.space = self.mode
             self.goto_traj.start(start, theta_pv, goal)
             if self.mode == 'AUTO' and not self.goto_traj.branch_change and self.zeta_meas is not None:
@@ -1707,13 +1718,23 @@ class PID_Controller():
         move = MotorMove(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE if rate is None else rate,
                          min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), float(Config.pid_Kt),
                          float(Config.pid_Kl) if rate is None or rate > self.SMALL_MOVE_RATE else 0.0, drift)
-        move.start(np.array(self.theta_pv, dtype=float), theta_goal, self.omega_ff_shaped)
+        theta_now = np.array(self.theta_pv, dtype=float)
+        move.start(theta_now, theta_goal, self.omega_ff_shaped)
+        # what Pilot's status shows while it runs (as the old theta_ref_cache moves did)
+        d = np.asarray(theta_goal, dtype=float) - theta_now
+        move.cause = (('FLIP CW' if d[0] > 0 else 'FLIP CCW') if is_flip(theta_now, theta_goal)
+                      else 'UNWIND' if max(abs(d[0]), abs(d[2])) > 180.0 else None)
         return move
 
     def _is_roll_move(self, start, goal):
-        """The move is (almost) only a roll/PA change: pointing moves less than GOTO_RETARGET_DEG."""
+        """The move is mainly a roll/PA change: the pointing moves less than GOTO_RETARGET_DEG, or less than
+        SMALL_MOVE_DEG and much less than the roll. A rotator move straight after a goto (the mount still settling,
+        Backlash Compensation taking up slack) had the pointing a little off and went straight in motor angles:
+        17 deg off the target mid-roll."""
         q_a, q_b = azaltroll_to_q(start[0], start[1], 0.0), azaltroll_to_q(goal[0], goal[1], 0.0)
-        return bool(quaternion_difference(q_a, q_b)[0] <= self.GOTO_RETARGET_DEG)
+        pointing = quaternion_difference(q_a, q_b)[0]
+        roll = abs(wrap180(goal[2] - start[2]))
+        return bool(pointing <= self.GOTO_RETARGET_DEG or (pointing <= self.SMALL_MOVE_DEG and roll > 4 * pointing))
 
     def _delta_to_theta(self, delta, theta_near):
         """RA(deg)/Dec/PA -> motor angles at the current time, on the branch nearest theta_near."""
@@ -1839,8 +1860,7 @@ class PID_Controller():
 
             # If any Base-frame angular velocity is non-zero, convert to theta_dot via the Jacobian
             if np.any(omega_base):
-                J = theta_to_jacobian(*self.theta_pv)
-                theta_dot = np.linalg.solve(J, omega_base)
+                theta_dot = theta_rates(self.theta_pv, omega_base)   # without the roll it can't make at gimbal lock
                 self.omega_ff = np.degrees(theta_dot)
                 if self.polaris._trackingrate != 0:
                     self.omega_ff[2] = 0
@@ -1868,8 +1888,7 @@ class PID_Controller():
         if self.mode == "TRACK":
             omega_pec_B = getattr(self.polaris._sm, 'omega_pec_B', None)
             if omega_pec_B is not None and np.any(omega_pec_B):
-                J = theta_to_jacobian(*self.theta_pv)
-                theta_dot_pec = np.linalg.solve(J, np.radians(omega_pec_B))
+                theta_dot_pec = theta_rates(self.theta_pv, np.radians(omega_pec_B))
                 self.omega_pec = np.degrees(theta_dot_pec)
                 if self.polaris._trackingrate != 0:
                     self.omega_pec[2] = 0            
@@ -2002,6 +2021,7 @@ class PID_Controller():
                             f'(z1 {zeta[0]:+.0f}, z3 {zeta[2]:+.0f})')
         return best[2]
 
+    GIMBAL_LOCK_ERROR_DEG = 1.0                          # |theta2| below this: M1/M3 errors combined (errsignal)
     GIMBAL_LOCK_NEAR_DEG = 8.0                           # |theta2| below this: M1/M3 near aligned (overlap of the two sides)
 
     def _path_passes_gimbal_lock(self, start, goal, samples=24):
@@ -2094,6 +2114,12 @@ class PID_Controller():
             approach = test.track_settle(float(np.max(np.abs(self.error_signal))) * 3600.0)
             if approach is not None:                       # after an overshoot: onto the position with tracking
                 self.step_motor_targets(approach)
+        # At gimbal lock (M1 and M3 on one axis) only theta1 + theta3 is defined: how the reference and the measurement
+        # split it between the two can differ by a lot (+1932" M1, -1802" M3 at alt 0), which the PID fought for ever.
+        # Inside GIMBAL_LOCK_ERROR_DEG both motors get half the combined error
+        if self.mode not in ['HOMING', 'PARKING'] and abs(float(self.theta_pv[1])) < self.GIMBAL_LOCK_ERROR_DEG:
+            both = (self.error_signal[0] + self.error_signal[2]) / 2
+            self.error_signal = np.array([both, self.error_signal[1], both], dtype=float)
         # Per-axis deviation flags
         tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
         # Backlash Compensation: an engaged motor a little ahead of its target holds while the sky catches up: arrived

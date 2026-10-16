@@ -68,8 +68,13 @@ class GotoTrajectory:
     TURN_SHARE = 0.5
     BRANCH_JUMP_DEG = 30.0                                   # one sample step this large is an IK branch change
 
-    def __init__(self, to_theta, max_rate, max_accel):
+    def __init__(self, to_theta, max_rate, max_accel, dead_time_s=0.0, lag_s=0.0):
         self.to_theta = to_theta
+        # the reference is the walk as the measurements should show it: dead_time_s late and through a first-order
+        # lag of lag_s, as MotorMove's. Compared with the walk itself, the PID pushed each motor against its own lag
+        # and a roll change (M1/M3 counter-rotating along a curve) left the pointing 80' off the path
+        self.dead_time_s = np.broadcast_to(np.asarray(dead_time_s, dtype=float), (3,)).copy()   # per motor
+        self.lag_s = float(lag_s)
         self.axis_rates = np.broadcast_to(np.asarray(max_rate, dtype=float), (3,)).copy()   # per-axis limits
         self.max_rate = float(np.max(self.axis_rates))
         self.max_accel = float(max_accel)
@@ -81,6 +86,7 @@ class GotoTrajectory:
         self._alpha = np.asarray(alpha, dtype=float)
         self._theta = np.asarray(theta, dtype=float)
         self._speed = 0.0
+        self._clock, self._history, self._lagged, self._goal_at = 0.0, [(0.0, self._theta.copy())], self._theta.copy(), None
         self.retarget(goal)
 
     def retarget(self, goal):
@@ -131,8 +137,29 @@ class GotoTrajectory:
         self.done = False
 
     def step(self, dt):
-        """Returns (theta_ref, omega_ff): the reference now, and the velocity that takes it to where
-        it will be one dt later (where it then advances to)."""
+        """Returns (theta_ref, omega_ff): the reference (the walk dead_time_s ago through the lag), and the velocity
+        that takes the walk to where it will be one dt later (where it then advances to)."""
+        ref, rate = self._walk(dt)
+        if not np.any(self.dead_time_s > 0) and self.lag_s <= 0:
+            return ref, rate
+        self._clock += dt
+        self._history.append((self._clock, ref.copy()))
+        while len(self._history) > 2 and self._history[1][0] <= self._clock - float(np.max(self.dead_time_s)):
+            self._history.pop(0)                                # keep what the longest delay still needs
+        ts = np.array([t for t, _ in self._history])
+        hs = np.array([h for _, h in self._history])
+        delayed = np.array([np.interp(self._clock - d, ts, hs[:, i]) for i, d in enumerate(self.dead_time_s)])
+        self._lagged = (delayed if self.lag_s <= 0
+                        else self._lagged + (delayed - self._lagged) * (1.0 - math.exp(-dt / self.lag_s)))
+        if self.done:                                           # the walk is at the goal: done once its response is
+            if self._goal_at is None:                           # through as well
+                self._goal_at = self._clock
+            self.done = self._clock - self._goal_at >= float(np.max(self.dead_time_s)) + 3 * self.lag_s - 1e-9
+            if self.done:
+                return ref, rate
+        return self._lagged.copy(), rate
+
+    def _walk(self, dt):
         now = self._theta.copy()
         if self._at_goal:                                       # the reference is at the goal: done once it
             self.done = True                                    # has been handed out as theta_ref

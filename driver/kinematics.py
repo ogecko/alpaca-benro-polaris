@@ -506,6 +506,18 @@ def theta_to_q(theta1, theta2, theta3):
     return q if noflip else -q
 
 
+JACOBIAN_RCOND = 0.035     # singular values below this share of the largest are dropped (|theta2| within ~2 deg)
+
+
+def theta_rates(theta, omega_B):
+    """Motor rates (rad/s) for a Base-frame angular velocity omega_B (rad/s) at motor angles theta (deg): J^-1 omega,
+    as a least-squares solve that drops what the motors can't produce. Near gimbal lock (theta2 ~ 0, M1 and M3 on one
+    axis) the camera can't roll about its boresight; the exact solve demanded it as M1/M3 counter-rotating at up to
+    2.4 deg/s while tracking at alt 0, and the split between them swung back and forth."""
+    J = theta_to_jacobian(*theta)
+    return np.linalg.lstsq(J, np.asarray(omega_B, dtype=float), rcond=JACOBIAN_RCOND)[0]
+
+
 def theta_to_jacobian(theta1, theta2, theta3):
     """
     Compute the 3x3 Jacobian matrix at the given base frame orientation theta.
