@@ -350,6 +350,15 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   the closest approach by golden-section search (same answer as 400 samples on 3,000 random paths). Worst tick
   5.6 ms level idle / 9.7 ms eq idle (~110/200 ms on the Pi), kinematics per tick 129/225 (were 1,054/1,433); sweep
   results identical. Median worst tick per goto ~3 ms (the goto's first tick).
+  **The eq idle LIMITs were a branch mismatch** (2026-10-16): the driver's `LastPosition` starts at (180, 45, 0)
+  and is only updated from its own branch choices (the 518 quaternion is resolved through it). From a start at low M2
+  the other IK branch (M1 -180, M2 negated, M3 +180) was nearer, so theta_pv began on it while the motors were on the
+  first. `_theta_limits` (from theta - zeta) was then 180 deg off on M1/M3, and the planner, and the old FLIP before
+  it, drove M3 past its stop. It can happen on the mount when the driver starts with M2 low. `seed_branch` now starts
+  `LastPosition` at the raw motor angles from the 517 (zeta + 180, 45, 0) before the first measurement is resolved
+  (polaris and the twin). Sweep: eq idle 144 -> 150/150 arrived, LIMIT 5 -> 0, remaps 3 -> 0; eq tracking remaps
+  1 -> 0. **No case has a LIMIT or a mid-goto remap now.** The goto completion log says STOPPED AT A MOTOR LIMIT
+  when it ends in LIMIT (it said on target, the error being zeroed there).
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).

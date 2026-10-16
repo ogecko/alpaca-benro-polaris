@@ -323,6 +323,15 @@ def test_guard_goto_completes_only_once_the_motors_settle(seed):
     assert r["done_s"] is not None and r["miss_arcmin"] < 2.0
 
 
+@pytest.mark.parametrize("seed", [1047, 1084])
+def test_guard_measurements_start_on_the_motors_ik_branch(seed):
+    """From a start at low M2 the driver's LastPosition default (180, 45, 0) resolved theta_pv to the other IK branch
+    (M1 -180, M2 negated, M3 +180), the planner's limits (from theta - zeta) were 180 deg off, and these eq gotos
+    drove M3 into its limit. PID_Controller.seed_branch starts LastPosition at the raw motor angles."""
+    r = run_goto("eq_idle", seed)
+    assert not r["limit"] and r["done_s"] is not None and r["miss_arcmin"] < 2.0
+
+
 def test_motor_move_retarget_keeps_the_speed():
     move = MotorMove(8.0, 5.0)
     move.start(np.zeros(3), (60.0, 0.0, 0.0))

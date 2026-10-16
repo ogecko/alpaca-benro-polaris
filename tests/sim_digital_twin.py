@@ -246,6 +246,7 @@ class Twin:
         self.kf = KalmanFilter(self.logger, np.concatenate([self.mcu.position, np.zeros(3)]))
         self._last_raw = None
         self._m3_held = None
+        self.pid._lp_seeded = False                      # the driver meets the mount here: seed its branch afresh
         self.run(2.0)
         self.pid.reset_sp()
 
@@ -284,6 +285,7 @@ class Twin:
         p._theta_raw = theta_raw
         p._q1 = theta_to_q(*theta_raw)                      # polaris.py: the raw 518 motor quaternion (refresh_pid_setpoints_from_q1)
         p._zeta_meas = [theta_raw[0] - 180.0, theta_raw[1] - 45.0, theta_raw[2]]   # "517" raw motor angles (hardware: zeta = theta - (180, 45, 0))
+        self.pid.seed_branch(p._zeta_meas)                # polaris.decode_518position_measurement does the same
         self.kf.predict(omega_ref)
         is_tracking = self.pid.mode == 'TRACK'
         self.kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self.pid.theta_ref if is_tracking else None),

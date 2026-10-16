@@ -788,6 +788,7 @@ class PID_Controller():
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
         self._lock = Lock()                                  # Used to ensure no threading issues
         self._lp = LastPosition()                            # Used to remember last theta position for gimbal lock
+        self._lp_seeded = False                              # _lp set from the raw motor angles yet -- see seed_branch()
         self.logger = logger                                 # Logging utility
         self.polaris = polaris                               # Only used for guiding clacs and flaging
         self.controllers = polaris._motors                   # Motor speed controllers[0,1,2]
@@ -934,6 +935,17 @@ class PID_Controller():
             if key in axes:
                 self.alpha_v_sp[idx] = 0.0
                 self.alpha_offst[idx] = 0.0
+
+    def seed_branch(self, zeta):
+        """Once, before the first measurement is resolved to motor angles: start LastPosition at the raw motor angles
+        (zeta + 180, 45, 0), so theta follows the motors' own IK branch. From its default (180, 45, 0) a mount at low M2
+        resolved to the other branch (M1 -180, M2 negated, M3 +180), and the planner's motor limits, worked out from
+        theta - zeta, were 180 deg off on M1/M3 (eq goto into M3's limit)."""
+        if self._lp_seeded or zeta is None:
+            return
+        self._lp.update(float(zeta[0]) + 180.0, float(zeta[1]) + 45.0, float(zeta[2]))
+        self._lp.update_zeta(zeta)
+        self._lp_seeded = True
 
     def reset_theta(self):
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor angular reference position
@@ -2249,7 +2261,8 @@ class PID_Controller():
                    and not self.backlash.taking_up())
         if (arrived or self.goto_timeout()) and self.goto_complete_callback:
             err = np.abs(np.array(self.error_signal, dtype=float)) * 3600
-            self.logger.info(f'GOTO complete {"on target" if arrived else "TIMED OUT"} in {self.mode} after '
+            how = 'STOPPED AT A MOTOR LIMIT' if self.mode == 'LIMIT' else 'on target' if arrived else 'TIMED OUT'
+            self.logger.info(f'GOTO complete {how} in {self.mode} after '
                              f'{time.monotonic() - getattr(self, "goto_started", time.monotonic()):.1f} s, error '
                              f'{err[0]:.1f}" {err[1]:.1f}" {err[2]:.1f}"')
             self.goto_complete_callback()

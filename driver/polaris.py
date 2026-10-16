@@ -1134,6 +1134,7 @@ class Polaris:
         p_az = float(arg_dict['compass'])   # from Polaris direct
         p_alt = -float(arg_dict['alt'])     # from Polaris direct
 
+        self._pid.seed_branch(self._zeta_meas)       # once: resolve on the motors' own IK branch from the start
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp, theta2_min=THETA2_MIN_MEAS))
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_raw = omega_ref                          # commanded rate echoed back -- not an independent measurement, kept for status/UI only
