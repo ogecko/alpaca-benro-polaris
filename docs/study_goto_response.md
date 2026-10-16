@@ -391,6 +391,26 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   - A long move (47 s planned, 64.7 s) was forced: the roll -60 at Alt -30 left M3 at -236, and the next target
     needed +56 (-304 is past the limit). Open: leave M3 room as M1 gets it in eq mode. The ~17 s over plan is likely
     M3's FAST speed uncalibrated on this mount.
+  **Field test, 2026-10-16 later (b37052c5; level, eq toggled).** Three more, reproduced in the twin and fixed:
+  - *Tracking at Alt 0 Az 180 never completed* (goto TIMED OUT at 46 s with M2 15" behind, the rotate pending for
+    good) and the pointing sank ~13"/s. Inside the gimbal lock `q_to_theta` held the M1/M3 split (M3 from zeta) but
+    kept M2 from the exact solution, which tilts M3's axis about *that* split's M2 axis. On the held split it tilted
+    the camera the wrong way: M2 followed the field rotation (roll the motors can't make there; ~12"/s at Az 180)
+    and the pointing went down with it (22' in 2 min in the twin). Now M1/M2 are solved for the boresight with M3
+    held (`kinematics._lock_pointing`, Gauss-Newton); a reachable pose comes out unchanged. The lag also never
+    cleared because the integral is frozen while a move is pending. Twin, the field sequence: never -> 19.8 s, pointing
+    within 0.1' for 2 min (`test_guard_tracking_at_gimbal_lock_keeps_the_pointing`).
+  - *A roll change asked for during a goto timed out*: eq mode keeps the PA, so a goto to Alt -30 arrived at roll
+    ~60; a rotator move to 0 23 s later is ~78 s of roll change at Alt -30 (M1 at `ROLL_MOVE_RATE`, ~0.5 deg/s of
+    roll), and controlled paths didn't extend the 45 s goto timeout as straight moves do: TIMED OUT at 60.6 s, 227"
+    off. `GotoTrajectory.duration` (off its speed profile) now extends it
+    (`test_guard_roll_change_during_a_goto_completes_on_target`). The pointing is 5-10' off during such a roll.
+  - *Eq mode on, but the mount went on as alt-az*: turning eq on kept the 4 sync points taken level, and the refit
+    stayed level (0.4 deg tilt). Changing eq mode now clears all sync points (user's choice), starts from the new
+    base's seed (ideal wedge / level) and persists the empty list; the fitted M2 scale is kept, the same value sent
+    again keeps the points (`test_toggle_clears_the_sync_points`).
+  Open: roll changes at low altitude are slow (~0.5 deg/s of roll, a 60 deg change ~80 s); M3 room at the end of a
+  move.
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).
