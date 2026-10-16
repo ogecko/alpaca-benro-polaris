@@ -551,7 +551,7 @@ Calibrating your motor speed controller ensures:
 - Better guiding performance
 - Potentially improved deep-sky imaging results
 
-> **NOTE:** With [Coordinated Speed Control](#coordinated-speed-control) on, motor speed calibration is not used.
+> **NOTE:** With [Coordinated Speed Control](#coordinated-speed-control) on, only the fast-speed calibration is used: slow speeds come from the Polaris firmware's own table.
 
 
 
@@ -567,10 +567,15 @@ Calibrating your motor speed controller ensures:
 ## A. What It Changes
 
 - **Tracking:** Holds all three axes at their required speeds at the same time, which markedly improves tracking at low altitudes and near zero roll. It also responds faster to guiding corrections.
-- **Gotos and Roll Changes:** Moves along a planned path, slowing on tight curves in motor space. During a roll change the mount keeps pointing at the same Az/Alt (not tracking) or the same RA/Dec (tracking), instead of drifting.
-- **Flips:** Some gotos, for example from a negative to a positive altitude, need the mount to flip: M1 and M3 each turn about 180°. The driver decides this at the start of the goto and moves straight to the target along a planned motor path, with M1 and M3 turning in opposite directions to avoid wrapping the cables. The two flip positions overlap by about 8°, so from positive altitudes you can go down to about −8° without flipping, and from negative altitudes up to about +8°.
+- **Gotos:** Each goto is planned at the start, with a speed profile the motors can follow:
+  - **Long gotos** (the pointing moving more than 15°) go fast and straight in motor angles: every motor runs directly to its end position, so they all arrive together. Where a target can be reached with more than one set of motor angles, the driver picks the quickest that stays inside the motor limits and doesn't wrap the cables.
+  - **Short gotos** (15° or less) follow a path that keeps the pointing moving naturally towards the target, without the rotation swinging away.
+  - **Gotos while tracking** go straight in motor angles to where the target will be when the mount arrives. Very small moves, such as dithers and Slew & Center corrections, run at the accurate slow speeds.
+- **Roll and Position Angle Changes:** The mount keeps pointing at the same Az/Alt (not tracking) or the same RA/Dec (tracking) while the camera rotates. To keep the pointing steady, the motors turn at up to 1°/s. At low altitudes M1 and M3 have to turn further for the same rotation, so a large change there can take a minute or more.
+- **Flips:** Some gotos, for example from a negative to a positive altitude, need the mount to flip: M1 and M3 each turn about 180°. The driver decides this at the start of the goto and moves straight to the target in motor angles, with M1 and M3 turning in opposite directions to avoid wrapping the cables wherever the motor limits allow. The two flip positions overlap by about 8°, so from positive altitudes you can go down to about −8° without flipping, and from negative altitudes up to about +8°.
+- **Unwinds:** When the nearest end position would put M1 or M3 past its limit, the motor turns the other way round instead. In Equatorial Mode (Wedge) the driver also leaves M1 at least 120° of tracking room (about 8 hours), turning it a full turn at the goto if needed rather than mid-session. Alpaca Pilot's status shows **FLIP CW**, **FLIP CCW** or **UNWIND** while one of these moves is under way.
 - **Jogging:** Ramps up to and down from jog speeds, which reduces overshoot when you release a jog.
-- **Goto Settling:** Holds the PID integral during a goto, so it doesn't wind up and disturb tracking afterwards. A goto is only marked complete once the mount is on target.
+- **Goto Settling:** Holds the PID integral during a goto, so it doesn't wind up and disturb tracking afterwards. A goto is only marked complete once the mount is on target and the motors have settled (with [Backlash Compensation](./kinematics.md#27-backlash-compensation), once its slack is also taken up). A goto that hasn't finished after 45 s plus its planned move time is completed anyway. The log records how each goto ended: `GOTO complete on target`, `TIMED OUT` or `STOPPED AT A MOTOR LIMIT`, with the time taken and the final error of each motor.
 - **Faster Motions:** Speeds above the slow range (about 0.24°/s) use the Polaris's fast mode, with each motor running up to its own maximum.
 
 ## B. Turning It On or Off
@@ -579,7 +584,7 @@ In Alpaca Pilot, open the **Settings** page and use the **Coordinated Speed Cont
 
 ## C. Motor Speed Calibration
 
-With Coordinated Speed Control on, [Motor Speed Calibration](#motor-speed-calibration) is not used. Slow speeds come from the Polaris firmware's own speed table, and fast speeds from the built-in baseline.
+With Coordinated Speed Control on, slow speeds always come from the Polaris firmware's own speed table, so their calibration isn't used. Fast speeds use the [Motor Speed Calibration](#motor-speed-calibration) of each motor once its fast-speed tests are approved, and the built-in baseline until then. Calibrating the fast speeds makes the planned moves more accurate, so gotos finish closer to their planned times. A motor whose calibrated fast speeds don't rise with the commanded speed keeps the baseline, and the log warns about it.
 
 <br>
 <br>
