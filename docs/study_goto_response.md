@@ -359,6 +359,15 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   (polaris and the twin). Sweep: eq idle 144 -> 150/150 arrived, LIMIT 5 -> 0, remaps 3 -> 0; eq tracking remaps
   1 -> 0. **No case has a LIMIT or a mid-goto remap now.** The goto completion log says STOPPED AT A MOTOR LIMIT
   when it ends in LIMIT (it said on target, the error being zeroed there).
+  **R2, redirected gotos** (redirect at 3 s, to 10 deg from the current pointing or anywhere; idle and tracking; 15
+  seeds each): all complete. A controlled path (15 deg or less) redirected at speed carried its path speed onto the
+  new path's direction in motor space and stepped each motor's speed (M1 4.9 -> 0.6 deg/s in a tick, 24 deg/s^2).
+  It now continues straight in motor angles from the motors' speeds; the biggest command step is 8 deg/s^2 (the
+  planned 5 plus feedback) everywhere (`test_guard_redirect_at_speed_keeps_every_motor_speed_continuous`).
+  **Controlled paths past a motor limit**: near the zenith a 14.9 deg goto needed M1 past its stop along the path,
+  and the old UNWIND remapped it mid-goto (45 s, 95 deg off). A controlled path whose sampled motor angles leave the
+  limits now goes straight to the chosen end solution (design item 2's fallback). Sweep: level idle 149 -> 150/150,
+  remaps 1 -> 0. **All four cases: LIMIT 0, mid-goto remaps 0, every miss in level tracking (5) a target past M2's reach.**
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).

@@ -100,6 +100,7 @@ class GotoTrajectory:
         for f in fracs[1:]:
             thetas.append(self.to_theta(self._interp(self._alpha, self.goal, f, ends_q), thetas[-1]))
         thetas = np.array(thetas)
+        self.path_thetas = thetas                               # the sampled path in motor angles (limit checks)
         seg = np.diff(thetas, axis=0)
         ds = np.max(np.abs(seg), axis=1)                       # path length in fastest-axis degrees
         # the path switches IK branch (M1/M3 +-180, M2 mirrored, e.g. to reach a negative altitude): the

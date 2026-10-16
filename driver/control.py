@@ -1588,7 +1588,39 @@ class PID_Controller():
             self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
             self.goto_traj.space = self.mode
             self.goto_traj.start(start, theta_pv, goal)
+            if self.mode == 'AUTO' and not self.goto_traj.branch_change and self.zeta_meas is not None:
+                lo, hi = self._theta_limits()
+                path = self.goto_traj.path_thetas
+                if np.any(path < lo - 1e-6) or np.any(path > hi + 1e-6):
+                    # the controlled path leaves the motor limits (near the zenith a few deg of pointing can swing
+                    # M1 past its stop): straight in motor angles to the chosen end solution instead (design item 2)
+                    theta_goal = self._straight_goal(goal)
+                    if theta_goal is not None:
+                        self.goto_traj = self._motor_move(theta_goal)
+                        self.goto_traj.alpha_goal = goal.copy()
+                        self.room_checked = self.lock_checked = True
+                        self.logger.info(f'GOTO path past a motor limit: straight in motor angles to {theta_goal[0]:+.1f},'
+                                         f'{theta_goal[1]:+.1f},{theta_goal[2]:+.1f} ({self.goto_traj.duration:.1f} s planned)')
+                        if self.time_goto:                    # the goto timeout allows for the planned move
+                            self.time_goto += self.goto_traj.duration / (24 * 3600)
+                        self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                        return True
         elif self._alpha_distance(self.goto_traj.goal, goal) > self.GOTO_RETARGET_DEG:
+            if self.mode == 'AUTO' and self.goto_traj._speed > self.SMALL_MOVE_RATE:
+                # redirected at speed: the new path heads elsewhere in motor space, and carrying the path speed onto
+                # it stepped each motor's speed (4.9 -> 0.6 deg/s in a tick). Straight in motor angles from the
+                # motors' speeds now instead (R2), as a slew is
+                theta_goal = self._straight_goal(goal)
+                if theta_goal is not None:
+                    self.goto_traj = self._motor_move(theta_goal)
+                    self.goto_traj.alpha_goal = goal.copy()
+                    self.room_checked = self.lock_checked = True
+                    self.logger.info(f'GOTO redirected at speed: straight in motor angles to {theta_goal[0]:+.1f},'
+                                     f'{theta_goal[1]:+.1f},{theta_goal[2]:+.1f} ({self.goto_traj.duration:.1f} s planned)')
+                    if self.time_goto:                    # the goto timeout allows for the planned move
+                        self.time_goto += self.goto_traj.duration / (24 * 3600)
+                    self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                    return True
             self.goto_traj.retarget(goal)
         if self.goto_traj.branch_change:
             self.goto_traj = None                         # needs an IK branch change: the PID and its FLIP

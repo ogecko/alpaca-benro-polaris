@@ -35,7 +35,7 @@ from control_eq import rig_tilt_deg, THETA2_MIN                                 
 from control_plan import min_move_time, move_time, MotorMove, choose_end_solution, wraps_cables  # noqa: E402
 from kinematics import (theta_solutions, theta_to_q, azaltroll_to_q, q_to_azaltroll, vector_to_az_alt,  # noqa: E402
                         THETA2_MAX)
-from sim_digital_twin import Twin                                                 # noqa: E402
+from sim_digital_twin import Twin, MEASURE_DT                                     # noqa: E402
 from test_motion_outcomes import radec_sep_arcmin                                 # noqa: E402
 
 CASES = {"level_idle": (False, False), "level_track": (False, True), "eq_idle": (True, False), "eq_track": (True, True)}
@@ -330,6 +330,40 @@ def test_guard_measurements_start_on_the_motors_ik_branch(seed):
     drove M3 into its limit. PID_Controller.seed_branch starts LastPosition at the raw motor angles."""
     r = run_goto("eq_idle", seed)
     assert not r["limit"] and r["done_s"] is not None and r["miss_arcmin"] < 2.0
+
+
+def test_guard_redirect_at_speed_keeps_every_motor_speed_continuous():
+    """R2: a controlled path (a goto of 15 deg or less) redirected at 7 deg/s carried its path speed onto the new path's
+    direction in motor space, stepping each motor's speed (M1 4.9 -> 0.6 deg/s in one tick, 24 deg/s^2). It now
+    continues straight in motor angles from the motors' current speeds."""
+    seed = 1002
+    rng = np.random.default_rng(seed)
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=seed)
+        sm = tw.polaris._sm
+        sm.optimize_alignQ_B2T()
+        tw.place(_random_pose(rng, sm.alignQ_B2T, 20.0))
+        while True:
+            v = rng.normal(size=3)
+            az, alt = vector_to_az_alt(v / np.linalg.norm(v))
+            if alt > 20:
+                break
+        ops = []
+        tw.goto_altaz(az, alt, 0.0)
+        tw.run(3.0, on_measure=lambda t: ops.append(np.array(t.pid.omega_op)))
+        a, b, _ = q_to_azaltroll(sm.alignQ_B2T * theta_to_q(*tw.theta))
+        tw.polaris.goto_complete_at = None
+        tw.goto_altaz(a + 8.0, min(80.0, b + 5.0), 0.0)                      # redirected while slewing
+        t1 = tw.clock.t
+        while tw.clock.t - t1 < 60 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2, on_measure=lambda t: ops.append(np.array(t.pid.omega_op)))
+        done = tw.polaris.goto_complete_at
+        tw.close()
+    finally:
+        mp.undo()
+    step = np.max(np.abs(np.diff(np.array(ops), axis=0))) / MEASURE_DT
+    assert done is not None and step < 10.0, f"command stepped {step:.1f} deg/s^2"
 
 
 def test_motor_move_retarget_keeps_the_speed():
