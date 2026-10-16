@@ -23,6 +23,13 @@ theory, the digital twin sweep and the hardware measurements it rests on.
 * **`utility/analyse_goto_response.ipynb`** (helpers in `analyse_helpers.py`): per run, leg and motor, the
   theoretical minimum time, arrival, commanded vs measured speed, response delay, overshoot, settling, and the Kd
   analysis below.
+* **`driver/control_plan.py`** (2026-10-17): the goto planning module (R3). `GotoTrajectory`, `MotorTrajectory` and
+  `ramp_rates` moved out of `control.py` unchanged; `min_move_time` added. `kinematics.theta_solutions` lists every
+  motor solution of a pose within the limits.
+* **`tests/test_control_plan.py`**: the twin sweep as a test, with the acceptance criteria as xfail tests (see
+  [the baseline](#the-sweep-as-a-test-todays-baseline-2026-10-17)).
+* **`utility/analyse_span.ipynb`** eq sections: reachability, PA (upright and upside down), the tripod cone and
+  latitude.
 
 ### What the measurements show
 
@@ -155,6 +162,36 @@ at 106-265 deg against its 81.5 deg stop). One UNWIND remapped M3 *further* past
 * **Speed and tracking room conflict**: in eq tracking the fastest end solution would leave < 8 h of tracking in
   24 / 131 gotos; the driver favours room (1 / 131 under 8 h). The scoring order is a decision, not a detail.
 * The twin's M3 is slower than the mount's (30 deg: 19 s against 11-12 s).
+
+### The sweep as a test: today's baseline (2026-10-17)
+
+`tests/test_control_plan.py` rebuilds the sweep (the 2026-10-15 harness was lost with its scratchpad): 10 seeded
+gotos per case in the suite, 150 per case with `--runslow` (`-k report -s` prints the table, `GOTO_SWEEP_CSV=path`
+saves every goto). The acceptance criteria are its tests, xfail until the redesign passes them. It differs from the
+first sweep, so the numbers aren't directly comparable: start poses spread over M1's whole range (motor angle -60 to
+420), any requested roll, T_best at full Kv (the planner runs at 0.8 Kv, so even a perfect plan of today's design
+scores ≥ 1.25×), and *arrived* meaning within 2' when the driver reports the goto complete. The end solutions come
+from `kinematics.theta_solutions`, the move times from `control_plan.min_move_time`; *kinematics/tick* counts the
+control loop's and the planner's kinematics calls in one tick (R4: counted, not timed).
+
+| | Arrived | Arrival / best (median, p90) | Chose > 2 s slower (room excuses) | LIMIT | Remapped mid-goto | Missed, at the 45 s timeout | Kinematics / tick (max) |
+|---|---|---|---|---|---|---|---|
+| level, idle | 102 / 150 | 2.10×, 3.02× | 6 (0) | 29 | 41 | 37 | 1379 |
+| level, tracking | 138 / 150 | 2.59×, 4.74× | 0 | 2 | 29 | 12 | 376 |
+| eq, idle | 91 / 150 | 2.33×, 7.72× | 29 (0) | 48 | 75 | 45 | 1393 |
+| eq, tracking | 131 / 150 | 3.11×, 7.81× | 36 (32) | 13 | 86 | 17 | 394 |
+
+* **Most misses end at the fixed 45 s goto timeout**, which marks the goto complete wherever the mount is (111 of
+  138). Traced: UNWIND remaps send M1 a full turn the long way, or past its limit (`Remap t1 +415.4 to +775.4`, M1
+  then heading for +775 against its +450), and the timeout ends it 9-160 deg off.
+* **LIMIT**: the motors pass their raw limits in 92 gotos. The twin has no hard stops, so M2 can swing on past its
+  stop (to 117-180 deg in 20 level gotos: the "rig tilt" there is M2 itself).
+* **Tripod cone**: entered in 2 eq gotos. Rig tilt passed 100 deg in 92 eq idle and 69 eq tracking gotos.
+* **Planning work**: the first tick of an idle goto does ~1,380 kinematics calls (the 201-sample plan plus the
+  91-sample gimbal lock check, several calls each), a tracking goto's ~380; a normal tick does a handful. The
+  provisional budget in the test is 40 per tick.
+* Room excuses: in eq tracking 32 of the 36 slower choices leave the best end solution short of a night's M1 room,
+  as the first sweep found; the rest of the slower choices aren't excused.
 
 ---
 

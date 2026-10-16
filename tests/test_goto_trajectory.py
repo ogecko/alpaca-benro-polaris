@@ -1,5 +1,5 @@
 """
-Purpose tests for goto trajectory planning and jog shaping (driver/control.py GotoTrajectory,
+Purpose tests for goto trajectory planning and jog shaping (driver/control_plan.py GotoTrajectory,
 ramp_rates).
 
 What goto planning is for:
@@ -33,7 +33,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 
 from kinematics import azaltroll_to_theta_ik, theta_to_azaltroll_fk        # noqa: E402
-from control import GotoTrajectory, ramp_rates                              # noqa: E402
+from control_plan import GotoTrajectory, ramp_rates                            # noqa: E402
 
 KP, KD, KE = 1.0, 0.5, 0.4        # driver/config.toml pid_Kp, pid_Kd, pid_Ke
 KV, KA = 8.9, 5.0                 # max motor speed (deg/s, calibrated max) and acceleration (deg/s^2)

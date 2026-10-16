@@ -653,6 +653,28 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition(), theta2_min=-8.0):
 
 
 
+def theta_solutions(motorQ_C2B, theta_lo, theta_hi, tol_deg=1e-3):
+    """Every motor solution (n, 3) for a camera pose within [theta_lo, theta_hi] (deg, per motor): both IK branches
+    (the second is theta1 + 180, -theta2, theta3 + 180: the same pose) and every M1/M3 turn of 360 inside the range.
+    Empty if the pose is out of the motors' reach. Near gimbal lock (theta2 ~ 0) only theta1 + theta3 is defined and
+    the split is q_to_theta's."""
+    base = np.array(q_to_theta(motorQ_C2B, LastPosition(), theta2_min=-90.0), dtype=float)
+    target = np.asarray(motorQ_C2B.q, dtype=float)
+    lo, hi = np.asarray(theta_lo, dtype=float), np.asarray(theta_hi, dtype=float)
+    out = []
+    for branch in (base, base + np.array([180.0, -2 * base[1], 180.0])):       # the second: theta2 mirrored
+        t1, t2, t3 = branch
+        if not lo[1] - 1e-9 <= t2 <= hi[1] + 1e-9:
+            continue
+        q = theta_to_q(t1, t2, t3)
+        if math.degrees(2 * math.acos(min(1.0, abs(float(np.dot(np.asarray(q.q), target)))))) > tol_deg:
+            continue                                # q_to_theta clamped: out of reach
+        for a in np.arange(math.ceil((lo[0] - t1) / 360), math.floor((hi[0] - t1) / 360) + 1):
+            for b in np.arange(math.ceil((lo[2] - t3) / 360), math.floor((hi[2] - t3) / 360) + 1):
+                out.append((t1 + 360 * a, t2, t3 + 360 * b))
+    return np.array(out, dtype=float).reshape(-1, 3)
+
+
 def q_to_azaltroll(cameraQ_C2T):
     """Convert a camera quaternion (C2T frame) into azimuth, altitude, and roll angles."""
     # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
