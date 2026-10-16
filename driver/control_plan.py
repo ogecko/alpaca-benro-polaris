@@ -224,16 +224,20 @@ class MotorMove:
     brake within its max_rate and max_accel) from its current angle and speed to the goal, where it stops. Nothing
     is sampled, so planning costs microseconds (R4), and it starts from a moving mount as well as from rest (R2).
 
-    The motors follow their speed commands dead_time_s late (the age of a measurement plus the MCU's lag), so step()
-    returns the commanded speed now as the feed-forward, and as the reference the angles the plan had dead_time_s
-    ago: what the measurements should show now. The PID then sees only real errors, not the lag, and doesn't push a
-    motor on into an overshoot (study design item 3)."""
+    The measurements show a motor's response to a speed command late and smoothed: dead_time_s late (the age of a
+    measurement), and through a first-order lag of lag_s (the MCU easing each motor to a new speed). step() returns
+    the commanded speed now as the feed-forward, and as the reference the plan passed through that delay and lag:
+    what the measurements should show now. The PID then sees only real errors, not the lag, and doesn't push a motor
+    on into an overshoot (study design item 3). Modelling the lag as a delay alone left a(lag_s^2)/2 of overshoot
+    from every stop (0.3 deg at 5 deg/s^2 and 0.35 s)."""
     space = 'THETA'
 
-    def __init__(self, max_rate, max_accel, dead_time_s=0.0):
+    def __init__(self, max_rate, max_accel, dead_time_s=0.0, lag_s=0.0):
         self.max_rate = np.broadcast_to(np.asarray(max_rate, dtype=float), (3,)).copy()
         self.max_accel = float(max_accel)
         self.dead_time_s = float(dead_time_s)
+        self.lag_s = float(lag_s)
+        self._lagged = None                              # the reference: the delayed plan through the motor lag
         self.goal = None
         self.alpha_goal = None                           # the sky target, when a goto planned this move
         self.done = True
@@ -243,7 +247,8 @@ class MotorMove:
         """Plan from the measured angles theta and the speeds commanded now (omega): the motors are commanded to be
         a dead time ahead of where they are measured."""
         v0 = np.zeros(3) if omega is None else np.asarray(omega, dtype=float)
-        self._plan(np.asarray(theta, dtype=float) + v0 * self.dead_time_s, v0, goal)
+        self._plan(np.asarray(theta, dtype=float) + v0 * (self.dead_time_s + self.lag_s), v0, goal)
+        self._lagged = np.asarray(theta, dtype=float).copy()
 
     def retarget(self, goal):
         """New goal mid-move: re-plan from where the plan has the motors now, at their speed now."""
@@ -277,11 +282,16 @@ class MotorMove:
         return p, v
 
     def step(self, dt):
-        """Returns (theta_ref, omega_ff): the plan's angles dead_time_s ago and its speeds now."""
+        """Returns (theta_ref, omega_ff): the plan dead_time_s ago through the motor lag, and its speeds now."""
         self._t += dt
-        ref, _ = self._state(self._t - self.dead_time_s)
+        delayed, _ = self._state(self._t - self.dead_time_s)
+        if self.lag_s > 0:
+            self._lagged += (delayed - self._lagged) * (1.0 - math.exp(-dt / self.lag_s))
+        else:
+            self._lagged = delayed
+        ref = self._lagged.copy()
         _, omega = self._state(self._t)
-        if self._t >= self.duration + self.dead_time_s:
+        if self._t >= self.duration + self.dead_time_s + 3 * self.lag_s:
             self.done = True
             ref, omega = self.goal.copy(), np.zeros(3)
         return ref, omega

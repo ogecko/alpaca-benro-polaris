@@ -34,6 +34,8 @@ TESTDATA_PATH = DATA_DIR / 'speed_testdata.json'
 SYNC_POINTS_PATH = DATA_DIR / 'sync_points.json'
 
 KI_INHIBIT_GRACE_S = 3.0   # PID Ki anti-windup grace period appended after a setpoint change or guiding correction
+ARRIVED_MAX_RATE_DPS = 0.03   # a goto completes only once every motor runs within this of its feed-forward...
+ARRIVED_SETTLED_MEAS = 3      # ...for this many measurements in a row (0.6 s): see PID_Controller.errsignal()
 
 
 
@@ -848,6 +850,10 @@ class PID_Controller():
         self.reset_theta()
         self.time_meas = None                # Time of measurement
         self.measurement_lag_s = 0.0         # how stale theta_pv was when last measured -- see errsignal()
+        self.omega_pv = np.zeros(3, dtype=float)   # motor speeds measured from successive theta_pv (deg/s) -- see errsignal()
+        self.is_settled = True               # every motor runs at its feed-forward -- see errsignal()
+        self._pv_prev = None                 # (time, theta_pv) of the last measurement, for omega_pv
+        self._settled_meas = ARRIVED_SETTLED_MEAS   # measurements in a row with every motor at its feed-forward
         self.time_goto = None                # Time that goto callback was set
         self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
@@ -1589,7 +1595,7 @@ class PID_Controller():
         self.set_Ka_array(Config.pid_Ka)
         self.set_Kv_array(Config.pid_Kv)
         move = MotorMove(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE,
-                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), float(Config.pid_Kt))
+                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), float(Config.pid_Kt), float(Config.pid_Kl))
         move.start(np.array(self.theta_pv, dtype=float), theta_goal, self.omega_ff_shaped)
         return move
 
@@ -1658,6 +1664,15 @@ class PID_Controller():
         self.zeta_meas = zeta_meas
         self.time_meas = now
         self.measurement_lag_s = measurement_lag_s   # how stale theta_pv is -- see errsignal()
+        t = time.monotonic()
+        theta = np.array(theta_pv, dtype=float)
+        if self._pv_prev is not None and t - self._pv_prev[0] > 0.05:
+            d = (theta - self._pv_prev[1] + 180.0) % 360.0 - 180.0      # M1 wraps at 360
+            self.omega_pv = d / (t - self._pv_prev[0])      # unsmoothed: an average reads ~0 as it crosses zero
+            near = np.all(np.abs(self.omega_pv - self.omega_ff) < ARRIVED_MAX_RATE_DPS)
+            self._settled_meas = self._settled_meas + 1 if near else 0
+        if self._pv_prev is None or t - self._pv_prev[0] > 0.05:
+            self._pv_prev = (t, theta)
         self._lp.update(*theta_pv)
         self._lp.update_zeta(zeta_meas)
         self._lp.check_for_gimbal_lock()
@@ -1965,7 +1980,12 @@ class PID_Controller():
                            or any(v != 0.0 for v in self._jog_rates().values())
                            or self.goto_in_progress())
         self.was_moving = self.is_moving
-        self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
+        # settled: every motor has run at its feed-forward (stopped, or tracking) for ARRIVED_SETTLED_MEAS measurements.
+        # A goto isn't over while a motor still creeps on at a SLOW speed (13' short at 0.4 deg/s), or while the KF's
+        # estimate still converges on a motor it overshot braking (22' at the stop, 6.5' when it read on target)
+        self.is_settled = self._settled_meas >= ARRIVED_SETTLED_MEAS
+        self.is_moving = (self.is_deviating or self.is_slewing or self.mode=="TRACK"
+                          or (self.mode == 'AUTO' and not self.is_settled))
 
     def set_ki_inhibit_until(self, duration):
         """Extend the Ki anti-windup gate by `duration` seconds (floored at 0.1s so even a
@@ -2078,6 +2098,10 @@ class PID_Controller():
         if self.is_moving and self.mode in ['AUTO', 'TRACK', 'HOMING', 'PARKING']:
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
+        else:
+            # nothing sent, so no feedback is running: left to integrate against an idle error, omega_fb wound up
+            # to -5 deg/s and kicked the next goto that much faster than its plan (1.6 deg overshoot at its end)
+            self.omega_fb = np.zeros(3, dtype=float)
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
         is_goto_finished = (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']
         # If in PID TRACK mode but polaris is not tracking (ie promoted by jog), demote to IDLE when jog stops
@@ -2136,7 +2160,9 @@ class PID_Controller():
     def notify(self):
         # a planned move (coordinated_speed_control) completes only once its trajectory has finished too, and with
         # Backlash Compensation once every compensated motor is engaged (no take-up pushes during the next exposure)
-        arrived = not self.is_deviating and not self.goto_in_progress() and not self.backlash.taking_up()
+        # and only once the motors have settled (errsignal): measurements lag a moving motor
+        arrived = (not self.is_deviating and self.is_settled and not self.goto_in_progress()
+                   and not self.backlash.taking_up())
         if (arrived or self.goto_timeout()) and self.goto_complete_callback:
             self.goto_complete_callback()
             self.goto_complete_callback = None

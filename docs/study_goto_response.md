@@ -200,7 +200,7 @@ control loop's and the planner's kinematics calls in one tick (R4: counted, not 
 Idle gotos whose pointing moves more than 15 deg now go straight in motor angles (`control_plan.MotorMove`): each
 motor on its own closed-form time-optimal profile from its current angle and speed, the end solution chosen once
 at the start (`choose_end_solution`: within the limits, eq tracking room, no cable wrap on a flip, then the
-fastest), the reference delayed by a dead time (`pid_Kt`, 0.35 s; the twin 0.6 s) so the PID doesn't push against the
+fastest), the reference the plan as the measurements should show it (see below) so the PID doesn't push against the
 lag, and the goto timeout extended by the planned time. Redirected mid-move, it re-plans from the current speeds.
 Flips past gimbal lock and EQ ROOM turns use the same `MotorMove` (`MotorTrajectory` is gone). Gotos while tracking,
 and idle ones of 15 deg or less, are unchanged so far.
@@ -229,6 +229,42 @@ alarm is acknowledged (`test_guard_limit_stops_every_motor`).
   time goes in the final settle, where the PID closes the last 1-3 deg (the speed-model overshoot) with its ~2 s
   time constant down to the 0.75' tolerance. Same fix: a correct speed model removes the overshoot the settle
   closes.
+
+**Then: FAST calibration, the motor response model and arrival only once settled.** All runs below with the twin's
+FAST calibration approved (`GOTO_SWEEP_CALIBRATED=1`).
+
+* *FAST calibration* (R3): `speed_controller.fast_rate_units` builds the FAST tables from approved speed tests, so the
+  feed-forward runs each motor at the speed planned. Alone it didn't help: the overshoot that was left came from the lag.
+* *Response model*: `MotorMove`'s reference is the plan delayed by `pid_Kt` and passed through a first-order lag
+  `pid_Kl`, i.e. what the measurements should show. A pure delay left a·Kl²/2 of overshoot at every stop (0.3 deg at
+  5 deg/s² and 0.35 s). Twin fitted open loop: Kt 0.35 s, Kl 0.4 s (a straight move tracks its plan within 0.21 deg).
+  Mount: Kt 0.2 s, Kl 0.15 s are estimates still to be fitted from the 10-15 goto-response log.
+* *Stale feedback* (bug): in IDLE nothing is sent, but the PID went on integrating `omega_fb` against the idle error.
+  The next goto started with up to -5 deg/s of it on top of its plan, ~5 deg of unplanned travel and a 1.6 deg
+  overshoot at the end. `control()` now zeroes `omega_fb` whenever it sends nothing.
+* *Arrival while still moving* (bug): a goto completed once every axis was within `pid_Kc` of its reference, by
+  measurements that lag a moving motor. Two ways it stopped short: a motor still creeping on at a SLOW/PWM speed
+  (0.4 deg/s commanded ~0.05: 13' short), and the KF overshooting the motor while braking (22' ahead at the stop,
+  converging ~1.5' per sample, 6.5' out when it first read on target). The IDLE switch then stopped the motors where
+  they were. Now the PID measures each motor's speed from successive `theta_pv` (unsmoothed: an average read ~0 as it
+  crossed zero) and a goto stays in AUTO, and doesn't complete, until every motor has run within
+  `ARRIVED_MAX_RATE_DPS` (0.03 deg/s) of its feed-forward for `ARRIVED_SETTLED_MEAS` (3) measurements in a row.
+
+| Calibrated twin | Arrived | Arrival − best, median | LIMIT | Missed > 2' |
+|---|---|---|---|---|
+| level idle: delay 0.6 s only | 127 / 150 | 13 s | 0 | 23 |
+| level idle: delay 0.35 + lag 0.4, before the arrival fixes | 101 / 150 | 11.1 s | 0 | 49 |
+| level idle: delay 0.6 s only, with the fixes | 149 / 150 | 13.2 s | 0 | 1 |
+| **level idle: delay 0.35 + lag 0.4, with the fixes** | **148 / 150** | **10.9 s** | 0 | 2 |
+| eq idle: delay 0.6 s only | 130 / 150 | | 4 | 20 |
+| **eq idle: delay 0.35 + lag 0.4, with the fixes** | **144 / 150** | 14.3 s | 5 | 6 |
+
+Tracking cases are unchanged (not planned yet). The lag model before the fixes looked worse only because it ended
+moves without the overshoot that had kept the settle running until the KF caught up. The one new LIMIT (eq idle seed
+1132) is the old `prevent_windup` FLIP path, not `MotorMove`. It chose an M1 target past the limit (+332 deg), which
+the committed code also chose (it missed by 31 deg at the timeout). Its motors now just start sooner. That goes with
+moving `_flip_motor_angles` onto `choose_end_solution` (step 5). The ~11 s left between arrival and best is still the
+final settle (design items 4 and 6).
 
 ---
 

@@ -301,6 +301,28 @@ def test_motor_move_reference_lags_the_commands_by_the_dead_time():
     assert len(refs) == len(refs_now) + 4
 
 
+def test_motor_move_reference_follows_the_motor_lag():
+    lag_s, dt = 0.4, 0.05
+    move = MotorMove(8.0, 5.0, lag_s=lag_s)
+    move.start(np.zeros(3), (20.0, 0.0, 0.0))
+    refs, speeds = _run_move(move, dt=dt)
+    ran = (np.cumsum(speeds[:, 0]) - speeds[:, 0] / 2) * dt                      # where the commands put the motor
+    lagged = np.zeros(len(ran))
+    for i in range(1, len(ran)):
+        lagged[i] = lagged[i - 1] + (ran[i] - lagged[i - 1]) * (1 - math.exp(-dt / lag_s))
+    assert np.max(np.abs(refs[:-1, 0] - lagged[:-1])) < 0.05                    # the reference is that lagged motor
+    assert refs[-1][0] == pytest.approx(20.0) and len(refs) * dt >= move.duration + 3 * lag_s
+
+
+@pytest.mark.parametrize("seed", [1000, 1004])
+def test_guard_goto_completes_only_once_the_motors_settle(seed):
+    """These two stopped 7' and 24' short (control.ARRIVED_MAX_RATE_DPS off): on target by measurements that lagged
+    the motors, a KF estimate still converging on a motor it overshot braking or a motor still creeping on at a SLOW
+    speed."""
+    r = run_goto("level_idle", seed)
+    assert r["done_s"] is not None and r["miss_arcmin"] < 2.0
+
+
 def test_motor_move_retarget_keeps_the_speed():
     move = MotorMove(8.0, 5.0)
     move.start(np.zeros(3), (60.0, 0.0, 0.0))

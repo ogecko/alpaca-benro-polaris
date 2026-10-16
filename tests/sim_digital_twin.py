@@ -50,7 +50,9 @@ TWIN_CONFIG = {
     "advanced_pulse_guiding": True, "advanced_orbitals": False, "coordinated_speed_control": False,
     "log_position": False, "log_pec": False, "log_quest_model": False,
     "site_latitude": LAT, "site_longitude": LON, "pid_Ka": 0.0, "pid_Kv": 0.0,
-    "pid_Kt": 0.6,          # the twin's command-to-measurement lag (cross-correlation, as on the mount: 0.2-0.4 s)
+    "pid_Kt": 0.35, "pid_Kl": 0.4,      # the twin's lag, fitted open loop (a straight move tracks its plan within 0.21 deg):
+                                        # McuModel's 0.35 s first order plus the speed ramp and the KF (0.6 s by
+                                        # cross-correlation; the mount 0.2-0.4 s)
 }
 
 
