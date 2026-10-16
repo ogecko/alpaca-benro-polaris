@@ -200,7 +200,7 @@ control loop's and the planner's kinematics calls in one tick (R4: counted, not 
 Idle gotos whose pointing moves more than 15 deg now go straight in motor angles (`control_plan.MotorMove`): each
 motor on its own closed-form time-optimal profile from its current angle and speed, the end solution chosen once
 at the start (`choose_end_solution`: within the limits, eq tracking room, no cable wrap on a flip, then the
-fastest), the reference delayed by a dead time (`GOTO_DEAD_TIME_S` 0.35 s) so the PID doesn't push against the
+fastest), the reference delayed by a dead time (`pid_Kt`, 0.35 s; the twin 0.6 s) so the PID doesn't push against the
 lag, and the goto timeout extended by the planned time. Redirected mid-move, it re-plans from the current speeds.
 Flips past gimbal lock and EQ ROOM turns use the same `MotorMove` (`MotorTrajectory` is gone). Gotos while tracking,
 and idle ones of 15 deg or less, are unchanged so far.

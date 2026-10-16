@@ -50,6 +50,7 @@ TWIN_CONFIG = {
     "advanced_pulse_guiding": True, "advanced_orbitals": False, "coordinated_speed_control": False,
     "log_position": False, "log_pec": False, "log_quest_model": False,
     "site_latitude": LAT, "site_longitude": LON, "pid_Ka": 0.0, "pid_Kv": 0.0,
+    "pid_Kt": 0.6,          # the twin's command-to-measurement lag (cross-correlation, as on the mount: 0.2-0.4 s)
 }
 
 

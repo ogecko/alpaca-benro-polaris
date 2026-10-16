@@ -1465,7 +1465,6 @@ class PID_Controller():
     GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
 
     GOTO_CONTROLLED_PATH_DEG = 15.0                  # idle gotos moving the pointing further go straight in motor angles
-    GOTO_DEAD_TIME_S = 0.35                          # the motors follow a speed command this late (sample age + MCU lag)
 
     SMALL_MOVE_DEG = 0.25                            # moves shorter than this (motor travel) stay at SLOW speeds...
     SMALL_MOVE_RATE = 0.21                           # ...where the motors run accurately in position mode (deg/s)
@@ -1590,7 +1589,7 @@ class PID_Controller():
         self.set_Ka_array(Config.pid_Ka)
         self.set_Kv_array(Config.pid_Kv)
         move = MotorMove(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE,
-                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), self.GOTO_DEAD_TIME_S)
+                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), float(Config.pid_Kt))
         move.start(np.array(self.theta_pv, dtype=float), theta_goal, self.omega_ff_shaped)
         return move
 

@@ -109,6 +109,7 @@ export const useConfigStore = defineStore('config', {
     pid_Kc: 1.0,
     pid_Kv: 0.0,
     pid_Ka: 0.0,
+    pid_Kt: 0.35,
 
     z1_min_limit: -190,
     z1_max_limit: +190,
