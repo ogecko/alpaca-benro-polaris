@@ -1590,7 +1590,9 @@ class Polaris:
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
         if not self._restore_checked:               # first connection since the driver started (not a reconnect)
             self._restore_checked = True
-            self.lifecycle.create_task(self.restore_tracking_on_start(), name='TrackingRestore')
+            self.lifecycle.create_task(self.restore_tracking_on_start(), name='TrackingRestoreRestart')
+        else:
+            self.lifecycle.create_task(self.restore_tracking_on_reconnect(), name='TrackingRestoreReconnect')
 
 
 # ── Tracking restore (tracking_restore.py) ─────────────────────────────────────────────────────
@@ -1605,7 +1607,24 @@ class Polaris:
             self.logger.warning(f"==STARTUP== Tracking restore failed: {e}")
         await self.tracking_state_loop()
 
-    async def _restore_or_stop(self):
+    def fast_speed_calibrated(self, axis):
+        """An approved FAST speed calibration test on this motor (control.PID_Controller picks its roll rate by it)."""
+        return self._cm.fast_calibrated(axis)
+
+    async def restore_tracking_on_reconnect(self):
+        """After a comms loss (the watchdog rebooted the connection): the driver's own tracking carries on through it
+        (TRACK and the target are kept); if it is no longer tracking but the saved state says it was, restore it as at
+        a restart, with the same checks."""
+        try:
+            if self._tracking and self._pid.mode == 'TRACK':
+                self.logger.info("==RECONNECT== Tracking carried on through the reconnect")
+                return
+            if getattr(Config, 'restore_tracking_on_restart', False):
+                await self._restore_or_stop(prefix='==RECONNECT==')
+        except Exception as e:
+            self.logger.warning(f"==RECONNECT== Tracking restore failed: {e}")
+
+    async def _restore_or_stop(self, prefix='==STARTUP=='):
         t0 = time.monotonic()
         while (self._zeta_raw_offset is None or self._zeta_meas is None) and time.monotonic() - t0 < 30.0:
             if self.lifecycle.should_stop():
@@ -1622,21 +1641,21 @@ class Polaris:
         if reason is None and state.get('trackingrate') == 3 and state.get('orbital') not in orbital_data:
             reason = f"orbital target {state.get('orbital')!r} is not in the orbital cache"
         if reason is None:
-            await self._restore_tracking(state)
+            await self._restore_tracking(state, prefix)
             return
-        self.logger.info(f"==STARTUP== Tracking not restored: {reason}")
+        self.logger.info(f"{prefix} Tracking not restored: {reason}")
         await asyncio.sleep(tracking_restore.MOTION_WINDOW_S)
         if self._tracking_in_benro:
-            self.logger.info("==STARTUP== The Polaris is tracking by itself (Benro tracking): left running")
+            self.logger.info(f"{prefix} The Polaris is tracking by itself (Benro tracking): left running")
             return
         if self._tracking or self._slewing or self._pid.mode not in ('IDLE',):
             return                                   # something in this driver has started moving it meanwhile
         if tracking_restore.is_moving(zeta_before, self._zeta_meas):
-            self.logger.warning("==STARTUP== The mount is moving (the last command from before the restart?): STOP")
+            self.logger.warning(f"{prefix} The mount is moving (the last command from before the restart?): STOP")
             for axis in range(3):
                 await self._motors[axis].stop()
 
-    async def _restore_tracking(self, state):
+    async def _restore_tracking(self, state, prefix='==STARTUP=='):
         """Track the saved target again: TRACK from where the mount is, then the saved target -- the PID pulls the
         mount back onto it."""
         pid = self._pid
@@ -1656,7 +1675,7 @@ class Polaris:
                     getattr(pid, name)[:] = state[name]
             what = f"RA {hr2hms(ra / 15)} Dec {deg2dms(dec)} PA {pa:.2f}"
         age = time.time() - float(state['saved_at'])
-        self.logger.info(f"==STARTUP== Tracking restored: {what} (saved {age:.0f} s ago)")
+        self.logger.info(f"{prefix} Tracking restored: {what} (saved {age:.0f} s ago)")
         # the catch-up onto the target is a move like a goto: it completes once on target, and Backlash Compensation
         # (advanced_backlash) finishes it with every motor engaged the way it tracks -- a mount that ran ahead while
         # the driver was down comes back against tracking, which otherwise leaves the gear slack open
@@ -1664,7 +1683,7 @@ class Polaris:
 
         def settled():
             how = 'timed out' if pid.goto_timeout() else 'on target'
-            self.logger.info(f"==STARTUP== Tracking restore settled {how} after {time.monotonic() - started:.0f} s")
+            self.logger.info(f"{prefix} Tracking restore settled {how} after {time.monotonic() - started:.0f} s")
         pid.set_goto_complete_callback(settled)
 
     async def tracking_state_loop(self):

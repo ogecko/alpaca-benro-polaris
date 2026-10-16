@@ -254,6 +254,11 @@ class CalibrationManager:
         self.updateCalibrationAndInterpolators()
 
     # ── the worm profile row: the worm profile test (control_worm), not a speed ──────────────────
+    def fast_calibrated(self, axis):
+        """An approved FAST speed test on this axis (speed units >= 200; SLOW levels are the firmware's own)."""
+        return any(t.get('axis') == axis and t.get('test_status') == 'APPROVED' and not self.isWormProfile(name)
+                   and float(t.get('raw', 0) or 0) >= 200 for name, t in self.test_data.items())
+
     @staticmethod
     def isWormProfile(testName):
         return testName == PROFILE_TEST
@@ -809,6 +814,7 @@ class PID_Controller():
         self.omega_ff_shaped = np.zeros(3, dtype=float)  # jog/goto feed-forward already within motor limits, added after smoothing
         self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (coordinated_speed_control)
         self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (coordinated_speed_control)
+        self._jog_theta = None                         # a jog near gimbal lock: its reference, walked in motor angles
         self.backlash = BacklashCompensator(logger)    # Backlash Compensation (advanced_backlash): see control_backlash.py
         self.omega_backlash = np.zeros(3, dtype=float)  # its take-up push, added after smoothing (coordinated_speed_control)
         self.move_planned = None                       # per goto: planned, or left to the PID (large move while tracking, unwind/flip)
@@ -976,7 +982,29 @@ class PID_Controller():
                 omega_base += contrib
         if not np.any(omega_base):
             return np.zeros(3, dtype=float)
-        return np.degrees(np.linalg.solve(theta_to_jacobian(*self.theta_pv), omega_base))
+        if abs(float(self.theta_pv[1])) < self.JOG_LOCK_DEG and self.mode == 'AUTO':
+            return self._jog_omega_at(np.array(self.theta_pv, dtype=float), rates)   # as the reference walks there
+        return np.degrees(theta_rates(self.theta_pv, omega_base))   # without the roll it can't make at gimbal lock
+
+    def _jog_omega_at(self, theta, rates):
+        """Motor rates (deg/s) at motor angles theta for a set of jog rates near gimbal lock. An Az/Alt jog moves the
+        pointing: only the boresight's motion is solved for (minimum motor motion), and the roll follows. Holding the
+        roll as well needed M1/M3 counter-rotating ~6x the jog at M2 5 deg, M3 -30 (the M1 axis 30 deg off the Alt
+        axis). Other jogs: least squares (theta_rates)."""
+        omega_base = np.zeros(3, dtype=float)
+        for axis_name, rate_dps in rates.items():
+            if rate_dps != 0.0 and (contrib := self._axis_omega_B(axis_name, rate_dps)) is not None:
+                omega_base += contrib
+        if not np.any(omega_base):
+            return np.zeros(3, dtype=float)
+        if all(k in ('az', 'alt') for k, v in rates.items() if v != 0.0):
+            bore = np.asarray(theta_to_q(*theta).rotate([0.0, 0.0, -1.0]), dtype=float)
+            J = theta_to_jacobian(*theta)
+            M = np.column_stack([np.cross(J[:, j], bore) for j in range(3)])     # boresight velocity per motor
+            # rcond: with the boresight along M2's axis (M3 ~ +-90) no motor moves the pointing in Alt near the lock;
+            # solved anyway, M2 ran the wrong way into its limit. That part of the jog is dropped instead
+            return np.degrees(np.linalg.lstsq(M, np.cross(omega_base, bore), rcond=self.JOG_LOCK_RCOND)[0])
+        return np.degrees(theta_rates(theta, omega_base))
 
     def _axis_omega_B(self, axis_name, rate_dps):
         """rate_dps of angular velocity about axis_name, in Base-frame rad/sec,
@@ -1473,6 +1501,25 @@ class PID_Controller():
         # IK from the stepped alpha
         motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
 
+        # Near gimbal lock an Az/Alt jog is walked in motor angles: it holds Az and Roll, and through Alt 0 with any
+        # roll that pose needs M3 to swing 90 deg and M1 against it. At 9 deg/s the reference stepped over the lock
+        # zone and swung M1/M3 30-70 deg, which the FLIP check then drove to (field 2026-10-17, M2 at -3).
+        # theta_rates drops the roll the motors can't make there; the setpoint follows, so the jog ends where it is
+        jogging = self.dt > 0 and any(v != 0.0 for v in self._jog_rates().values())
+        if (jogging and self.mode == 'AUTO' and abs(float(self.theta_pv[1])) < self.JOG_LOCK_DEG
+                and self.zeta_meas is not None):
+            base = self._jog_theta if self._jog_theta is not None else np.array(self.theta_ref, dtype=float)
+            self.theta_ref = base + self._jog_omega_at(base, self._jog_rates()) * self.dt
+            # M2 within the references' range: past it the IK path (below) takes over and flips, as it always has
+            self.theta_ref[1] = float(np.clip(self.theta_ref[1], THETA2_MIN, THETA2_MAX))
+            self._jog_theta = self.theta_ref.copy()
+            sm = self.polaris._sm
+            self.alpha_sp[:] = q_to_azaltroll(sm.pvQ_to_topoQ(theta_to_q(*self.theta_ref)))
+            self.alpha_offst[:] = 0.0
+            self.alpha_ref = np.array(self.alpha_sp, dtype=float)
+            return
+        self._jog_theta = None
+
         # Apply any jog contributions (in Base frame) to the motorQ_ref
         if self.dt > 0 and any(v != 0.0 for v in self._jog_rates().values()):
             q_jog = Quaternion(1, 0, 0, 0)
@@ -1491,9 +1538,18 @@ class PID_Controller():
 
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
 
-    ROLL_MOVE_RATE = 1.0                             # roll/PA changes: motor rate (deg/s) that keeps the pointing
-    M3_HOLD_DELAY_S = 0.3                            # M3's 518 value is sample-and-hold (refreshed every ~0.6 s): on
-                                                     # a coordinated path it reads this much later than M1/M2
+    JOG_LOCK_DEG = 6.0                               # |theta2| below this: Az/Alt/Roll jogs walk in motor angles
+    JOG_LOCK_RCOND = 0.1                             # ... dropping pointing motion the motors can hardly make there
+    ROLL_MOVE_RATE = 4.0                             # roll/PA changes: motor rate (deg/s), with M1/M3 FAST calibrated.
+                                                     # The pointing leaves the path by the motors' timing mismatch x
+                                                     # speed: 5-8' at 4 deg/s (calibrated twin; 8 deg/s 12-20'). At
+                                                     # 1 deg/s a +45 roll took 56 s in the field
+    ROLL_MOVE_RATE_UNCALIBRATED = 2.0                # ... without: a motor off its baseline FAST speed (the twin's M3
+                                                     # runs ~20% fast) puts the pointing 16-21' off at 2, 22-52' at 4
+    M3_HOLD_DELAY_S = 0.18                           # M3's 518 value is sample-and-hold (refreshed every ~0.6 s): on
+                                                     # a coordinated path it reads this much later than M1/M2, less
+                                                     # than half the hold (the KF's velocity takes up some). 0.3 was
+                                                     # tuned with M3's FAST speed biased: true M3 then ran 0.1 s late
     GOTO_RETARGET_DEG = 0.5 / 60                     # re-plan when the goto target moves more than this
     GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback)
     GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
@@ -1539,7 +1595,7 @@ class PID_Controller():
         if not active:
             return False
         if self.mode == 'TRACK':
-            goal, start, to_theta = np.array(self.delta_ref, dtype=float), np.array(self.delta_pv, dtype=float), self._delta_to_theta
+            goal, start, to_theta = self._reachable_delta(self.delta_ref), np.array(self.delta_pv, dtype=float), self._delta_to_theta
         else:
             goal, start, to_theta = np.array(self.alpha_ref, dtype=float), np.array(self.alpha_pv, dtype=float), self._alpha_to_theta
         self.set_Ka_array(Config.pid_Ka)
@@ -1592,7 +1648,7 @@ class PID_Controller():
                 # a roll/PA change: M1/M3 counter-rotate along a curve, and how far the pointing leaves it scales
                 # with the speed (~9' per deg/s in the twin: 60' at full speed, 6' at 1 deg/s); settling, not the
                 # speed, decides how long it takes
-                rate = np.minimum(rate, self.ROLL_MOVE_RATE)
+                rate = np.minimum(rate, self._roll_move_rate())
             slow = travel <= self.SMALL_MOVE_DEG                 # SLOW speeds: no FAST lag (see _motor_move)
             self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL),
                                             float(Config.pid_Kt) + np.array([0.0, 0.0, self.M3_HOLD_DELAY_S]),
@@ -1636,6 +1692,12 @@ class PID_Controller():
                         self.time_goto += self.goto_traj.duration / (24 * 3600)
                     self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
                     return True
+            if self._alpha_distance(self.goto_traj.goal, goal) > self.SMALL_MOVE_DEG:
+                # a new goto, not a nudge: planned afresh. Retargeted, a goto sent while the last one's final
+                # correction (a small move, capped at SMALL_MOVE_RATE) ran crept 80 deg at 0.21 deg/s and timed out
+                # (field 2026-10-17, pano panel 14 -> 12), and skipped the straight move a slew gets
+                self.goto_traj, self.move_planned = None, None
+                return self.plan_goto()
             self.goto_traj.retarget(goal)
         if self.goto_traj.branch_change:
             self.goto_traj = None                         # needs an IK branch change: the PID and its FLIP
@@ -1756,6 +1818,21 @@ class PID_Controller():
         az, alt = rad2deg(body.az), rad2deg(body.alt)
         roll = wrap180(delta[2] - calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
         return self._reachable_alpha((az, alt, roll))
+
+    def _roll_move_rate(self):
+        """ROLL_MOVE_RATE once M1 and M3 have approved FAST speed tests (they counter-rotate on a roll change), else
+        ROLL_MOVE_RATE_UNCALIBRATED."""
+        calibrated = getattr(self.polaris, 'fast_speed_calibrated', None)
+        ok = callable(calibrated) and calibrated(0) and calibrated(2)
+        return self.ROLL_MOVE_RATE if ok else self.ROLL_MOVE_RATE_UNCALIBRATED
+
+    def _reachable_delta(self, delta):
+        """RA(deg)/Dec/PA with the PA the motors can reach now: a path in PA towards an unreachable one switched to the
+        frame nearer level once its samples passed the reach (roll -95 -> +81: a 175 deg jump, so a +90 roll at Alt 15
+        went to the PID, which drove M2 past its limit)."""
+        az, alt, roll = self._delta_to_alpha(delta)
+        pa = wrap360(roll + calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
+        return np.array([delta[0], delta[1], delta[2] + wrap180(pa - delta[2])], dtype=float)
 
     def _reachable_alpha(self, alpha):
         """Az/Alt/Roll -> the nearest pose the motors can reach. The limits are the motors' own, expressed for a

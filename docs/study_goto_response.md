@@ -411,6 +411,33 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
     again keeps the points (`test_toggle_clears_the_sync_points`).
   Open: roll changes at low altitude are slow (~0.5 deg/s of roll, a 60 deg change ~80 s); M3 room at the end of a
   move.
+  **Field test, 2026-10-17 morning (level).** Four more, reproduced in the twin and fixed:
+  - *Roll changes too slow* (a +45 roll at Alt 61 took 56 s at 1 deg/s). The pointing leaves the path by the
+    motors' timing mismatch x speed. Measured against the planned path in the twin: M3 ran 0.27 s ahead of M1,
+    two causes. (a) M3's FAST speed: uncalibrated it runs ~20% faster than commanded (the twin models the mount's
+    M2/M3 as faster than the baseline table; calibrated=True removes it). (b) `M3_HOLD_DELAY_S` 0.3 was tuned with
+    (a) in place; with it gone true M3 ran 0.1 s late: M3's measurement is only ~0.18 s behind (the KF's velocity
+    takes up part of the 0.6 s hold), now 0.18. Worst pointing during a 45/90 deg roll, three poses:
+    calibrated 4 deg/s 5-8' (21-30 s for +45), 8 deg/s 12-20'; uncalibrated 2 deg/s 16-21' (31-49 s), 4 deg/s 22-52'.
+    So `ROLL_MOVE_RATE` 4 with M1/M3 FAST approved, `ROLL_MOVE_RATE_UNCALIBRATED` 2 otherwise (the idle roll goal,
+    <= 30', holds uncalibrated at 2, not at 4). Tried, not kept: path following by time-shifting each motor's
+    reference to the latest motor's lag: worse at every rate (the hold-back fights the PID).
+  - *A +90 roll at Alt 15 ended in LIMIT, 74' off*: past the reachable roll (81 deg). The PA path ran towards the
+    unreachable PA, and once its samples passed the reach the clip switched to the frame nearer level (-95 -> +81,
+    a 175 deg jump): branch change, PID chase, M2 past its limit. Tracking paths now aim at the reachable PA
+    (`_reachable_delta`): on target, worst 8.8' (`test_guard_roll_past_the_reach_while_tracking_keeps_the_pointing`).
+  - *A goto sent during the last one's final correction crept* (pano panel 14 -> 12: 80 deg at 0.21 deg/s, timed
+    out at Alt -31 of 35): retargeted onto the small correction path, which keeps SMALL_MOVE_RATE. A redirect moving
+    the goal more than SMALL_MOVE_DEG is planned afresh (`test_guard_goto_sent_during_a_small_correction_is_planned_afresh`).
+  - *An Alt jog through M2 = 0 logged a FLIP* (M2 at -3, inside the overlap): the jog holds Az and Roll, and through
+    Alt 0 with any roll that pose needs M3 to swing 90 deg; at 9 deg/s the reference stepped over the lock zone and
+    swung M1/M3 30-70 deg, which the legacy "> 30 deg from the reference" check called a FLIP. Within `JOG_LOCK_DEG`
+    (|M2| < 6) Az/Alt jogs walk in motor angles, solving only for the boresight's motion (the roll follows), with M2
+    held to the reference range; jog feed-forward uses least squares everywhere
+    (`test_guard_alt_jog_through_gimbal_lock_does_not_flip`). Left: with M3 ~ +-90 near the lock no motor moves the
+    pointing in Alt, so that part of the jog is dropped (it doesn't move).
+  - Also: tracking restore now runs on a reconnect too (`==RECONNECT==`), when the driver isn't tracking but its saved
+    state says it was; tracking otherwise carries on through a comms loss.
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).

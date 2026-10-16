@@ -420,10 +420,11 @@ def test_guard_tracking_at_gimbal_lock_keeps_the_pointing():
 def test_guard_roll_change_after_a_goto_keeps_the_pointing():
     """Field 2026-10-16: rotator moves (roll -30 etc.) straight after a goto went straight in motor angles (17 deg
     off the target mid-roll), and on the pointing-holding path at full speed still left it ~60' off. Roll changes are
-    classed by a pointing change small next to the roll, and run at ROLL_MOVE_RATE."""
+    classed by a pointing change small next to the roll, and run at ROLL_MOVE_RATE. With M3's FAST speeds calibrated:
+    uncalibrated, M3 runs ~20% faster than commanded and the pointing leaves the path by ~45' at 4 deg/s."""
     mp = pytest.MonkeyPatch()
     try:
-        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0, calibrated=True)
         tw.place((290.0, 50.0, 0.0))
         tw.start_tracking()
         tw.run(5)
@@ -469,6 +470,87 @@ def test_guard_roll_change_during_a_goto_completes_on_target():
     finally:
         mp.undo()
     assert done is not None and float(np.max(err)) < 30.0, f"done {done and done - t0}, error {err.round(0)}\""
+
+
+def test_guard_roll_past_the_reach_while_tracking_keeps_the_pointing():
+    """2026-10-17: a +90 roll at Alt 15 is past the roll the motors reach there (81 deg). The path ran in PA towards
+    the unreachable PA; once its samples passed the reach the clip switched to the frame nearer level (a 175 deg jump),
+    so the planner left it to the PID, which drove M2 past its limit: LIMIT, 74' off. The path now runs to the
+    reachable PA."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0, calibrated=True)
+        tw.place((90.0, 15.0, 0.0))
+        tw.start_tracking()
+        tw.run(10)
+        target = (tw.polaris.rightascension, tw.polaris.declination)
+        t0 = tw.clock.t
+        tw.slew_relative(roll=90.0)
+        worst = 0.0
+        while tw.clock.t - t0 < 120 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2)
+            worst = max(worst, radec_sep_arcmin(*target, *tw.true_radec()))
+        done, mode = tw.polaris.goto_complete_at, tw.pid.mode
+        off = radec_sep_arcmin(*target, *tw.true_radec())
+        tw.close()
+    finally:
+        mp.undo()
+    assert done is not None and mode == "TRACK", f"done {done}, mode {mode}"
+    assert off < 0.2 and worst < 15.0, f"{off:.1f}' off at the end, {worst:.1f}' during the roll"
+
+
+def test_guard_goto_sent_during_a_small_correction_is_planned_afresh():
+    """Field 2026-10-17 (pano panel 14 -> 12): a goto sent while the last one's final correction ran (a small move,
+    capped at SMALL_MOVE_RATE) was retargeted onto it: 80 deg at 0.21 deg/s, timed out at Alt -31 of 35. A redirect
+    further than a small move is planned afresh (here straight in motor angles)."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((218.5, 72.6, -132.7))
+        a = np.array(tw.pid.alpha_pv, dtype=float)
+        tw.goto_altaz(a[0] + 0.05, a[1], a[2])
+        tw.run(0.6)
+        small = np.array(getattr(tw.pid.goto_traj, "axis_rates", [np.inf]))
+        t0 = tw.clock.t
+        tw.goto_altaz(141.48, 35.33, 68.55)
+        while tw.clock.t - t0 < 60 and tw.polaris.goto_complete_at is None:
+            tw.run(0.5)
+        done = tw.polaris.goto_complete_at
+        alt = float(tw.pid.alpha_pv[1])
+        tw.close()
+    finally:
+        mp.undo()
+    assert np.all(small <= control.PID_Controller.SMALL_MOVE_RATE), "the setup needs a small correction under way"
+    assert done is not None and done - t0 < 30 and abs(alt - 35.33) < 0.05, f"done {done and done - t0}, alt {alt:.2f}"
+
+
+@pytest.mark.parametrize("theta3", [-8.0, -30.0])
+def test_guard_alt_jog_through_gimbal_lock_does_not_flip(caplog, theta3):
+    """Field 2026-10-17: jogging Alt down at 9 deg/s through M2 = 0 (M3 -8) logged a FLIP and swung M1, with M2 at -3
+    (inside the -8 overlap). The jog holds Az and Roll, and through Alt 0 with any roll that pose needs M3 to swing
+    90 deg; the reference stepped over the lock zone and swung M1/M3 30-70 deg. Near the lock jogs now walk the
+    pointing in motor angles."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((15.7, 5.0, theta3))
+        theta0 = np.array(tw.pid.theta_pv, dtype=float)
+        swing = 0.0
+        with caplog.at_level("INFO"):
+            tw.pid.set_axis_velocities({"alt": -9.0})
+            def on(t):
+                nonlocal swing
+                swing = max(swing, float(np.max(np.abs((np.array(t.pid.theta_ref) - theta0)[[0, 2]]))))
+            tw.run(1.3, on_measure=on)
+            tw.pid.set_axis_velocities({"alt": 0.0})
+            tw.run(6.0, on_measure=on)
+        theta2 = float(tw.pid.theta_pv[1])
+        tw.close()
+    finally:
+        mp.undo()
+    flips = [r.getMessage() for r in caplog.records if "Transition" in r.getMessage()]
+    assert not flips, flips
+    assert theta2 < -2.0 and swing < 3.0, f"M2 {theta2:.1f}, M1/M3 reference swung {swing:.1f} deg"
 
 
 def test_motor_move_retarget_keeps_the_speed():
