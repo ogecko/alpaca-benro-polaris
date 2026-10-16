@@ -281,20 +281,23 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   0.0032 deg² (σ 3.4') on M1, against 5e-5 of process noise: the filter integrates velocity and trusts position
   little (position gain ~0.15 per sample, τ ≈ 1.3 s). Every fast stop leaves its estimate off, and it converges
   slowly. On the mount (10-15 log, KFLOG `θ_state - θ_meas`) that's **25-80' at the end of a deceleration,
-  taking ~3 s to converge**, sometimes overshooting to the other side by 5-11'. The raw positions vary only 0.35'
-  step to step. The PID chases the transient, and goto completion waits for it (or, before the settle rule,
+  taking ~3 s to converge**, sometimes overshooting to the other side by 5-11'. The raw positions are far
+  quieter: about 2" per sample on M1 and M2 and 5.6" on M3 (robust σ of second differences of `θ_meas_raw` while
+  tracking; M3 includes its sample-and-hold steps). The PID's PV − SP after the KF tracks below 1". The PID chases the transient, and goto completion waits for it (or, before the settle rule,
   completed on it). In the twin, with the position variance ×0.1, median arrival − best goes 10.3 -> 7.4 s and the
   settle after the move 2.8 -> 0.4 s. Misses just over 2' (2.5-3.5', 11 gotos) are the KF still 2-3' off at
   completion (seed 1143: M1 2.2' off, 3.2' miss; ×0.1: 0.03' off, 0.5' miss). Retuning it also changes tracking and
   guiding: open question below.
 * *Done: the KF trusts position more during a goto* (`kf_goto_noise_scale` 0.1: the position terms of
   `kf_measure_noise` x0.1 while a goto or rotate is in progress; tracking and guiding keep today's tuning). Calibrated
-  sweep, arrival − best median: level idle 10.6 -> 7.4 s (149/150 arrived), eq idle 12.4 -> 11.3 s (144/150). With
-  mount-like 518 noise in the twin (0.006 deg, `NOISE_DEG` is 1e-4): level idle 11.2 -> 8.6 s and misses 5 -> 1, eq
-  idle 13.4 -> 11.8 s and 10 -> 6. x0.03 was worse at that noise (10.6 s: the noise reaches the PID).
+  sweep, arrival − best median: level idle 10.6 -> 7.4 s (149/150 arrived), eq idle 12.4 -> 11.3 s (144/150). With the
+  mount's measured 518 noise in the twin (0.0006 deg, 2.2"; `NOISE_DEG` default is 1e-4): level idle 10.8 -> 7.5 s
+  (142 -> 149/150 arrived), eq idle 12.5 -> 11.2 s (141 -> 144/150). Gotos while tracking are unchanged (13.4 s level,
+  16.3 s eq) and complete normally on the TRACK tolerance (`pid_Kc`/20, 2.25"); after completion the true error
+  stays at 1-5" with no creep in the twin. x0.03 matched x0.1 at this noise; x0.01 was slightly worse.
   `test_goal_large_goto_while_tracking_completes_within_15s` now passes.
-* *Gotos while tracking at mount-like noise take 32-35 s over best* with or without it. Their completion
-  tolerance is `pid_Kc`/20 (2.25") in TRACK, below the noise. Design item 6.
+  (An earlier run at 0.006 deg, from step-to-step differences that included the motion itself, overstated the
+  noise 10x and showed tracking gotos timing out: not real.)
 * *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
   even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
   no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.
@@ -573,7 +576,7 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 ## Open questions
 
 * **KF position trust (2026-10-16).** Decided: trust position more only during gotos (`kf_goto_noise_scale`), done.
-  Still open: check on the mount that 0.1 suits its real 518 noise, and whether tracking itself would gain from
+  Still open: check on the mount that 0.1 suits its real 518 noise (~2" per sample), and whether tracking itself would gain from
   less smoothing.
 
 * Tracking room: 8 h in both modes? Alt/az tracking turns M1 and M3 at rates that vary with the pointing, so its room
