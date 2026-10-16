@@ -996,7 +996,8 @@ class Polaris:
             # Process all 518 msgs through the Kalman Filter [KF] to determine Polaris theta_state. 
             self._kf.predict(omega_ref)
             is_tracking = self._pid.mode == 'TRACK'
-            self._kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self._pid.theta_ref if is_tracking else None))
+            self._kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self._pid.theta_ref if is_tracking else None),
+                             goto=self._pid.move_pending())
             self._theta_state, _ = self._kf.get_state()
 
             # Only process the last 518 msg of a batch through PID control step and motor actuation

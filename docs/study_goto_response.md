@@ -287,6 +287,14 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   settle after the move 2.8 -> 0.4 s. Misses just over 2' (2.5-3.5', 11 gotos) are the KF still 2-3' off at
   completion (seed 1143: M1 2.2' off, 3.2' miss; ×0.1: 0.03' off, 0.5' miss). Retuning it also changes tracking and
   guiding: open question below.
+* *Done: the KF trusts position more during a goto* (`kf_goto_noise_scale` 0.1: the position terms of
+  `kf_measure_noise` x0.1 while a goto or rotate is in progress; tracking and guiding keep today's tuning). Calibrated
+  sweep, arrival − best median: level idle 10.6 -> 7.4 s (149/150 arrived), eq idle 12.4 -> 11.3 s (144/150). With
+  mount-like 518 noise in the twin (0.006 deg, `NOISE_DEG` is 1e-4): level idle 11.2 -> 8.6 s and misses 5 -> 1, eq
+  idle 13.4 -> 11.8 s and 10 -> 6. x0.03 was worse at that noise (10.6 s: the noise reaches the PID).
+  `test_goal_large_goto_while_tracking_completes_within_15s` now passes.
+* *Gotos while tracking at mount-like noise take 32-35 s over best* with or without it. Their completion
+  tolerance is `pid_Kc`/20 (2.25") in TRACK, below the noise. Design item 6.
 * *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
   even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
   no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.
@@ -564,12 +572,9 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 
 ## Open questions
 
-* **KF position trust (2026-10-16).** Lower `kf_measure_noise`'s position terms (M1-M3) toward the measured 518
-  noise (0.35' step to step on the mount, about 10x less in σ than configured)? It would remove most of the
-  goto settle (above), but the filter also smooths tracking and guiding. Needs a twin run with mount-like
-  position noise (the twin's 0.006' is far below the mount's) and a night's tracking check. Alternatives:
-  re-anchor the position on the raw measurement when a fast move stops, or raise the trust only while
-  not tracking.
+* **KF position trust (2026-10-16).** Decided: trust position more only during gotos (`kf_goto_noise_scale`), done.
+  Still open: check on the mount that 0.1 suits its real 518 noise, and whether tracking itself would gain from
+  less smoothing.
 
 * Tracking room: 8 h in both modes? Alt/az tracking turns M1 and M3 at rates that vary with the pointing, so its room
   needs the projected motor path, not a rate.

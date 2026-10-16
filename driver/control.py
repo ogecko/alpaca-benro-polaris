@@ -107,7 +107,7 @@ class KalmanFilter:
         self.P = self.A @ self.P @ self.A.T + self.Q
         self.x = wrap_state_angles(self.x)
 
-    def observe(self, theta, omega, omega_ref, theta_ref=None):
+    def observe(self, theta, omega, omega_ref, theta_ref=None, goto=False):
         """
         omega: real, position-differenced velocity measurement (polaris.calculate_angular_velocity
         over the recent theta history), not the commanded rate -- the filter needs an independent
@@ -131,8 +131,15 @@ class KalmanFilter:
         describe a measurement sampled some time before now -- diffing against theta_ref
         as-is compares two different instants and shows a spurious deviation that's really
         just the target's own motion during the lag, not a real tracking error.
+
+        goto: a goto (or rotate) is in progress, and the position measurements count for more (kf_goto_noise_scale).
+        With the noise tuned for tracking the estimate ends a fast deceleration 25-80' off and takes ~3 s to converge
+        (mount, 10-15), which the goto's settle then waits out; the raw positions vary only 0.35' sample to sample.
         """
-        self.R = np.diag(Config.kf_measure_noise)
+        R = np.array(Config.kf_measure_noise, dtype=float)
+        if goto:
+            R[:3] *= Config.kf_goto_noise_scale
+        self.R = np.diag(R)
         if self._need_first_measurement:
             self._need_first_measurement = False
             self.set_state([*theta, *omega])

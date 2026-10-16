@@ -102,6 +102,7 @@ export const useConfigStore = defineStore('config', {
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
     kf_measure_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
+    kf_goto_noise_scale: 0.1,
     pid_Kp: [0.8, 0.8, 0.8],
     pid_Ki: [0.0, 0.0, 0.0],
     pid_Kd: [0.8, 0.8, 0.8],

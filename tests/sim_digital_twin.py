@@ -286,7 +286,8 @@ class Twin:
         p._zeta_meas = [theta_raw[0] - 180.0, theta_raw[1] - 45.0, theta_raw[2]]   # "517" raw motor angles (hardware: zeta = theta - (180, 45, 0))
         self.kf.predict(omega_ref)
         is_tracking = self.pid.mode == 'TRACK'
-        self.kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self.pid.theta_ref if is_tracking else None))
+        self.kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self.pid.theta_ref if is_tracking else None),
+                        goto=self.pid.move_pending())
         theta_state, _ = self.kf.get_state()
         motorQ_state = theta_to_q(*theta_state)
         cameraQ_pv, motorQ_pv = p._sm.baseQ_to_topoQ(motorQ_state, theta=theta_state)
