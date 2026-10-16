@@ -272,6 +272,7 @@ class Polaris:
         self._pid = PID_Controller(logger, self, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
         self._sm = SyncManager(logger, self)
+        self._eq_mode_live = bool(Config.advanced_eq_mode)    # the base the sync points were taken on (see make_config_params_live)
         restore_orbital_bodies_from_orbital_cache()
         
     async def shutdown(self):
@@ -1883,8 +1884,24 @@ class Polaris:
                 self.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
             elif param == "guide_rate_dec":
                 self.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
+            elif param == "advanced_eq_mode":
+                if bool(Config.advanced_eq_mode) == self._eq_mode_live:
+                    continue                          # sent again unchanged: keep the sync points
+                self._eq_mode_live = bool(Config.advanced_eq_mode)
+                # sync points taken on a level base say nothing of a wedge (and back): with them kept, eq mode refitted
+                # the level alignment and the mount went on as alt-az. Clear them all; the M2 scale is the mount's own
+                sm = self._sm
+                m2_scale = (sm.mac_s2, sm.mac_s2_accepted, sm.mac_s2_status)
+                cleared = sum(1 for e in sm.sync_history if not e.get('deleted', False))
+                sm.set_alignQ_to_identity()           # the base seed: the ideal wedge in eq mode, level otherwise
+                sm.mac_s2, sm.mac_s2_accepted, sm.mac_s2_status = m2_scale
+                sm.optimize_alignQ_B2T()
+                sm.refresh_pid_setpoints_from_q1()
+                sm.streamSyncData()                   # and persist the empty sync list
+                self.logger.info(f"EQ MODE {'ON' if Config.advanced_eq_mode else 'OFF'}: cleared {cleared} sync points "
+                                 f"(taken on the other base)")
             elif param in ["advanced_alignment", "advanced_scc_enabled", "advanced_scc_choice", "advanced_align_mac",
-                           "align_m2_scale", "advanced_eq_mode"]:
+                           "align_m2_scale"]:
                 self._sm.clear_sync_guiding()
                 self._sm.optimize_alignQ_B2T()
                 self._sm.refresh_pid_setpoints_from_q1()

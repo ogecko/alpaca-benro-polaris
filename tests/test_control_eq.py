@@ -288,12 +288,14 @@ class TestEqTracking:
 
 
 def eq_toggle(monkeypatch, tw, on):
-    """Polaris:ConfigUpdate advanced_eq_mode (as polaris.make_config_params_live applies it)."""
+    """Polaris:ConfigUpdate advanced_eq_mode, through polaris.make_config_params_live (sync points not saved to disk)."""
+    from polaris import Polaris
+    if not hasattr(tw.polaris, "_eq_mode_live"):
+        tw.polaris._eq_mode_live = bool(Config.advanced_eq_mode)
+    monkeypatch.setattr(tw.polaris, "logger", tw.polaris._sm.logger, raising=False)
+    monkeypatch.setattr(tw.polaris._sm, "saveSyncDataToFile", lambda *a, **k: None)
     monkeypatch.setattr(Config, "advanced_eq_mode", on)
-    sm = tw.polaris._sm
-    sm.clear_sync_guiding()
-    sm.optimize_alignQ_B2T()
-    sm.refresh_pid_setpoints_from_q1()
+    Polaris.make_config_params_live(tw.polaris, {"advanced_eq_mode": on})
 
 
 class TestEqGotos:
@@ -380,6 +382,25 @@ class TestEqMeridianAndToggle:
         assert mode == "TRACK"
         assert np.all(moved < 0.2), f"motors moved {np.round(moved, 3)} deg in 30 s: a slew"
         assert rms < 5.0, f"tracking RMS {rms:.2f}\""
+
+
+    @pytest.mark.parametrize("start_eq", [False, True], ids=["level->eq", "eq->level"])
+    def test_toggle_clears_the_sync_points(self, monkeypatch, start_eq):
+        # Field 2026-10-16: eq mode turned on over 4 sync points taken level refitted the level alignment (0.4 deg
+        # tilt), and the mount went on as alt-az. Points taken on one base say nothing of the other
+        tw = Twin(monkeypatch, config={"coordinated_speed_control": True, "advanced_eq_mode": start_eq,
+                                       "advanced_alignment": True}, seed=0)
+        tw.place(EQ_POSES["ha-4h_dec-36"] if start_eq else (135.0, 45.0, 0.0))
+        sm = tw.polaris._sm
+        sm.sync_history = [dict(sm.standard_entry(), deleted=False, timestamp=f"t{i}") for i in range(3)]
+        eq_toggle(monkeypatch, tw, start_eq)                                    # sent again unchanged: kept
+        kept = len(sm.sync_history)
+        eq_toggle(monkeypatch, tw, not start_eq)
+        cleared, tilt = len(sm.sync_history), sm.alignQ_B2T
+        tw.close()
+        seed = wedge_alignQ_B2T(TWIN_LAT) if not start_eq else Quaternion(1, 0, 0, 0)
+        assert kept == 3 and cleared == 0
+        assert abs(float(np.dot(np.asarray(tilt.q), np.asarray(seed.q)))) > 1 - 1e-9, "not the new base's seed"
 
 
 def angle_deg(v1, v2):
