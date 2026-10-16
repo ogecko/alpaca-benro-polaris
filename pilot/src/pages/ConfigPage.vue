@@ -207,13 +207,17 @@
                 <q-toggle class='col-6' v-bind="bindField('advanced_pec_worm', 'PEC Worm Gear Correction')"/>
               </div>
               <div class="row">
-                <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Sync Guiding (Plate-solve)')"/>
                 <q-toggle class='col-6' v-bind="bindField('coordinated_speed_control', 'Coordinated Speed Control')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_backlash', 'Backlash Compensation')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Sync Guiding (Plate-solve)')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Pulse Guiding (Guide-camera)')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_backlash', 'Backlash Compensation')"/>
               </div>
+              <div class="q-pb-md"></div>
               <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pl-md q-pr-md q-pb-md">
                 <q-select
                   class="col-6 q-pt-none" label="RA Pulse Guide Rate" emit-value map-options
@@ -226,13 +230,6 @@
                   :options="guideRateOptions"
                 />
               </div>
-              <div class="row">
-                <q-toggle class='col-6 offset-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
-              </div>
-              <div v-if="cfg.advanced_eq_mode" class="row q-col-gutter-lg q-pb-md">
-                <q-input class="col-3 offset-6" v-bind="bindField('eq_rig_tilt_limit', 'Max Rig Tilt (180 = off)', '°')" type="number" input-class="text-right"/>
-              </div>
-              <div class="q-pb-md"></div>
 
 
             </div>
