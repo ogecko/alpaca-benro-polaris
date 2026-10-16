@@ -238,7 +238,11 @@ FAST calibration approved (`GOTO_SWEEP_CALIBRATED=1`).
 * *Response model*: `MotorMove`'s reference is the plan delayed by `pid_Kt` and passed through a first-order lag
   `pid_Kl`, i.e. what the measurements should show. A pure delay left a·Kl²/2 of overshoot at every stop (0.3 deg at
   5 deg/s² and 0.35 s). Twin fitted open loop: Kt 0.35 s, Kl 0.4 s (a straight move tracks its plan within 0.21 deg).
-  Mount: Kt 0.2 s, Kl 0.15 s are estimates still to be fitted from the 10-15 goto-response log.
+  Mount, fitted from the 10-15 goto-response log (41 moves, `θ_pv` against `ω_op` per axis with a free speed gain
+  for the uncalibrated FAST table): the total is well determined and the split isn't. On velocity the residual is
+  flat at 5.7-5.8% of peak speed along Kt + Kl = 0.3-0.35 s (best 0.3 + 0.05). On position the best is 0.25 s in all,
+  but with 0.7 deg left over because the speed error varies with speed. `pid_Kt` 0.2 s + `pid_Kl` 0.15 s is on the
+  ridge (5.8%) and is kept. The split matters little at the mount's lag: a·Kl²/2 is 0.06 deg at 0.15 s.
 * *Stale feedback* (bug): in IDLE nothing is sent, but the PID went on integrating `omega_fb` against the idle error.
   The next goto started with up to -5 deg/s of it on top of its plan, ~5 deg of unplanned travel and a 1.6 deg
   overshoot at the end. `control()` now zeroes `omega_fb` whenever it sends nothing.
