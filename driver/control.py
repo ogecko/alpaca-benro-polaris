@@ -1960,15 +1960,31 @@ class PID_Controller():
 
     GIMBAL_LOCK_NEAR_DEG = 8.0                           # |theta2| below this: M1/M3 near aligned (overlap of the two sides)
 
-    def _path_passes_gimbal_lock(self, start, goal, samples=90):
+    def _path_passes_gimbal_lock(self, start, goal, samples=24):
         """Once per goto: the pointing path from start to goal (as alpha_limit_step steps it) comes within
         GIMBAL_LOCK_NEAR_DEG of theta2 = 0 (the goal may be in there too), starting clear of it. |theta2| is the
         tilt of the M3 axis from vertical, so unambiguous."""
         self.lock_checked = True
-        ups = np.array([self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*GotoTrajectory._interp(start, goal, f))).rotate(np.array([1.0, 0.0, 0.0]))
-                        for f in np.linspace(0.0, 1.0, samples + 1)])
-        tilt = np.degrees(np.arctan2(np.hypot(ups[:, 0], ups[:, 1]), ups[:, 2]))
-        return bool(tilt[0] >= self.GIMBAL_LOCK_NEAR_DEG and np.min(tilt[1:]) < self.GIMBAL_LOCK_NEAR_DEG)
+        ends_q, sm = GotoTrajectory._ends_q(start, goal), self.polaris._sm
+
+        def tilt(f):
+            up = sm.topoQ_to_baseQ(azaltroll_to_q(*GotoTrajectory._interp(start, goal, f, ends_q))).rotate(np.array([1.0, 0.0, 0.0]))
+            return float(np.degrees(np.arctan2(math.hypot(up[0], up[1]), up[2])))
+
+        # coarse, then refined around the closest approach: 90 samples took ~16 ms in one tick (R4)
+        fracs = np.linspace(0.0, 1.0, samples + 1)
+        tilts = [tilt(f) for f in fracs]
+        if tilts[0] < self.GIMBAL_LOCK_NEAR_DEG:
+            return False
+        i = int(np.argmin(tilts[1:])) + 1
+        lo, hi = fracs[max(i - 1, 0)], fracs[min(i + 1, samples)]
+        best = tilts[i]
+        for _ in range(8):                                # golden-section search for the minimum near sample i
+            m1, m2 = lo + 0.382 * (hi - lo), lo + 0.618 * (hi - lo)
+            t1, t2 = tilt(m1), tilt(m2)
+            best = min(best, t1, t2)
+            lo, hi = (lo, m2) if t1 < t2 else (m1, hi)
+        return bool(best < self.GIMBAL_LOCK_NEAR_DEG)
 
     def _theta_pv_held(self):
         """theta_pv for the error against a held motor-angle target (theta_ref_cache, or a motor-angle

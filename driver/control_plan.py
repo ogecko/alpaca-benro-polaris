@@ -60,7 +60,9 @@ class GotoTrajectory:
 
     to_theta(alpha, theta_near) converts Az/Alt/Roll to motor angles on the branch nearest theta_near.
     """
-    SAMPLES = 200                                            # at most; fewer for a short path (SAMPLE_DEG)
+    SAMPLES = 24                                             # at most (fewer for a short path, SAMPLE_DEG): step()
+                                                             # walks the exact path and caps each axis's rate; the
+                                                             # profile only shapes the speed (200 took ~25 ms a tick)
     SAMPLE_DEG = 0.5                                         # motor travel per sample
     MIN_SAMPLES = 6
     TURN_SHARE = 0.5
@@ -94,8 +96,9 @@ class GotoTrajectory:
         ends = ends[ends < 1.0 / n]
         fracs = np.unique(np.concatenate([np.linspace(0.0, 1.0, n + 1), ends, 1.0 - ends]))
         thetas = [self._theta]
+        ends_q = self._ends_q(self._alpha, self.goal)          # the slerp ends, once per plan (not per sample)
         for f in fracs[1:]:
-            thetas.append(self.to_theta(self._interp(self._alpha, self.goal, f), thetas[-1]))
+            thetas.append(self.to_theta(self._interp(self._alpha, self.goal, f, ends_q), thetas[-1]))
         thetas = np.array(thetas)
         seg = np.diff(thetas, axis=0)
         ds = np.max(np.abs(seg), axis=1)                       # path length in fastest-axis degrees
@@ -166,9 +169,14 @@ class GotoTrajectory:
         return now, rate
 
     @staticmethod
-    def _interp(a, b, frac):
-        """Az/Alt along the great circle (slerp at roll 0) and roll linearly, like alpha_limit_step."""
-        q_a, q_b = azaltroll_to_q(a[0], a[1], 0.0), azaltroll_to_q(b[0], b[1], 0.0)
+    def _ends_q(a, b):
+        return azaltroll_to_q(a[0], a[1], 0.0), azaltroll_to_q(b[0], b[1], 0.0)
+
+    @staticmethod
+    def _interp(a, b, frac, ends_q=None):
+        """Az/Alt along the great circle (slerp at roll 0) and roll linearly, like alpha_limit_step. ends_q: the
+        two ends' quaternions, when already known."""
+        q_a, q_b = ends_q if ends_q is not None else GotoTrajectory._ends_q(a, b)
         az, alt, _ = q_to_azaltroll(Quaternion.slerp(q_a, q_b, frac))
         return np.array([az, alt, a[2] + frac * wrap180(b[2] - a[2])])
 

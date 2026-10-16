@@ -341,8 +341,18 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   145') over a 10 deg PA change (fine only to ~1 deg). Their cost came from the fixed 200 samples and the old
   gimbal-lock path check on top. Now the path is sampled per 0.5 deg of motor travel (at least 6, plus a few packed
   near each end for the speed-up and braking), and a planned path marks the lock check done. PA change cost per tick
-  1,383 -> 111 (1 deg) / 316 (10 deg), same time (12/14 s) and accuracy. Still over R4's 40: spreading the sampling
-  over ticks is the next step there, with the idle gotos of 15 deg or less (1,054 level / 1,433 eq per tick).
+  1,383 -> 111 (1 deg) / 316 (10 deg), same time (12/14 s) and accuracy.
+  **R4 in milliseconds** (this PC, a Ryzen 9 7950X; a Pi Zero 2 W runs Python ~20x slower): the worst tick per goto was 13 ms
+  level idle and 34 ms eq idle (~260/700 ms on the Pi: past the 200 ms tick, as the field heartbeat lags showed),
+  tracking gotos under 3 ms. The cost was GotoTrajectory's sampling and the gimbal-lock path check (90 samples, each
+  rebuilding the slerp ends). Now the trajectory takes at most 24 samples (step() walks the exact path and caps each
+  axis, the profile only shapes the speed) and both reuse the slerp ends; the lock check samples 24 points and refines
+  the closest approach by golden-section search (same answer as 400 samples on 3,000 random paths). Worst tick
+  5.6 ms level idle / 9.7 ms eq idle (~110/200 ms on the Pi), kinematics per tick 129/225 (were 1,054/1,433); sweep
+  results identical. Median worst tick per goto ~3 ms (the goto's first tick).
+  Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
+  `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
+  chase unwinds into LIMIT (with 200 samples too).
 * *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
   even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
   no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.
