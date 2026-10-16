@@ -8,7 +8,10 @@
 #                       RA/Dec while tracking), roll/PA in proportion, sampled in motor space and walked at the fastest
 #                       speed the motors allow, with the velocity as feed-forward; re-plans from the current speed when
 #                       the target moves.
-#   MotorTrajectory     the same profile along a straight line in motor angles (a flip past gimbal lock).
+#   MotorMove           a straight move in motor angles, closed form per motor from the current angles and speeds,
+#                       with a dead-time-delayed reference: slews of more than 15 deg, flips past gimbal lock, M1 turns.
+#   choose_end_solution the end solution of a straight move: tracking room (eq), no cable wrap on a flip (M1 and M3
+#                       turning opposite ways), then the fastest (move_time).
 #   ramp_rates          jog shaping: each axis rate toward its target within the acceleration limit.
 #   min_move_time       the shortest rest-to-rest time of one motor's move within its speed and acceleration.
 #
@@ -160,14 +163,125 @@ class GotoTrajectory:
         return np.array([az, alt, a[2] + frac * wrap180(b[2] - a[2])])
 
 
-class MotorTrajectory(GotoTrajectory):
-    """A GotoTrajectory along a straight line in motor angles (its 'alpha' is theta): for a move that must go
-    straight to the target's motor angles, e.g. a flip past gimbal lock, with the same speed/acceleration
-    profile (no PID overshoot at the end)."""
-    def __init__(self, max_rate, max_accel):
-        super().__init__(lambda theta, theta_near: np.asarray(theta, dtype=float), max_rate, max_accel)
-        self.space = 'THETA'
+def _axis_profile(d, v0, vmax, a):
+    """Time-optimal segments [(duration, accel)] for one motor to move d (deg) and stop, starting at speed v0 (deg/s),
+    within vmax and a: speed up (or slow to vmax), cruise, brake; when it can't stop in time, brake first and come
+    back."""
+    if d < 0 or (d == 0 and v0 < 0):
+        return [(t, -acc) for t, acc in _axis_profile(-d, -v0, vmax, a)]
+    if d == 0 and v0 == 0:
+        return []
+    stop = v0 * abs(v0) / (2 * a)                       # distance to a stop braking now (negative: moving away)
+    if stop > d + 1e-12:                                # overshoots even braking now: brake, then come back
+        return [(v0 / a, -a)] + _axis_profile(d - stop, 0.0, vmax, a)
+    peak = math.sqrt(a * d + v0 * v0 / 2)               # triangle: speed up to peak, brake to the goal
+    if peak <= vmax:
+        return [(max(0.0, (peak - v0) / a), a), (peak / a, -a)]
+    acc = a if vmax >= v0 else -a                       # up to vmax (or down to it from beyond)
+    d1 = (vmax * vmax - v0 * v0) / (2 * acc)
+    cruise = max(0.0, (d - d1 - vmax * vmax / (2 * a)) / vmax)
+    return [(abs(vmax - v0) / a, acc), (cruise, 0.0), (vmax / a, -a)]
 
-    @staticmethod
-    def _interp(a, b, frac):
-        return np.asarray(a, dtype=float) + frac * (np.asarray(b, dtype=float) - np.asarray(a, dtype=float))
+
+def move_time(theta_from, theta_to, omega, max_rate, max_accel):
+    """Time (s) of a straight motor-angle move from theta_from at speeds omega to rest at theta_to: the slowest
+    motor's time-optimal profile."""
+    d = np.asarray(theta_to, dtype=float) - np.asarray(theta_from, dtype=float)
+    v0 = np.broadcast_to(np.asarray(omega, dtype=float), d.shape)
+    vmax = np.broadcast_to(np.asarray(max_rate, dtype=float), d.shape)
+    return max(sum(t for t, _ in _axis_profile(float(d[i]), float(v0[i]), float(vmax[i]), float(max_accel)))
+               for i in range(len(d)))
+
+
+FLIP_DEG = 90.0                     # a move turning both M1 and M3 further than this is a flip (~180 deg each)
+
+
+def is_flip(theta_from, theta_to):
+    """A move to the other side: M1 and M3 both swinging round (~180 deg each)."""
+    d = np.asarray(theta_to, dtype=float) - np.asarray(theta_from, dtype=float)
+    return bool(abs(d[0]) > FLIP_DEG and abs(d[2]) > FLIP_DEG)
+
+
+def wraps_cables(theta_from, theta_to):
+    """A flip that turns M1 and M3 the same way: the cables wrap (they should turn in opposite directions)."""
+    d = np.asarray(theta_to, dtype=float) - np.asarray(theta_from, dtype=float)
+    return is_flip(theta_from, theta_to) and bool(d[0] * d[2] > 0)
+
+
+def choose_end_solution(solutions, theta_now, omega_now, max_rate, max_accel, has_room=None):
+    """Index of the end solution to move to, in order: tracking room (has_room(theta) -> bool, eq mode), no cable wrap
+    on a flip, the fastest from the current angles and speeds. None if there are none."""
+    if len(solutions) == 0:
+        return None
+    times = [move_time(theta_now, s, omega_now, max_rate, max_accel) for s in solutions]
+    room = [bool(has_room(s)) if has_room else True for s in solutions]
+    wrap = [wraps_cables(theta_now, s) for s in solutions]
+    return min(range(len(solutions)), key=lambda i: (not room[i], wrap[i], times[i]))
+
+
+class MotorMove:
+    """A straight move in motor angles, closed form: each motor on its own time-optimal profile (speed up, cruise,
+    brake within its max_rate and max_accel) from its current angle and speed to the goal, where it stops. Nothing
+    is sampled, so planning costs microseconds (R4), and it starts from a moving mount as well as from rest (R2).
+
+    The motors follow their speed commands dead_time_s late (the age of a measurement plus the MCU's lag), so step()
+    returns the commanded speed now as the feed-forward, and as the reference the angles the plan had dead_time_s
+    ago: what the measurements should show now. The PID then sees only real errors, not the lag, and doesn't push a
+    motor on into an overshoot (study design item 3)."""
+    space = 'THETA'
+
+    def __init__(self, max_rate, max_accel, dead_time_s=0.0):
+        self.max_rate = np.broadcast_to(np.asarray(max_rate, dtype=float), (3,)).copy()
+        self.max_accel = float(max_accel)
+        self.dead_time_s = float(dead_time_s)
+        self.goal = None
+        self.alpha_goal = None                           # the sky target, when a goto planned this move
+        self.done = True
+        self.branch_change = False
+
+    def start(self, theta, goal, omega=None):
+        """Plan from the measured angles theta and the speeds commanded now (omega): the motors are commanded to be
+        a dead time ahead of where they are measured."""
+        v0 = np.zeros(3) if omega is None else np.asarray(omega, dtype=float)
+        self._plan(np.asarray(theta, dtype=float) + v0 * self.dead_time_s, v0, goal)
+
+    def retarget(self, goal):
+        """New goal mid-move: re-plan from where the plan has the motors now, at their speed now."""
+        p, v = self._state(self._t)
+        self._plan(p, v, goal)
+
+    def _plan(self, p0, v0, goal):
+        self.goal = np.asarray(goal, dtype=float)
+        self._p0, self._v0, self._t = p0.copy(), v0.copy(), 0.0
+        self._segments = [_axis_profile(float(self.goal[i] - p0[i]), float(v0[i]), float(self.max_rate[i]),
+                                        self.max_accel) for i in range(3)]
+        self.duration = max((sum(t for t, _ in seg) for seg in self._segments), default=0.0)
+        self.done = False
+
+    def _state(self, t):
+        """Commanded angles and speeds at time t into the plan (before it: carrying on at the start speed)."""
+        p, v = self._p0.copy(), self._v0.copy()
+        if t <= 0:
+            return p + v * t, v
+        for i, seg in enumerate(self._segments):
+            left = t
+            for dur, acc in seg:
+                step = min(dur, left)
+                p[i] += v[i] * step + 0.5 * acc * step * step
+                v[i] += acc * step
+                left -= step
+                if left <= 0:
+                    break
+            if left > 0:                                 # finished: at rest on the goal
+                p[i], v[i] = self.goal[i], 0.0
+        return p, v
+
+    def step(self, dt):
+        """Returns (theta_ref, omega_ff): the plan's angles dead_time_s ago and its speeds now."""
+        self._t += dt
+        ref, _ = self._state(self._t - self.dead_time_s)
+        _, omega = self._state(self._t)
+        if self._t >= self.duration + self.dead_time_s:
+            self.done = True
+            ref, omega = self.goal.copy(), np.zeros(3)
+        return ref, omega

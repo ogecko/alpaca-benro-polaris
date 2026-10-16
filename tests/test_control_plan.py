@@ -29,7 +29,7 @@ import control                                                                  
 import control_plan                                                              # noqa: E402
 from config import Config                                                        # noqa: E402
 from control_eq import rig_tilt_deg, THETA2_MIN                                  # noqa: E402
-from control_plan import min_move_time                                           # noqa: E402
+from control_plan import min_move_time, move_time, MotorMove, choose_end_solution, wraps_cables  # noqa: E402
 from kinematics import (theta_solutions, theta_to_q, azaltroll_to_q, q_to_azaltroll, vector_to_az_alt,  # noqa: E402
                         THETA2_MAX)
 from sim_digital_twin import Twin                                                 # noqa: E402
@@ -182,7 +182,7 @@ def run_goto(case, seed):
         "min_nadir_deg": float(90 + np.degrees(np.arcsin(np.clip(bores[:, 2], -1, 1))).min()),
         "max_rig_tilt_deg": float(max(rig_tilt_deg(p) for p in poses)),
         "room_deg": room,
-        "best_room_short": bool(track and len(sols) and _room_short(sols[int(np.argmin(times))], kv)),
+        "best_room_short": bool((track or eq) and len(sols) and _room_short(sols[int(np.argmin(times))], kv)),
         "max_work_per_tick": int(max(work)) if work else 0,
         "travel_deg": float(np.abs(np.diff(trace, axis=0)).sum()),
     }
@@ -254,6 +254,70 @@ def test_theta_solutions_are_the_same_pose(theta):
 def test_out_of_reach_pose_has_no_solution():
     q = azaltroll_to_q(0.0, 89.0, 0.0)                    # level: the zenith zone is past M2's 81.5
     assert len(theta_solutions(q, [-90, -10, -270], [450, 82, 270])) == 0
+
+
+def _run_move(move, dt=0.05, seconds=60.0):
+    out = []
+    for _ in range(int(seconds / dt)):
+        out.append(move.step(dt))
+        if move.done:
+            break
+    return np.array([r for r, _ in out]), np.array([w for _, w in out])
+
+
+@pytest.mark.parametrize("goal, omega", [((30.0, -10.0, 90.0), (0.0, 0.0, 0.0)), ((2.0, 0.5, -1.0), (0.0, 0.0, 0.0)),
+                                         ((30.0, 30.0, 30.0), (5.0, -5.0, 9.0)), ((1.0, -1.0, 0.0), (6.0, 6.0, -6.0))],
+                         ids=["from_rest", "small", "moving", "overshooting"])
+def test_motor_move_lands_on_the_goal_within_the_limits(goal, omega):
+    rate, accel = np.array([8.0, 7.0, 8.0]), 5.0
+    move = MotorMove(rate, accel)
+    move.start(np.zeros(3), goal, omega)
+    refs, speeds = _run_move(move)
+    assert move.done and np.allclose(refs[-1], goal) and np.allclose(speeds[-1], 0.0)
+    assert (np.abs(speeds[1:]) <= np.maximum(rate, np.abs(omega)) + 1e-9).all()                # never past max_rate
+    assert (np.abs(np.diff(speeds, axis=0)) <= accel * 0.05 + 1e-6).all()                    # within max_accel
+    assert move.duration == pytest.approx(move_time(np.zeros(3), goal, omega, rate, accel))
+
+
+def test_motor_move_from_rest_is_time_optimal():
+    rate, accel, goal = np.array([8.0, 7.0, 8.0]), 5.0, np.array([30.0, -10.0, 90.0])
+    move = MotorMove(rate, accel)
+    move.start(np.zeros(3), goal)
+    assert move.duration == pytest.approx(float(np.max(min_move_time(goal, rate, accel))))
+
+
+def test_motor_move_reference_lags_the_commands_by_the_dead_time():
+    lagged, now = MotorMove(8.0, 5.0, dead_time_s=0.4), MotorMove(8.0, 5.0)
+    for m in (lagged, now):
+        m.start(np.zeros(3), (20.0, 0.0, 0.0))
+    refs, speeds = _run_move(lagged, dt=0.1)
+    refs_now, speeds_now = _run_move(now, dt=0.1)
+    assert np.allclose(refs[4:len(refs_now) + 4, 0], refs_now[:, 0])         # the same plan, 0.4 s (4 steps) behind
+    assert np.allclose(speeds[:len(speeds_now) - 1, 0], speeds_now[:-1, 0])  # the commands themselves aren't delayed
+    assert len(refs) == len(refs_now) + 4
+
+
+def test_motor_move_retarget_keeps_the_speed():
+    move = MotorMove(8.0, 5.0)
+    move.start(np.zeros(3), (60.0, 0.0, 0.0))
+    for _ in range(40):
+        _, before = move.step(0.1)
+    move.retarget((-20.0, 0.0, 0.0))                                             # reversed mid-flight
+    _, after = move.step(0.1)
+    assert before[0] > 7.0 and abs(after[0] - before[0]) <= 5.0 * 0.1 + 1e-9      # no step in the command
+    refs, _ = _run_move(move)
+    assert refs[-1][0] == pytest.approx(-20.0)
+
+
+def test_choose_end_solution_room_then_no_cable_wrap_then_time():
+    now, still, rate, accel = np.array([0.0, 30.0, 180.0]), np.zeros(3), 8.0, 5.0
+    near_wrap = np.array([170.0, 30.0, 350.0])          # a flip turning M1 and M3 the same way: fastest
+    far_ok = np.array([-190.0, 30.0, 350.0])            # the opposite turns: slower
+    sols = np.array([near_wrap, far_ok])
+    assert wraps_cables(now, near_wrap) and not wraps_cables(now, far_ok)
+    assert choose_end_solution(sols, now, still, rate, accel) == 1
+    assert choose_end_solution(sols, now, still, rate, accel, has_room=lambda t: t[0] > 0) == 0   # room first
+    assert choose_end_solution(np.empty((0, 3)), now, still, rate, accel) is None
 
 
 def test_idle_gotos_end_on_an_enumerated_solution(sweep):

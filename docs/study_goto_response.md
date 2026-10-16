@@ -28,6 +28,8 @@ theory, the digital twin sweep and the hardware measurements it rests on.
   motor solution of a pose within the limits.
 * **`tests/test_control_plan.py`**: the twin sweep as a test, with the acceptance criteria as xfail tests (see
   [the baseline](#the-sweep-as-a-test-todays-baseline-2026-10-17)).
+* **Straight motor moves** for idle slews over 15 deg (`control_plan.MotorMove`, `choose_end_solution`), and the
+  LIMIT fix: see [step 3](#step-3-straight-motor-moves-2026-10-17).
 * **`utility/analyse_span.ipynb`** eq sections: reachability, PA (upright and upside down), the tripod cone and
   latitude.
 
@@ -192,6 +194,41 @@ control loop's and the planner's kinematics calls in one tick (R4: counted, not 
   provisional budget in the test is 40 per tick.
 * Room excuses: in eq tracking 32 of the 36 slower choices leave the best end solution short of a night's M1 room,
   as the first sweep found; the rest of the slower choices aren't excused.
+
+### Step 3: straight motor moves (2026-10-17)
+
+Idle gotos whose pointing moves more than 15 deg now go straight in motor angles (`control_plan.MotorMove`): each
+motor on its own closed-form time-optimal profile from its current angle and speed, the end solution chosen once
+at the start (`choose_end_solution`: within the limits, eq tracking room, no cable wrap on a flip, then the
+fastest), the reference delayed by a dead time (`GOTO_DEAD_TIME_S` 0.35 s) so the PID doesn't push against the
+lag, and the goto timeout extended by the planned time. Redirected mid-move, it re-plans from the current speeds.
+Flips past gimbal lock and EQ ROOM turns use the same `MotorMove` (`MotorTrajectory` is gone). Gotos while tracking,
+and idle ones of 15 deg or less, are unchanged so far.
+
+Also fixed: **LIMIT mode left the motors running** at their last speed. `control()` sent no commands in LIMIT and no
+stop either (the mount still counted as moving): in the twin M2 swung on to 157 deg and M1 ran at full speed; on the
+mount that drives into the mechanical stop. Entering LIMIT now stops every motor, and they stay stopped until the
+alarm is acknowledged (`test_guard_limit_stops_every_motor`).
+
+| | Arrived (baseline) | Arrival / best, median (p90) | LIMIT | Remapped mid-goto (baseline) | Rig tilt > 100 |
+|---|---|---|---|---|---|
+| level, idle | 114 (102) / 150 | 1.95× (2.86×) | 31 | 1 (41) | 0 (20, M2 run-away) |
+| level, tracking | 138 (138) / 150 | 2.59× | 2 | 29 (29) | 0 |
+| eq, idle | 106 (91) / 150 | 1.99× (2.91×, was 7.72×) | 33 | 5 (75) | 76 |
+| eq, tracking | 132 (131) / 150 | 3.10× | 13 | 86 (86) | 60 |
+
+* **Mid-goto remaps are gone from idle slews** (41 -> 1, 75 -> 5), and with them the long tail (eq idle p90 7.7× ->
+  2.9×). Eq idle chooses a slower end solution in 26 gotos, 23 of them for M1's tracking room.
+* **LIMIT is now mostly a speed-model problem.** The twin, like the mount, runs M2 and M3 faster than the speed table
+  the driver plans with (the twin uses M1's table for all three: 16% faster for M2). The feed-forward carries M2
+  ahead of the plan, the PID holds it ~1.3 deg ahead (the mismatch over its effective gain), and that much overshoot
+  at the end trips LIMIT when the end solution sits at M2's 81.5 deg, 0.5 deg inside its stop. Fixes, in order: FAST
+  speed calibration (R3) or a live speed estimate per motor (scale the feed-forward by measured / commanded speed),
+  then braking short of a limit.
+* **~13 s still separates arrival from the best** on gotos that arrive. Traced: the move itself runs to plan; the
+  time goes in the final settle, where the PID closes the last 1-3 deg (the speed-model overshoot) with its ~2 s
+  time constant down to the 0.75' tolerance. Same fix: a correct speed model removes the overshoot the settle
+  closes.
 
 ---
 

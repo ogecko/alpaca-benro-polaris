@@ -19,9 +19,9 @@ from kinematics_mac import fit_alignment, corrected_theta, boresights, correctio
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
-from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q
-from control_eq import wedge_alignQ_B2T, limit_rig_tilt, rig_tilt_deg, eq_theta1_with_room
-from control_plan import GotoTrajectory, MotorTrajectory, ramp_rates
+from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q, theta_solutions
+from control_eq import wedge_alignQ_B2T, limit_rig_tilt, rig_tilt_deg, eq_theta1_with_room, EQ_MIN_TRACK_ROOM_DEG, THETA2_MIN
+from control_plan import GotoTrajectory, MotorMove, choose_end_solution, is_flip, wraps_cables, ramp_rates
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
 from control_backlash import BacklashCompensator, HOLD_ARRIVED_ARCSEC
@@ -785,6 +785,7 @@ class PID_Controller():
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
         self.mode = 'PRESETUP'                               # PID Controller mode: HOMING, PARKING, PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
+        self.limit_stopped = False                           # LIMIT: the motors have been stopped
         self.target_type = 'NONE'                            # target body we are tracking
         self.orbital_sp_name = None                    # name of pyephem body tracking for Lunar, Solar, Custom rates
         self.orbital_sp_fetchmsg  = None               # result msg from last http fetch of orbital parameters
@@ -1459,6 +1460,9 @@ class PID_Controller():
     GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback)
     GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
 
+    GOTO_CONTROLLED_PATH_DEG = 15.0                  # idle gotos moving the pointing further go straight in motor angles
+    GOTO_DEAD_TIME_S = 0.35                          # the motors follow a speed command this late (sample age + MCU lag)
+
     SMALL_MOVE_DEG = 0.25                            # moves shorter than this (motor travel) stay at SLOW speeds...
     SMALL_MOVE_RATE = 0.21                           # ...where the motors run accurately in position mode (deg/s)
 
@@ -1468,9 +1472,16 @@ class PID_Controller():
         changes), and for a goto/rotate while tracking (planned in RA/Dec/PA, holding RA/Dec through PA
         changes, converted to motor angles at the current time). Returns True when it set theta_ref."""
         if self.goto_traj is not None and self.goto_traj.space == 'THETA':
-            # a straight move in motor angles (set by prevent_windup, e.g. a flip past gimbal lock)
+            # a straight move in motor angles (an idle goto past GOTO_CONTROLLED_PATH_DEG, or set by prevent_windup,
+            # e.g. a flip past gimbal lock)
             if (self.theta_ref_cache is None and self.mode in ('AUTO', 'TRACK') and not self._has_active_jog()
                     and not self.goto_traj.done and self.dt > 0):
+                if (self.goto_traj.alpha_goal is not None and self.mode == 'AUTO'
+                        and self._alpha_distance(self.goto_traj.alpha_goal, self.alpha_ref) > self.GOTO_RETARGET_DEG):
+                    theta_goal = self._straight_goal(np.array(self.alpha_ref, dtype=float))   # redirected mid-move
+                    if theta_goal is not None:
+                        self.goto_traj.retarget(theta_goal)
+                        self.goto_traj.alpha_goal = np.array(self.alpha_ref, dtype=float)
                 self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
                 return True
             self.goto_traj = None                         # finished (or interrupted): the PID finishes the goto
@@ -1494,6 +1505,23 @@ class PID_Controller():
             if self._alpha_distance(start, goal) <= self.GOTO_RETARGET_DEG:
                 return False                              # already there: hold/track as before
             theta_pv = np.array(self.theta_pv, dtype=float)
+            if self.mode == 'AUTO' and self._pointing_distance(start, goal) > self.GOTO_CONTROLLED_PATH_DEG:
+                # a slew: fast and straight in motor angles to the end solution chosen now (study design item 2)
+                theta_goal = self._straight_goal(goal)
+                if theta_goal is not None:
+                    self.goto_traj = self._motor_move(theta_goal)
+                    self.goto_traj.alpha_goal = goal.copy()
+                    d1 = theta_goal[0] - theta_pv[0]
+                    flip = f' (FLIP {"CW" if d1 > 0 else "CCW"})' if is_flip(theta_pv, theta_goal) else ''
+                    self.logger.info(f'GOTO straight in motor angles{flip} to {theta_goal[0]:+.1f},{theta_goal[1]:+.1f},'
+                                     f'{theta_goal[2]:+.1f} ({self.goto_traj.duration:.1f} s planned)')
+                    if self.time_goto:                    # the goto timeout allows for the planned move
+                        self.time_goto += self.goto_traj.duration / (24 * 3600)
+                    if wraps_cables(theta_pv, theta_goal):
+                        self.logger.warning(f'FLIP turns M1 and M3 in the same direction: no opposite turn fits the '
+                                            f'motor limits (z1 {self.zeta_meas[0]:+.0f}, z3 {self.zeta_meas[2]:+.0f})')
+                    self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                    return True
             travel = float(np.max(np.abs(to_theta(goal, theta_pv) - theta_pv)))
             if self.mode == 'TRACK':
                 # decide once per goto: plan small corrections and roll/PA changes; a large move while
@@ -1517,6 +1545,50 @@ class PID_Controller():
             return False
         self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
         return True
+
+    def _pointing_distance(self, a, b):
+        """Great circle distance (deg) between the pointings of two Az/Alt/Roll poses."""
+        return float(quaternion_difference(azaltroll_to_q(a[0], a[1], 0.0), azaltroll_to_q(b[0], b[1], 0.0))[0])
+
+    def _theta_limits(self):
+        """Motor-angle limits (lo, hi) for an end solution: the raw zeta limits less the safety margin on M1/M3,
+        M2 within the reference range."""
+        offset = np.array(self.theta_pv, dtype=float) - np.array(self.zeta_meas, dtype=float)
+        safety = Config.zeta_safety_margin
+        lo = np.array([Config.z1_min_limit + safety, Config.z2_min_limit, Config.z3_min_limit + safety]) + offset
+        hi = np.array([Config.z1_max_limit - safety, Config.z2_max_limit, Config.z3_max_limit - safety]) + offset
+        lo[1], hi[1] = max(lo[1], THETA2_MIN), min(hi[1], THETA2_MAX)
+        return lo, hi
+
+    def _straight_goal(self, alpha_goal):
+        """The end solution of a straight goto to alpha_goal: within the motor limits, in eq mode leaving M1 a night's
+        tracking room where any does, then the fastest from the current state. None if none is in reach (or the
+        motor angles aren't known yet)."""
+        if self.zeta_meas is None:
+            return None
+        lo, hi = self._theta_limits()
+        sm = self.polaris._sm
+        solutions = theta_solutions(sm.topoQ_to_baseQ(azaltroll_to_q(*alpha_goal)), lo, hi)
+        has_room = None
+        if Config.advanced_eq_mode:
+            lat = math.radians(self.polaris._sitelatitude)
+            direction = np.dot(sm.alignQ_B2T.rotate([0.0, 0.0, 1.0]), [0.0, math.cos(lat), math.sin(lat)])
+            has_room = lambda t: (t[0] - lo[0] if direction < 0 else hi[0] - t[0]) >= EQ_MIN_TRACK_ROOM_DEG
+        self.set_Ka_array(Config.pid_Ka)
+        self.set_Kv_array(Config.pid_Kv)
+        i = choose_end_solution(solutions, np.array(self.theta_pv, dtype=float), self.omega_ff_shaped,
+                                np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE,
+                                min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), has_room)
+        return None if i is None else solutions[i]
+
+    def _motor_move(self, theta_goal):
+        """A MotorMove to theta_goal from the measured angles and the speeds commanded now."""
+        self.set_Ka_array(Config.pid_Ka)
+        self.set_Kv_array(Config.pid_Kv)
+        move = MotorMove(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE,
+                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), self.GOTO_DEAD_TIME_S)
+        move.start(np.array(self.theta_pv, dtype=float), theta_goal, self.omega_ff_shaped)
+        return move
 
     def _is_roll_move(self, start, goal):
         """The move is (almost) only a roll/PA change: pointing moves less than GOTO_RETARGET_DEG."""
@@ -1735,11 +1807,7 @@ class PID_Controller():
         """Go straight to theta_final in motor angles: planned with the planner's speed profile (coordinated speed
         control), else held as theta_ref_cache for the PID until all axes arrive."""
         if Config.coordinated_speed_control and self.dt > 0:
-            self.set_Ka_array(Config.pid_Ka)
-            self.set_Kv_array(Config.pid_Kv)
-            traj = MotorTrajectory(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL))
-            traj.start(np.array(self.theta_pv, dtype=float), np.array(self.theta_pv, dtype=float), theta_final)
-            self.goto_traj, self.move_planned = traj, False
+            self.goto_traj, self.move_planned = self._motor_move(np.asarray(theta_final, dtype=float)), False
             self.logger.info(f'{cause} Transition ({why}) | planned in motor angles to: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
         else:
             self.logger.info(f'{cause} Transition ({why}) | theta_ref_cache: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
@@ -1989,6 +2057,17 @@ class PID_Controller():
 
     async def control(self):
         self.omega_op = np.zeros(3, dtype=float)
+        if self.mode == 'LIMIT':
+            # a motor passed its limit: stop every motor once, and leave them stopped until the alarm is acknowledged
+            # (ack_limit_alarm -> IDLE). Sending nothing would leave each one running at its last speed.
+            if not self.limit_stopped:
+                self.logger.warning(f'LIMIT: motor limit passed (zeta {np.round(self.zeta_meas, 1).tolist()}): '
+                                    f'all motors stopped')
+                for axis in range(3):
+                    await self.controllers[axis].set_motor_speed(0)
+                self.limit_stopped = True
+            return
+        self.limit_stopped = False
         # [0.0, 0.0059018, 0.0175906, 0.0478282, 0.0892742, 0.2079884]
         for axis in range(3):
             self.omega_op[axis] = self.omega_ctl[axis]
