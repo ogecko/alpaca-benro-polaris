@@ -1306,6 +1306,7 @@ class PID_Controller():
         self.room_checked = False
         self.is_deviating = True
         self.time_goto = ephem.now()
+        self.goto_started = time.monotonic()         # for the completion log line (time_goto moves with planned moves)
         self.goto_complete_callback = fn
               
     def set_rotate_complete_callback(self, fn):
@@ -2171,6 +2172,10 @@ class PID_Controller():
         arrived = (not self.is_deviating and self.is_settled and not self.goto_in_progress()
                    and not self.backlash.taking_up())
         if (arrived or self.goto_timeout()) and self.goto_complete_callback:
+            err = np.abs(np.array(self.error_signal, dtype=float)) * 3600
+            self.logger.info(f'GOTO complete {"on target" if arrived else "TIMED OUT"} in {self.mode} after '
+                             f'{time.monotonic() - getattr(self, "goto_started", time.monotonic()):.1f} s, error '
+                             f'{err[0]:.1f}" {err[1]:.1f}" {err[2]:.1f}"')
             self.goto_complete_callback()
             self.goto_complete_callback = None
             self.time_goto = None
