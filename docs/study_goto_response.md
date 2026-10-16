@@ -298,6 +298,21 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   `test_goal_large_goto_while_tracking_completes_within_15s` now passes.
   (An earlier run at 0.006 deg, from step-to-step differences that included the motion itself, overstated the
   noise 10x and showed tracking gotos timing out: not real.)
+* *Step 4: gotos while tracking are planned* (2026-10-16). One that isn't small (past `SMALL_MOVE_DEG`) or a roll/PA
+  change is now a straight `MotorMove` too (`_tracking_move`), to the end solution for where the target will be when
+  the move ends: planned once for its length, then aimed that far ahead. The tracking feed-forward is held off during
+  it; a new target drops and re-plans it; when it ends, tracking and the PID close the rest. A sampled GotoTrajectory
+  replan there cost ~1,800 kinematics calls a tick (R4); without it, settle is within 0.5 s.
+  Calibrated sweep: level tracking 141 -> 145/150 arrived, arrival − best 13.4 -> 9.9 s, LIMIT 2 -> 0, remaps 29 -> 0;
+  eq tracking 135 -> 149/150, 15.8 -> 12.2 s, LIMIT 14 -> 0, remaps 84 -> 1. Kinematics per tick 369/380 (was
+  376/394). The same at the mount's measured noise. The 5 level misses are targets past M2's 81.5 deg reach: the
+  mount tracks the nearest reachable pose with a steady 3.8' M1 lag, because the feed-forward follows the target's
+  sidereal motion, not the clipped pose's (open).
+  Found on the way: `alpha_limit_step` near the zenith (Az and roll the same rotation) turned a few arcmin into a
+  partial 90 deg roll step, M2 5 deg off while tracking, then FLIPs into LIMIT. Within one step as a whole pose it
+  now returns the reference. Tracking restore without BLC now ends engaged and on target in ~10 s (tracking takes
+  the slack up after the planned catch-up), against ~23 s with BLC: BLC's take-up now costs time here (open).
+  The end solution chosen for eq tracking room is logged ("for tracking room, N s slower").
 * *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
   even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
   no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.

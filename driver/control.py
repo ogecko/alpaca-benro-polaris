@@ -21,7 +21,7 @@ from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q, theta_solutions
 from control_eq import wedge_alignQ_B2T, limit_rig_tilt, rig_tilt_deg, eq_theta1_with_room, EQ_MIN_TRACK_ROOM_DEG, THETA2_MIN
-from control_plan import GotoTrajectory, MotorMove, choose_end_solution, is_flip, wraps_cables, ramp_rates
+from control_plan import GotoTrajectory, MotorMove, choose_end_solution, is_flip, wraps_cables, ramp_rates, move_time
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
 from control_backlash import BacklashCompensator, HOLD_ARRIVED_ARCSEC
@@ -1364,7 +1364,12 @@ class PID_Controller():
         Step toward alpha_ref from alpha_pv.
         Az/alt are stepped in SO(3) (geodesic, well-behaved near zenith).
         Roll is stepped independently in angle space (preserves az/alt during roll-only moves).
+        Within one step of alpha_ref as a whole pose it is alpha_ref: near the zenith Az and roll are the same rotation,
+        and a pose a few arcmin away can read as 90 deg of Az and -90 of roll, whose partial roll step lands far from
+        both (M2 off by 5 deg tracking at the zenith in eq mode, then FLIPs into LIMIT).
         """
+        if quaternion_difference(azaltroll_to_q(*alpha_pv), azaltroll_to_q(*alpha_ref))[0] <= max_step_deg:
+            return np.array(alpha_ref, dtype=float)
         # ── Az/alt component: step in SO(3) using boresight vectors ──────────
         # Build quaternions with roll=0 for both pv and ref
         # This isolates the az/alt motion from roll
@@ -1493,6 +1498,11 @@ class PID_Controller():
             # e.g. a flip past gimbal lock)
             if (self.theta_ref_cache is None and self.mode in ('AUTO', 'TRACK') and not self._has_active_jog()
                     and not self.goto_traj.done and self.dt > 0):
+                delta_goal = getattr(self.goto_traj, 'delta_goal', None)
+                if (delta_goal is not None and self.mode == 'TRACK'
+                        and self._alpha_distance(delta_goal, self.delta_ref) > self.GOTO_RETARGET_DEG):
+                    self.goto_traj, self.move_planned = None, None    # a new target while tracking: plan again
+                    return self.plan_goto()
                 if (self.goto_traj.alpha_goal is not None and self.mode == 'AUTO'
                         and self._alpha_distance(self.goto_traj.alpha_goal, self.alpha_ref) > self.GOTO_RETARGET_DEG):
                     theta_goal = self._straight_goal(np.array(self.alpha_ref, dtype=float))   # redirected mid-move
@@ -1501,6 +1511,9 @@ class PID_Controller():
                         self.goto_traj.alpha_goal = np.array(self.alpha_ref, dtype=float)
                 self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
                 return True
+            if getattr(self.goto_traj, 'delta_goal', None) is not None and self.goto_traj.done:
+                self.move_planned = False                 # a goto while tracking: tracking and the PID close the rest
+                                                          # (a sampled GotoTrajectory replan cost ~1,800 calls a tick, R4)
             self.goto_traj = None                         # finished (or interrupted): the PID finishes the goto
             return False
         tracking_move = self.mode == 'TRACK' and self.move_pending()
@@ -1540,6 +1553,16 @@ class PID_Controller():
                     self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
                     return True
             travel = float(np.max(np.abs(to_theta(goal, theta_pv) - theta_pv)))
+            if self.mode == 'TRACK' and travel > self.SMALL_MOVE_DEG and not self._is_roll_move(start, goal):
+                move = self._tracking_move(goal)
+                if move is not None:
+                    self.goto_traj = move
+                    self.logger.info(f'GOTO straight in motor angles while tracking to {move.goal[0]:+.1f},'
+                                     f'{move.goal[1]:+.1f},{move.goal[2]:+.1f} ({move.duration:.1f} s planned)')
+                    if self.time_goto:                    # the goto timeout allows for the planned move
+                        self.time_goto += move.duration / (24 * 3600)
+                    self.theta_ref, self.omega_ff_shaped = move.step(self.dt)
+                    return True
             if self.mode == 'TRACK':
                 # decide once per goto: plan small corrections and roll/PA changes; a large move while
                 # tracking is closed directly by the PID (planning it would end in FAST-lag overshoot)
@@ -1593,10 +1616,36 @@ class PID_Controller():
             has_room = lambda t: (t[0] - lo[0] if direction < 0 else hi[0] - t[0]) >= EQ_MIN_TRACK_ROOM_DEG
         self.set_Ka_array(Config.pid_Ka)
         self.set_Kv_array(Config.pid_Kv)
-        i = choose_end_solution(solutions, np.array(self.theta_pv, dtype=float), self.omega_ff_shaped,
-                                np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE,
-                                min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), has_room)
+        theta_now, rate = np.array(self.theta_pv, dtype=float), np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
+        accel = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL)
+        i = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel, has_room)
+        if i is not None and has_room is not None:
+            fastest = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel)
+            if fastest != i:
+                slower = (move_time(theta_now, solutions[i], self.omega_ff_shaped, rate, accel)
+                          - move_time(theta_now, solutions[fastest], self.omega_ff_shaped, rate, accel))
+                self.logger.info(f'GOTO end solution M1 {solutions[i][0]:+.1f} for tracking room (not {solutions[fastest][0]:+.1f}, '
+                                 f'{slower:.0f} s slower)')
         return None if i is None else solutions[i]
+
+    def _tracking_move(self, delta_goal):
+        """A straight MotorMove for a goto while tracking: to the end solution for where the target will be when the
+        move ends (planned once to know how long it takes, then aimed that far ahead). None if no end solution is in
+        reach (the PID then takes the goto as before)."""
+        theta_goal = self._straight_goal(np.array(self.alpha_ref, dtype=float))
+        if theta_goal is None:
+            return None
+        lo, hi = self._theta_limits()
+        for _ in range(2):
+            move = self._motor_move(theta_goal)
+            ahead = move.duration + float(Config.pid_Kt) + 3 * float(Config.pid_Kl)
+            theta_ahead = self._alpha_to_theta(self._delta_to_alpha(delta_goal, ahead), theta_goal)
+            if np.any(theta_ahead < lo) or np.any(theta_ahead > hi) or np.max(np.abs(theta_ahead - theta_goal)) > 5.0:
+                break                                     # past a limit or onto another branch by then: aim at now
+            theta_goal = theta_ahead
+        move = self._motor_move(theta_goal)
+        move.delta_goal = np.array(delta_goal, dtype=float)
+        return move
 
     def _motor_move(self, theta_goal):
         """A MotorMove to theta_goal from the measured angles and the speeds commanded now."""
@@ -1616,9 +1665,10 @@ class PID_Controller():
         """RA(deg)/Dec/PA -> motor angles at the current time, on the branch nearest theta_near."""
         return self._alpha_to_theta(self._delta_to_alpha(delta), theta_near)
 
-    def _delta_to_alpha(self, delta):
-        """RA(deg)/Dec/PA -> Az/Alt/Roll now, as delta2body/body2alpha do, without touching self.body."""
-        self.observer.date = ephem.Date(datetime.datetime.utcnow())
+    def _delta_to_alpha(self, delta, ahead_s=0.0):
+        """RA(deg)/Dec/PA -> Az/Alt/Roll now (or ahead_s from now), as delta2body/body2alpha do, without touching
+        self.body."""
+        self.observer.date = ephem.Date(datetime.datetime.utcnow() + datetime.timedelta(seconds=ahead_s))
         self.observer.epoch = ephem.now()
         body = ephem.FixedBody()
         body._epoch = self.body._epoch
@@ -1706,8 +1756,8 @@ class PID_Controller():
         self.omega_ff = np.zeros(3, dtype=float)
         have_jog = any(v != 0.0 for v in legacy_jog.values())
 
-        if self.mode == "TRACK" and self.dt > 0:
-            # Sidereal or orbital tracking
+        if self.mode == "TRACK" and self.dt > 0 and not (self.goto_in_progress() and self.goto_traj.space == 'THETA'):
+            # Sidereal or orbital tracking (not during a straight move in motor angles: it aims ahead of the target)
             omega_base = np.zeros(3, dtype=float)
             if self.polaris._tracking:
                 motorQ_now = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref)

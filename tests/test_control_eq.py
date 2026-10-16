@@ -481,7 +481,8 @@ class TestEqLimitsInTheDriver:
         tw.close()
         assert done is not None and miss < 60, f"goto done {done}, miss {miss}"
         assert theta1 > 180, f"theta1 {theta1:.1f}: not turned for room"
-        assert [r for r in caplog.records if "EQ ROOM" in r.getMessage()]
+        # an EQ ROOM turn, or a planned goto that chose the end solution with room
+        assert [r for r in caplog.records if "EQ ROOM" in r.getMessage() or "tracking room" in r.getMessage()]
 
     def test_goto_with_room_already_does_not_turn_m1(self, monkeypatch, caplog):
         tw = eq_twin(monkeypatch, EQ_POSES["ha-4h_dec-36"])           # theta1 60: 140 deg (9.3 h) of room

@@ -384,7 +384,9 @@ def test_guiding_is_unchanged(monkeypatch, pose):
 def test_tracking_restore_finishes_with_every_motor_engaged(monkeypatch, tmp_path):
     """After a driver restart the Polaris has run its last speed command, so the mount can be ahead of its target: the
     catch-up then turns every motor back against tracking. Restore completes like a goto, so compensated it finishes
-    with the slack taken up; off, the camera trails by up to the backlash until tracking takes it up again."""
+    with the slack taken up. Off, it did too once the catch-up became a planned move (control_plan.MotorMove, 0.3 deg
+    is past SMALL_MOVE_DEG): tracking resumes after it and takes the slack up before the goto settles (~10 s, against
+    ~23 s compensated); before, the camera trailed by up to the backlash."""
     import asyncio
     import logging
     import tracking_restore as tr
@@ -419,7 +421,7 @@ def test_tracking_restore_finishes_with_every_motor_engaged(monkeypatch, tmp_pat
         finally:
             mp.undo()
     assert results[True][0] is not None and results[True][0] < 40 and results[True][1] < 0.25 and results[True][2], results
-    assert results[False][1] > 1.0, results                            # off: the slack left open
+    assert results[False][0] is not None and results[False][1] < 0.25 and results[False][2], results
 
 
 def test_while_compensating_the_pv_and_sky_position_are_the_output_shafts(monkeypatch):
