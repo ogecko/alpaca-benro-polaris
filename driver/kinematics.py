@@ -660,8 +660,29 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition(), theta2_min=-8.0):
         locked_sum = theta1 + theta3
         theta3 = lastPos.get_fallback_theta3()
         theta1 = locked_sum - theta3
+        theta1, theta2 = _lock_pointing(q1.rotate(np.array([0, 0, -1])), theta1, theta2, theta3)
 
     return float(theta1), float(theta2), float(theta3)
+
+
+def _lock_pointing(bore, theta1, theta2, theta3, iterations=3):
+    """Near gimbal lock with theta3 held: theta1 and theta2 that put the boresight on bore (Gauss-Newton). theta2 from
+    the exact solution tilts M3's axis about the exact split's M2 axis; on the held split's M2 axis it tilted the camera
+    the wrong way: tracking at alt 0, M2 followed the field rotation (roll the motors can't make there) and the pointing
+    sank with it (22' in 2 min). A pose that is reachable comes out as it was."""
+    def bore_of(t1, t2):
+        return theta_to_q(t1, t2, theta3).rotate(np.array([0, 0, -1]))
+    h = 1e-4
+    for _ in range(iterations):
+        b = bore_of(theta1, theta2)
+        r = bore - b
+        if np.linalg.norm(r) < 1e-12:
+            break
+        J = np.column_stack(((bore_of(theta1 + h, theta2) - b) / h, (bore_of(theta1, theta2 + h) - b) / h))
+        d1, d2 = np.linalg.lstsq(J, r, rcond=1e-3)[0]
+        theta1 += float(np.clip(d1, -5.0, 5.0))
+        theta2 += float(np.clip(d2, -5.0, 5.0))
+    return theta1, theta2
 
 
 

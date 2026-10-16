@@ -1616,6 +1616,10 @@ class PID_Controller():
                             self.time_goto += self.goto_traj.duration / (24 * 3600)
                         self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
                         return True
+            if self.time_goto and not self.goto_traj.branch_change:
+                # the goto timeout allows for the planned path: a 30 deg roll change at 1 deg/s, asked for 11 s into
+                # a goto, timed out still settling
+                self.time_goto += self.goto_traj.duration / (24 * 3600)
         elif self._alpha_distance(self.goto_traj.goal, goal) > self.GOTO_RETARGET_DEG:
             if self.mode == 'AUTO' and self.goto_traj._speed > self.SMALL_MOVE_RATE:
                 # redirected at speed: the new path heads elsewhere in motor space, and carrying the path speed onto

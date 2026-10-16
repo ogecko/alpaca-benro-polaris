@@ -387,6 +387,36 @@ def test_guard_goto_to_alt_0_while_tracking_completes():
     assert done is not None and done - t0 < 30, f"done {done and done - t0}"
 
 
+def test_guard_tracking_at_gimbal_lock_keeps_the_pointing():
+    """Field 2026-10-16: tracking at Alt 0 Az 180 (level, M2 = 0) the goto and a rotate never completed (M2 17" behind)
+    and the pointing sank 13"/s. Inside the gimbal lock q_to_theta held the M1/M3 split but kept M2 from the exact
+    split: M2 followed the field rotation (roll it can't make there) and tilted the pointing instead. M2 is now solved
+    for the boresight with the held split."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((360.2, 30.0, -180.6))                                    # Alt -30 Az 180, as in the field
+        tw.start_tracking()
+        tw.run(5)
+        t0 = tw.clock.t
+        tw.goto_altaz(189.2, 0.0)
+        tw.run(2.9)
+        tw.goto_altaz(180.0, 0.0)
+        target = tw.polaris.altaz2radec(0.0, 180.0)
+        tw.run(1.0)
+        tw.pid.set_alpha_target({"roll": 0.0})
+        tw.pid.set_rotate_complete_callback(lambda: None)
+        while tw.clock.t - t0 < 45 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2)
+        done = tw.polaris.goto_complete_at
+        tw.run(60.0)
+        off = radec_sep_arcmin(*target, *tw.true_radec())
+        tw.close()
+    finally:
+        mp.undo()
+    assert done is not None and done - t0 < 30 and off < 1.0, f"done {done and done - t0}, pointing {off:.1f}' off"
+
+
 def test_guard_roll_change_after_a_goto_keeps_the_pointing():
     """Field 2026-10-16: rotator moves (roll -30 etc.) straight after a goto went straight in motor angles (17 deg
     off the target mid-roll), and on the pointing-holding path at full speed still left it ~60' off. Roll changes are
@@ -410,6 +440,35 @@ def test_guard_roll_change_after_a_goto_keeps_the_pointing():
     finally:
         mp.undo()
     assert worst < 10.0, f"pointing {worst:.1f}' off the target during the roll"
+
+
+def test_guard_roll_change_during_a_goto_completes_on_target():
+    """Field 2026-10-16, eq mode over a level alignment: a goto to Alt 30 redirected to Alt -30 kept the PA (roll 60),
+    and a rotator move to 0 asked for 23 s later (~78 s of roll change, M1 at ROLL_MOVE_RATE) ran past the 45 s goto
+    timeout: TIMED OUT after 60.6 s, 227" off, still rolling. Controlled paths now extend the timeout by their
+    planned time, as straight moves do."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((89.5, 30.5, 0.0))
+        mp.setattr(Config, "advanced_eq_mode", True)
+        tw.start_tracking()
+        tw.run(5)
+        tw.goto_altaz(180.0, 30.5)
+        tw.run(12.7)
+        t0 = tw.clock.t
+        tw.goto_altaz(180.0, -30.0)
+        tw.run(23.0)
+        tw.pid.set_alpha_target({"roll": 0.0})
+        tw.pid.set_rotate_complete_callback(lambda: None)
+        while tw.clock.t - t0 < 200 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2)
+        done = tw.polaris.goto_complete_at
+        err = np.abs(np.array(tw.pid.theta_pv) - np.array(tw.pid.theta_ref)) * 3600
+        tw.close()
+    finally:
+        mp.undo()
+    assert done is not None and float(np.max(err)) < 30.0, f"done {done and done - t0}, error {err.round(0)}\""
 
 
 def test_motor_move_retarget_keeps_the_speed():

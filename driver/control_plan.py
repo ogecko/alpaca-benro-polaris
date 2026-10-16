@@ -132,6 +132,10 @@ class GotoTrajectory:
         for i in range(len(s) - 2, -1, -1):                     # backward: be able to stop at the goal
             v[i] = min(v[i], math.sqrt(v[i + 1] ** 2 + 2 * spare(i + 1, v[i + 1]) * ds[i]))
         self._start_alpha, self._fracs, self._s, self._v, self._k, self._cap = self._alpha.copy(), fracs, s, v, k, cap
+        # the walk's time from here, off the profile (exact under constant acceleration): the goto timeout allows
+        # for it, as for a MotorMove (a 30 deg roll change at 1 deg/s ran past the 45 s timeout)
+        vm = (v[:-1] + v[1:]) / 2
+        self.duration = float(np.sum(np.where(vm > 1e-9, ds / np.maximum(vm, 1e-9), 0.0)))
         self._pos = 0.0
         self._at_goal = s[-1] < 1e-9
         self.done = False
