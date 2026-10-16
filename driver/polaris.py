@@ -53,7 +53,7 @@ from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_
 from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, row_status, MIN_SEPARATION_DEG
 from control_worm import profile_summary, row_fields_from_file, PROFILE_TEST
 from control_worm import ROLL_TARGET_DEG, ROLL_TOLERANCE_DEG, POSITIONS, SYNC_CYCLE_S, SETTLE_TIMEOUT_S, fit_sweep, MOTORS
-from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
+from speed_controller import fast_rate_units, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
 from gps_receiver import locate_status
@@ -260,8 +260,10 @@ class Polaris:
         # each self._motors[axis] routes to one of them, chosen by Config.coordinated_speed_control
         # and switchable live (see select_speed_controller).
         legacy_motors = {axis: MotorSpeedController(logger, self._cm, axis, self.send_msg) for axis in (0, 1, 2)}
-        self._speed_v2 = SpeedControllerRuntime({axis: RateUnits(self._cm.baseline_data[axis]) for axis in (0, 1, 2)},
+        self._speed_v2 = SpeedControllerRuntime(fast_rate_units(self._cm.calibration_data, self._cm.baseline_data, logger),
                                                 self.send_msg, log=logger)
+        self._cm.on_calibration_update = lambda: self._speed_v2.set_units(
+            fast_rate_units(self._cm.calibration_data, self._cm.baseline_data, logger))
         use_v2 = bool(getattr(Config, 'coordinated_speed_control', False))
         self._motors = {
             axis: SwitchableMotor(legacy_motors[axis], self._speed_v2.axis(axis), use_new=use_v2)

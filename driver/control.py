@@ -203,9 +203,10 @@ class KalmanFilter:
 
 
 # ************* Calibration Manager ************
-# DEPRECATED: speed calibration (SpeedTest actions, Pilot calibration page) has not shown a
-# benefit. The v2 speed controller (speed_controller.py) uses the firmware SLOW speed table and
-# only the baseline FAST points; this class remains for the legacy controller during the beta.
+# Speed calibration (SpeedTest actions, Pilot calibration page). The coordinated speed controller (speed_controller.py)
+# uses only its FAST points, the baseline with approved FAST tests in place (fast_rate_units): the motors run 10-25%
+# faster than the baseline (docs/study_goto_response.md), and the goto planner's speeds come from these. Its SLOW
+# levels always use the firmware table. The legacy controller uses the whole table.
 class CalibrationManager:
     def __init__(self, liveInstance=True):
         self.liveInstance = liveInstance        # False = used for unit testing purposes
@@ -232,6 +233,7 @@ class CalibrationManager:
         self.calibration_data = {}
         self.interpolator_data = {0:{}, 1:{}, 2:{}}
         self.on_worm_profile_approval = None   # fn(approved) -> bool: apply/revert the pooled worm profile (Polaris)
+        self.on_calibration_update = None      # fn(): the calibration changed (Polaris: new FAST speed tables)
         if self.liveInstance:
             self.initialiseCalibrationData()
 
@@ -420,6 +422,8 @@ class CalibrationManager:
     def updateCalibrationAndInterpolators(self):
         self.generateCalibrationFromBaselineAndTestData()
         self.generateInterpolatorsFromCalibrationData()
+        if self.on_calibration_update:
+            self.on_calibration_update()
         self.saveCalibrationDataToFile()
         self.saveTestDataToFile()
 

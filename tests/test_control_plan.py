@@ -14,6 +14,9 @@ that starts passing shows as XPASS. A seeded subset runs in the suite; the full 
 the study quotes:
 
     uv run pytest tests/test_control_plan.py --runslow -s -k report
+
+GOTO_SWEEP_CALIBRATED=1 gives the driver an approved FAST speed calibration of the twin's motors (which, like the
+mount's, run faster than the baseline table: sim_digital_twin.twin_fast_calibration).
 """
 import logging
 import math
@@ -44,6 +47,7 @@ TRACK_ROOM_DEG = 120.0              # 8 h of M1 for tracking (control_eq.EQ_MIN_
 KINEMATICS_PER_TICK = 40            # R4 budget, provisional: until a Pi Zero 2 W benchmark sets it in time
 REMAP_WORDS = (" Transition", "EQ ROOM")
 GOTO_TIMEOUT_S = 45.0               # PID_Controller.goto_timeout: the goto is marked complete wherever it is
+CALIBRATED = os.environ.get("GOTO_SWEEP_CALIBRATED") == "1"     # the driver with an approved FAST speed calibration
 
 
 def motor_limits(safety=0.0):
@@ -108,7 +112,7 @@ def run_goto(case, seed):
     rng = np.random.default_rng(seed)
     mp = pytest.MonkeyPatch()
     try:
-        tw = Twin(mp, config={"coordinated_speed_control": True, "advanced_eq_mode": eq}, seed=seed)
+        tw = Twin(mp, config={"coordinated_speed_control": True, "advanced_eq_mode": eq}, seed=seed, calibrated=CALIBRATED)
         sm = tw.polaris._sm
         sm.optimize_alignQ_B2T()                       # eq: the ideal wedge (as on enabling eq mode)
         alignQ = sm.alignQ_B2T

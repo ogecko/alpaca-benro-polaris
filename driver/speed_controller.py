@@ -25,7 +25,8 @@
 #     SLOW changes on its scheduler tick;
 #   * motorcmd shows the pair and time share like legacy, with A/B for state 1/2: '-1A 79:21 +1A';
 #   * rates above the fastest SLOW speed use FAST (513/514/521), refreshed every 50 ms and
-#     optionally ramped. The FAST speed-unit interpolator is the only use of calibration data.
+#     optionally ramped. The FAST speed-unit interpolator is the only use of calibration data: the
+#     baseline FAST points with approved speed calibration tests in place (fast_rate_units).
 #
 # SpeedCoordinator is a pure, deterministic core (tick(now) -> messages) so it can be tested
 # against tests/sim_polaris_mcu.py; SpeedControllerRuntime runs it on asyncio, and
@@ -89,7 +90,7 @@ class RateUnits:
 
     DPS is passed through. RAW and ASCOM 0..5 are SLOW levels (fractions are a linear PWM mix
     of the neighbouring levels, matching the legacy meaning). RAW > 5 is FAST speed units and
-    ASCOM > 5 maps onto them, via the baseline FAST calibration points.
+    ASCOM > 5 maps onto them, via the FAST calibration points (baseline, or calibrated: fast_rate_units).
     """
     _SLOW_RAW = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
     _SLOW_DPS = [0.0] + [SLOW_DPS[(level, 1)] for level in LEVELS]
@@ -125,6 +126,25 @@ class RateUnits:
         x = abs(dps)
         raw = float(np.interp(x, self._SLOW_DPS, self._SLOW_RAW)) if x <= self._SLOW_DPS[-1] else abs(self.fast_units(x))
         return math.copysign(raw, dps) if raw else 0.0
+
+
+def fast_rate_units(calibration: dict, baseline: dict, log: Optional[logging.Logger] = None) -> dict:
+    """RateUnits per axis from the speed calibration (control.CalibrationManager.calibration_data: the baseline with
+    approved test results in place). Only its FAST points are used (RateUnits); the SLOW levels always use the
+    firmware table. An axis whose calibrated FAST speeds don't rise with the speed units (a bad test) keeps the
+    baseline."""
+    out = {}
+    for axis in (0, 1, 2):
+        table = calibration.get(axis, baseline[axis])
+        i = table['RAW'].index(5) + 1
+        fast_dps = np.asarray(table['DPS'][i:], dtype=float)
+        if np.all(np.diff(fast_dps) > 0):
+            out[axis] = RateUnits(table)
+        else:
+            (log or logger).warning(f'Speed calibration: M{axis + 1} FAST speeds do not rise with the speed units, '
+                                    f'using the baseline: {np.round(fast_dps, 3).tolist()}')
+            out[axis] = RateUnits(baseline[axis])
+    return out
 
 
 # ---------------------------------------------------------------------------------------
@@ -482,6 +502,10 @@ class SpeedControllerRuntime:
 
     def axis(self, axis: int) -> "AxisSpeedController":
         return self._handles[axis]
+
+    def set_units(self, units: dict):
+        """New speed tables (after a speed calibration is approved): in place, so the core sees them too."""
+        self.units.update(units)
 
     def command(self, axis, dps, **kwargs):
         self.core.set_speed(axis, dps, time.monotonic(), **kwargs)

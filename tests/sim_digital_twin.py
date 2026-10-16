@@ -32,8 +32,8 @@ import control_worm                                                      # noqa:
 from config import Config, CONFIG_TOML_PATH                             # noqa: E402
 from control import PID_Controller, SyncManager, KalmanFilter           # noqa: E402
 from kinematics import theta_to_q, q_to_theta, q_to_azaltroll, calc_parallactic_angle, wrap360, THETA2_MIN_MEAS  # noqa: E402
-from speed_controller import RateUnits, SpeedCoordinator                # noqa: E402
-from sim_polaris_mcu import McuModel                                          # noqa: E402
+from speed_controller import fast_rate_units, SpeedCoordinator          # noqa: E402
+from sim_polaris_mcu import McuModel, _FAST_UNITS, _FAST_DPS                  # noqa: E402
 from shr import deg2rad, rad2deg, rad2hr                                # noqa: E402
 
 LAT, LON = -33.654651, 151.12
@@ -174,8 +174,19 @@ class TwinPolaris:
         self.goto_complete_at = self.twin.clock.monotonic()
 
 
+def twin_fast_calibration(table):
+    """A speed table with its FAST points measured on the twin's motors (sim_polaris_mcu's FAST table)."""
+    out = {k: list(v) for k, v in table.items()}
+    i = out["RAW"].index(5) + 1
+    for k, raw in enumerate(out["RAW"][i:], start=i):
+        if raw in _FAST_UNITS:
+            out["DPS"][k] = _FAST_DPS[_FAST_UNITS.index(raw)]
+    return out
+
+
 class Twin:
-    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0, m3_hold_s=M3_HOLD_S, backlash_deg=0.0):
+    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0, m3_hold_s=M3_HOLD_S, backlash_deg=0.0,
+                 calibrated=False):
         Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath="/nonexistent")
         for key, value in {**TWIN_CONFIG, **(config or {})}.items():
             monkeypatch.setattr(Config, key, value, raising=False)
@@ -193,7 +204,13 @@ class Twin:
         self.logger = logging.getLogger("twin")
         self.polaris = TwinPolaris(self)
         if Config.coordinated_speed_control:
-            units = {a: RateUnits(control.CalibrationManager(liveInstance=False).baseline_data[a]) for a in range(3)}
+            cm = control.CalibrationManager(liveInstance=False)
+            # the twin's motors all run M1's FAST table (sim_polaris_mcu), so M2/M3 run faster than the driver's
+            # baseline says, as the mount's do; calibrated=True gives the driver an approved FAST calibration of them
+            calibration = cm.baseline_data
+            if calibrated:
+                calibration = {a: twin_fast_calibration(cm.baseline_data[a]) for a in range(3)}
+            units = fast_rate_units(calibration, cm.baseline_data)
             self.core = SpeedCoordinator(units)
             self.polaris._motors = {a: MotorShim(self.core, units, a, self.clock) for a in range(3)}
             self._motor_tick = lambda t: [msg for _a, msg in self.core.tick(t)]
