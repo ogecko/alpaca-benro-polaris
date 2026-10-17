@@ -20,7 +20,7 @@ from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, ca
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
 from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX, LOCK_SOLUTION_DEG
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q, theta_solutions, theta_rates
-from control_eq import wedge_alignQ_B2T, limit_rig_tilt, rig_tilt_deg, eq_theta1_with_room, EQ_MIN_TRACK_ROOM_DEG, THETA2_MIN
+from control_eq import wedge_alignQ_B2T, eq_theta1_with_room, EQ_MIN_TRACK_ROOM_DEG, THETA2_MIN
 from control_plan import GotoTrajectory, MotorMove, choose_end_solution, is_flip, wraps_cables, ramp_rates, move_time
 from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
 from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
@@ -1891,8 +1891,7 @@ class PID_Controller():
             return np.array(reachable_azaltroll(*alpha, roll_adj=sm.roll_adj), dtype=float)
         alpha_B = q_to_azaltroll(sm.alignQ_B2T_inv * azaltroll_to_q(*alpha))
         reach_B = reachable_azaltroll(*alpha_B, roll_adj=sm.roll_adj)
-        cameraQ = limit_rig_tilt(sm.alignQ_B2T * azaltroll_to_q(*reach_B), sm.alignQ_B2T, Config.eq_rig_tilt_limit)
-        return np.array(q_to_azaltroll(cameraQ), dtype=float)
+        return np.array(q_to_azaltroll(sm.alignQ_B2T * azaltroll_to_q(*reach_B)), dtype=float)
 
     def move_pending(self):
         """A goto or rotate has been requested and has not yet completed."""
@@ -2099,8 +2098,7 @@ class PID_Controller():
     def _eq_theta_with_room(self, zeta, safety):
         """Eq mode, once per goto: the target's motor angles with M1 turned +-360 when that leaves EQ_MIN_TRACK_ROOM_DEG
         of M1 travel for tracking and the nearest turn does not; None to leave the goto as it is. M1 tracks one way
-        (theta1 falls when M1 points at the south pole), and its travel is the z1 limits less the safety margin.
-        Skipped, with a warning, if the straight motor move there would tilt the rig past eq_rig_tilt_limit."""
+        (theta1 falls when M1 points at the south pole), and its travel is the z1 limits less the safety margin."""
         self.room_checked = True
         theta_goal = self._alpha_to_theta(self.alpha_ref, self.theta_pv)
         offset = self.theta_pv[0] - zeta[0]
@@ -2110,14 +2108,7 @@ class PID_Controller():
         theta1 = eq_theta1_with_room(theta_goal[0], self.theta_pv[0], lo, hi, direction)
         if abs(theta1 - theta_goal[0]) < 1.0:
             return None
-        theta_room = np.array([theta1, theta_goal[1], theta_goal[2]], dtype=float)
-        for f in np.linspace(0.0, 1.0, 73):
-            theta = self.theta_pv + f * (theta_room - self.theta_pv)
-            if rig_tilt_deg(sm.pvQ_to_topoQ(theta_to_q(*theta))) > Config.eq_rig_tilt_limit + 0.5:
-                self.logger.warning(f'EQ ROOM: turning M1 to {theta1:+.1f} would tilt the rig past {Config.eq_rig_tilt_limit} deg '
-                                    f'on the way: left at {theta_goal[0]:+.1f}, tracking may need an unwind later')
-                return None
-        return theta_room
+        return np.array([theta1, theta_goal[1], theta_goal[2]], dtype=float)
 
     def _flip_motor_angles(self, theta_goal, zeta, safety):
         """Pick the M1/M3 turns (theta_goal +-360 on each) for a move straight to the goal's motor angles: within

@@ -5,7 +5,7 @@ docs/study_goto_response.md.
 Random gotos in the digital twin, level and eq (wedge) mode, idle and while tracking. Per goto: the time to complete,
 the theoretical best (the fastest end solution, each motor moving on its own at Kv / Ka from rest to rest:
 kinematics.theta_solutions, control_plan.min_move_time), the end solution the driver chose, motor limits, mid-goto
-remaps (UNWIND / FLIP / LOCK / EQ ROOM transitions), the tripod cone and rig tilt along the path, M1's tracking
+remaps (UNWIND / FLIP / LOCK / EQ ROOM transitions), M1's tracking
 room, and the kinematics work done per control tick (R4: counted calls, not wall time, so it is the same on any
 machine).
 
@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 import control                                                                   # noqa: E402
 import control_plan                                                              # noqa: E402
 from config import Config                                                        # noqa: E402
-from control_eq import rig_tilt_deg, THETA2_MIN                                  # noqa: E402
+from control_eq import THETA2_MIN                                               # noqa: E402
 from control_plan import min_move_time, move_time, MotorMove, choose_end_solution, wraps_cables  # noqa: E402
 from kinematics import (theta_solutions, theta_to_q, azaltroll_to_q, q_to_azaltroll, vector_to_az_alt,  # noqa: E402
                         THETA2_MAX)
@@ -42,7 +42,6 @@ CASES = {"level_idle": (False, False), "level_track": (False, True), "eq_idle": 
 SUBSET, FULL = 10, 150             # gotos per case: in the suite / the full sweep (--runslow)
 TIMEOUT_S = 120.0
 ZETA_OFFSET = np.array([180.0, 45.0, 0.0])            # motor angle = raw zeta + this (sim_digital_twin)
-TRIPOD_CONE_DEG = 8.5               # study R1
 TRACK_ROOM_DEG = 120.0              # 8 h of M1 for tracking (control_eq.EQ_MIN_TRACK_ROOM_DEG)
 KINEMATICS_PER_TICK = 40            # R4 budget, provisional: until a Pi Zero 2 W benchmark sets it in time
 REMAP_WORDS = (" Transition", "EQ ROOM")
@@ -174,8 +173,6 @@ def run_goto(case, seed):
     chosen_ok = chosen is not None and np.max(np.abs(sols[chosen] - final)) < 2.0
     trace = np.array(trace)
     lo, hi = motor_limits()
-    poses = [alignQ * theta_to_q(*t) for t in trace[::2]]
-    bores = np.array([p.rotate([0.0, 0.0, -1.0]) for p in poses])
     return {
         "case": case, "seed": seed, "done_s": done, "miss_arcmin": miss_arcmin,
         "t_best_s": float(times.min()) if len(times) else np.nan,
@@ -183,8 +180,6 @@ def run_goto(case, seed):
         "n_solutions": len(sols),
         "limit": bool((trace < lo - 1e-6).any() or (trace > hi + 1e-6).any() or "LIMIT" in modes),
         "remaps": [m for m in records.messages if any(w in m for w in REMAP_WORDS)],
-        "min_nadir_deg": float(90 + np.degrees(np.arcsin(np.clip(bores[:, 2], -1, 1))).min()),
-        "max_rig_tilt_deg": float(max(rig_tilt_deg(p) for p in poses)),
         "room_deg": room,
         "best_room_short": bool((track or eq) and len(sols) and _room_short(sols[int(np.argmin(times))], kv)),
         "max_work_per_tick": int(max(work)) if work else 0,
@@ -215,8 +210,6 @@ def summarise(df):
             "chose slower by >2 s": int(slower.sum()),
             "...room excuses": int((slower & g.best_room_short).sum()),
             "LIMIT": int(g.limit.sum()), "remapped": int(g.remaps.map(bool).sum()),
-            "entered tripod cone": int((g.min_nadir_deg < TRIPOD_CONE_DEG).sum()),
-            "rig tilt > 100": int((g.max_rig_tilt_deg > 100).sum()),
             "kinematics/tick (max)": int(g.max_work_per_tick.max()),
             "missed > 2'": int((g.miss_arcmin > 2).sum()),
             "...at the 45 s timeout": int(((g.miss_arcmin > 2) & (g.done_s >= GOTO_TIMEOUT_S - 0.5)).sum()),
@@ -707,13 +700,6 @@ def test_median_arrival_within_1_3x_the_best(sweep, case):
     g = sweep[(sweep.case == case) & sweep.done_s.notna() & (sweep.miss_arcmin <= 2.0)]
     ratio = float((g.done_s / g.t_best_s).median())
     assert ratio <= 1.3, f"{case}: median arrival {ratio:.2f}x the best"
-
-
-@BASELINE
-def test_eq_paths_stay_out_of_the_tripod_cone(sweep):
-    eq = sweep[sweep.case.str.startswith("eq")]
-    bad = eq[eq.min_nadir_deg < TRIPOD_CONE_DEG]
-    assert bad.empty, f"{len(bad)} eq gotos entered the tripod cone:\n{bad[['case', 'seed', 'min_nadir_deg']]}"
 
 
 @BASELINE

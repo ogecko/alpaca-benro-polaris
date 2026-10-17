@@ -23,7 +23,7 @@ from quaternion import Q as Quaternion
 from kinematics import (theta_to_q, q_to_theta, q_to_azaltroll, azaltroll_to_q, LastPosition, vector_to_az_alt, azalt_to_vector,
                         wrap180, THETA2_MAX)
 from control_eq import (celestial_pole_topo, wedge_alignQ_B2T, theta_to_pole_dec, min_abs_theta3_for_dec,
-                        rig_tilt_deg, limit_rig_tilt, eq_theta1_with_room, THETA2_MIN, SIDEREAL_RATE_ARCSEC_S)
+                        eq_theta1_with_room, THETA2_MIN, SIDEREAL_RATE_ARCSEC_S)
 
 SITE_LAT, SITE_LON = -33.655, 151.2          # the 2026-10-08 session's site
 START = ephem.Date('2026/10/09 14:00:00')    # UTC, ~midnight local
@@ -162,12 +162,8 @@ class TestReach:
 #   * switching advanced_eq_mode on or off while tracking re-bases the setpoints on the current position: the mount
 #     does not slew, and keeps tracking
 #   * with advanced_eq_mode off everything is as before (the rest of the test suite, plus the level goto below)
-#   * eq_rig_tilt_limit (off, 180, until measured on the rig) keeps camera-up (the M3 axis) within that tilt from the
-#     zenith (on a wedge it could reach 138 deg, the rig hanging under the Polaris by the tripod). A pose past it gets the
-#     nearest allowed PA (same pointing); where no PA is allowed (rings by the polar caps) the pointing stops at the
-#     nearest allowed one, away from the pole, as at the cap itself
 #   * a goto places M1 (theta1 +- 360) so that tracking has >= 8 h (120 deg) of M1 travel left before its limit,
-#     avoiding a 360 deg unwind mid-session, unless the straight motor move there would break the rig tilt limit
+#     avoiding a 360 deg unwind mid-session
 
 
 from config import Config, CONFIG_TOML_PATH
@@ -403,62 +399,6 @@ class TestEqMeridianAndToggle:
         assert abs(float(np.dot(np.asarray(tilt.q), np.asarray(seed.q)))) > 1 - 1e-9, "not the new base's seed"
 
 
-def angle_deg(v1, v2):
-    return math.degrees(math.acos(np.clip(np.dot(v1, v2), -1.0, 1.0)))
-
-
-M1_AXIS = np.array(WEDGE.rotate([0, 0, 1]))
-COS_BASE = math.cos(math.radians(THETA2_MAX))
-
-
-class TestRigTilt:
-
-    def test_level_rig_tilt_is_theta2(self):
-        for theta in [(0.0, 60.0, 180.0), (180.0, 81.5, 0.0), (90.0, -8.0, 45.0)]:
-            assert rig_tilt_deg(theta_to_q(*theta)) == pytest.approx(abs(theta[1]), abs=1e-9)
-
-    def test_within_limit_is_unchanged(self):
-        q = WEDGE * theta_to_q(180.0, 60.0, 0.0)                        # tilt 4
-        assert q_angle_arcsec(limit_rig_tilt(q, WEDGE, 100.0), q) < 1e-6
-
-    @pytest.mark.parametrize("theta", [(0.0, 60.0, 180.0), (0.0, 81.5, 180.0), (30.0, 50.0, 150.0), (-40.0, 70.0, -160.0)])
-    def test_over_limit_gets_the_nearest_allowed_pa(self, theta):
-        q = WEDGE * theta_to_q(*theta)
-        assert rig_tilt_deg(q) > 100.0
-        r = limit_rig_tilt(q, WEDGE, 100.0)
-        bore, bore_r = np.array(q.rotate([0, 0, -1])), np.array(r.rotate([0, 0, -1]))
-        up_r = np.array(r.rotate([1, 0, 0]))
-        assert rig_tilt_deg(r) <= 100.0 + 1e-6
-        assert np.dot(up_r, M1_AXIS) >= COS_BASE - 1e-9                  # still reachable by the motors
-        if angle_deg(bore, bore_r) < 1e-3:                                # same pointing: the PA turn is the least
-            turned = angle_deg(np.array(q.rotate([1, 0, 0])), up_r)
-            up = np.array(q.rotate([1, 0, 0])); w = np.cross(bore, up)
-            phis = np.radians(np.arange(-180, 180, 0.01))
-            U = np.outer(np.cos(phis), up) + np.outer(np.sin(phis), w)
-            ok = (U @ M1_AXIS >= COS_BASE) & (U[:, 2] >= math.cos(math.radians(100.0)))
-            assert ok.any()
-            assert turned <= np.degrees(np.min(np.abs(phis[ok]))) + 0.02
-
-    def test_no_allowed_pa_moves_the_pointing_away_from_the_pole(self):
-        # pointings next to the SCP cap where no PA keeps the rig within 90 deg: search one out
-        rng = np.random.default_rng(3)
-        for _ in range(4000):
-            theta = (rng.uniform(-180, 180), rng.uniform(70, 81.5), rng.uniform(-180, 180))
-            q = WEDGE * theta_to_q(*theta)
-            r = limit_rig_tilt(q, WEDGE, 90.0)
-            bore, bore_r = np.array(q.rotate([0, 0, -1])), np.array(r.rotate([0, 0, -1]))
-            if angle_deg(bore, bore_r) > 1e-3:          # acos resolution near 0 is ~1e-6 deg
-                break
-        else:
-            pytest.fail("no pointing without an allowed PA found")
-        assert angle_deg(bore_r, M1_AXIS) > angle_deg(bore, M1_AXIS)       # away from the pole
-        assert rig_tilt_deg(r) <= 90.0 + 1e-6
-        assert np.dot(np.array(r.rotate([1, 0, 0])), M1_AXIS) >= COS_BASE - 1e-9
-        nearer = Quaternion(axis=np.cross(M1_AXIS, bore), degrees=angle_deg(bore, bore_r) - 0.05) * q
-        assert angle_deg(np.array(limit_rig_tilt(nearer, WEDGE, 90.0).rotate([0, 0, -1])),
-                         np.array(nearer.rotate([0, 0, -1]))) > 1e-3        # the least move: just short still blocked
-
-
 class TestM1Room:
     LO, HI = -80.0, 440.0                       # theta1 window for z1 +-270 with a 10 deg margin
 
@@ -473,25 +413,6 @@ class TestM1Room:
 
 
 class TestEqLimitsInTheDriver:
-
-    def test_settings_in_config_toml(self):
-        Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath="/nonexistent")
-        assert Config.eq_rig_tilt_limit == 180             # off until set from the rig's measured clearance
-
-    def test_goto_past_the_rig_tilt_limit_stops_at_the_nearest_allowed_pa(self, monkeypatch):
-        tw = Twin(monkeypatch, config={**EQ_TWIN, "eq_rig_tilt_limit": 100}, seed=0)
-        tw.place(EQ_POSES["ha-4h_dec-36"])                                     # not tracking: the target holds still
-        target = WEDGE * theta_to_q(30.0, 60.0, 150.0)                         # rig tilt > 100, no PA allowed here
-        assert rig_tilt_deg(target) > 100
-        expected = limit_rig_tilt(target, WEDGE, 100.0)                         # moved off the pole to an allowed PA
-        az, alt, roll = q_to_azaltroll(target)
-        done, _, _ = run_goto(tw, lambda: tw.goto_altaz(az, alt, roll), max_s=90)
-        tw.run(5)
-        q_now = WEDGE * theta_to_q(*tw.theta)
-        tw.close()
-        assert done is not None
-        assert rig_tilt_deg(q_now) <= 100.0 + 0.05
-        assert angle_deg(np.array(q_now.rotate([0, 0, -1])), np.array(expected.rotate([0, 0, -1]))) * 60 < 1.0
 
     def test_goto_places_m1_with_a_nights_room(self, monkeypatch, caplog):
         tw = eq_twin(monkeypatch, (-60.0, 36.0, 0.0))                  # theta1 -60: 20 deg (~1.3 h) from its limit

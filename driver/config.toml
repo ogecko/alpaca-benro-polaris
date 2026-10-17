@@ -85,9 +85,6 @@ advanced_scc_choice = 2                     # 0 = Zero Last Residual, 1=Local Ga
 advanced_align_mac = true                   # Mechanical Alignment Correction: fit M2/M3 offsets (and the M2 scale) with the alignment (off: rotation-only QUEST)
 advanced_eq_mode = false                    # BETA: Polaris mounted on a wedge with M1 on the celestial pole (equatorial mode): alignment
                                             # starts from the ideal wedge for the site latitude, reach limits apply in the mount frame
-eq_rig_tilt_limit = 180                     # Equatorial mode: max tilt (deg) of camera-up (the M3 axis) from the zenith, to keep the rig
-                                            # clear of the tripod (level mount: always <= 81.5; wedge: up to ~138). 180 = off: set it from
-                                            # your rig's measured clearance. A limit below ~138 turns the PA while tracking near the pole
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guide corrections and correct it
 advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json

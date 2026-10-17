@@ -30,7 +30,7 @@ theory, the digital twin sweep and the hardware measurements it rests on.
   [the baseline](#the-sweep-as-a-test-todays-baseline-2026-10-17)).
 * **Straight motor moves** for idle slews over 15 deg (`control_plan.MotorMove`, `choose_end_solution`), and the
   LIMIT fix: see [step 3](#step-3-straight-motor-moves-2026-10-17).
-* **`utility/analyse_span.ipynb`** eq sections: reachability, PA (upright and upside down), the tripod cone and
+* **`utility/analyse_span.ipynb`** eq sections: reachability, PA (upright and upside down), the tripod (now the M3 disk model, R1) and
   latitude.
 
 ### What the measurements show
@@ -490,7 +490,21 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
 
 The design must also meet these three requirements.
 
-**R1. Tripod collision prevention.** The tripod fills the cone around the nadir: altitude -81.5 to -90 deg, at any
+**R1. Tripod collision prevention.**
+
+> **Superseded 2026-10-17 (user's model).** The tripod is not a cone round the boresight's nadir. The camera and OTA
+> sit square to the M3 axis, so spinning M3 sweeps the OTA - front *and* rear - round a disk square to the M3 axis,
+> set by M1 and M2 alone; on a wedge that disk can reach the tripod when M2 tilts the M3 axis towards the horizon
+> (worst with the M2 axis across the meridian; with it in the meridian plane the disk passes down the side of the
+> tripod). The tripod is the solid cone its legs span (spreader, tray, head between them), not three lines. Modelled
+> in `utility/analyse_span.ipynb` (*Tripod collision: the M3 disk*: 3D rig, M1 x M2 / M3 x M2 maps, and a sky map of
+> the rolls the tripod takes: Sydney, front 1.0 / rear 0.5 / legs 20 deg: ~10% of reachable Az/Alt/roll above the
+> horizon, none clear round Alt 60-82, Az 150-195 - the rear; very sensitive to the rear length). The boresight cone
+> below and the rig-tilt limit (`rig_tilt_deg`, `limit_rig_tilt`, `eq_rig_tilt_limit`, the R1 acceptance test) are
+> **removed from the driver**; no tripod protection is enforced until the disk check is designed (needs the rig's
+> measured rear length and leg splay). The original text follows for the record.
+
+The tripod fills the cone around the nadir: altitude -81.5 to -90 deg, at any
 azimuth. On a level mount the motors can't reach it: M2's 81.5 deg limit holds the boresight within -81.5 to +81.5
 deg altitude, so this mode is unaffected. A wedge tilts that range: M2's limit is now measured from the M1 axis (the
 pole), and the nadir comes within reach.
@@ -539,7 +553,7 @@ and minimise duplication:
 |---|---|---|
 | Goto planning: end-solution choice, scoring, trajectories, path checks (R1), replanning (R2), timeout | `control_plan.py` (new) | move `GotoTrajectory`, `MotorTrajectory`, `ramp_rates` out of `control.py`; `plan_goto` stays the PID's hook and calls it |
 | Kinematics: IK solutions (both branches, M1/M3 turns), reachability, boresight nadir distance, rig tilt geometry | `kinematics.py` | extend `q_to_theta` / `LastPosition`, `reachable_azaltroll`, `altitude_to_maxroll`, `theta_to_jacobian`; move `rig_tilt_deg` here from `control_eq.py` |
-| Eq mode policy: wedge alignment, tracking room, rig tilt limiting | `control_eq.py` | `wedge_alignQ_B2T`, `limit_rig_tilt`, `eq_theta1_with_room` (as a scoring input) |
+| Eq mode policy: wedge alignment, tracking room (rig tilt limiting removed 2026-10-17) | `control_eq.py` | `wedge_alignQ_B2T`, `eq_theta1_with_room` (as a scoring input) |
 | Motor speeds and accelerations (Kv, Ka, SLOW/FAST) | `speed_controller.py` | `RateUnits`, `_speeds_at`; the planner reads its limits from here, no second speed table |
 | Backlash, PEC | `control_backlash.py`, `control_pec.py` / `control_worm.py` | unchanged |
 | Twin and tests | `tests/sim_digital_twin.py`, `tests/test_control_plan.py` (new) | twin sweep as a test; existing `test_goto_trajectory.py` cases move with the trajectories |
