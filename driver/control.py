@@ -18,7 +18,7 @@ from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_resi
 from kinematics_mac import fit_alignment, corrected_theta, boresights, correction_q as mac_correction, significantly_better
 from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
 from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
-from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX
+from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX, LOCK_SOLUTION_DEG
 from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q, theta_solutions, theta_rates
 from control_eq import wedge_alignQ_B2T, limit_rig_tilt, rig_tilt_deg, eq_theta1_with_room, EQ_MIN_TRACK_ROOM_DEG, THETA2_MIN
 from control_plan import GotoTrajectory, MotorMove, choose_end_solution, is_flip, wraps_cables, ramp_rates, move_time
@@ -811,6 +811,8 @@ class PID_Controller():
         self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (coordinated_speed_control)
         self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (coordinated_speed_control)
         self._jog_theta = None                         # a jog near gimbal lock: its reference, walked in motor angles
+        self._plan_logged = False                      # this goto's "GOTO plan:" line is written (once per goto)
+        self._pid_reason = None                        # why plan_goto left this goto to the PID (for that line)
         self.backlash = BacklashCompensator(logger)    # Backlash Compensation (advanced_backlash): see control_backlash.py
         self.omega_backlash = np.zeros(3, dtype=float)  # its take-up push, added after smoothing (coordinated_speed_control)
         self.move_planned = None                       # per goto: planned, or left to the PID (large move while tracking, unwind/flip)
@@ -1353,10 +1355,12 @@ class PID_Controller():
         self.is_deviating = True
         self.time_goto = ephem.now()
         self.goto_started = time.monotonic()         # for the completion log line (time_goto moves with planned moves)
+        self._plan_logged, self._pid_reason = False, None
         self.goto_complete_callback = fn
               
     def set_rotate_complete_callback(self, fn):
         self.move_planned = None
+        self._plan_logged, self._pid_reason = False, None
         self.lock_checked = False
         self.room_checked = False
         self.is_deviating = True
@@ -1499,6 +1503,7 @@ class PID_Controller():
         # With coordinated_speed_control an AUTO goto follows a planned trajectory instead
         if self.plan_goto():
             return
+        self._log_pid_plan()
 
         # Step in alpha space with az/alt locked during roll changes
         alpha_step = self.alpha_limit_step(self.alpha_pv, self.alpha_ref)
@@ -1593,6 +1598,8 @@ class PID_Controller():
         if self.goto_traj is not None and (not active or self.goto_traj.space != self.mode):
             self.goto_traj = None
         if not active:
+            self._pid_reason = ('coordinated speed control off' if not Config.coordinated_speed_control
+                                else 'finishing a FLIP/UNWIND' if self.theta_ref_cache is not None else None)
             return False
         if self.mode == 'TRACK':
             goal, start, to_theta = self._reachable_delta(self.delta_ref), np.array(self.delta_pv, dtype=float), self._delta_to_theta
@@ -1606,17 +1613,23 @@ class PID_Controller():
             if self._alpha_distance(start, goal) <= self.GOTO_RETARGET_DEG:
                 return False                              # already there: hold/track as before
             theta_pv = np.array(self.theta_pv, dtype=float)
-            if self.mode == 'AUTO' and self._pointing_distance(start, goal) > self.GOTO_CONTROLLED_PATH_DEG:
-                # a slew: fast and straight in motor angles to the end solution chosen now (study design item 2)
+            theta_end = to_theta(goal, theta_pv) if self.mode == 'AUTO' else None
+            # a move (not a settling correction after one: those were each planned straight again, 0.1-0.8 s apiece)
+            lock_goal = (theta_end is not None and abs(float(theta_end[1])) < LOCK_SOLUTION_DEG
+                         and float(np.max(np.abs(theta_end - theta_pv))) > self.SMALL_MOVE_DEG)
+            if self.mode == 'AUTO' and (self._pointing_distance(start, goal) > self.GOTO_CONTROLLED_PATH_DEG or lock_goal):
+                # a slew: fast and straight in motor angles to the end solution chosen now (study design item 2). Also
+                # any goto ending in gimbal lock: holding the pointing on the way in needs M1/M3 counter-rotating, and
+                # a sampled path from Alt 12 into Alt 0 drove them back and forth at up to 2 deg/s (field: a stutter)
                 theta_goal = self._straight_goal(goal)
                 if theta_goal is not None:
                     self.goto_traj = self._motor_move(theta_goal)
                     self.goto_traj.alpha_goal = goal.copy()
                     self.room_checked = self.lock_checked = True    # the plan chose the end solution (with room)
-                    d1 = theta_goal[0] - theta_pv[0]
-                    flip = f' (FLIP {"CW" if d1 > 0 else "CCW"})' if is_flip(theta_pv, theta_goal) else ''
-                    self.logger.info(f'GOTO straight in motor angles{flip} to {theta_goal[0]:+.1f},{theta_goal[1]:+.1f},'
-                                     f'{theta_goal[2]:+.1f} ({self.goto_traj.duration:.1f} s planned)')
+                    why = ('ending in gimbal lock' if lock_goal and self._pointing_distance(start, goal) <= self.GOTO_CONTROLLED_PATH_DEG
+                           else f'pointing change {self._pointing_distance(start, goal):.0f} deg')
+                    self._log_plan(f'fast in motor angles ({why})', theta_goal, self.goto_traj.duration,
+                                   getattr(self.goto_traj, 'cause', None))
                     if self.time_goto:                    # the goto timeout allows for the planned move
                         self.time_goto += self.goto_traj.duration / (24 * 3600)
                     if wraps_cables(theta_pv, theta_goal):
@@ -1631,8 +1644,9 @@ class PID_Controller():
                     self.goto_traj = move
                     self.room_checked = self.lock_checked = True    # the plan chose the end solution: no EQ ROOM
                                                                     # turn on top (a 0.02 deg dither turned M1 360)
-                    self.logger.info(f'GOTO straight in motor angles while tracking to {move.goal[0]:+.1f},'
-                                     f'{move.goal[1]:+.1f},{move.goal[2]:+.1f} ({move.duration:.1f} s planned)')
+                    how = ('slow while tracking (small move)' if travel <= self.SMALL_MOVE_DEG
+                           else f'fast while tracking (aimed {move.duration:.0f} s ahead)')
+                    self._log_plan(how, move.goal, move.duration, getattr(move, 'cause', None))
                     if self.time_goto:                    # the goto timeout allows for the planned move
                         self.time_goto += move.duration / (24 * 3600)
                     self.theta_ref, self.omega_ff_shaped = move.step(self.dt)
@@ -1642,6 +1656,7 @@ class PID_Controller():
                 # tracking is closed directly by the PID (planning it would end in FAST-lag overshoot)
                 self.move_planned = bool(travel <= self.SMALL_MOVE_DEG or self._is_roll_move(start, goal))
                 if not self.move_planned:
+                    self._pid_reason = 'no straight move to it while tracking'
                     return False
             rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
             # a roll/PA change runs at full speed: how far the pointing leaves the path scales with the speed (the
@@ -1664,8 +1679,8 @@ class PID_Controller():
                         self.goto_traj = self._motor_move(theta_goal)
                         self.goto_traj.alpha_goal = goal.copy()
                         self.room_checked = self.lock_checked = True
-                        self.logger.info(f'GOTO path past a motor limit: straight in motor angles to {theta_goal[0]:+.1f},'
-                                         f'{theta_goal[1]:+.1f},{theta_goal[2]:+.1f} ({self.goto_traj.duration:.1f} s planned)')
+                        self._log_plan('fast in motor angles (a steady path would pass a motor limit)', theta_goal,
+                                       self.goto_traj.duration, getattr(self.goto_traj, 'cause', None))
                         if self.time_goto:                    # the goto timeout allows for the planned move
                             self.time_goto += self.goto_traj.duration / (24 * 3600)
                         self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
@@ -1674,6 +1689,14 @@ class PID_Controller():
                 # the goto timeout allows for the planned path: a 30 deg roll change at 1 deg/s, asked for 11 s into
                 # a goto, timed out still settling
                 self.time_goto += self.goto_traj.duration / (24 * 3600)
+            if not self.goto_traj.branch_change:
+                if self._is_roll_move(start, goal):
+                    why = f'{"PA" if self.mode == "TRACK" else "roll"} change {abs(wrap180(goal[2] - start[2])):.0f} deg'
+                else:
+                    why = f'pointing change {self._pointing_distance(start, goal):.1f} deg'
+                at = (f'at RA {goal[0] / 15:.4f}h Dec {goal[1]:+.4f}' if self.mode == 'TRACK'
+                      else f'at Az {goal[0]:.3f} Alt {goal[1]:+.3f}')
+                self._log_plan(f'steady pointing path ({why}), {at}', duration=self.goto_traj.duration)
         elif self._alpha_distance(self.goto_traj.goal, goal) > self.GOTO_RETARGET_DEG:
             if self.mode == 'AUTO' and self.goto_traj._speed > self.SMALL_MOVE_RATE:
                 # redirected at speed: the new path heads elsewhere in motor space, and carrying the path speed onto
@@ -1684,8 +1707,8 @@ class PID_Controller():
                     self.goto_traj = self._motor_move(theta_goal)
                     self.goto_traj.alpha_goal = goal.copy()
                     self.room_checked = self.lock_checked = True
-                    self.logger.info(f'GOTO redirected at speed: straight in motor angles to {theta_goal[0]:+.1f},'
-                                     f'{theta_goal[1]:+.1f},{theta_goal[2]:+.1f} ({self.goto_traj.duration:.1f} s planned)')
+                    self._log_plan('fast in motor angles (redirected at speed)', theta_goal, self.goto_traj.duration,
+                                   getattr(self.goto_traj, 'cause', None))
                     if self.time_goto:                    # the goto timeout allows for the planned move
                         self.time_goto += self.goto_traj.duration / (24 * 3600)
                     self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
@@ -1700,6 +1723,7 @@ class PID_Controller():
         if self.goto_traj.branch_change:
             self.goto_traj = None                         # needs an IK branch change: the PID and its FLIP
             self.move_planned = False                     # handling take this goto (not walkable by the planner)
+            self._pid_reason = 'the path needs an IK branch change'
             return False
         self.lock_checked = True                          # the planned path was sampled and stays on its branch: no
                                                           # gimbal-lock path check on top (~360 kinematics calls)
@@ -1709,6 +1733,32 @@ class PID_Controller():
             return False
         self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
         return True
+
+    def _log_plan(self, how, end=None, duration=None, cause=None):
+        """The goto's one "GOTO plan:" line: how it is managed (the settling corrections after a move add none)."""
+        if self._plan_logged:
+            return
+        self._plan_logged = True
+        msg = f'GOTO plan: {how}'
+        if end is not None:
+            msg += f' to M1 {end[0]:+.1f} M2 {end[1]:+.1f} M3 {end[2]:+.1f}'
+        if duration is not None:
+            msg += f', est duration {duration:.1f} s'
+        if cause:
+            msg += f', {cause}'
+        self.logger.info(msg)
+
+    def _log_pid_plan(self):
+        """A pending goto plan_goto left to the PID: its "GOTO plan:" line, with the target and why."""
+        if self._plan_logged or not self.move_pending() or self.mode not in ('AUTO', 'TRACK') or self._has_active_jog():
+            return
+        why = f' ({self._pid_reason})' if self._pid_reason else ''
+        if self.mode == 'TRACK':
+            d = self.delta_ref
+            self._log_plan(f'PID controlled{why} to tracked target at RA {d[0] / 15:.4f}h Dec {d[1]:+.4f} PA {d[2]:.2f}')
+        else:
+            a = self.alpha_ref
+            self._log_plan(f'PID controlled{why} to fixed target at Az {a[0]:.3f} Alt {a[1]:+.3f} Roll {a[2]:+.2f}')
 
     def _pointing_distance(self, a, b):
         """Great circle distance (deg) between the pointings of two Az/Alt/Roll poses."""

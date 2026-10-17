@@ -686,13 +686,19 @@ def _lock_pointing(bore, theta1, theta2, theta3, iterations=3):
 
 
 
+LOCK_SOLUTION_DEG = 3.0     # |theta2| below this: an end solution may give up the roll (LastPosition's GIMBAL_EXIT)
+
+
 def theta_solutions(motorQ_C2B, theta_lo, theta_hi, tol_deg=1e-3):
     """Every motor solution (n, 3) for a camera pose within [theta_lo, theta_hi] (deg, per motor): both IK branches
     (the second is theta1 + 180, -theta2, theta3 + 180: the same pose) and every M1/M3 turn of 360 inside the range.
     Empty if the pose is out of the motors' reach. Near gimbal lock (theta2 ~ 0) only theta1 + theta3 is defined and
-    the split is q_to_theta's."""
+    the split is q_to_theta's, and a solution counts when its boresight matches: the roll the motors can't make there
+    is given up, as q_to_theta does (a goto to Alt 0 with roll 0.01 after Find Home found no end solution, so it
+    wasn't planned straight and ran into the lock on a sampled path: M1/M3 driven back and forth at up to 1.8 deg/s)."""
     base = np.array(q_to_theta(motorQ_C2B, LastPosition(), theta2_min=-90.0), dtype=float)
     target = np.asarray(motorQ_C2B.q, dtype=float)
+    bore = np.asarray(motorQ_C2B.rotate(np.array([0.0, 0.0, -1.0])), dtype=float)
     lo, hi = np.asarray(theta_lo, dtype=float), np.asarray(theta_hi, dtype=float)
     out = []
     for branch in (base, base + np.array([180.0, -2 * base[1], 180.0])):       # the second: theta2 mirrored
@@ -701,7 +707,10 @@ def theta_solutions(motorQ_C2B, theta_lo, theta_hi, tol_deg=1e-3):
             continue
         q = theta_to_q(t1, t2, t3)
         if math.degrees(2 * math.acos(min(1.0, abs(float(np.dot(np.asarray(q.q), target)))))) > tol_deg:
-            continue                                # q_to_theta clamped: out of reach
+            bore_q = np.asarray(q.rotate(np.array([0.0, 0.0, -1.0])), dtype=float)
+            at_lock = abs(t2) < LOCK_SOLUTION_DEG
+            if not (at_lock and math.degrees(math.acos(min(1.0, float(np.dot(bore_q, bore))))) <= tol_deg):
+                continue                            # q_to_theta clamped: out of reach
         for a in np.arange(math.ceil((lo[0] - t1) / 360), math.floor((hi[0] - t1) / 360) + 1):
             for b in np.arange(math.ceil((lo[2] - t3) / 360), math.floor((hi[2] - t3) / 360) + 1):
                 out.append((t1 + 360 * a, t2, t3 + 360 * b))

@@ -577,6 +577,33 @@ def test_guard_sky_axis_jog_finishes_where_it_got_to(axis, rate):
     assert mode == "IDLE" and float(np.max(err)) < 2.0 and moved > 1.0, f"{mode}, moved {moved:.1f}, err {err.round(1)}'"
 
 
+@pytest.mark.parametrize("start", [(180.0, 45.0, 0.01), (180.0, 12.0, 0.3)], ids=["from_home", "short"])
+def test_guard_goto_into_gimbal_lock_does_not_stutter(start, caplog):
+    """Field 2026-10-17: Home, then a goto to Alt 0 (level: M2 = 0, gimbal lock) stuttered badly: M1/M3 driven back and
+    forth at up to 1.8 deg/s as M2 came in. The target's roll (0.01, from the home pose) can't be made at the lock, so
+    theta_solutions found no end solution and the goto took a sampled path into the lock, its M1/M3 split swinging.
+    End solutions at the lock now match the boresight, and a goto ending in the lock goes straight in motor angles."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place(start)
+        ops = []
+        with caplog.at_level("INFO"):
+            tw.goto_altaz(180.03, 0.0)
+            t0 = tw.clock.t
+            while tw.clock.t - t0 < 40 and tw.polaris.goto_complete_at is None:
+                tw.run(0.2, on_measure=lambda t: ops.append(np.array(t.pid.omega_op)))
+        done = tw.polaris.goto_complete_at
+        tw.close()
+    finally:
+        mp.undo()
+    ops = np.array(ops)
+    m1 = np.where(np.abs(ops[:, 0]) > 0.05, ops[:, 0], 0.0)
+    reversals = int((np.diff(np.sign(m1)) != 0).sum())
+    assert done is not None and any("GOTO plan: fast in motor angles" in r.getMessage() for r in caplog.records)
+    assert float(np.abs(ops[:, 0]).max()) < 0.3 and reversals <= 2, f"M1 up to {np.abs(ops[:, 0]).max():.2f} deg/s, {reversals} reversals"
+
+
 def test_motor_move_retarget_keeps_the_speed():
     move = MotorMove(8.0, 5.0)
     move.start(np.zeros(3), (60.0, 0.0, 0.0))
