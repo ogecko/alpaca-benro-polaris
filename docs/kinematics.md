@@ -398,7 +398,7 @@ The results are displayed in columns, each with a heading and one line per motor
 
     For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The value before @ is the estimated error amplitude in arcseconds; the value after @ is the angle, from 0° to 360°, within the motor's 6° worm cycle where the error is largest. The angle is relative to the worm's rotational position.
   
-    For example, `M3 off` means the test could not reliably identify a worm gear error for M3, so no correction is applied to that motor. This may be because the wobble is too small to measure reliably or there is insufficient data. Running additional tests may help identify the error. Results are pooled across up to five tests, allowing additional data to improve the fit when the error is difficult to measure.
+    For example, `M3 off` means the test could not reliably identify a worm gear error for M3, so no correction is applied to that motor. This may be because the wobble is too small to measure reliably or there is insufficient data. Running additional tests may help identify the error. Results are pooled across up to five tests, allowing additional data to improve the fit when the error is difficult to measure. If a motor's result remains `off` after five test runs, it may simply mean that the mount's worm gear error is negligible and the motor needs no correction. This can be a sign of a good-quality mount.
 
 * **Change:** `from baseline`: how far each motor's correction would move from the Baseline if you approve the Test Result (`+0"` once it is the current profile).
 
