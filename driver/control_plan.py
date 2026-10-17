@@ -258,15 +258,24 @@ def wraps_cables(theta_from, theta_to):
     return is_flip(theta_from, theta_to) and bool(d[0] * d[2] > 0)
 
 
-def choose_end_solution(solutions, theta_now, omega_now, max_rate, max_accel, has_room=None):
+CABLE_TWIST_MAX_DEG = 270.0      # net cable twist (raw M1 + M3 angles) an end solution may leave before a slower one wins:
+                                 # above eq mode's tracking-room turn (+204 at the zenith; 180 unwound M1 282 deg there)
+
+
+def choose_end_solution(solutions, theta_now, omega_now, max_rate, max_accel, has_room=None, twist=None):
     """Index of the end solution to move to, in order: tracking room (has_room(theta) -> bool, eq mode), no cable wrap
-    on a flip, the fastest from the current angles and speeds. None if there are none."""
+    on a flip, the cables' net twist (twist(theta) -> deg) within CABLE_TWIST_MAX_DEG (else the least twisted), the
+    fastest from the current angles and speeds. None if there are none.
+    The twist: a move that turned M1 +274 (forced the long way round by its limit) also turned M3 +44 rather than
+    -316, 6 s faster but leaving the cables wound +318 deg (field 2026-10-17, pano panel 41 -> 40); the flip check
+    alone saw no wrap, as M3 hardly moved."""
     if len(solutions) == 0:
         return None
     times = [move_time(theta_now, s, omega_now, max_rate, max_accel) for s in solutions]
     room = [bool(has_room(s)) if has_room else True for s in solutions]
     wrap = [wraps_cables(theta_now, s) for s in solutions]
-    return min(range(len(solutions)), key=lambda i: (not room[i], wrap[i], times[i]))
+    over = [max(0.0, abs(float(twist(s))) - CABLE_TWIST_MAX_DEG) if twist else 0.0 for s in solutions]
+    return min(range(len(solutions)), key=lambda i: (not room[i], wrap[i], over[i], times[i]))
 
 
 class MotorMove:

@@ -1732,7 +1732,15 @@ class PID_Controller():
         self.set_Kv_array(Config.pid_Kv)
         theta_now, rate = np.array(self.theta_pv, dtype=float), np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
         accel = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL)
-        i = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel, has_room)
+        offset = theta_now - np.array(self.zeta_meas, dtype=float)
+        twist = lambda t: (t[0] - offset[0]) + (t[2] - offset[2])    # net cable twist: raw M1 + M3
+        i = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel, has_room, twist)
+        untwisted = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel, has_room)
+        if i is not None and untwisted != i:
+            slower = (move_time(theta_now, solutions[i], self.omega_ff_shaped, rate, accel)
+                      - move_time(theta_now, solutions[untwisted], self.omega_ff_shaped, rate, accel))
+            self.logger.info(f'GOTO end solution M1 {solutions[i][0]:+.1f} M3 {solutions[i][2]:+.1f} for the cables (twist '
+                             f'{twist(solutions[i]):+.0f}, not {twist(solutions[untwisted]):+.0f}; {slower:.0f} s slower)')
         if i is not None and has_room is not None:
             fastest = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel)
             if fastest != i:

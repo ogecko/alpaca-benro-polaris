@@ -576,6 +576,40 @@ def test_choose_end_solution_room_then_no_cable_wrap_then_time():
     assert choose_end_solution(np.empty((0, 3)), now, still, rate, accel) is None
 
 
+def test_choose_end_solution_keeps_the_cables_within_their_twist():
+    now, still, rate, accel = np.array([0.0, 15.0, 180.0]), np.zeros(3), 7.1, 5.0
+    wound = np.array([274.0, 21.1, 224.0])              # M3 +44: faster, net twist +318
+    unwound = np.array([274.0, 21.1, -136.0])           # M3 -316: slower, net twist -42
+    sols = np.array([wound, unwound])
+    twist = lambda t: (t[0] - 180.0) + t[2]             # raw M1 (theta - 180) + raw M3
+    assert choose_end_solution(sols, now, still, rate, accel) == 0
+    assert choose_end_solution(sols, now, still, rate, accel, twist=twist) == 1
+    both_wound = np.array([wound, wound + np.array([0.0, 0.0, 720.0])])
+    assert choose_end_solution(both_wound, now, still, rate, accel, twist=twist) == 0    # else the least twisted
+
+
+def test_guard_goto_does_not_wind_the_cables(caplog):
+    """Field 2026-10-17 (pano panel 41 -> 40): after a flip left M1 at raw -180, a goto to Az 140 Alt -15 had to turn
+    M1 +274 (the short way passed its limit), and turned M3 +44 with it rather than -316: 6 s faster, but the cables
+    wound to +318. End solutions now keep the net twist (raw M1 + M3) within CABLE_TWIST_MAX_DEG."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((0.0, 15.0, 180.0))                    # raw M1 -180, M3 +180: net 0, as panel 41 left it
+        with caplog.at_level("INFO"):
+            tw.goto_altaz(140.0, -15.0, 15.0)
+            t0 = tw.clock.t
+            while tw.clock.t - t0 < 90 and tw.polaris.goto_complete_at is None:
+                tw.run(0.5)
+        zeta = np.array(tw.pid.zeta_meas, dtype=float)
+        done = tw.polaris.goto_complete_at
+        tw.close()
+    finally:
+        mp.undo()
+    assert done is not None and abs(zeta[0] + zeta[2]) <= control_plan.CABLE_TWIST_MAX_DEG + 1.0, \
+        f"raw M1 {zeta[0]:+.0f} M3 {zeta[2]:+.0f}: twist {zeta[0] + zeta[2]:+.0f}"
+
+
 def test_idle_gotos_end_on_an_enumerated_solution(sweep):
     idle = sweep[sweep.case.str.endswith("idle") & sweep.done_s.notna() & (sweep.miss_arcmin < 2.0)]   # arrived
     assert len(idle) > 0
