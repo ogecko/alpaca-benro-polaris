@@ -243,20 +243,20 @@ Calibration determines how your mount responds to guide pulses in Right Ascensio
 
 For best results, calibration should be performed under the following conditions:
 
+* **CRITICAL: Disable PEC Drift Correction if you are using Dithering** - 
+We recommend not using Dithering with the Alpaca Benro Polaris as we have not seen any significant improvement in guiding or hot pixel reduction. If you decide to use Dithering, then you should switch off PEC Drift Correction. Unlike calibration, dither steps aren't recognised, and you don't want PEC to learn them as drift. PEC Worm Gear Correction can stay on.
+
 * **PEC can stay on during calibration** - 
 We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. The Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC with an autoguider:
     * Leave PEC on while you calibrate. The driver recognises PHD2's (and CCDciel's) calibration pulses, and PEC Drift Correction ignores them, rolling back anything it learnt during the calibration (`pec_ignore_guider_calibration`, on by default).
     * PEC Worm Gear Correction doesn't learn from guiding, so it can stay on too; calibrating with it on means PHD2 measures a mount with its worm gear error already removed.
     * Avoid switching PEC Drift Correction off and on around calibration: switching it restarts the drift model, which then has to learn the drift again.
 
-* **CRITICAL: Disable PEC Drift Correction if you are using Dithering** - 
-We recommend not using Dithering with the Alpaca Benro Polaris as we have not seen any significant improvement in guiding or hot pixel reduction. If you decide to use Dithering, then you should switch off PEC Drift Correction. Unlike calibration, dither steps aren't recognised, and you don't want PEC to learn them as drift. PEC Worm Gear Correction can stay on.
-
-* **CRITICAL: Use the same Position Angle as the intended imaging target** - 
-The recommended approach is to calibrate at your imaging target and simply ignore PHD2's calibration location warning. Just slew to your target and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration. This ensures the position angle remains the same between calibration and imaging, which is important for the Benro Polaris (though not for a typical equatorial mount).
+* **Connect the Rotator so one calibration lasts the night** - 
+On the Benro Polaris the Position Angle (PA) changes from target to target, and PHD2's calibration is only valid at the PA it was made at. If PHD2 is connected to the **Alpaca Benro Polaris Rotator** with **Reverse the sign of Angle** enabled (see [4.3 Re-Calibration](#43-re-calibration)), PHD2 adjusts its calibration to each new PA itself, so you can calibrate once and slew to other targets. Without the Rotator, calibrate at your imaging target so the PA is the same for calibration and imaging: slew to the target, ignore PHD2's calibration location warning, and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration.
 
 * **Close to the intended imaging target** - 
-  RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. If the mount is slewed after calibration, avoid large pointing changes and **maintain the same position angle**.
+  RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. 
 
 * **Within ±20° of the celestial equator (Dec ≈ 0°)** - 
   Near the celestial equator, guide pulses produce the largest and most measurable star movement, resulting in more accurate calibration data.
