@@ -213,7 +213,6 @@ class Twin:
             calibration = cm.baseline_data
             if calibrated:
                 calibration = {a: twin_fast_calibration(cm.baseline_data[a]) for a in range(3)}
-            self.polaris.fast_speed_calibrated = lambda axis: bool(calibrated)
             units = fast_rate_units(calibration, cm.baseline_data)
             self.core = SpeedCoordinator(units)
             self.polaris._motors = {a: MotorShim(self.core, units, a, self.clock) for a in range(3)}

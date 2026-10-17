@@ -255,11 +255,6 @@ class CalibrationManager:
         self.updateCalibrationAndInterpolators()
 
     # ── the worm profile row: the worm profile test (control_worm), not a speed ──────────────────
-    def fast_calibrated(self, axis):
-        """An approved FAST speed test on this axis (speed units >= 200; SLOW levels are the firmware's own)."""
-        return any(t.get('axis') == axis and t.get('test_status') == 'APPROVED' and not self.isWormProfile(name)
-                   and float(t.get('raw', 0) or 0) >= 200 for name, t in self.test_data.items())
-
     @staticmethod
     def isWormProfile(testName):
         return testName == PROFILE_TEST
@@ -1541,12 +1536,6 @@ class PID_Controller():
 
     JOG_LOCK_DEG = 6.0                               # |theta2| below this: Az/Alt/Roll jogs walk in motor angles
     JOG_LOCK_RCOND = 0.1                             # ... dropping pointing motion the motors can hardly make there
-    ROLL_MOVE_RATE = 4.0                             # roll/PA changes: motor rate (deg/s), with M1/M3 FAST calibrated.
-                                                     # The pointing leaves the path by the motors' timing mismatch x
-                                                     # speed: 5-8' at 4 deg/s (calibrated twin; 8 deg/s 12-20'). At
-                                                     # 1 deg/s a +45 roll took 56 s in the field
-    ROLL_MOVE_RATE_UNCALIBRATED = 2.0                # ... without: a motor off its baseline FAST speed (the twin's M3
-                                                     # runs ~20% fast) puts the pointing 16-21' off at 2, 22-52' at 4
     M3_HOLD_DELAY_S = 0.18                           # M3's 518 value is sample-and-hold (refreshed every ~0.6 s): on
                                                      # a coordinated path it reads this much later than M1/M2, less
                                                      # than half the hold (the KF's velocity takes up some). 0.3 was
@@ -1645,11 +1634,9 @@ class PID_Controller():
                 if not self.move_planned:
                     return False
             rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
-            if self._is_roll_move(start, goal):
-                # a roll/PA change: M1/M3 counter-rotate along a curve, and how far the pointing leaves it scales
-                # with the speed (~9' per deg/s in the twin: 60' at full speed, 6' at 1 deg/s); settling, not the
-                # speed, decides how long it takes
-                rate = np.minimum(rate, self._roll_move_rate())
+            # a roll/PA change runs at full speed: how far the pointing leaves the path scales with the speed (the
+            # motors' timing mismatch), but in the twin it stays 47-94' uncalibrated (7-20' with M1/M3 FAST
+            # calibrated) against 180-530' with the previous controller, and a +45 roll takes 18-23 s (56 s at 1 deg/s)
             slow = travel <= self.SMALL_MOVE_DEG                 # SLOW speeds: no FAST lag (see _motor_move)
             self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL),
                                             float(Config.pid_Kt) + np.array([0.0, 0.0, self.M3_HOLD_DELAY_S]),
@@ -1819,13 +1806,6 @@ class PID_Controller():
         az, alt = rad2deg(body.az), rad2deg(body.alt)
         roll = wrap180(delta[2] - calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
         return self._reachable_alpha((az, alt, roll))
-
-    def _roll_move_rate(self):
-        """ROLL_MOVE_RATE once M1 and M3 have approved FAST speed tests (they counter-rotate on a roll change), else
-        ROLL_MOVE_RATE_UNCALIBRATED."""
-        calibrated = getattr(self.polaris, 'fast_speed_calibrated', None)
-        ok = callable(calibrated) and calibrated(0) and calibrated(2)
-        return self.ROLL_MOVE_RATE if ok else self.ROLL_MOVE_RATE_UNCALIBRATED
 
     def _reachable_delta(self, delta):
         """RA(deg)/Dec/PA with the PA the motors can reach now: a path in PA towards an unreachable one switched to the

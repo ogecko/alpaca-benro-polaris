@@ -438,6 +438,11 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
     pointing in Alt, so that part of the jog is dropped (it doesn't move).
   - Also: tracking restore now runs on a reconnect too (`==RECONNECT==`), when the driver isn't tracking but its saved
     state says it was; tracking otherwise carries on through a comms loss.
+  **Roll speed limit removed (2026-10-17, user's call).** Twin, worst pointing during a 45/90 deg roll at three poses:
+  the previous controller (coordinated off) 180-530' and 19-45 s, two of six timed out; the planner at full speed
+  47-94' uncalibrated, 7-20' calibrated, 18-23 s for +45; at the 2/4 deg/s limits 16-21' / 5-8' but 31-49 / 22-30 s.
+  The planner at full speed beats the previous controller on both, so roll changes run at full speed; the idle roll
+  goals (<= 30') are xfail again. A +90 roll at Alt 61/30 still takes ~57-60 s at full speed (not the roll rate).
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).

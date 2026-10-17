@@ -420,8 +420,8 @@ def test_guard_tracking_at_gimbal_lock_keeps_the_pointing():
 def test_guard_roll_change_after_a_goto_keeps_the_pointing():
     """Field 2026-10-16: rotator moves (roll -30 etc.) straight after a goto went straight in motor angles (17 deg
     off the target mid-roll), and on the pointing-holding path at full speed still left it ~60' off. Roll changes are
-    classed by a pointing change small next to the roll, and run at ROLL_MOVE_RATE. With M3's FAST speeds calibrated:
-    uncalibrated, M3 runs ~20% faster than commanded and the pointing leaves the path by ~45' at 4 deg/s."""
+    classed by a pointing change small next to the roll, and planned holding the pointing (at full speed since
+    2026-10-17: 15' here with M3's FAST speeds calibrated; the previous controller left it 180-530' off)."""
     mp = pytest.MonkeyPatch()
     try:
         tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0, calibrated=True)
@@ -440,12 +440,12 @@ def test_guard_roll_change_after_a_goto_keeps_the_pointing():
         tw.close()
     finally:
         mp.undo()
-    assert worst < 10.0, f"pointing {worst:.1f}' off the target during the roll"
+    assert worst < 25.0, f"pointing {worst:.1f}' off the target during the roll"
 
 
 def test_guard_roll_change_during_a_goto_completes_on_target():
     """Field 2026-10-16, eq mode over a level alignment: a goto to Alt 30 redirected to Alt -30 kept the PA (roll 60),
-    and a rotator move to 0 asked for 23 s later (~78 s of roll change, M1 at ROLL_MOVE_RATE) ran past the 45 s goto
+    and a rotator move to 0 asked for 23 s later (~78 s of roll change, M1 at the then 1 deg/s) ran past the 45 s goto
     timeout: TIMED OUT after 60.6 s, 227" off, still rolling. Controlled paths now extend the timeout by their
     planned time, as straight moves do."""
     mp = pytest.MonkeyPatch()
@@ -496,7 +496,7 @@ def test_guard_roll_past_the_reach_while_tracking_keeps_the_pointing():
     finally:
         mp.undo()
     assert done is not None and mode == "TRACK", f"done {done}, mode {mode}"
-    assert off < 0.2 and worst < 15.0, f"{off:.1f}' off at the end, {worst:.1f}' during the roll"
+    assert off < 0.2 and worst < 30.0, f"{off:.1f}' off at the end, {worst:.1f}' during the roll"
 
 
 def test_guard_goto_sent_during_a_small_correction_is_planned_afresh():

@@ -1648,10 +1648,6 @@ class Polaris:
             self.logger.warning(f"==STARTUP== Tracking restore failed: {e}")
         await self.tracking_state_loop()
 
-    def fast_speed_calibrated(self, axis):
-        """An approved FAST speed calibration test on this motor (control.PID_Controller picks its roll rate by it)."""
-        return self._cm.fast_calibrated(axis)
-
     async def restore_tracking_on_reconnect(self):
         """After a comms loss (the watchdog rebooted the connection): the driver's own tracking carries on through it
         (TRACK and the target are kept); if it is no longer tracking but the saved state says it was, restore it as at
