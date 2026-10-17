@@ -305,9 +305,18 @@ As the Alpaca Driver needs to convert RA and Dec pulses into suttle changes in M
 PHD2 assumes that the mapping of RA and Dec pulses to pixel motion on the guide camera are fixed, as per an Equatorial mount. This implies that the Calibration only needs to be repeated if:
 
 * You physically rotate the guide camera relative to the mounts RA or Dec axis.
-* You slew to a new DSO and have a different Position Angle.
-* You change the roll angle for framing, indrectly changing the Position Angle.
+* You slew to a new DSO and have a different Position Angle (not needed with the Rotator setting below).
+* You change the roll angle for framing, indrectly changing the Position Angle (not needed with the Rotator setting below).
 * You change any equipment like the guide scope or main camera or lens focal length
+
+**One calibration per night with the Rotator** - 
+If PHD2 is connected to the **Alpaca Benro Polaris Rotator**, PHD2 can adjust its calibration itself when the Position Angle changes, so you don't need to recalibrate after slewing to a new target or changing the roll angle. For this to work you need to change one PHD2 setting:
+1. Click the **Brain Button** or choose **Advanced Settings** from the **Guide** menu
+2. Select the **Other Devices** tab
+3. Under **Rotator Settings**, enable **Reverse the sign of Angle**
+4. Click **Ok**
+
+With this setting, PHD2 correctly uses the Rotator's roll angle to adjust the calibration when you slew to another target at a different roll angle. You should only need to do one PHD2 calibration per night!
 
 If you have a separate ZWO Rotator on just the main imaging sensor, and the guide camera is fixed relative to the mount, then you do not need to recalibrate on ZWO Rotator changes.
 
