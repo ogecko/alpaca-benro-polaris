@@ -553,6 +553,30 @@ def test_guard_alt_jog_through_gimbal_lock_does_not_flip(caplog, theta3):
     assert theta2 < -2.0 and swing < 3.0, f"M2 {theta2:.1f}, M1/M3 reference swung {swing:.1f} deg"
 
 
+@pytest.mark.parametrize("axis, rate", [("ra", -1.0), ("ra", -9.0), ("b", -3.0)])
+def test_guard_sky_axis_jog_finishes_where_it_got_to(axis, rate):
+    """Field 2026-10-17: an RA jog while not tracking barely moved. A RA/Dec/PA or galactic jog runs the PID in TRACK,
+    and releasing it went IDLE at once: the motors stopped wherever they were, 1-2.5 deg short of the jog's reference,
+    which was left behind them. It now finishes in AUTO on the Az/Alt the reference got to."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place((17.0, 32.0, -38.5))
+        theta0 = np.array(tw.theta)
+        tw.pid.set_axis_velocities({axis: rate})
+        tw.run(4.8)
+        tw.pid.set_axis_velocities({axis: 0.0})
+        t0 = tw.clock.t
+        while tw.pid.mode != "IDLE" and tw.clock.t - t0 < 30:
+            tw.run(0.2)
+        mode, moved = tw.pid.mode, float(np.max(np.abs(np.array(tw.theta) - theta0)))
+        err = np.abs(np.array(tw.pid.theta_ref) - np.array(tw.pid.theta_pv)) * 60
+        tw.close()
+    finally:
+        mp.undo()
+    assert mode == "IDLE" and float(np.max(err)) < 2.0 and moved > 1.0, f"{mode}, moved {moved:.1f}, err {err.round(1)}'"
+
+
 def test_motor_move_retarget_keeps_the_speed():
     move = MotorMove(8.0, 5.0)
     move.start(np.zeros(3), (60.0, 0.0, 0.0))

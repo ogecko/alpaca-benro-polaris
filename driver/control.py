@@ -1027,7 +1027,17 @@ class PID_Controller():
         self.set_Ka_array(Config.pid_Ka)          # constrain() sets these later in the step; needed now
         max_step = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL) * self.dt if self.dt > 0 else 0.0
         keys = list(AXIS_MAP)
-        ramped = ramp_rates([self.axis_v_act[k] for k in keys], [self.axis_v_sp[k] for k in keys], max_step)
+        target = dict(self.axis_v_sp)
+        if self.dt > 0 and any(target.values()):
+            # no faster than the motors can follow: a roll jog at 9 deg/s near roll 0 (Alt 27) needed M1 at ~20 deg/s,
+            # its reference ran 30 deg ahead and the FLIP check stopped the jog there (field 2026-10-17)
+            self.set_Kv_array(Config.pid_Kv)
+            need = np.abs(self._jog_omega(target))
+            cap = np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
+            scale = float(np.min(np.where(need > 1e-9, cap / np.maximum(need, 1e-9), np.inf)))
+            if scale < 1.0:
+                target = {k: v * scale for k, v in target.items()}
+        ramped = ramp_rates([self.axis_v_act[k] for k in keys], [target[k] for k in keys], max_step)
         self.axis_v_act = {k: float(v) for k, v in zip(keys, ramped)}
 
     def _native_alpha_v_sp(self):
@@ -2013,14 +2023,18 @@ class PID_Controller():
             d1 = theta_final[0] - self.theta_pv[0]
             cause = ('FLIP CW' if d1 > 0 else 'FLIP CCW') if abs(d1) > 90 else 'LOCK'
             self._move_in_motor_angles(cause, 'gimbal lock on path', theta_final)
-        else:
-            # FLIP: if far away from target (in M1 or M3) then cache the target
-            distance = self.theta_ref - self.theta_pv
-            if abs(distance[0])>30 or abs(distance[2])>30:
-                cause = 'FLIP CW' if self._lp.flipCW else 'FLIP CCW'
+        elif is_flip(self.theta_pv, self.theta_ref):
+            # FLIP: the reference changed IK branch (M1 and M3 both ~180 deg away: tracking or a jog past the
+            # -8..+8 M2 overlap, a goto left to the PID). Judged by the branch, not by a 30 deg gap: a jog whose
+            # reference ran ahead of the motors (a roll jog near roll 0) was taken for a flip and paused
+            cause = 'FLIP CW' if self._lp.flipCW else 'FLIP CCW'
+            if self._has_active_jog() or not Config.coordinated_speed_control:
+                # a jog's planned move would be dropped at once (plan_goto plans no jog): the PID takes it, as before
                 self.logger.info(f'{cause} Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
                 self.set_theta_ref_cache(cause, self.theta_ref.copy())
-                self._lp.flipCW = not self._lp.flipCW
+            else:
+                self._move_in_motor_angles(cause, 'reference on the other branch', self.theta_ref.copy())
+            self._lp.flipCW = not self._lp.flipCW
 
     def _move_in_motor_angles(self, cause, why, theta_final):
         """Go straight to theta_final in motor angles: planned with the planner's speed profile (coordinated speed
@@ -2331,7 +2345,15 @@ class PID_Controller():
         # If in PID TRACK mode but polaris is not tracking (ie promoted by jog), demote to IDLE when jog stops
         is_jog_finished = (self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog()
                            and not self.worm_test_active())
-        if is_goto_finished or is_jog_finished:
+        if is_jog_finished:
+            # a RA/Dec/PA jog while not tracking (TRACK only for the jog): finish it where its reference got to, held
+            # in Az/Alt as an Az/Alt jog does. Going IDLE at once stopped the motors wherever they were, up to 2.5 deg
+            # short (field 2026-10-17: an RA jog barely moved), and left the setpoint behind them
+            alpha = np.array(self.alpha_ref, dtype=float)
+            self.set_pid_mode('AUTO')
+            self.set_alpha_target({'az': alpha[0], 'alt': alpha[1], 'roll': alpha[2]})
+            return
+        if is_goto_finished:
             self.set_pid_mode('IDLE')
             self.was_moving = True
             self.is_moving = False
