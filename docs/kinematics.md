@@ -388,15 +388,17 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 **2. Review the result.**
 
-Each test is retained. The displayed profile under Test Results is **pooled over recent tests**, up to a maximum of five tests.
+Each test is retained, and the profile displayed under **Test Results** is pooled across recent worm profile test runs, up to a maximum of five. Pooling the results helps identify the worm gear error more reliably than relying on a single test.
 
-The result row shows one line per motor in each column, under a first line that says what the column is:
+The results are displayed in columns, each with a heading and one line per motor:
 
-* **Baseline:** `current profile`: the approved profile, which corrects each motor while **PEC Worm Gear Correction** is switched on (`none` before any is approved).
+* **Baseline:** `current profile`: The currently approved correction profile, applied while PEC Worm Gear Correction is enabled. Before a profile has been approved, this shows none.
 
-* **Test Result:** `last 5 tests pooled`: the profile that **Approve** would apply. It is fitted over the recent tests together, not just the latest one (`last test` when there is only one). For each motor it shows the wobble's size and the angle where it peaks.
+* **Test Result:** `last test`: The correction profile that would be applied if you click Approve. If you have run the worm profile test more than once, the tests are pooled together and it shows `last 5 tests pooled`. For each motor, the result gives the estimated wobble amplitude and the worm angle at which the error peaks.
 
-  For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The angle after @ indicates where, within the motor’s 6° worm turn, its error is largest (0–360°, relative to the worm’s angle). Motors with wobble too small to measure are marked `off` and left uncorrected.
+    For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The value before @ is the estimated error amplitude in arcseconds; the value after @ is the angle, from 0° to 360°, within the motor's 6° worm cycle where the error is largest. The angle is relative to the worm's rotational position.
+  
+    For example, `M3 off` means the test could not reliably identify a worm gear error for M3, so no correction is applied to that motor. This may be because the wobble is too small to measure reliably or there is insufficient data. Running additional tests may help identify the error. Results are pooled across up to five tests, allowing additional data to improve the fit when the error is difficult to measure.
 
 * **Change:** `from baseline`: how far each motor's correction would move from the Baseline if you approve the Test Result (`+0"` once it is the current profile).
 
