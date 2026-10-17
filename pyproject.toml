@@ -34,7 +34,9 @@ dev = [
     "pytest>=8.0.0",
 ]
 notebooks = [
+    "anywidget>=0.9",
     "ipykernel>=6.29.0",
+    "ipywidgets>=8.1",
     "nbformat>=5.10.0",
     "pandas>=2.2.0",
     "plotly>=5.24.0",

@@ -2355,6 +2355,144 @@ def eq_cone_motor_map(lat_deg, step=2.5, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
     return m1, m2, m3, np.degrees(np.arcsin(np.clip(bore[..., 2], -1, 1)))
 
 
+# ── Tripod collision: the M3 disk (utility/analyse_span.ipynb) ──────────────────────────────────────────────────
+# The camera and OTA sit square to the M3 axis, so spinning M3 sweeps the OTA - front and rear - round a disk at
+# right angles to that axis. The disk's orientation is set by M1 and M2 alone (the M3 axis is camera-up, eq_fk_vectors);
+# M3 only moves the OTA round it. The tripod is modelled, as seen from the M3 pivot, as a cone of half-angle
+# tripod_deg round the nadir (the legs, allowing for the OTA's length). The disk reaches within asin(|up_z|) of the
+# nadir: a steep M3 axis keeps it clear, a near-horizontal one sweeps it down into the tripod. On a wedge at M2 = 0
+# the M3 axis is the polar axis (elevation |latitude|); M2 tilts it, and M1 decides which way: down towards the
+# horizon (worst) or sideways, the disk then passing down the side of the tripod.
+
+EQ_TRIPOD_DISK_DEG = 25.0       # the tripod's half-angle round the nadir seen from the M3 pivot (a guess: measure it)
+
+
+def eq_disk_nadir_gap(up):
+    """How close (deg) the M3 disk - the plane square to the M3 axis `up` (..., 3) - comes to the nadir."""
+    return np.degrees(np.arcsin(np.clip(np.abs(np.asarray(up, dtype=float)[..., 2]), 0.0, 1.0)))
+
+
+def eq_ota_nadir_gap(bore):
+    """How close (deg) the OTA comes to the nadir, front or rear: 90 - |boresight altitude| (pointing near the zenith
+    puts the rear end near the nadir)."""
+    return 90.0 - np.degrees(np.arcsin(np.clip(np.abs(np.asarray(bore, dtype=float)[..., 2]), 0.0, 1.0)))
+
+
+def eq_disk_map(lat_deg, step=2.0):
+    """The M3 disk's nadir gap over M1 (-180..180) x M2 (-10..82): (m1, m2, gap[m2, m1]). M3 doesn't change it."""
+    from control_eq import wedge_alignQ_B2T
+    m1 = np.arange(-180, 180 + 1e-9, step)
+    m2 = np.arange(-10, 82 + 1e-9, step)
+    T2, T1 = np.meshgrid(m2, m1, indexing="ij")
+    _, up = eq_fk_vectors(np.stack([T1, T2, np.zeros_like(T1)], axis=-1), wedge_alignQ_B2T(lat_deg))
+    return m1, m2, eq_disk_nadir_gap(up)
+
+
+def eq_disk_critical_m2(m1, m2, gap, tripod_deg=EQ_TRIPOD_DISK_DEG):
+    """For each M1, the least M2 at which the disk reaches into the tripod (NaN: never, within M2's range)."""
+    hit = gap < tripod_deg
+    return np.array([m2[np.argmax(hit[:, j])] if hit[:, j].any() else np.nan for j in range(len(m1))])
+
+
+def eq_ota_m3_map(lat_deg, m1, step=2.0):
+    """At one M1: the OTA's nadir gap (front or rear) over M3 (-180..180) x M2 (-10..82): (m2, m3, gap[m2, m3]) -
+    which M3 angles actually reach the tripod once the disk does."""
+    from control_eq import wedge_alignQ_B2T
+    m2 = np.arange(-10, 82 + 1e-9, step)
+    m3 = np.arange(-180, 180 + 1e-9, step)
+    T2, T3 = np.meshgrid(m2, m3, indexing="ij")
+    bore, _ = eq_fk_vectors(np.stack([np.full_like(T2, float(m1)), T2, T3], axis=-1), wedge_alignQ_B2T(lat_deg))
+    return m2, m3, eq_ota_nadir_gap(bore)
+
+
+def eq_disk_scene(lat_deg, theta, tripod_deg=EQ_TRIPOD_DISK_DEG, n=73):
+    """Geometry for a 3D view, M3 pivot at the origin, topocentric (x East, y North, z Up), unit OTA half-length:
+    'pole' (polar axis), 'up' (M3 axis), 'disk' (n, 3) circle swept by the OTA ends, 'front'/'rear' OTA ends at this
+    M3, 'tripod' (legs: 3 lines down the cone round the nadir), 'cone' (the cone's rim at unit distance), 'gap'."""
+    from control_eq import wedge_alignQ_B2T
+    bore, up = eq_fk_vectors(np.asarray(theta, dtype=float), wedge_alignQ_B2T(lat_deg))
+    a = np.cross(up, [0.0, 0.0, 1.0])
+    a = a / np.linalg.norm(a) if np.linalg.norm(a) > 1e-9 else np.array([1.0, 0.0, 0.0])
+    b = np.cross(up, a)
+    t = np.linspace(0, 2 * np.pi, n)
+    disk = np.outer(np.cos(t), a) + np.outer(np.sin(t), b)
+    r, h = math.sin(math.radians(tripod_deg)), math.cos(math.radians(tripod_deg))
+    legs = [np.array([[0, 0, 0], [r * math.cos(k) * 1.4, r * math.sin(k) * 1.4, -h * 1.4]]) for k in np.radians([90, 210, 330])]
+    cone = np.stack([r * np.cos(t), r * np.sin(t), -h * np.ones_like(t)], axis=-1)
+    return {"pole": eq_m1_axis(lat_deg), "up": up, "disk": disk, "front": bore, "rear": -bore, "tripod": legs,
+            "cone": cone, "gap": float(eq_disk_nadir_gap(up)), "ota_gap": float(eq_ota_nadir_gap(bore))}
+
+
+def eq_segment_distance(p0, p1, q0, q1):
+    """Least distance between the segments p0-p1 and q0-q1 (3-vectors)."""
+    u, v, w = p1 - p0, q1 - q0, p0 - q0
+    a, b, c, d, e = u @ u, u @ v, v @ v, u @ w, v @ w
+    den = a * c - b * b
+    s = np.clip((b * e - c * d) / den, 0.0, 1.0) if den > 1e-12 else 0.0
+    t = np.clip((b * s + e) / c, 0.0, 1.0) if c > 1e-12 else 0.0
+    s = np.clip((b * t - d) / a, 0.0, 1.0) if a > 1e-12 else 0.0       # re-solve s for the clamped t
+    return float(np.linalg.norm((p0 + s * u) - (q0 + t * v)))
+
+
+def eq_tripod_clearance(pts, leg_spread_deg, depth):
+    """Signed distance (units of the OTA's front length) from points (n, 3) to the tripod, modelled as a solid cone:
+    apex at the wedge (origin), axis to the nadir, half-angle the legs' splay, down to `depth` below the apex. The legs
+    stand on its surface and the space between them (spreader, tray, head) counts as tripod. Negative: inside."""
+    p = np.atleast_2d(np.asarray(pts, dtype=float))
+    r = np.linalg.norm(p, axis=1)
+    down = -p[:, 2]                                          # depth below the apex, along the axis
+    radial = np.hypot(p[:, 0], p[:, 1])
+    half = math.radians(leg_spread_deg)
+    # distance to the slanted surface, signed (+ outside): the point's offset across the cone's side
+    side = radial * math.cos(half) - down * math.sin(half)
+    out = np.where(down <= 0.0, r, side)                     # above the apex: its distance to the apex
+    below = down - depth                                     # past the legs' feet: outside by that much
+    return np.where(below > 0.0, np.maximum(out, below), out)
+
+
+def eq_rig_scene(lat_deg, theta, front=1.0, rear=0.5, leg_spread_deg=20.0, leg_len=1.5, ota_r=0.05, leg_r=0.02,
+                 joint=0.1, n=145):
+    """The rig on an ideal wedge for a 3D view and a collision check, topocentric (x East, y North, z Up), units of
+    the OTA's front length: the tripod's legs splay leg_spread_deg from the vertical below the wedge (origin, one leg
+    towards the pole); M1 sits joint above the wedge along the polar axis, M2 joint above M1, M3 joint above M2 along
+    the M3 axis; the OTA runs front ahead of M3 along the boresight and rear behind it. The tripod is the solid cone
+    the legs span (eq_tripod_clearance). Returns the joints, axes, the OTA ends, the legs, the disks the front and
+    rear sweep as M3 turns, and 'clearance' (the OTA's least distance to the tripod less its radius and the legs': < 0
+    is a hit), 'disk_clearance' (the same over every M3 angle: < 0 means some M3 angle hits)."""
+    from control_eq import wedge_alignQ_B2T
+    theta = np.asarray(theta, dtype=float)
+    bore, up = eq_fk_vectors(theta, wedge_alignQ_B2T(lat_deg))
+    t1, t2 = np.radians(theta[0]), np.radians(theta[1])
+    b0 = np.array([np.cos(t2) * np.sin(t1), np.cos(t2) * np.cos(t1), np.sin(t2)])
+    u0 = np.array([-np.sin(t2) * np.sin(t1), -np.sin(t2) * np.cos(t1), np.cos(t2)])
+    m2_axis = _eq_rot(wedge_alignQ_B2T(lat_deg)) @ np.cross(b0, u0)       # M2's axis (base frame -> topocentric)
+    pole = eq_m1_axis(lat_deg)
+    p1 = joint * pole
+    p2 = p1 + joint * pole
+    p3 = p2 + joint * up
+    tip, tail = p3 + front * bore, p3 - rear * bore
+    paz = math.atan2(pole[0], pole[1])
+    sp = math.radians(leg_spread_deg)
+    legs = [np.array([[0.0, 0.0, 0.0], leg_len * np.array([math.sin(sp) * math.sin(paz + k), math.sin(sp) * math.cos(paz + k),
+                                                            -math.cos(sp)])]) for k in np.radians([0.0, 120.0, 240.0])]
+    # the boresight's directions as M3 turns, from a direction fixed by M1/M2 alone: sampled from the current
+    # boresight, the samples moved with M3 and the disk's colour flickered as M3 turned (the disk itself doesn't move)
+    ref = np.cross(up, [0.0, 0.0, 1.0])
+    ref = ref / np.linalg.norm(ref) if np.linalg.norm(ref) > 1e-9 else np.cross(up, [1.0, 0.0, 0.0]) / np.linalg.norm(np.cross(up, [1.0, 0.0, 0.0]))
+    tt = np.linspace(0, 2 * np.pi, n)
+    ring = np.outer(np.cos(tt), ref) + np.outer(np.sin(tt), np.cross(up, ref))
+    disk_front, disk_rear = p3 + front * ring, p3 - rear * ring
+    s_ = np.linspace(-rear, front, 61)
+    depth = leg_len * math.cos(sp)
+    margin = ota_r + leg_r
+    gap = float(eq_tripod_clearance(p3 + np.outer(s_, bore), leg_spread_deg, depth).min()) - margin
+    sweep = p3 + s_[None, :, None] * ring[:, None, :]                    # every OTA point at every M3 angle
+    disk_gap = float(eq_tripod_clearance(sweep.reshape(-1, 3), leg_spread_deg, depth).min()) - margin
+    return {"pole": pole, "up": up, "m2_axis": m2_axis, "bore": bore, "joints": np.array([p1, p2, p3]), "front": tip,
+            "rear": tail, "legs": legs, "disk_front": disk_front, "disk_rear": disk_rear,
+            "clearance": gap, "disk_clearance": disk_gap}
+
+
 def eq_latitude_summary(lats, rig_tilt_limits=(EQ_RIG_TILT_OFF, 100.0, EQ_THETA2_MAX), n_pairs=400,
                         tripod_cone_deg=EQ_TRIPOD_CONE_DEG, seed=0):
     """Per latitude: the mean share of PA reachable over the sky above the horizon (motor reach alone, and with
