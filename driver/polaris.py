@@ -559,27 +559,61 @@ class Polaris:
         return time
 
 
+    SPEED_TEST_MAX_S = 15 + 1                        # the longest one speed's measurement runs (max_interval) + a margin
+
+    def _speed_test_limits(self, axis):
+        """The raw (zeta) range a speed test may run M1/M3 in: the motor limits less the safety margin."""
+        safety = Config.zeta_safety_margin
+        lo = getattr(Config, f'z{axis + 1}_min_limit') + safety
+        hi = getattr(Config, f'z{axis + 1}_max_limit') - safety
+        return lo, hi
+
     async def moveaxis_speed_test(self, axis, rates):
         self.lifecycle.start()
+        self._kf.log_untracked = True                # log_position: KFLOG (raw 518 angles, omega_meas) while it runs
         motor = self._motors[axis]
-        for rate in rates:
-            if self.lifecycle.should_stop():
-                break
-            direction = +1
-            # check axis 1 bounds and reverse direction if necc 
-            if axis==1 and self._theta_raw.any():
-                if self._theta_raw[1] > 60:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
-                    direction = -1
-                if self._theta_raw[1] < 20:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
+        direction = +1
+        try:
+            # the PID commands the motors while it homes/parks/goes to: a test started during the last test's return
+            # home measured the PID's settling, not its speed (M1 RAW 1000 read RAW -1.8, -0.012 deg/s)
+            t0 = time.monotonic()
+            while self._pid.mode in ('HOMING', 'PARKING', 'AUTO') and time.monotonic() - t0 < 120:
+                if self.lifecycle.should_stop():
+                    return
+                await asyncio.sleep(0.5)
+            for rate in rates:
+                if self.lifecycle.should_stop():
+                    break
+                # check axis 1 bounds and reverse direction if necc
+                if axis==1 and self._theta_raw.any():
                     direction = +1
-            # send the move request
-            await motor.set_motor_speed(rate * direction, "RAW")
-            result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
-            self._cm.addTestResult(axis, rate, result, stdev, status)
+                    if self._theta_raw[1] > 60:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = -1
+                    if self._theta_raw[1] < 20:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = +1
+                elif axis in (0, 2) and self._zeta_meas is not None:
+                    # M1/M3: run towards the limit with room for this speed's whole measurement (M3 ran into its
+                    # limit at the fast speeds: 8 deg/s for 15 s is 120 deg); stop first when reversing, as M2 does
+                    lo, hi = self._speed_test_limits(axis)
+                    z = float(self._zeta_meas[axis])
+                    travel = abs(motor.to_dps(rate, "RAW")) * self.SPEED_TEST_MAX_S
+                    room = {+1: hi - z, -1: z - lo}
+                    want = direction if room[direction] >= travel else -direction if room[-direction] >= travel \
+                        else max(room, key=room.get)
+                    if want != direction:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = want
+                # send the move request
+                await motor.set_motor_speed(rate * direction, "RAW")
+                result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
+                self._cm.addTestResult(axis, rate, result, stdev, status)
+        finally:
+            self._kf.log_untracked = False
 
         # ensure we stop all movement
         await motor.set_motor_speed(0, "RAW")
@@ -608,12 +642,19 @@ class Polaris:
                 return 0,0,0,"NO DATA"
             omega = self._omega_meas[axis]
             omega_samples.append(omega)
+            if axis in (0, 2) and self._zeta_meas is not None:
+                lo, hi = self._speed_test_limits(axis)
+                if not lo <= float(self._zeta_meas[axis]) <= hi:
+                    await self._motors[axis].set_motor_speed(0, "RAW")
+                    self.logger.warning(f"== TEST == Axis {axis} | RAW {rate_raw} | stopped at the motor limit margin "
+                                        f"(zeta {self._zeta_meas[axis]:+.1f})")
+                    return 0, abs(rate_raw), 0, "LIMIT"
 
             # if we potentially have enough samples, take a window the last set
             if len(omega_samples) >= required_stable_samples:
                 window = omega_samples[-required_stable_samples:]
                 stdev = np.std(window)
-                if stdev < stable_tolerance and (np.mean(window) > 0.002 or rate == 0):
+                if stdev < stable_tolerance and (abs(np.mean(window)) > 0.002 or rate == 0):   # either direction
                     measured_dps = float(np.mean(window)) if rate>0 else 0
                     self.logger.info(f"== TEST == Stable | Axis {axis} |  RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
                     break

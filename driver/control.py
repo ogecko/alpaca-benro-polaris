@@ -45,6 +45,7 @@ ARRIVED_SETTLED_MEAS = 3      # ...for this many measurements in a row (0.6 s): 
 class KalmanFilter:
     def __init__(self, logger, initial_state):
         self._logger = logger
+        self.log_untracked = False      # log_position: KFLOG also without a theta_ref (set by a motor speed test)
         self._time = time.monotonic()
         self.measurement_lag_s = 0.0            # how late the most recent message's own receipt was -- see predict()
         self._need_first_measurement = True
@@ -190,7 +191,7 @@ class KalmanFilter:
         }
         kflogger = logging.getLogger('kf')
         kflogger.info(payload)
-        if Config.log_position and (theta_ref is not None):
+        if Config.log_position and (theta_ref is not None or self.log_untracked):
             self._logger.info(f"KFLOG {payload}")
 
 
@@ -335,7 +336,7 @@ class CalibrationManager:
         dps = float(interpToBaseline.toDPS(raw))
         change = (result/dps - 1) * 100
         status = 'HIGH CHANGE' if abs(change)>25 and status in ['COMPLETED'] else status
-        bad_test = status in ['HIGH STDEV', 'HIGH CHANGE', 'NO DATA', 'STOPPED']
+        bad_test = status in ['HIGH STDEV', 'HIGH CHANGE', 'NO DATA', 'STOPPED', 'LIMIT']
         test_result = f'{result:.7f}' if not bad_test else ''
         test_change = f'{change:.2f}%'
         test_stdev = f'{stdev:.7f}'
