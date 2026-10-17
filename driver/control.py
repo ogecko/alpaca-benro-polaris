@@ -3373,7 +3373,8 @@ class SyncManager(PecMixin, WormMixin):
         first_entry["a_roll"] = 0 
         sm_logger.info(first_entry)
 
-    def saveSyncDataToFile(self, path=SYNC_POINTS_PATH):
+    def saveSyncDataToFile(self, path=None):
+        path = SYNC_POINTS_PATH if path is None else path   # looked up now, not at import (tests redirect it)
         ensure_data_dir_exists()
         entries_to_save = [
             {k: v for k, v in entry.items() if k not in ('w_recency', 'w_proximity', 'w_polar', 'w_total', 'residual_vector', 'residual_magnitude')}
@@ -3390,7 +3391,8 @@ class SyncManager(PecMixin, WormMixin):
         with open(path, 'w') as f:
             json.dump(data, f, indent=2)
 
-    def loadSyncDataFromFile(self, path=SYNC_POINTS_PATH):
+    def loadSyncDataFromFile(self, path=None):
+        path = SYNC_POINTS_PATH if path is None else path
         if not os.path.exists(path):
             return False
         try:

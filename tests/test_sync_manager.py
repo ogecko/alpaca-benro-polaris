@@ -111,6 +111,18 @@ def test_sync_history(mock_config):
     assert sm.sync_history[0]["a_az"] == 170
     assert sm.sync_history[1]["a_roll"] == 5
 
+def test_syncs_are_saved_to_the_redirected_file_not_data(mock_config):
+    """The sync manager saves on every sync; with SYNC_POINTS_PATH looked up when it saves, tests/conftest.py's
+    temporary file gets them (the default argument fixed at import wrote the developer's data/sync_points.json)."""
+    import control, json
+    p = Polaris()
+    sm = SyncManager(logging.getLogger(), p)
+    sm.sync_az_alt(0, 0, 170, 45.0)
+    saved = json.load(open(control.SYNC_POINTS_PATH))
+    assert str(control.SYNC_POINTS_PATH) != str(control.DATA_DIR / 'sync_points.json')
+    assert [e['a_az'] for e in saved['sync_points']] == [170]
+
+
 def test_no_sync_adj(mock_config):
     p = Polaris()
     logger = logging.getLogger()

@@ -6,8 +6,23 @@ skipped by default so the regular suite stays quick. Run them with:
 
     uv run pytest --runslow                 # whole suite including slow tests
     uv run pytest --runslow -m slow         # only the slow tests
+
+Every test writes its alignment model (sync_points.json) to a temporary directory: the sync manager saves it on every
+sync, and the tests' syncs (Az 170/80/260/180) overwrote the developer's data/sync_points.json, so the next driver
+start restored 4 sync points that were never taken.
 """
+import os
+import sys
+
 import pytest
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
+import control                                                                      # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _sync_points_in_tmp(tmp_path, monkeypatch):
+    monkeypatch.setattr(control, 'SYNC_POINTS_PATH', tmp_path / 'sync_points.json')
 
 
 def pytest_addoption(parser):
