@@ -2493,6 +2493,45 @@ def eq_rig_scene(lat_deg, theta, front=1.0, rear=0.5, leg_spread_deg=20.0, leg_l
             "clearance": gap, "disk_clearance": disk_gap}
 
 
+def eq_tripod_sky_map(lat_deg, front=1.0, rear=0.5, leg_spread_deg=20.0, leg_len=1.5, ota_r=0.05, leg_r=0.02,
+                      joint=0.1, step=(4.0, 2.0, 4.0), az_step=15.0, alt_step=7.5, roll_step=10.0):
+    """What the tripod takes from the sky, by pointing: every motor pose on a grid (M1, M2, M3 steps `step`; M2 over
+    its reference range) is put through the rig (eq_rig_scene's geometry, the tripod as its legs' solid cone) and
+    binned by the OTA's Az / Alt / roll (roll: camera-up from the vertical plane through the boresight). Returns
+    (az_edges, alt_edges, reach, taken): reach[alt, az] the share of rolls the motors reach there, taken[alt, az] the
+    share of those the tripod blocks (NaN where nothing is reachable)."""
+    from control_eq import wedge_alignQ_B2T
+    t1 = np.arange(0.0, 360.0, step[0])
+    t2 = np.arange(-8.0, EQ_THETA2_MAX + 1e-9, step[1])
+    t3 = np.arange(0.0, 360.0, step[2])
+    th = np.stack(np.meshgrid(t1, t2, t3, indexing="ij"), axis=-1).reshape(-1, 3)
+    bore, up = eq_fk_vectors(th, wedge_alignQ_B2T(lat_deg))
+    p3 = 2 * joint * eq_m1_axis(lat_deg) + joint * up
+    depth = leg_len * math.cos(math.radians(leg_spread_deg))
+    gap = np.full(len(th), np.inf)
+    for s_ in np.linspace(-rear, front, 13):
+        gap = np.minimum(gap, eq_tripod_clearance(p3 + s_ * bore, leg_spread_deg, depth))
+    hit = gap - ota_r - leg_r < 0
+    az, alt = eq_vec_azalt(bore)
+    z = np.array([0.0, 0.0, 1.0])
+    u0 = z - (bore @ z)[:, None] * bore
+    u0 /= np.maximum(np.linalg.norm(u0, axis=1, keepdims=True), 1e-9)
+    roll = np.degrees(np.arctan2(np.einsum("ij,ij->i", np.cross(u0, up), bore), np.einsum("ij,ij->i", u0, up))) % 360
+    az_edges = np.arange(0.0, 360.0 + 1e-9, az_step)
+    alt_edges = np.arange(-90.0, 90.0 + 1e-9, alt_step)
+    nr = int(round(360.0 / roll_step))
+    ia = np.clip(np.digitize(alt, alt_edges) - 1, 0, len(alt_edges) - 2)
+    iz = np.clip(np.digitize(az, az_edges) - 1, 0, len(az_edges) - 2)
+    ir = np.clip((roll // roll_step).astype(int), 0, nr - 1)
+    reach = np.zeros((len(alt_edges) - 1, len(az_edges) - 1, nr), bool)
+    clear = np.zeros_like(reach)
+    np.logical_or.at(reach, (ia, iz, ir), True)
+    np.logical_or.at(clear, (ia, iz, ir), ~hit)
+    n_reach = reach.sum(-1)
+    taken = np.where(n_reach > 0, 1.0 - clear.sum(-1) / np.maximum(n_reach, 1), np.nan)
+    return az_edges, alt_edges, n_reach / nr, taken
+
+
 def eq_latitude_summary(lats, rig_tilt_limits=(EQ_RIG_TILT_OFF, 100.0, EQ_THETA2_MAX), n_pairs=400,
                         tripod_cone_deg=EQ_TRIPOD_CONE_DEG, seed=0):
     """Per latitude: the mean share of PA reachable over the sky above the horizon (motor reach alone, and with
