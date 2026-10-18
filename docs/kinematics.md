@@ -364,17 +364,19 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 **To perform the worm profile calibration:**
 
-1. Point the mount at a patch of sky **30-45° above the horizon** in the **eastern or western sky: Azimuth roughly 45-135° (east) or 225-315° (west)**, as shown in Pilot. Avoid due north or south and the area around the celestial pole. Choose a field with plenty of stars and about ±9° of clear sky around it (no trees or buildings), as the test moves the mount up to 7.5° each way.
+1. On Pilot's **Settings** page, set **Focal Length** and **Focal Ratio** to the lens you are imaging with, for example 200 mm and F4. Each test records them, so its results are pooled with the other tests for that lens and build that lens's own profile (see *Profiles per lens* below). If they are left at the defaults, the test is filed under the wrong lens.
 
-2. In NINA (or similar), create a looping sequence of around 60 iterations. Within the loop
+2. Point the mount at a patch of sky **30-45° above the horizon** in the **eastern or western sky: Azimuth roughly 45-135° (east) or 225-315° (west)**, as shown in Pilot. Avoid due north or south and the area around the celestial pole. Choose a field with plenty of stars and about ±9° of clear sky around it (no trees or buildings), as the test moves the mount up to 7.5° each way.
+
+3. In NINA (or similar), create a looping sequence of around 60 iterations. Within the loop
    * Run a repeating **Solve and Sync** using short exposures. 
    * Add a **Wait for Time Span** of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.
 
-3. Start the sequence of solve and syncs, and keep the sequence running until the test finishes.
+4. Start the sequence of solve and syncs, and keep the sequence running until the test finishes.
 
-4. On the Alpaca Pilot, change to the **Speed Calibration** page, and select the **M1-M2-M3-WORM-PROFILE** test case, then press **Test** and confirm the execution. This one test measures all three motors, and takes about 15 minutes to complete.
+5. On the Alpaca Pilot, change to the **Speed Calibration** page, and select the **M1-M2-M3-WORM-PROFILE** test case, then press **Test** and confirm the execution. This one test measures all three motors, and takes about 15 minutes to complete.
 
-5. The driver will enable tracking and rotate to Roll ±45° (on the side of 0 the camera is already on, keeping the same Az/Alt, and back again when the test finishes): at ±45° M1 and M3 move the view in clearly different directions, so their worms separate well. It also keeps each motor's steps within what it can reach at this pose. It will then take measurements at 51 different positions (50 steps). Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/51`.
+6. The driver will enable tracking and rotate to Roll ±45° (on the side of 0 the camera is already on, keeping the same Az/Alt, and back again when the test finishes): at ±45° M1 and M3 move the view in clearly different directions, so their worms separate well. It also keeps each motor's steps within what it can reach at this pose. It will then take measurements at 51 different positions (50 steps). Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/51`.
 
 **While the test is running:**
 
