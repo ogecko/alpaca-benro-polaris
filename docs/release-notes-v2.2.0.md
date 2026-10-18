@@ -243,7 +243,7 @@
 * Desktop PC, AMD 7950X (Stellarium Desktop, Siril)
 * Desktop PC, AMD Ryzen 5 3600
 * Raspberry Pi Zero 2 W and up (Driver)
-* GPS Receivers: G71 G-Mouse VK-172; BN-808 G-Mouse UBX-M8030-KT; M10 G-Mouse UBX-M10050-KB (u-blox SR1612U10)
+* GPS Receivers: u-blox 7 UBX-G7020; G71 G-Mouse VK-172; BN-808 G-Mouse UBX-M8030-KT; M10 G-Mouse UBX-M10050-KB (u-blox SR1612U10)
 ### Portable/Mobile Equipment
 * iPhone 13 Max (Stellarium Mobile PLUS)
 * iPad Pro 3rd Generation
