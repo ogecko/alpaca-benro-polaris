@@ -520,3 +520,26 @@ def test_a_legacy_goto_with_it_switched_on_still_completes_on_target(monkeypatch
         assert miss <= 5.0, f'seed {seed}: completed {miss:.1f}" from the target'
         assert not np.any(tw.pid.backlash.active)
         tw.close()
+
+
+def test_a_roll_with_slow_motors_completes_without_waiting_for_their_slack(monkeypatch):
+    """The worm test's roll at Az 295 Alt 34 (M1 and M2 tracking at 0.8"/s) waited for their slack to be taken up by
+    tracking: 47 s, timed out on the mount (2026-10-18 00:00). A slow motor doesn't hold the goto up; its slack stays
+    modelled, so the pointing is still right."""
+    slack = [0.04, 0.12, 0.08]
+    for seed in (0, 1):
+        tw = Twin(monkeypatch, config={**config(True), 'backlash_deg': slack}, seed=seed, backlash_deg=slack, calibrated=True)
+        tw.place(azaltroll_to_theta_ik(295.3, 33.8, 37.3))
+        tw.start_tracking()
+        tw.run(60)
+        tw.polaris.goto_complete_at = None
+        tw.pid.set_alpha_target({'roll': 45.0})
+        tw.pid.set_goto_complete_callback(tw.polaris.markGotoAsComplete)
+        t0 = tw.clock.t
+        while tw.clock.t - t0 < 60 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2)
+        assert tw.polaris.goto_complete_at is not None and tw.polaris.goto_complete_at - t0 < 35.0
+        ra, dec = aligned_radec(tw)
+        off = np.hypot((ra - tw.polaris.rightascension) * 15 * np.cos(np.radians(dec)), dec - tw.polaris.declination) * ARCSEC
+        assert off < 10.0, f'seed {seed}: true pointing {off:.1f}" from the reported'
+        tw.close()

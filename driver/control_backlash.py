@@ -64,6 +64,10 @@ MAX_CROSSINGS = 2                   # full slack crossings per motor per goto be
 CROSSING_SHARE = 0.9                # ... a crossing starting with at least this share of the slack ahead
 ENGAGE_RATE_ARCSEC_S = 0.5          # a motor tracking slower than this has no tracking direction (keeps its last)
 ENGAGED_ARCSEC = 1.0                # within this of engaged the way it tracks: released after a goto
+SLOW_TAKEUP_ARCSEC_S = 2.0          # a motor tracking slower than this doesn't hold a goto up while its slack is taken up
+                                    # (taking_up), and has it pushed through even with a small error: tracking alone took
+                                    # 30-40 s over the last 30" (worm test roll at Az 295 Alt 34, M1/M2 at 0.8"/s: 47 s,
+                                    # timed out on the mount 2026-10-18 00:00)
 TURN_LEAD_SEC = 10.0                # latch a planned reversal from this long before its turning point ...
 TURN_LATE_SEC = 60.0                # ... until this long after it (not later: by then the camera has fallen behind)
 LATCH_ENGAGED_ARCSEC = 5.0          # ... and only a motor engaged on its old flank (within this)
@@ -179,8 +183,13 @@ class BacklashCompensator:
         return self.adjust
 
     def taking_up(self):
-        """A compensated motor is not yet engaged the way it tracks: its slack is still being taken up."""
-        return bool(np.any(self.active & (np.abs(self.adjust) > ENGAGED_ARCSEC / 3600)))
+        """A compensated motor is not yet engaged the way it tracks: its slack is still being taken up. A slow motor
+        (under SLOW_TAKEUP_ARCSEC_S) doesn't hold a goto up: its slack stays modelled (the pointing allows for it) and is
+        taken up by tracking and the push after the goto completes, as at a turning point. Waiting for it, a 2 deg roll
+        took 47 s and timed out (worm test at Az 295 Alt 34, M1/M2 at 0.8"/s: an overshoot reversed M1 through its
+        whole slack, then it waited for the sky)."""
+        fast = np.abs(self._rate) >= SLOW_TAKEUP_ARCSEC_S
+        return bool(np.any(self.active & fast & (np.abs(self.adjust) > ENGAGED_ARCSEC / 3600)))
 
     def update_hold(self, error):
         """Once per control tick, from the PID's error (deg): which compensated motors hold -- engaged the way they
@@ -219,6 +228,11 @@ class BacklashCompensator:
         way = np.where(self.latched, self._heading, self.flank)
         s = np.sign(err)
         s = s * (s == way) * (np.abs(err) * 3600 >= PUSH_ENGAGE_ERR_ARCSEC) * self.active
+        # a slow motor isn't left to take its slack up by tracking alone: push it its own way while its error doesn't
+        # want the other way (pushing through the slack moves the motor, not the output, so not the pointing)
+        slow = self.active & ~self.latched & (np.abs(self._rate) < SLOW_TAKEUP_ARCSEC_S) & \
+            ((np.sign(err) == way) | (np.abs(err) * 3600 < PUSH_ENGAGE_ERR_ARCSEC))
+        s = np.where(slow & (s == 0), way, s)
         rem = wrap180(self.output + s * half - np.asarray(theta_m, float))
         rem = np.where(s * rem > 1 / 3600, rem, 0.0)
         omega = np.sign(rem) * np.minimum(PUSH_DPS, PUSH_SHARE * np.abs(rem) / dt)

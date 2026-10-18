@@ -123,6 +123,64 @@ To disable hybernation:
 
 3. In the Command Prompt window, enter `powercfg /h off`
 
+### Windows Security (Microsoft Defender) scans
+Microsoft Defender can temporarily consume most of a Mini PC's CPU resources during an imaging session, causing the Alpaca Driver to become unresponsive for several seconds.
+
+There are three potential sources of activity:
+* **Real-time scanning:** Defender scans each new image as NINA saves it and scans the driver's log files as they are written.
+* **Scheduled scans:** Defender's scheduled scan may run during the night depending on your configuration.
+* **Automatic maintenance:** Windows can perform maintenance tasks overnight, including security scans, updates and disk optimisation.
+
+Windows automatic maintenance commonly uses 2:00 AM as its default start time. If Defender or other background tasks overload the CPU, the driver may report warnings such as **Event loop lag detected** and **Polaris position update: lag**. The **HIGH CPU LOAD breakdown** log entry may identify MsMpEng.exe (the Defender process) as a major contributor. If the driver freezes for too long, it may disconnect from the Polaris mount and have to reconnect.
+
+**Recommended solution:** Exclude the trusted driver and image folders from Defender's scans, and schedule maintenance and Defender's scheduled scan for the daytime.
+
+
+**Exclude the Alpaca Driver and NINA image folders:**
+
+1. Open **Windows Security** from the Start menu.
+2. Go to **Virus & threat protection**, then **Manage settings** under *Virus & threat protection settings*
+3. Scroll to **Exclusions** and click **Add or remove exclusions**
+4. Click **Add an exclusion**, choose **Folder**, and select:
+   * **Alpaca Driver folder:** For example, `C:\Users\<you>\alpaca-benro-polaris`. This contains the driver, its Python environment, and its logs and data folders.
+   * **NINA image folder:** Use the location configured in NINA under Options > Imaging > Image file path, for example, `D:\Astro\Images\`.
+  
+   Only exclude folders you trust. Defender will no longer scan files in these locations as part of its real-time and scheduled scanning, which reduces protection for those files.
+
+**Schedule Defender's scan for the daytime:**
+
+1. To move Defender's scheduled scan to noon, open Windows PowerShell as Administrator and run:
+
+   ```
+   Set-MpPreference -ScanScheduleTime 12:00:00
+   ```
+
+   This sets the scheduled scan time to 12:00 PM. The actual schedule can also depend on other Defender settings and Windows policies.
+
+**Move Windows automatic maintenance to the daytime.** 
+
+1. Open **Control Panel**.
+2. Goto **System and Security** >  **Security and Maintenance**
+3. Expand **Maintenance** and click **Change maintenance settings**
+4. Set the maintenance time to a daytime hour, such as **12:00 PM**.
+5. Untick **Allow scheduled maintenance to wake up my computer at the scheduled time** if you do not want maintenance to wake the Mini PC.
+5. Click **OK** to save the changes.
+
+**Verify the Defender settings:**
+
+1. Open **PowerShell** as Administrator and run::
+
+   ```
+   Get-MpPreference | Select-Object ExclusionPath, ScanScheduleDay, ScanScheduleTime
+   ```
+
+   Check that the driver and image folders appear under ExclusionPath and that ScanScheduleTime is set to the intended time. ScanScheduleDay indicates the configured scan day; a value of 0 means every day.
+
+**Check the driver log on the next imaging night:**
+   1. After applying these changes, check the driver's log for the **HIGH CPU LOAD** breakdown entries.
+
+   2. If Defender was responsible for the CPU spikes, you should see fewer instances of **MsMpEng.exe** dominating CPU usage and fewer event-loop lag warnings. Other background processes can still cause CPU spikes, so use the log to confirm whether the problem has improved.
+
 ### Remote Desktop Server
 Enable Remote Desktop Server to allow access from your laptop.
 Open Settings > System > Remote Desktop > Enable, Set Password.

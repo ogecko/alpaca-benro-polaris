@@ -647,6 +647,7 @@ It is inactive during ordinary tracking and guiding, jogging, the worm profile t
 Compensation is also inhibited on a motor under the following conditions:
 
 - **Low tracking speed:** A motor moving below 0.5 arcsec/s has no settled tracking side to engage, except during a planned reversal.
+- **Slow motors don't delay a goto:** A goto doesn't wait for a motor tracking below 2 arcsec/s to finish taking up its slack. The pointing still allows for the remaining slack, and the motor finishes taking it up by tracking, with a push, after the goto completes.
 - **A goto near a turning point:** During a goto, compensation is skipped for any motor expected to reach its turning point within 5 minutes.
 - **Near gimbal lock or the M2 limit:** Compensation is disabled for all three motors when M2 is within 12° of gimbal lock or within 1° of its 81.5° limit.
 - **Unsettled gear engagement:** Compensation is skipped for a planned reversal if the motor is not engaged on its previous tracking side.
