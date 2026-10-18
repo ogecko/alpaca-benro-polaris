@@ -24,7 +24,7 @@ from control import CalibrationManager
 from control_worm import (POSITIONS, PROFILE_TEST, CALIBRATION_HISTORY, POOL_TESTS, SETTLE_HOLD_S, JUMP_ARCSEC, BACKLASH_DEG,
                           APPROACH_RELEASE_ARCSEC,
                           WormProfileTest, WormFeedForward, fit_worm_profile, store_profile_test, pooled_profile,
-                          apply_profile, revert_profile, profile_row_fields, row_status, row_fields_from_file)
+                          set_last_test_approved, profile_row_fields, row_status, row_fields_from_file)
 
 WORM = 6.0
 TRUE = {'M1': [24.2, 25.3, 3.0, -2.0], 'M2': [-60.0, 0.3, -6.0, -6.0], 'M3': [-40.2, -29.7, 1.0, 1.5]}   # a1 b1 a2 b2
@@ -225,12 +225,15 @@ def test_several_tests_pool_with_their_own_offset_and_drift():
 
 
 # ── the profile file ──────────────────────────────────────────────────────────────────────────
-def stored(path, n, status='COMPLETED', noise=2.0):
+def stored(path, n, status='COMPLETED', noise=2.0, approve=True, seed0=0):
+    """n tests, each run and then approved (added to the pool) unless approve=False (the last one stays pending)."""
     for k in range(n):
-        s = synthetic_test(seed=k, noise=noise)
+        s = synthetic_test(seed=seed0 + k, noise=noise)
         r = fit_worm_profile([s])
         r['status'] = status
         store_profile_test(path, s, r, timing={'settle_median_s': 7.0})
+        if approve:
+            set_last_test_approved(path, True)
 
 
 def test_tests_are_kept_with_their_samples_up_to_the_history_limit(tmp_path):
@@ -239,7 +242,7 @@ def test_tests_are_kept_with_their_samples_up_to_the_history_limit(tmp_path):
     h = json.load(open(p))['calibration_history']
     assert len(h) == CALIBRATION_HISTORY and all(e['test'] == PROFILE_TEST for e in h)
     assert len(h[-1]['samples']) == len(POSITIONS) and h[-1]['status'] == 'COMPLETED' and h[-1]['timing']['settle_median_s'] == 7.0
-    assert WormFeedForward.load(p).coef.sum() == 0                     # kept, not applied
+    assert all(e['approved'] for e in h)
 
 
 def test_the_pooled_profile_uses_the_last_tests_with_a_clean_fit(tmp_path):
@@ -264,27 +267,44 @@ def test_the_row_shows_completed_when_the_pooled_profile_passes():
     assert row_status({'status': 'COMPLETED'}, {'status': 'POOR FIT', 'motors': {'M1': {}}}) == 'COMPLETED'
 
 
-def test_approve_applies_the_pooled_profile_on_mcu_angles_and_reject_restores(tmp_path):
+def test_a_new_test_waits_out_of_the_pool_until_approved(tmp_path):
     p = str(tmp_path / 'worm_profile.json')
-    WormFeedForward(worm_theta=6.0, harmonics=(1,), coef=np.full((3, 2), 5.0), meta={'learnt_from': ['x']}).save(p)
+    stored(p, 1, approve=False)
+    assert WormFeedForward.load(p).coef.sum() == 0                     # kept, not in the pool: no profile yet
+    assert pooled_profile(p)['status'] == 'NO DATA' and pooled_profile(p, with_last=True)['checks']['tests'] == 1
+
+
+def test_approve_and_reject_add_and_take_out_the_last_test_as_often_as_wanted(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
     stored(p, 2)
-    assert apply_profile(p)
+    stored(p, 1, approve=False, seed0=5)
+    assert set_last_test_approved(p, True)
     ff = WormFeedForward.load(p)
     assert ff.harmonics == (1, 2) and ff.angle_reference == {'M1': 'zeta', 'M2': 'zeta', 'M3': 'zeta'}
-    assert coef_error(ff.coef[1][:2], TRUE['M2'][:2]) < 4.0 and ff.meta['applied_profile']['tests'] == 2
-    assert apply_profile(p)                                            # approving again keeps the original to restore
-    assert revert_profile(p)
-    ff = WormFeedForward.load(p)
-    assert ff.harmonics == (1,) and np.allclose(ff.coef, 5.0) and ff.angle_reference == {}
-    assert ff.meta['learnt_from'] == ['x'] and len(ff.meta['calibration_history']) == 2
-    assert not revert_profile(p)
+    assert coef_error(ff.coef[1][:2], TRUE['M2'][:2]) < 4.0 and ff.meta['applied_profile']['tests'] == 3
+    assert set_last_test_approved(p, False)                              # rejected: the profile of the other two
+    assert WormFeedForward.load(p).meta['applied_profile']['tests'] == 2
+    assert set_last_test_approved(p, True) and set_last_test_approved(p, True)
+    assert WormFeedForward.load(p).meta['applied_profile']['tests'] == 3
 
 
-def test_apply_without_a_clean_test_does_nothing(tmp_path):
+def test_every_test_is_kept_approved_or_rejected_and_only_approved_ones_pool(tmp_path):
     p = str(tmp_path / 'worm_profile.json')
-    assert not apply_profile(p)
-    stored(p, 1, status='POOR FIT', noise=60.0)              # a bad fit doesn't pool
-    assert not apply_profile(p)
+    stored(p, 1)
+    stored(p, 1, approve=False, seed0=1)                               # a new test starts rejected
+    set_last_test_approved(p, False)
+    stored(p, 1, seed0=2)
+    h = json.load(open(p))['calibration_history']
+    assert [e['approved'] for e in h] == [True, False, True]
+    assert WormFeedForward.load(p).meta['applied_profile']['tests'] == 2
+    assert not set_last_test_approved(str(tmp_path / 'none.json'), True)
+
+
+def test_without_a_clean_test_in_the_pool_there_is_no_profile(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    stored(p, 1, status='POOR FIT', noise=60.0)                       # approved, but a bad fit doesn't pool
+    ff = WormFeedForward.load(p)
+    assert not np.any(ff.coef) and 'applied_profile' not in ff.meta
 
 
 def test_zeta_referenced_motors_are_evaluated_on_mcu_angles():
@@ -455,7 +475,6 @@ def test_the_profile_file_starts_with_the_profile_in_use_and_ends_with_the_test_
     """The applied profile is what a reader opens the file for: at the top, before the (long) test history."""
     p = str(tmp_path / 'worm_profile.json')
     stored(p, 3)
-    assert apply_profile(p)
     keys = list(json.load(open(p)))
     assert keys[:6] == ['worm_theta', 'harmonics', 'motors', 'units', 'angle_reference', 'applied_profile']
     assert keys[-1] == 'calibration_history'
@@ -515,15 +534,16 @@ def startup(path, status):
 
 def test_at_start_the_row_shows_the_profile_files_tests_after_a_test_with_no_data(tmp_path):
     p = str(tmp_path / 'worm_profile.json')
-    stored(p, 2)
+    stored(p, 1)
+    stored(p, 1, approve=False, seed0=1)
     want = row_fields_from_file(p)
     f = startup(p, 'NO DATA')
     assert {k: f[k] for k in want} == want and 'σ' in f['test_stdev']
-    assert f['test_status'] == 'COMPLETED'                         # not approved yet: Approve applies it
-    assert apply_profile(p)
-    assert startup(p, 'STOPPED')['test_status'] == 'APPROVED'      # in use: Approve would reject it
+    assert f['test_status'] == 'COMPLETED'                         # not approved yet: the button adds it
+    assert set_last_test_approved(p, True)
+    assert startup(p, 'STOPPED')['test_status'] == 'APPROVED'      # in the pool: the button takes it out
     assert startup(p, 'PENDING 3/50')['test_status'] == 'APPROVED'
-    stored(p, 1)                                                   # a newer test, not approved
+    stored(p, 1, approve=False, seed0=2)                           # a newer test, not approved
     assert startup(p, 'NO DATA')['test_status'] == 'COMPLETED'
 
 
@@ -541,13 +561,15 @@ def test_at_start_without_a_profile_file_the_row_is_untested(tmp_path):
 
 def test_the_calibration_manager_fills_the_row_from_the_profile_file(tmp_path):
     p = str(tmp_path / 'worm_profile.json')
-    stored(p, 2)
+    stored(p, 1)
+    stored(p, 1, approve=False, seed0=1)
     cm = table()
     cm.test_data[PROFILE_TEST].update(test_status='NO DATA', test_result='', test_stdev='')
     cm.refreshWormProfileRow(p)
     row = cm.test_data[PROFILE_TEST]
-    assert row['test_result'].startswith('last 2 tests pooled M1 ') and 'σ' in row['test_stdev']
-    assert row['dps'] == 'current profile M1 off M2 off M3 off' and row['test_status'] == 'COMPLETED'
+    assert row['test_result'].startswith('last 2 tests pooled M1 ') and 'σ' in row['test_stdev']   # with the last test
+    assert row['dps'].startswith('current profile M1 ') and 'M2 off' not in row['dps']           # the first test's
+    assert row['test_status'] == 'COMPLETED'
     (tmp_path / 'bad.json').write_text('{not json')
     cm.refreshWormProfileRow(str(tmp_path / 'bad.json'))          # unreadable: the driver still starts
 

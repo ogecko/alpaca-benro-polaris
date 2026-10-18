@@ -275,6 +275,18 @@ def test_switching_the_worm_gear_correction_refits_the_alignment_and_restarts_th
     assert {'clear_sync_guiding', 'optimize_alignQ_B2T', 'refresh_pid_setpoints_from_q1'} <= set(p._sm.calls)
 
 
+@pytest.mark.parametrize('param', ['focal_length', 'focal_ratio'])
+@pytest.mark.parametrize('worm_on', [True, False])
+def test_changing_the_lens_reloads_the_worm_profile_and_refits_the_alignment(monkeypatch, param, worm_on):
+    """The lens picks the worm profile (the closest lens's own): changing it loads that one and refits the alignment
+    through it, while the worm gear correction is on; with it off nothing changes."""
+    p, _ = fake_polaris()
+    monkeypatch.setattr(Config, 'advanced_pec_worm', worm_on, raising=False)
+    p.make_config_params_live({param: 300})
+    assert ('reload_worm_ff' in p._sm.calls) is worm_on
+    assert ('optimize_alignQ_B2T' in p._sm.calls) is worm_on
+
+
 def test_switching_the_drift_correction_restarts_its_model():
     p, _ = fake_polaris()
     p.make_config_params_live({'advanced_pec_drift': False})
@@ -284,13 +296,12 @@ def test_switching_the_drift_correction_restarts_its_model():
 @pytest.mark.parametrize('approved', [True, False])
 @pytest.mark.parametrize('worm_on', [True, False])
 def test_approving_or_rejecting_a_profile_leaves_the_worm_gear_switch_alone(monkeypatch, tmp_path, approved, worm_on):
-    """Approve/Reject choose the profile; switching the correction on or off is the user's own setting (changing it
+    """Approve/Reject add the last test to the pool or take it out (rebuilding the profile); switching the correction on or off is the user's own setting (changing it
     as a side effect was too hidden). With the correction on, the new profile is refitted into the alignment."""
     import polaris as polaris_mod
     p, Polaris = fake_polaris()
     p._sm.worm_profile_path = lambda: str(tmp_path / 'worm_profile.json')
-    monkeypatch.setattr(polaris_mod, 'apply_profile', lambda path: True)
-    monkeypatch.setattr(polaris_mod, 'revert_profile', lambda path: True)
+    monkeypatch.setattr(polaris_mod, 'set_last_test_approved', lambda path, approved: True)
     Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath='/nonexistent')
     monkeypatch.setattr(Config, 'advanced_pec_worm', worm_on, raising=False)
     saved = []

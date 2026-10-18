@@ -11,7 +11,7 @@
 #                        plate-solve syncs during the worm profile test
 #   WormProfileTest      the M1-M2-M3-WORM-PROFILE test's schedule and the syncs it keeps
 #   fit_worm_profile     all three motors' worms from one or more tests (2-D joint fit)
-#   store_profile_test, apply_profile, revert_profile   the tests kept in the profile file, and the pooled profile
+#   store_profile_test, set_last_test_approved, rebuild_profiles   the tests kept in the profile file, and the profiles
 #
 # The worm profile test (Speed Calibration page, M1 row)
 # -----------------------------------------------------
@@ -34,9 +34,14 @@
 # same way (they separate by about the roll angle), so the test first rotates to Roll +-ROLL_TARGET_DEG (the sign of the
 # current roll), keeping Az/Alt, and back when it has finished -- see motor_separation().
 #
-# Angles are the MCU's (517 zeta: theta_raw - zeta_raw_offset), the same every session. Every test is kept in the
-# profile file's calibration_history (the last CALIBRATION_HISTORY, with their samples); approving the row applies
-# the profile pooled over the last POOL_TESTS completed tests, rejecting restores the previous one.
+# Angles are the MCU's (517 zeta: theta_raw - zeta_raw_offset), the same every session. Tests are kept in the profile
+# file's calibration_history (the last CALIBRATION_HISTORY, with their samples, and the setup -- focal length and
+# ratio -- they ran with), each approved or rejected: the row's button flips the last test's flag, as often as wanted,
+# and only approved tests pool (a new test starts rejected). Each time the profiles are rebuilt from the approved
+# tests (rebuild_profiles): each setup's own (setup_profiles, over its last POOL_TESTS: setup_tests) and a
+# generic one over all setups. A motor whose worm differs with its direction of travel gets forward and reverse
+# profiles (direction_pools), picked at runtime by the way it turns; the driver uses the closest setup's profile
+# (setup_match), else the generic one.
 # -----------------------------------------------------------------------------
 
 import datetime
@@ -52,6 +57,7 @@ from kinematics import theta_to_q, q_to_azaltroll, azalt_to_vector, reachable_az
 from quaternion import Q as Quaternion
 
 WORM_PROFILE_PATH = DATA_DIR / 'worm_profile.json'   # the worm gear correction profile, written when a test is approved
+DIRECTIONS = ('forward', 'reverse')                   # a motor's direction of travel: its MCU angle rising, falling
 
 # ── Worm feed-forward ─────────────────────────────────────────────────────────────────────────
 # Each motor's gear train after the motor has a periodic error: the true output angle = the MCU's motor angle + e_i,
@@ -68,18 +74,35 @@ class WormFeedForward:
     meta: dict = field(default_factory=dict)  # provenance: sessions learnt from, angle reference, date, ...
     angle_reference: dict = field(default_factory=dict)   # {'M1': 'zeta'}: that motor's coef are on MCU angles (517,
                                                           # the worm profile test); otherwise on theta_raw (518)
+    direction_coef: dict = field(default_factory=dict)    # {'M2': {'forward': coef, 'reverse': coef}}: a motor whose
+                                                          # worm differs with its direction of travel (the gear flank
+                                                          # the load rests on); `coef` is then its combined fit
 
     def __post_init__(self):
         n = 2 * len(self.harmonics)
         self.coef = np.zeros((3, n)) if self.coef is None else np.asarray(self.coef, float).reshape(3, n)
         self.angle_reference = dict(self.angle_reference or {})
+        self.direction_coef = {M: {d: np.asarray(c[d], float).reshape(n) for d in DIRECTIONS}
+                               for M, c in (self.direction_coef or {}).items()}
 
-    def error_deg(self, theta, zeta_offset=None):
+    def motor_coef(self, direction=None):
+        """(3, n) coefficients in use: each motor's forward or reverse fit where it has one and `direction` (per motor
+        +1 zeta rising, -1 falling, 0 unknown) says which, else its combined fit."""
+        if not self.direction_coef or direction is None:
+            return self.coef
+        coef = self.coef.copy()
+        for m in range(3):
+            split = self.direction_coef.get(f'M{m + 1}')
+            if split and direction[m]:
+                coef[m] = split['forward' if direction[m] > 0 else 'reverse']
+        return coef
+
+    def error_deg(self, theta, zeta_offset=None, direction=None):
         """(3,) deg: each motor's gear error at motor angles theta (deg) -- true output angle = theta + error.
         zeta_offset: theta_raw - zeta per motor (zeta_raw_offset), for motors whose coef are on MCU angles; without
-        it those motors are left out."""
+        it those motors are left out. direction: each motor's direction of travel (motor_coef)."""
         theta = np.array(theta, float)
-        coef = self.coef
+        coef = self.motor_coef(direction)
         zeta = [m for m in range(3) if self.angle_reference.get(f'M{m + 1}') == 'zeta']
         if zeta:
             coef = coef.copy()
@@ -92,23 +115,34 @@ class WormFeedForward:
         basis = np.stack([f(h * phi) for h in self.harmonics for f in (np.sin, np.cos)], axis=-1)   # (3, n)
         return np.sum(basis * coef, axis=-1) / 3600.0
 
-    def correction_q(self, theta, zeta_offset=None):
+    def correction_q(self, theta, zeta_offset=None, direction=None):
         """Base-frame rotation taking the pose at the measured motor angles to the true pose: q(theta + e) q(theta)^-1."""
         theta = np.asarray(theta, float)
-        return (theta_to_q(*(theta + self.error_deg(theta, zeta_offset))) * theta_to_q(*theta).inverse).normalised
+        e = self.error_deg(theta, zeta_offset, direction)
+        return (theta_to_q(*(theta + e)) * theta_to_q(*theta).inverse).normalised
+
+    def _direction_motors(self):
+        return {M: {d: [round(float(v), 4) for v in c[d]] for d in DIRECTIONS} for M, c in self.direction_coef.items()}
 
     def log_payload(self, path):
         """The profile the feed-forward applies, for the WORMPROFILE log line (ast.literal_eval-able, as PECLOG):
         the profile file can change after the session, so the log keeps the coefficients it ran with."""
         applied = self.meta.get('applied_profile') or {}
-        return {'path': str(path), 'worm_theta': float(self.worm_theta), 'harmonics': [int(h) for h in self.harmonics],
-                'motors': {f'M{m + 1}': [round(float(v), 4) for v in self.coef[m]] for m in range(3)},
-                'angle_reference': dict(self.angle_reference), 'applied': applied.get('created'),
-                'learnt_from': self.meta.get('learnt_from')}
+        out = {'path': str(path), 'worm_theta': float(self.worm_theta), 'harmonics': [int(h) for h in self.harmonics],
+               'motors': {f'M{m + 1}': [round(float(v), 4) for v in self.coef[m]] for m in range(3)},
+               'angle_reference': dict(self.angle_reference), 'applied': applied.get('created'),
+               'learnt_from': self.meta.get('learnt_from'), 'setup': self.meta.get('profile_setup')}
+        if self.direction_coef:
+            out['direction_motors'] = self._direction_motors()
+        return out
 
     def summary(self):
         """One line for the log, as the worm profile test's: per motor, amplitude @ peak (and SE, significance) of the
-        applied fit when the file has it, else from the coefficients alone; 'off' for a motor without correction."""
+        applied fit when the file has it, else from the coefficients alone; 'off' for a motor without correction.
+        Motors with forward and reverse profiles add them."""
+        return self._summary() + direction_text(self.direction_coef, self.harmonics)
+
+    def _summary(self):
         applied = (self.meta.get('applied_profile') or {}).get('motors')
         if applied:
             return profile_summary({'motors': applied})
@@ -132,9 +166,11 @@ class WormFeedForward:
                 'units': 'arcsec of motor angle; per harmonic: sin, cos; true angle = MCU angle + error'}
         if self.angle_reference:
             core['angle_reference'] = dict(self.angle_reference)
+        if self.direction_coef:
+            core['direction_motors'] = self._direction_motors()
         # the profile in use first (what a reader opens the file for), then the applied profile's details and other
         # provenance, the (long) test history last; provenance never overrides the profile
-        meta = {k: v for k, v in self.meta.items() if k not in core}
+        meta = {k: v for k, v in self.meta.items() if k not in core and k not in ('profile_setup', 'profile_warnings')}
         d = {**core, **{k: v for k, v in meta.items() if k == 'applied_profile'},
              **{k: v for k, v in meta.items() if k not in ('applied_profile', 'calibration_history')},
              **{k: v for k, v in meta.items() if k == 'calibration_history'}}
@@ -142,18 +178,82 @@ class WormFeedForward:
             json.dump(d, f, indent=2)
 
     @classmethod
-    def load(cls, path):
-        """The profile in `path`, or None if it is missing or malformed."""
+    def load(cls, path, setup=None):
+        """The profile in `path`, or None if it is missing or malformed. With `setup` (make_setup), the closest of
+        the setups' own profiles (setup_profiles, by setup_match: the same lens, else the same focal length, else the
+        nearest focal length), else the generic profile (pooled over every setup: what is at hand);
+        meta['profile_setup'] names the one chosen (None: the generic profile). A damaged setup profile is passed over
+        for the next closest, and a damaged forward / reverse pair leaves that motor on its combined profile, so a bad
+        entry never turns the correction off; meta['profile_warnings'] says what was skipped."""
         try:
             with open(path) as f:
                 d = json.load(f)
-            harmonics = tuple(int(h) for h in d['harmonics'])
-            coef = np.array([d['motors'][f'M{m + 1}'] for m in range(3)], float)
-            meta = {k: v for k, v in d.items() if k not in ('worm_theta', 'harmonics', 'motors', 'units', 'angle_reference')}
-            return cls(worm_theta=float(d['worm_theta']), harmonics=harmonics, coef=coef, meta=meta,
-                       angle_reference=d.get('angle_reference') or {})
-        except (OSError, ValueError, KeyError, TypeError):
+            worm_theta = float(d['worm_theta'])
+            generic = _profile_parts(d)
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
             return None
+        if generic is None:
+            return None
+        warnings = list(generic[3])
+        parts, own = generic, None
+        profiles = d.get('setup_profiles')
+        if setup is not None and isinstance(profiles, dict):
+            ranked = []
+            for name, sp in profiles.items():
+                if not isinstance(sp, dict) or not isinstance(sp.get('setup'), dict):
+                    warnings.append(f'setup profile {name!r} skipped: malformed')
+                    continue
+                try:
+                    rank = setup_match(sp['setup'], setup)
+                except (TypeError, ValueError, ZeroDivisionError):
+                    warnings.append(f'setup profile {name!r} skipped: malformed setup')
+                    continue
+                if rank[0] < 3:
+                    ranked.append((rank, name, sp))
+            for _, name, sp in sorted(ranked, key=lambda r: r[0]):
+                got = _profile_parts(sp)
+                if got is None:
+                    warnings.append(f'setup profile {name!r} skipped: malformed coefficients')
+                    continue
+                parts, own = got, name
+                warnings += got[3]
+                break
+        harmonics, coef, extra, _ = parts
+        meta = {k: v for k, v in d.items() if k not in ('worm_theta', 'harmonics', 'motors', 'units', 'angle_reference',
+                                                        'direction_motors')}
+        if setup is not None:
+            meta['profile_setup'] = own
+        if warnings:
+            meta['profile_warnings'] = warnings
+        return cls(worm_theta=worm_theta, harmonics=harmonics, coef=coef, meta=meta, **extra)
+
+
+def _profile_parts(src):
+    """(harmonics, coef (3, n), {angle_reference, direction_coef}, warnings) from a profile (the file's top level or a
+    setup profile), or None if its harmonics or motors are unusable. Forward / reverse pairs that don't fit are
+    dropped (that motor keeps its combined profile), with a warning."""
+    try:
+        harmonics = tuple(int(h) for h in src['harmonics'])
+        n = 2 * len(harmonics)
+        coef = np.array([src['motors'][f'M{m + 1}'] for m in range(3)], float)
+        if not harmonics or coef.shape != (3, n) or not np.all(np.isfinite(coef)):
+            return None
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
+    angle_reference = src.get('angle_reference') if isinstance(src.get('angle_reference'), dict) else {}
+    direction, warnings = {}, []
+    raw = src.get('direction_motors') or {}
+    for M, pair in (raw.items() if isinstance(raw, dict) else []):
+        try:
+            ok = M in MOTORS and all(np.asarray(pair[d], float).shape == (n,) and np.all(np.isfinite(pair[d]))
+                                     for d in DIRECTIONS)
+        except (KeyError, TypeError, ValueError):
+            ok = False
+        if ok:
+            direction[M] = {d: list(pair[d]) for d in DIRECTIONS}
+        else:
+            warnings.append(f'{M} forward / reverse profiles skipped: malformed (its combined profile applies)')
+    return harmonics, coef, {'angle_reference': angle_reference, 'direction_coef': direction}, warnings
 
 
 def zeta_raw_offset(theta_raw, zeta):
@@ -172,6 +272,8 @@ class WormMixin:
         """Create the worm state; called once from SyncManager.__init__."""
         self.corrQ_WFF = Quaternion()           # worm feed-forward: measured -> true pose, base frame (identity when off)
         self.worm_error_deg = np.zeros(3)       # each motor's worm gear correction now (deg of motor angle), for status
+        self.worm_direction = np.zeros(3)       # each motor's direction of travel (+1, -1; 0 not yet moved): picks its
+                                                # forward or reverse profile; kept while it stands (the same flank)
         self._worm_ff = None                    # WormFeedForward profile, loaded on first use
         self._worm_ff_path = None               # path it was loaded from (None: reload on next use)
         self.worm_test = None                   # WormProfileTest while the worm profile test runs
@@ -182,13 +284,20 @@ class WormMixin:
         return str(WORM_PROFILE_PATH)
 
     def _worm_ff_profile(self):
-        full = self.worm_profile_path()
-        if full != self._worm_ff_path:
-            self._worm_ff_path = full
-            self._worm_ff = WormFeedForward.load(full)
+        full, setup = self.worm_profile_path(), current_setup()
+        if (full, setup) != self._worm_ff_path:                 # a new file, or the lens changed in the settings
+            self._worm_ff_path = (full, setup)
+            self._worm_ff = WormFeedForward.load(full, setup=setup)
             if self._worm_ff is None:
                 self.logger.info(f"No worm gear profile at {full}: worm correction off")
             else:
+                own = self._worm_ff.meta.get('profile_setup')
+                want = setup_name(setup) or 'unset lens'
+                which = (f"the {own} profile" + (f" (closest to {want})" if own != want else '')) if own else \
+                    f"no profile for {want}: the generic profile"
+                self.logger.info(f"WORMPROFILE CHOICE: {which}")
+                for w in self._worm_ff.meta.get('profile_warnings', []):
+                    self.logger.warning(f"WORMPROFILE: {w}")
                 self.logger.info(f"WORMPROFILE SUMMARY: {self._worm_ff.summary()}")
                 self.logger.info(f"WORMPROFILE {self._worm_ff.log_payload(full)}")
         return self._worm_ff
@@ -208,38 +317,75 @@ class WormMixin:
     def update_worm_ff(self, theta):
         """Refresh the worm feed-forward rotation for the current motor angles (deg): applied when the worm gear
         correction is in use (worm_ff_in_use), except while a worm calibration test measures the uncorrected worm."""
+        self.update_worm_direction()
         prof = self.worm_ff_in_use() if self.worm_test is None else None
         offset = getattr(self.polaris, '_zeta_raw_offset', None)
         if prof is None:
             self.corrQ_WFF, self.worm_error_deg = Quaternion(), np.zeros(3)
             return
-        self.worm_error_deg = prof.error_deg(theta, zeta_offset=offset)
-        self.corrQ_WFF = prof.correction_q(theta, zeta_offset=offset)
+        self.worm_error_deg = prof.error_deg(theta, zeta_offset=offset, direction=self.worm_direction)
+        self.corrQ_WFF = prof.correction_q(theta, zeta_offset=offset, direction=self.worm_direction)
+        self._log_worm_in_use(prof)
+
+    def worm_in_use_text(self, prof):
+        """'200mm F4: M1 duplex, M2 fwd, M3 rev': the profile's setup ('generic': the generic profile, no setup's own)
+        and each motor's profile now -- fwd / rev (its split profile, by its direction of travel), duplex (one profile
+        for both directions, or a split motor not yet moved), off (no correction)."""
+        coef = prof.motor_coef(self.worm_direction)
+        parts = []
+        for m, M in enumerate(MOTORS):
+            if not np.any(coef[m]):
+                parts.append(f'{M} off')
+            elif M in prof.direction_coef and self.worm_direction[m]:
+                parts.append(f"{M} {'fwd' if self.worm_direction[m] > 0 else 'rev'}")
+            else:
+                parts.append(f'{M} duplex')
+        return f"{prof.meta.get('profile_setup') or 'generic'}: " + ', '.join(parts)
+
+    def _log_worm_in_use(self, prof):
+        """WORMPROFILE IN USE when the profile is loaded and whenever a motor's choice changes (it reverses)."""
+        text = self.worm_in_use_text(prof)
+        if (id(prof), text) != getattr(self, '_worm_in_use_logged', None):
+            self._worm_in_use_logged = (id(prof), text)
+            if self.logger:
+                self.logger.info(f"WORMPROFILE IN USE: {text}")
+
+    def update_worm_direction(self):
+        """Each motor's direction of travel from the PID's feed-forward rate (tracking, slews, jogs), as the worm
+        profile test reads its tracking direction; a motor standing still keeps its last one (its gear stays on that
+        flank)."""
+        omega = getattr(getattr(self.polaris, '_pid', None), 'omega_ff', None)
+        if omega is None:
+            return
+        omega = np.asarray(omega, float)
+        self.worm_direction = np.where(np.abs(omega) > TRACK_RATE_MIN_DPS, np.sign(omega), self.worm_direction)
+
+    @staticmethod
+    def _entry_angles(entry):
+        theta = np.asarray(entry['theta'], float)
+        zeta = entry.get('zeta')
+        offset = theta - np.asarray(zeta, float) if zeta is not None else None
+        return theta, offset, entry.get('wdir')        # wdir: the motors' directions then (None before v2.2 Beta 8)
 
     def entry_worm_q(self, entry):
         """The worm feed-forward rotation at a sync point, from the raw motor angles it keeps ('theta', and the MCU's
-        'zeta'), with the profile in use now -- so QUEST and MAC predict it as the pointing is corrected at runtime.
-        Identity when the correction is off, or for a sync point without its motor angles (saved before v2.2)."""
+        'zeta') and the motors' directions then ('wdir'), with the profile in use now -- so QUEST and MAC predict it as
+        the pointing is corrected at runtime. Identity when the correction is off, or for a sync point without its
+        motor angles (saved before v2.2); a point without its directions uses each motor's combined profile."""
         prof = self.worm_ff_in_use()
-        theta = entry.get('theta')
-        if prof is None or theta is None:
+        if prof is None or entry.get('theta') is None:
             return Quaternion()
-        theta = np.asarray(theta, float)
-        zeta = entry.get('zeta')
-        offset = theta - np.asarray(zeta, float) if zeta is not None else None
-        return prof.correction_q(theta, zeta_offset=offset)
+        theta, offset, direction = self._entry_angles(entry)
+        return prof.correction_q(theta, zeta_offset=offset, direction=direction)
 
     def entry_worm_error_deg(self, entry):
         """(3,) deg: the worm gear error at a sync point's raw motor angles, with the profile in use now (zeros when
         the correction is off or the point has no motor angles) -- MAC adds it to those angles."""
         prof = self.worm_ff_in_use()
-        theta = entry.get('theta')
-        if prof is None or theta is None:
+        if prof is None or entry.get('theta') is None:
             return np.zeros(3)
-        theta = np.asarray(theta, float)
-        zeta = entry.get('zeta')
-        offset = theta - np.asarray(zeta, float) if zeta is not None else None
-        return prof.error_deg(theta, zeta_offset=offset)
+        theta, offset, direction = self._entry_angles(entry)
+        return prof.error_deg(theta, zeta_offset=offset, direction=direction)
 
     def reload_worm_ff(self):
         """Read the profile file again on the next tick (after a worm calibration was approved or rejected)."""
@@ -395,6 +541,11 @@ POOL_MAX_RMS_ARCSEC = 20.0    # ... a residual below this (each COMPLETED, or PO
 POOLED_FIT_MAX_RMS_ARCSEC = 25.0  # a fit over several tests is COMPLETED below this: pooling adds the differences between
                               # tests (seeing, the gravity side), so it sits above the tests' own 12-18" (2026-10-09:
                               # every pool of 3-8 clean tests 18.9-21.7")
+DIRECTION_POOL_MIN_TESTS = 3  # a motor gets forward and reverse profiles from this many tests each way it ran ...
+DIRECTION_MIN_POSITIONS = 8   # ... (a test counts for a direction with this many positions arrived that way) ...
+DIRECTION_SPLIT_MIN_SIGMA = 3.0   # ... when their pooled 1st harmonics differ by this many of their combined SE ...
+DIRECTION_SPLIT_MIN_ARCSEC = 15.0  # ... and by more than one test's scatter about its pool (10-22" on the real mount,
+                              # 2026-10-18: M2 forward 89" and reverse 31", 65" apart; M3 113" and 82", 36" apart)
 
 
 def _legs(step_deg, pattern):
@@ -609,13 +760,24 @@ N_NUISANCE = 2 + 4 + 6 + 3 + 12  # per test: 2-D offset, quadratic drift in time
                                   # quadratic pointing trend (wide tests only, else zero columns)
 
 
-def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
+def worm_columns(m, harmonic_index, direction, harmonics=HARMONICS, split=()):
+    """The design column of motor m's harmonic (its sin; cos is the next) for a sample arriving in `direction`:
+    a motor in `split` has its reverse worm in its own columns after the three motors' (forward) ones."""
+    nh = len(harmonics)
+    if m in split and direction < 0:
+        return (3 * nh + list(split).index(m) * nh + harmonic_index) * 2
+    return (m * nh + harmonic_index) * 2
+
+
+def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS, split=()):
     """The joint fit's design: (X, y, tests) with two rows (the tangent axes) per sample of each test (samples before the
-    first step left out). Columns: per motor and harmonic, J_m x sin and cos of the worm phase; then per test N_NUISANCE
-    columns (offset, drift in time, pointing trend, and each motor's backlash moving forward)."""
+    first step left out). Columns: per motor and harmonic, J_m x sin and cos of the worm phase (for the motors in
+    `split`, separate forward and reverse worms, by the direction each sample arrived: worm_columns); then per test
+    N_NUISANCE columns (offset, drift in time, pointing trend, and each motor's backlash moving forward)."""
     tests = [[s for s in t if any(s.get('direction', [0, 0, 0]))] for t in tests]
     tests = [t for t in tests if t]
-    nw = 3 * 2 * len(harmonics)
+    split = tuple(split)
+    nw = (3 + len(split)) * 2 * len(harmonics)
     rows, y = [], []
     for k, t in enumerate(tests):
         tt = np.array([s['t'] for s in t], float)
@@ -637,7 +799,7 @@ def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
                 r = np.zeros(nw + N_NUISANCE * len(tests))
                 for m in range(3):
                     for j, h in enumerate(harmonics):
-                        c = (m * len(harmonics) + j) * 2
+                        c = worm_columns(m, j, s['direction'][m], harmonics, split)
                         r[c], r[c + 1] = J[m, a] * np.sin(h * ph[m]), J[m, a] * np.cos(h * ph[m])
                 r[base + a] = 1.0
                 r[base + 2 + 2 * a], r[base + 3 + 2 * a] = ts[i], ts[i] ** 2
@@ -650,7 +812,7 @@ def profile_design(tests, worm_theta=6.0, harmonics=HARMONICS):
     return np.array(rows), np.array(y), tests
 
 
-def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
+def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS, split=()):
     """Every motor's worm from the samples of one or more worm profile tests (a list of sample lists). Each sample's
     2-D error is fitted as sum over motors of J_m (the motor's effect on the pointing) x [its worm, a sin + b cos per
     harmonic of 360 x zeta_m / worm_theta, + its backlash when moving forward], plus, per test, a 2-D offset, a
@@ -658,13 +820,15 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
     (profile_design). Returns a dict: status (COMPLETED / POOR FIT / NO DATA), motors {M#: amplitude, phase (the shift p
     of A sin(phi + p)), peak (the worm phase of the peak, shown to users), se, coef
     (applied: a, b per harmonic, a 2nd harmonic only when significant), h2_amplitude, h2_se, significance, backlash},
-    checks."""
-    X, y, tests = profile_design(tests, worm_theta, harmonics)
+    checks. With `split` (motor indices), those motors' forward and reverse worms are fitted apart: 'motors' has the
+    forward one, 'split' {M: {'forward': info, 'reverse': info}} both."""
+    split = tuple(split)
+    X, y, tests = profile_design(tests, worm_theta, harmonics, split)
     n_pos = sum(len(t) for t in tests)
     out = {'status': 'NO DATA', 'motors': {}, 'checks': {'positions': n_pos, 'tests': len(tests)}}
     if not tests or max(len(t) for t in tests) < MIN_POSITIONS:
         return out
-    nw = 3 * 2 * len(harmonics)
+    nw = (3 + len(split)) * 2 * len(harmonics)
     n_nuis = N_NUISANCE
     beta, *_ = np.linalg.lstsq(X, y, rcond=None)
     r = y - X @ beta
@@ -674,23 +838,20 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
     J = np.array([s['J'] for t in tests for s in t], float)
     cos13 = np.abs(np.sum(J[:, 0] * J[:, 2], axis=1)) / np.maximum(np.linalg.norm(J[:, 0], axis=1) * np.linalg.norm(J[:, 2], axis=1), 1e-12)
     sep = np.degrees(np.arccos(np.clip(cos13, 0.0, 1.0)))
-    applied_any = False
-    for m in range(3):
-        cm = []
-        info = {}
+    def motor_info(m, direction):
+        cm, info, measured = [], {}, False
         for j, h in enumerate(harmonics):
-            c = (m * len(harmonics) + j) * 2
+            c = worm_columns(m, j, direction, harmonics, split)
             a, b = float(beta[c]), float(beta[c + 1])
             A = float(np.hypot(a, b))
             se = float(np.sqrt(max((cov[c, c] + cov[c + 1, c + 1]) / 2, 0.0)))
             if h == 1:
                 # each motor stands on its own: applied only when its worm is measured (a small one, like M1's
                 # ~21" on the real mount, is left uncorrected rather than failing the others)
-                applied = A / max(se, 1e-9) >= MIN_SIGNIFICANCE
+                measured = A / max(se, 1e-9) >= MIN_SIGNIFICANCE
                 info.update(amplitude=round(A, 2), phase=round(_phase(a, b), 1), peak=round(peak_deg(a, b), 1),
                             se=round(se, 2),
-                            significance=round(A / max(se, 1e-9), 1), applied=bool(applied))
-                applied_any |= applied
+                            significance=round(A / max(se, 1e-9), 1), applied=bool(measured))
                 cm += [a, b]
             else:
                 info.update(h2_amplitude=round(A, 2), h2_phase=round(_phase(a, b), 1),
@@ -699,7 +860,16 @@ def fit_worm_profile(tests, worm_theta=6.0, harmonics=HARMONICS):
         bl = [float(beta[nw + n_nuis * k + 12 + m]) for k in range(len(tests))]
         info['backlash'] = round(float(np.mean(bl)), 1)
         info['coef'] = [round(float(x), 4) for x in cm] if info['applied'] else [0.0] * len(cm)
+        return info
+
+    applied_any = False
+    for m in range(3):
+        info = motor_info(m, +1)
         out['motors'][MOTORS[m]] = info
+        applied_any |= info['applied']
+        if m in split:
+            out.setdefault('split', {})[MOTORS[m]] = {'forward': info, 'reverse': motor_info(m, -1)}
+            applied_any |= out['split'][MOTORS[m]]['reverse']['applied']
     out['checks'].update(rms_arcsec=round(float(np.sqrt(s2)), 2),
                          separation_deg=[round(float(sep.min()), 1), round(float(sep.max()), 1)])
     # COMPLETED: a clean fit (a residual like a test that pools; a looser limit for a pool of tests) that measured at
@@ -725,7 +895,7 @@ def profile_text(ff):
 def baseline_text(ff):
     """The row's Baseline: the current (approved) profile, labelled; 'none' without one. It corrects the motors only
     while PEC Worm Gear Correction is on."""
-    return 'none' if ff is None else f'current profile {profile_text(ff)}'
+    return 'none' if ff is None else f'current profile {profile_text(ff)}' + direction_text(ff.direction_coef, ff.harmonics)
 
 
 def row_fields_from_file(path):
@@ -733,14 +903,15 @@ def row_fields_from_file(path):
     after Approve/Reject changed the current profile."""
     ff = _load_or_new(path)
     tests = [e for e in ff.meta.get('calibration_history', []) if e.get('test') == PROFILE_TEST and e.get('samples')]
+    current = WormFeedForward.load(path, setup=current_setup())
     if not tests:
-        return {'dps': baseline_text(WormFeedForward.load(path))}
-    return profile_row_fields(fit_worm_profile([tests[-1]['samples']]), pooled_profile(path), WormFeedForward.load(path))
+        return {'dps': baseline_text(current)}
+    return profile_row_fields(fit_worm_profile([tests[-1]['samples']]), pooled_profile(path, with_last=True), current)
 
 
 def profile_row_fields(latest, pooled, current):
     """The worm profile row's columns, each labelled (Pilot shows the label under the motors): dps (Baseline) = the
-    current profile (`current`, a WormFeedForward or None); test_result = the pooled profile Approve would apply, per
+    current profile (`current`, a WormFeedForward or None); test_result = the pool approving the last test gives, per
     motor amplitude @ peak angle; test_change = how far approving moves each motor from the baseline; test_stdev = the pooled profile's uncertainty and
     significance per motor, and the residual rms of that fit (pooled: with a warning when the last test was left out)."""
     def h1(info):
@@ -753,8 +924,14 @@ def profile_row_fields(latest, pooled, current):
     res = pooled if pooled.get('motors') else latest
     n_pooled = pooled['checks'].get('tests', 1) if pooled.get('motors') else 1
     source = f'last {n_pooled} tests pooled' if n_pooled > 1 else 'last test'
+    setup = pooled.get('setup') or {}
+    if setup.get('name'):
+        # short, for Pilot on a phone: nothing when the tests are the lens's own
+        source += '' if setup.get('matched') == 'lens' else \
+            f" {setup['name'].split()[0]}" if setup.get('matched') else ' (all setups)'
     fields = {'dps': baseline_text(current),
-              'test_result': f'{source} ' + ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS),
+              'test_result': f'{source} ' + ' '.join(f'{m} {h1(res["motors"].get(m))}' for m in MOTORS)
+                             + direction_text(split_motors(pooled)),
               'test_change': '', 'test_stdev': ''}
     if not latest.get('motors'):
         return fields
@@ -774,13 +951,16 @@ def profile_row_fields(latest, pooled, current):
     # test's own, with its positions when it stopped short
     n = latest['checks'].get('positions', 0)
     last_rms = latest['checks'].get('rms_arcsec', 0)
-    if n_pooled > 1:
+    split_fit = pooled.get('checks', {}).get('split_fit')
+    warn_out = ''
+    if split_fit:
+        rms = f'direction split {split_fit["tests"]} tests {split_fit["rms_arcsec"]:.1f}" rms'
+    elif n_pooled > 1:
         rms = f'pooled {pooled["checks"].get("rms_arcsec", 0):.1f}" rms'
         left_out = not _poolable({'test': PROFILE_TEST, 'status': latest['status'], 'samples': True, 'result': latest})
         warn_out = f' ⚠ last test left out: {last_rms:.1f}" rms' if left_out else ''
     else:
         rms = f'last test {last_rms:.1f}" rms' + (f', {n} positions' if n < len(POSITIONS) - 1 else '')
-        warn_out = ''
     fields['test_stdev'] = rms + (f' {unc}' if unc else '') + warn_out
     return fields
 
@@ -790,25 +970,17 @@ STALE_ROW_STATUS = ('UNTESTED', 'NO DATA', 'STOPPED')   # and PENDING...: the la
 
 def startup_row_fields(path, status):
     """The row's columns at driver start, from the profile file (the saved row only has the last attempt's, blank after
-    a NO DATA test). Its status is kept unless it is stale: then APPROVED when the pooled profile is the current one
-    (so Approve rejects it), else the pooled tests' own status (COMPLETED: Approve applies it)."""
-    current = WormFeedForward.load(path)
+    a NO DATA test). Its status is kept unless it is stale: then APPROVED when the last test is in the pool (so the
+    button takes it out), else what the pool with it would be (COMPLETED: the button adds it)."""
+    current = WormFeedForward.load(path, setup=current_setup())
     tests = [] if current is None else [e for e in current.meta.get('calibration_history', [])
                                         if e.get('test') == PROFILE_TEST and e.get('samples')]
-    latest, pooled = (fit_worm_profile([tests[-1]['samples']]), pooled_profile(path)) if tests else ({}, {})
+    latest, pooled = (fit_worm_profile([tests[-1]['samples']]), pooled_profile(path, with_last=True)) if tests else ({}, {})
     fields = profile_row_fields(latest, pooled, current) if tests else {'dps': baseline_text(current)}
     if status in STALE_ROW_STATUS or str(status).startswith('PENDING'):
-        fields['test_status'] = 'UNTESTED' if not tests else 'APPROVED' if _pooled_in_use(pooled, current) else \
+        fields['test_status'] = 'UNTESTED' if not tests else 'APPROVED' if tests[-1].get('approved', True) else \
             row_status(latest, pooled)
     return fields
-
-
-def _pooled_in_use(pooled, current):
-    """True when the current profile is the pooled one (approved, and no test since): Approve would then reject it."""
-    if current is None or not current.meta.get('applied_profile') or not pooled.get('motors'):
-        return False
-    coef = np.array([pooled['motors'][m]['coef'] for m in MOTORS], float)
-    return coef.shape == current.coef.shape and np.allclose(coef, current.coef, atol=1e-3)
 
 
 # ── profile file ──────────────────────────────────────────────────────────────────────────────
@@ -817,68 +989,298 @@ def _load_or_new(path):
     return ff if ff is not None else WormFeedForward(worm_theta=6.0, harmonics=HARMONICS)
 
 
-def store_profile_test(path, samples, result, timing=None):
-    """Keep a test (its fit, timing and samples) in the profile file's calibration_history, without applying it."""
+def make_setup(focal_length, focal_ratio=None):
+    """{'focal_length': mm, 'focal_ratio': f-number or None}: the setup (lens) a test ran with and a profile is for,
+    or None when the focal length is unset."""
+    try:
+        fl = float(focal_length)
+    except (TypeError, ValueError):
+        return None
+    if not fl > 0:
+        return None
+    try:
+        fr = float(focal_ratio)
+    except (TypeError, ValueError):
+        fr = None
+    return {'focal_length': fl, 'focal_ratio': fr if fr and fr > 0 else None}
+
+
+def setup_name(setup):
+    """'300mm F2.8' (the setup_profiles key, and what the log and row show), or None."""
+    if not setup or not setup.get('focal_length'):
+        return None
+    fr = setup.get('focal_ratio')
+    return f"{float(setup['focal_length']):g}mm" + (f' F{float(fr):g}' if fr else '')
+
+
+def current_setup():
+    """The setup the profile is for, from config focal_length and focal_ratio, or None when unset. The payload's weight
+    and balance change the worm the gears show (a 300 mm load's M3 fits sat 70-130" from the 200 mm ones), so tests
+    pool, and profiles apply, per setup -- the closest one there is (setup_match)."""
+    return make_setup(getattr(Config, 'focal_length', None), getattr(Config, 'focal_ratio', None))
+
+
+def setup_match(have, want):
+    """How well a test's or profile's setup `have` stands in for `want`, smaller is closer: (tier, focal length
+    distance, focal ratio distance), tier 0 the same lens (focal length and ratio), 1 the same focal length, 2 another
+    focal length (the nearer, by ratio of focal lengths, the closer), 3 unknown (before setups were kept)."""
+    try:
+        fl_h, fl_w = float(have['focal_length']), float(want['focal_length'])
+    except (TypeError, ValueError, KeyError):
+        return (3, 0.0, 0.0)
+    if not (fl_h > 0 and fl_w > 0 and np.isfinite(fl_h) and np.isfinite(fl_w)):
+        return (3, 0.0, 0.0)
+    fl_d = abs(np.log(fl_h / fl_w))
+    fr_h, fr_w = have.get('focal_ratio'), want.get('focal_ratio')
+    fr_d = abs(float(fr_h) - float(fr_w)) if fr_h and fr_w else 0.0
+    same_fl = fl_d < 1e-6
+    same_fr = (fr_h is None and fr_w is None) or (fr_h is not None and fr_w is not None and fr_d < 1e-6)
+    return (0 if same_fl and same_fr else 1 if same_fl else 2, round(float(fl_d), 6), round(fr_d, 6))
+
+
+def store_profile_test(path, samples, result, timing=None, setup=None):
+    """Keep a test (its fit, timing and samples, and the setup it ran with) in the profile file's calibration_history
+    as the last test, rejected (out of the pools) until it is approved (set_last_test_approved). Every test is kept,
+    approved or rejected; only approved ones pool."""
     ff = _load_or_new(path)
+    setup = current_setup() if setup is None else setup
     entry = {'test': PROFILE_TEST, 'created': datetime.datetime.now().isoformat(timespec='seconds'),
-             'status': result['status'], 'result': {k: v for k, v in result.items() if k != 'status'},
-             'timing': timing, 'samples': samples}
+             'status': result['status'], 'setup': setup, 'approved': False,
+             'result': {k: v for k, v in result.items() if k != 'status'}, 'timing': timing, 'samples': samples}
     ff.meta['calibration_history'] = (list(ff.meta.get('calibration_history', [])) + [entry])[-CALIBRATION_HISTORY:]
     ff.save(path)
 
 
+def last_test(path):
+    """The profile file's last worm profile test entry, or None."""
+    tests = [e for e in _load_or_new(path).meta.get('calibration_history', []) if e.get('test') == PROFILE_TEST]
+    return tests[-1] if tests else None
+
+
+def set_last_test_approved(path, approved=True):
+    """Approve or reject the last test -- its flag in the history, as often as wanted: approved tests pool -- and
+    rebuild the profiles from the approved tests (rebuild_profiles). False without a last test."""
+    ff = _load_or_new(path)
+    history = ff.meta.get('calibration_history', [])
+    tests = [e for e in history if e.get('test') == PROFILE_TEST]
+    if not tests:
+        return False
+    tests[-1]['approved'] = bool(approved)
+    rebuild_profiles(ff).save(path)
+    return True
+
+
 def _poolable(entry):
-    """A test whose fit is clean: COMPLETED, or POOR FIT only because one test's worms are too uncertain on their own
+    """An approved test whose fit is clean: COMPLETED, or POOR FIT only because one test's worms are too uncertain on their own
     (real mount: a clean 12\" rms test reached 3.3 sigma) -- not one spoiled by something the model lacks (33\" rms)."""
     checks = (entry.get('result') or {}).get('checks') or {}
-    return (entry.get('test') == PROFILE_TEST and entry.get('status') in ('COMPLETED', 'POOR FIT')
+    return (entry.get('test') == PROFILE_TEST and entry.get('approved', True)      # approved (tests before the flag: all)
+            and entry.get('status') in ('COMPLETED', 'POOR FIT')
             and entry.get('samples') and checks.get('positions', 0) >= MIN_POSITIONS
             and checks.get('rms_arcsec', float('inf')) < POOL_MAX_RMS_ARCSEC)
 
 
-def pooled_profile(path, worm_theta=6.0):
-    """fit_worm_profile over the last POOL_TESTS tests with a clean fit in the profile file (each with its own offset,
-    drift and trend), or a NO DATA result if there are none."""
-    ff = _load_or_new(path)
-    tests = [e['samples'] for e in ff.meta.get('calibration_history', []) if _poolable(e)][-POOL_TESTS:]
-    return fit_worm_profile(tests, worm_theta=worm_theta)
+def setup_tests(entries, setup):
+    """The poolable tests for a setup: those run with the same lens; when there are none, those at the same focal
+    length; else every poolable test (another setup's, or tests from before setups were kept: what is at hand).
+    Returns (entries, matched: 'lens', 'focal length' or None)."""
+    poolable = [e for e in entries if _poolable(e)]
+    if setup is not None:
+        for tier, label in ((0, 'lens'), (1, 'focal length')):
+            same = [e for e in poolable if setup_match(e.get('setup'), setup)[0] == tier]
+            if same:
+                return same, label
+    return poolable, None
+
+
+def _h1_phasor(info):
+    return np.array(phasor_ab(info['amplitude'], info['phase']))
+
+
+def phasor_ab(amplitude, phase):
+    """(a, b) of a harmonic from its amplitude and phase (a sin + b cos = A sin(phi + phase))."""
+    return amplitude * np.cos(np.radians(phase)), amplitude * np.sin(np.radians(phase))
+
+
+def direction_positions(samples, m, sign):
+    """How many of a test's positions motor m arrived at moving `sign` (+1 forward, -1 reverse)."""
+    return sum(1 for s in samples if s.get('direction') and np.sign(s['direction'][m]) == sign)
+
+
+def direction_pools(entries, worm_theta=6.0):
+    """Per motor, whether its worm differs with its direction of travel (the gear flank the load rests on: on the real
+    mount M2 measured 89" forward and 31" reverse), and its forward and reverse worms when it does. One joint fit
+    (fit_worm_profile with `split`) gives each candidate motor separate forward and reverse worms, by the direction
+    each sample arrived, over the last POOL_TESTS tests that ran it each way (DIRECTION_MIN_POSITIONS positions); a
+    candidate needs DIRECTION_POOL_MIN_TESTS such tests each way. It splits when both worms are measured and differ by
+    DIRECTION_SPLIT_MIN_SIGMA of their combined SE and by DIRECTION_SPLIT_MIN_ARCSEC (more than one test's scatter),
+    and the fit is clean; a motor that doesn't is refitted with one worm. Returns {M: {'split', 'tests' [forward,
+    reverse], 'reason', and when split 'difference' ("), 'sigma', 'forward', 'reverse' (fit info), 'pooled_tests'}}, and
+    the split fit (None when no motor splits)."""
+    out, groups = {}, {}
+    for m, M in enumerate(MOTORS):
+        groups[m] = {sign: [e for e in entries if direction_positions(e['samples'], m, sign) >= DIRECTION_MIN_POSITIONS]
+                     [-POOL_TESTS:] for sign in (1, -1)}
+        n = [len(groups[m][1]), len(groups[m][-1])]
+        out[M] = {'split': False, 'tests': n}
+        if min(n) < DIRECTION_POOL_MIN_TESTS:
+            out[M]['reason'] = f'{n[0]} forward, {n[1]} reverse tests (needs {DIRECTION_POOL_MIN_TESTS} each way)'
+    split = [m for m in range(3) if 'reason' not in out[MOTORS[m]]]
+    if not split:
+        return out, None
+    chosen = {id(e) for m in split for g in groups[m].values() for e in g}
+    pool = [e for e in entries if id(e) in chosen]                     # in history order
+    fit = None
+    while split:
+        fit = fit_worm_profile([e['samples'] for e in pool], worm_theta=worm_theta, split=split)
+        keep = []
+        for m in split:
+            M = MOTORS[m]
+            f, r = fit['split'][M]['forward'], fit['split'][M]['reverse']
+            diff = float(np.hypot(*(_h1_phasor(f) - _h1_phasor(r))))
+            sigma = diff / max(float(np.hypot(f['se'], r['se'])), 1e-9)
+            out[M].update(difference=round(diff, 1), sigma=round(sigma, 1))
+            if not (f['applied'] and r['applied']):
+                out[M]['reason'] = 'its forward or reverse worm was not measured'
+            elif sigma < DIRECTION_SPLIT_MIN_SIGMA or diff < DIRECTION_SPLIT_MIN_ARCSEC:
+                out[M]['reason'] = f'forward and reverse differ by {diff:.0f}" ({sigma:.1f} SE): one profile'
+            else:
+                keep.append(m)
+        if keep == split:
+            break
+        split = keep
+    if split and fit['status'] != 'COMPLETED':
+        for m in split:
+            out[MOTORS[m]]['reason'] = f'the split fit is poor ({fit["checks"].get("rms_arcsec", 0):.1f}" rms)'
+        split = []
+    for m in split:
+        M = MOTORS[m]
+        out[M].update(split=True, forward=fit['split'][M]['forward'], reverse=fit['split'][M]['reverse'],
+                      pooled_tests=len(pool), rms_arcsec=fit['checks'].get('rms_arcsec'))
+        out[M].pop('reason', None)
+    return out, (fit if split else None)
+
+
+def pooled_profile(path, worm_theta=6.0, setup=None, with_last=False):
+    """fit_worm_profile over the last POOL_TESTS approved tests with a clean fit in the profile file for this setup
+    (pool_history). with_last: as if the last test were approved too -- what approving it would give (the row's
+    Test Result)."""
+    history = [dict(e) for e in _load_or_new(path).meta.get('calibration_history', [])]
+    if with_last:
+        tests = [e for e in history if e.get('test') == PROFILE_TEST]
+        if tests:
+            tests[-1]['approved'] = True
+    return pool_history(history, worm_theta=worm_theta, setup=current_setup() if setup is None else setup)
+
+
+def pool_history(history, worm_theta=6.0, setup=None):
+    """fit_worm_profile over the last POOL_TESTS approved tests with a clean fit for `setup` (each with its own offset,
+    drift and trend; setup_tests), or a NO DATA result if there are none -- plus 'directions' (direction_pools over the
+    setup's tests) and 'setup' {'name', 'matched': 'lens', 'focal length', or None when no test was run with it}."""
+    entries, matched = setup_tests(history, setup)
+    out = fit_worm_profile([e['samples'] for e in entries[-POOL_TESTS:]], worm_theta=worm_theta)
+    if out.get('motors'):
+        out['directions'], split_fit = direction_pools(entries, worm_theta=worm_theta)
+        if split_fit is not None:
+            # the split fit models every motor's direction, so it measures the motors that don't split better than
+            # the combined one (whose residual carries the split motors' two worms): their profile comes from it, and
+            # it decides the status. The split motors keep the combined fit, for when their direction is unknown.
+            for M in MOTORS:
+                if not out['directions'][M]['split']:
+                    out['motors'][M] = split_fit['motors'][M]
+            out['status'] = split_fit['status']
+            out['checks']['split_fit'] = {'tests': split_fit['checks']['tests'],
+                                          'rms_arcsec': split_fit['checks'].get('rms_arcsec')}
+    out['setup'] = {'name': setup_name(setup), 'matched': matched}
+    return out
+
+
+def split_motors(pooled):
+    """{M: {'forward': coef, 'reverse': coef}} for the motors the pooled profile splits by direction."""
+    return {M: {d: list(v[d]['coef']) for d in DIRECTIONS}
+            for M, v in (pooled.get('directions') or {}).items() if v.get('split')}
+
+
+def direction_summary(pooled):
+    """The log's account of each motor's direction pools: split (forward and reverse, how far apart) or why not."""
+    parts = []
+    for M, v in (pooled.get('directions') or {}).items():
+        if v.get('split'):
+            f, r = v['forward'], v['reverse']
+            parts.append(f'{M} split: forward {f["amplitude"]:.0f}"@{f["peak"]:.0f} ({v["tests"][0]} tests), reverse '
+                         f'{r["amplitude"]:.0f}"@{r["peak"]:.0f} ({v["tests"][1]} tests), {v["difference"]:.0f}" apart '
+                         f'({v["sigma"]:.1f} SE)')
+        else:
+            parts.append(f'{M} one profile: {v.get("reason", "")}')
+    setup = pooled.get('setup') or {}
+    where = f"setup {setup.get('name') or 'unset'} (tests matched: {setup.get('matched') or 'none, all setups'})"
+    return where + ('; ' + '; '.join(parts) if parts else '')
+
+
+def direction_text(direction_coef, harmonics=HARMONICS):
+    """' M2 fwd 89"@258 rev 31"@290' (short, for Pilot on a phone) for the motors with forward and reverse
+    profiles, '' for none."""
+    if not direction_coef or 1 not in harmonics:
+        return ''
+    j = 2 * list(harmonics).index(1)
+    parts = []
+    for M, c in direction_coef.items():
+        s = [f'{short} {np.hypot(*np.asarray(c[d], float)[j:j + 2]):.0f}"@{peak_deg(*np.asarray(c[d], float)[j:j + 2]):.0f}'
+             for d, short in zip(DIRECTIONS, ('fwd', 'rev'))]
+        parts.append(f'{M} ' + ' '.join(s))
+    return ' ' + ' '.join(parts)
 
 
 def row_status(latest, pooled):
-    """The worm profile row's status after a test: COMPLETED when the pooled profile passes (so it can be approved),
-    even if the latest test alone did not; else the latest test's own status."""
+    """The worm profile row's status after a test, before it is approved: COMPLETED when the pool with it passes (so
+    it can be approved), even if the test alone did not; else the test's own status."""
     return 'COMPLETED' if pooled.get('motors') and pooled.get('status') == 'COMPLETED' else latest['status']
 
 
-def apply_profile(path):
-    """Put the pooled profile into the worm profile file (all motors, 1st and 2nd harmonic, on MCU angles), keeping
-    the previous one to restore. False if there is no usable result."""
-    pooled = pooled_profile(path)
-    if pooled['status'] != 'COMPLETED':
-        return False
-    ff = _load_or_new(path)
-    previous = ff.meta.get('applied_profile', {}).get('previous') if ff.meta.get('applied_profile') else None
-    if previous is None:
-        previous = {'harmonics': list(ff.harmonics), 'motors': {m: [float(v) for v in ff.coef[i]] for i, m in enumerate(MOTORS)},
-                    'angle_reference': dict(ff.angle_reference)}
-    coef = np.array([pooled['motors'][m]['coef'] for m in MOTORS], float)
-    new = WormFeedForward(worm_theta=ff.worm_theta, harmonics=HARMONICS, coef=coef, meta=ff.meta,
-                          angle_reference={m: 'zeta' for m in MOTORS})
-    new.meta['applied_profile'] = {'created': datetime.datetime.now().isoformat(timespec='seconds'),
-                                   'tests': pooled['checks']['tests'], 'motors': pooled['motors'], 'previous': previous}
-    new.save(path)
-    return True
+def _profile_snapshot(ff):
+    """The coefficients a profile applies (setup_profiles keeps one per setup)."""
+    out = {'harmonics': list(ff.harmonics), 'motors': {m: [float(v) for v in ff.coef[i]] for i, m in enumerate(MOTORS)},
+           'angle_reference': dict(ff.angle_reference)}
+    if ff.direction_coef:
+        out['direction_motors'] = ff._direction_motors()
+    return out
 
 
-def revert_profile(path):
-    """Undo apply_profile: restore the profile in use before it. False if none was applied."""
-    ff = _load_or_new(path)
-    applied = ff.meta.get('applied_profile')
-    if not applied or not applied.get('previous'):
-        return False
-    prev = applied['previous']
-    coef = np.array([prev['motors'][m] for m in MOTORS], float)
-    meta = {k: v for k, v in ff.meta.items() if k != 'applied_profile'}
-    WormFeedForward(worm_theta=ff.worm_theta, harmonics=tuple(prev['harmonics']), coef=coef, meta=meta,
-                    angle_reference=prev.get('angle_reference') or {}).save(path)
-    return True
+def rebuild_profiles(ff):
+    """The profiles, rebuilt from the approved tests (a WormFeedForward to save, with ff's history): the generic
+    profile in use (pooled over every setup's tests: what a lens without its own uses, and with no lens set) and each
+    lens's own (setup_profiles: pooled over the tests run with it), with forward and reverse profiles for the motors
+    that split by direction. A pool that doesn't pass (COMPLETED) gives no profile: the generic one then corrects
+    nothing, a lens falls back to the closest lens's or the generic one."""
+    history = ff.meta.get('calibration_history', [])
+    created = datetime.datetime.now().isoformat(timespec='seconds')
+    meta = {k: v for k, v in ff.meta.items() if k not in ('applied_profile', 'setup_profiles')}
+
+    def build(pooled):
+        ok = pooled['status'] == 'COMPLETED'
+        coef = np.array([pooled['motors'][m]['coef'] for m in MOTORS], float) if ok else np.zeros((3, 2 * len(HARMONICS)))
+        return WormFeedForward(worm_theta=ff.worm_theta, harmonics=HARMONICS, coef=coef, meta=meta,
+                               angle_reference={m: 'zeta' for m in MOTORS},
+                               direction_coef=split_motors(pooled) if ok else {}), ok
+
+    generic_pool = pool_history(history, worm_theta=ff.worm_theta, setup=None)
+    new, ok = build(generic_pool)
+    if ok:
+        new.meta['applied_profile'] = {'created': created, 'tests': generic_pool['checks']['tests'],
+                                       'motors': generic_pool['motors'], 'directions': generic_pool.get('directions')}
+    setups = {}
+    for e in history:
+        name = setup_name(e.get('setup'))
+        if name is None or name in setups or not _poolable(e):
+            continue
+        pooled = pool_history(history, worm_theta=ff.worm_theta, setup=e['setup'])
+        if pooled['setup']['matched'] != 'lens':
+            continue
+        own, ok = build(pooled)
+        if ok:
+            setups[name] = {**_profile_snapshot(own), 'setup': e['setup'], 'created': created,
+                            'tests': pooled['checks']['tests'], 'motors_fit': pooled['motors'],
+                            'directions': pooled.get('directions')}
+    if setups:
+        new.meta['setup_profiles'] = setups
+    return new

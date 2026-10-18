@@ -388,36 +388,42 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 **2. Review the result.**
 
-Each test is retained, and the profile displayed under **Test Results** is pooled across recent worm profile test runs, up to a maximum of five. Pooling the results helps identify the worm gear error more reliably than relying on a single test.
+Every test and its measurements are retained in the history. Only approved tests contribute to the worm gear profiles used by the driver. The driver pools up to five of the most recent approved tests to produce a more reliable estimate of each motor's worm gear error.
 
-The results are displayed in columns, each with a heading and one line per motor:
+The results show the current correction profile alongside the profile re-calculated with the latest test included. 
 
-* **Baseline:** `current profile`: The currently approved correction profile, applied while PEC Worm Gear Correction is enabled. Before a profile has been approved, this shows none.
+The results are displayed in columns, with one line per motor under each heading.
 
-* **Test Result:** `last test`: The correction profile that would be applied if you click Approve. If you have run the worm profile test more than once, the tests are pooled together and it shows `last 5 tests pooled`. For each motor, the result gives the estimated wobble amplitude and the worm angle at which the error peaks.
+* **Baseline:** `current profile`: The correction profile the driver uses for the lens set in Pilot's settings: that lens's own profile, otherwise the closest lens's, otherwise the generic profile. It is applied when PEC Worm Gear Correction is enabled. Before any test has been approved, this shows none.
+
+* **Test Result:** `last test` or `last N tests pooled`: The estimated worm gear error calculated from the test data. With only one test, the result is based on that test alone. Otherwise, it combines the latest test with the existing approved tests, using up to five tests in total (up to five in each direction for a motor split by direction, see below). This is the profile that would be used if the latest test were approved.
+
+    For each motor, the result shows the estimated wobble amplitude and the worm angle at which the error peaks.
 
     For example: `M1 21"@177`, `M2 86"@179`, `M3 85"@224`. The value before @ is the estimated error amplitude in arcseconds; the value after @ is the angle, from 0° to 360°, within the motor's 6° worm cycle where the error is largest. The angle is relative to the worm's rotational position.
-  
-    For example, `M3 off` means the test could not reliably identify a worm gear error for M3, so no correction is applied to that motor. This may be because the wobble is too small to measure reliably or there is insufficient data. Running additional tests may help identify the error. Results are pooled across up to five tests, allowing additional data to improve the fit when the error is difficult to measure. If a motor's result remains `off` after five test runs, it may simply mean that the mount's worm gear error is negligible and the motor needs no correction. This can be a sign of a good-quality mount.
 
-* **Change:** `from baseline`: how far each motor's correction would move from the Baseline if you approve the Test Result (`+0"` once it is the current profile).
+    A motor marked `off`, such as `M3 off`, has no correction because its worm gear error could not be measured reliably. This may mean the wobble is too small to measure or there is insufficient data. Additional tests may help identify it. If a motor remains off after five tests, its worm gear error may simply be negligible, which can be a sign of a good-quality mount.
 
-  A ⚠ line below the motors flags a problem with the last test: a poor fit, or insufficient separation between M1 and M3 at that pose (`low separation`). Repeat the test at another pose.
+* **Change:** `from baseline`: The difference between the Test Result and the Baseline for each motor. It shows how much the correction would change if the new result were adopted. Once the new profile becomes the current profile, the change is shown as +0".
 
-* **Test Stdev:** How closely the Test Result fitted the measurements, and how certain each motor's result is.
+    A warning line beginning with ⚠ indicates a problem with the latest test, such as a poor fit or insufficient separation between M1 and M3 at the test position (low separation). Repeat the test at a different mount position to improve the measurement.
 
-  For example, for the Test Result above: `pooled 19.4" rms`, then `M1 ±3.9" 5.4σ`, `M2 ±3.7" 23.2σ`, `M3 ±3.1" 27.4σ`. Every line is for the pooled Test Result.
+* **Test Stdev:** Shows how well the worm gear model fits the measurements and how precisely each motor's wobble has been estimated.
 
-  * `pooled 19.4" rms` is how far, on average, the plate solves sat from the fitted wobble. Seeing, wind and small pointing errors all add to it. The pooled fit is allowed up to 25".
-  * Each test must fit under 20" on its own to join the pool. If the last test didn't, a final line warns `⚠ last test left out: 24.1" rms`: it is kept in the history but not in the Pooled Test Result.
-  * Until there is more than one test to pool, the first line is the single test's own `last test 11.9" rms`. `, 31 positions` is added when that test stopped before all 50 positions: it is the number measured. A test needs at least 16 to be used.
-  * `±3.1"` is how much that motor's measured wobble could be out by. Read M3's `85"` with `±3.1"` as "about 82 to 88 arc seconds".
+  For example, a pooled result might show: `pooled 19.4" rms`, then `M1 ±3.9" 5.4σ`, `M2 ±3.7" 23.2σ`, `M3 ±3.1" 27.4σ`. These values describe the Test Result, not the Baseline.
 
-    Why is the motor’s wobble uncertainty (`±3.1"`) so much smaller than the plate-solve RMS (`19.4"`)? The RMS measures how far an individual plate solve typically deviates from the fitted wobble, while the `±` value represents the uncertainty in the estimated wobble amplitude after averaging across all measurements. Random noise largely cancels out when measurements are combined, so with up to 250 positions (50 steps across 5 pooled tests), the uncertainty in the worm-profile amplitude can be much smaller than the RMS error of a single plate solve.
+  * `pooled 19.4" rms` is the root-mean-square (RMS) residual: how far the individual plate-solve measurements typically fall from the fitted model. Seeing, wind and small pointing errors all contribute. The pooled fit allows an RMS of up to 25".
+  * Individual test quality: Each test must have an RMS below 20" to contribute to the pooled result. If the latest test exceeds this threshold, it remains in the history but is excluded from the pool. For example: `⚠ last test left out: 24.1" rms`
+  * Single-test results: When only one test is available, the first line shows its RMS, such as `last test 11.9" rms`. If the test stopped before completing all 50 measurement positions, the line also shows how many were measured, such as `31 positions`. At least 16 positions are required for a test to be used.
+  * `±3.1"` is the estimated uncertainty in the motor's wobble amplitude. For example, 85" ±3.1" means the estimated wobble is 85 arcseconds, with an uncertainty of approximately 3.1".
 
-  * `σ` (sigma) measures how clearly the wobble stands out from measurement noise: the wobble amplitude divided by its `±` uncertainty. M3’s `27.4σ` (85 ÷ 3.1) means its wobble is 27 times larger than the uncertainty, providing very strong evidence that it is real. A motor is corrected only if its wobble reaches `4σ` or higher. Below this threshold, the wobble cannot be reliably distinguished from noise, so Test Result shows it as `off`.
+    **Why is the wobble uncertainty smaller than the plate-solve RMS?** The RMS measures the typical residual error of individual plate solves. The ± value estimates how precisely the wobble amplitude has been determined from all the measurements. Combining measurements helps random noise average out, so the amplitude can be estimated more precisely than the residual error of an individual measurement. With up to 250 positions across five tests, the uncertainty can be substantially smaller than the RMS.
 
-    Bigger is better for `σ`. A motor just above the 4σ threshold, such as M1 at `5.4σ`, has a measurable wobble, but the result is less robust. Another test, or a test at a different pose, can increase confidence in the measurement.
+  * `σ` (sigma) indicates how clearly the measured wobble stands out from its uncertainty. It is the estimated amplitude divided by its uncertainty. For example, M3 at 85" ±3.1" has a significance of approximately 27.4σ, strong evidence that the wobble is real.
+    
+    A motor receives a correction only if its measured wobble reaches 4σ or higher. Below this threshold, the wobble cannot be distinguished reliably from noise, so the Test Result shows `off`.
+
+    Higher sigma values indicate greater confidence in the measurement. A motor just above the threshold, such as M1 at 5.4σ, has a measurable wobble, but its estimate is less robust. Additional tests or a test at a different mount position may improve confidence.
 
 * **Status:**
 
@@ -427,35 +433,69 @@ The results are displayed in columns, each with a heading and one line per motor
 
 Running the test again at a different pose reduces the effect of measurement noise.
 
-All tests, including their individual measurements, are retained in `worm_profile.json` in the driver's data folder. When the driver starts, the row is filled in from that file, so the results stay visible after a restart (or after a test that ended with `NO DATA`). The status shows `APPROVED` when the pooled profile is the current profile, and `COMPLETED` when there is a newer pooled result to approve.
+**Forward and reverse profiles.** 
 
-**3. Approve it.**
+A motor's worm gear error can differ depending on its direction of rotation because the load rests against a different side of the gear teeth. On the test mount, for example, M2 measured approximately 90" of wobble in the forward direction and 35" in reverse.
 
-Press **Approve** on the row to apply the pooled profile to the motors that were measured.
+While tracking, a motor may turn predominantly in one direction for an extended period. A single profile that averages both directions can therefore under-correct in one direction and over-correct in the other.
 
-Pressing it again rejects the profile and restores the previous correction.
+The driver checks for this effect separately for each motor. Every test records the direction in which each motor was tracking. Once a motor has at least three tests in each direction, the driver fits separate forward and reverse profiles using the measurements from those tests. 
 
-**4. It applies immediately.**
+If the two profiles differ significantly, by at least 3σ and at least 15", the motor receives separate directional corrections. Otherwise, it retains a single profile.
 
-Approve and Reject only choose the profile: whether it is applied is the **PEC Worm Gear Correction** switch in Pilot's settings, which they leave as it is.
+Test Result then shows both, for example `M2 fwd 95"@197 rev 36"@155` after the motors, and Test Stdev shows the split fit's rms, for example `direction split 10 tests 23.2" rms`.
 
-The worm gear correction is also part of the alignment model: with it on, every Multi-Point Alignment sync point is predicted through it (as the pointing is at runtime), and the QUEST model is refitted whenever it is switched on or off. The alignment model, and its M2 scale refit, do the same. Sync points keep their raw motor angles, so this needs no re-alignment.
+During operation, each motor uses the profile corresponding to its current direction of rotation. If a motor stops, it retains the profile for the direction in which it last moved. Before a motor has moved, its combined profile is used.
 
-For this reason, approve the profile **before** aligning and slewing for the night, and do a fresh Multi-Point Alignment after the test: the test moves the mount well away from its alignment points, and a clean, well-spread set of alignment points matters more than the profile itself. Approving, rejecting or switching it while guiding shifts the pointing once, by up to the measured wobble size, and restarts the drift correction.
+To build profiles for both directions, run tests on targets where the motors track in different directions, such as targets on opposite sides of the meridian.
 
-To run without the worm gear correction, switch **PEC Worm Gear Correction** off in Pilot's settings.
+**Profiles per lens.**
 
-**5. Check it.**
+A heavier or differently balanced lens can change the worm gear error exhibited by the mount. Each test therefore records the imaging setup specified by Focal Length and Focal Ratio in Pilot's settings, for example `200mm F2.8`. Set these values to match your lens before running a test.
 
-* On the **Kinematics** page, the **PEC Worm** row shows each motor's current correction; it changes as the motors turn (M1 fastest while tracking).
-* Compare guiding performance on the same target with the correction enabled and disabled, 10-15 minutes each (switching it restarts the drift correction).
+* **Pooling:** Test Result pools approved tests for the lens set in Pilot's settings: first tests from the same lens. If none are available, it pools tests with the same focal length. If neither is available, it pools all approved tests. The display indicates which data set is being used: no additional label for the same lens, a focal-length label such as `last 5 tests pooled 200mm` for matching focal length, or `(all setups)` when all configurations are pooled.
+* **At runtime:** The driver uses the profile matching the configured lens. If none exists, it falls back to the closest available profile: first one with the same focal length, otherwise one with the nearest focal length. If no lens-specific profile is available, or no lens is configured, the generic profile is used. Changing lenses therefore does not leave you without a correction profile.
 
-Use either:
+* **Changing lenses:** Changing Focal Length or Focal Ratio switches the selected profile immediately and refits the alignment model.
 
-* PHD2 RMS; or
-* the size of the sync guide corrections.
+All tests, including their individual measurements, are retained in `worm_profile.json` in the driver's data folder. On startup, the row is filled in from this file, so the results stay visible after a restart, or after a later test that ended with `NO DATA` (which saves nothing).
 
-With worm gear correction enabled, the slow, regular wave in the guide corrections should disappear. In PHD2 Log Viewer's frequency analysis, the peak at the worm period (typically around 34 minutes, about 2000 s, though it varies with the target's position as the motors' speeds change) should be gone or much smaller.
+The status also indicates whether the latest test is `APPROVED` or `REJECTED`, or `COMPLETED` if it is a new test awaiting your decision.
+
+**3. Approve or reject it.**
+
+Click **Approve** to include the latest test in the approved test pool. The correction profiles are rebuilt from the approved tests and take effect immediately.
+
+Press **Approve** again to reject the test and exclude it from the pool. The profiles are rebuilt without it. You can switch between approved and rejected states as often as needed.
+
+Rejected tests remain in the history for analysis but never contribute to the correction profiles.
+
+Reject tests that were compromised by conditions such as cloud, wind or a motor reversing during the test and introducing backlash-related errors. A test with a poor individual fit can still be approved, but it contributes to the pooled profile only if its RMS is below 20".
+
+**4. The correction takes effect immediately.**
+
+Approving or rejecting a test determines which measurements contribute to the correction profile. Whether that profile is actively applied is controlled separately by the PEC Worm Gear Correction switch in Pilot's settings. Approving or rejecting a test does not change this switch.
+
+Worm gear correction is also incorporated into the mount's alignment model. When correction is enabled, each Multi-Point Alignment sync point is predicted using the correction, matching the mount's runtime pointing behaviour. The QUEST alignment model, including its M2 scale refit, is refitted whenever the correction is switched on or off, and, while it is on, after each Approve or Reject and whenever the lens settings change.
+
+Because sync points retain their raw motor angles, no re-alignment is required simply because the correction is toggled.
+
+**Recommended workflow**: Approve or reject tests before aligning and observing for the night, then perform a fresh Multi-Point Alignment. The test moves the mount well away from its existing alignment points, and a clean, well-distributed set of alignment points is more important than the correction profile itself.
+
+Approving or rejecting a test, or toggling the correction while guiding, can shift the pointing by up to the measured wobble amplitude and restarts the drift correction.
+
+To operate without worm gear correction, switch PEC Worm Gear Correction off in Pilot's settings.
+
+**5. Verify the correction.**
+
+There are two ways to check whether the correction is improving tracking:
+
+* On the **Kinematics** page, inspect the **PEC Worm** row to see the current correction applied to each motor. These values change as the motors turn, with M1 changing most rapidly during tracking.
+* On the same target, compare the PHD2 RMS guiding error, or the size of the guide corrections needed to maintain tracking, with worm gear correction enabled and disabled. Allow 10–15 minutes for each period. Switching the correction restarts the drift correction, so allow for that when comparing results.
+
+With worm gear correction enabled, the slow, regular oscillation in the guide corrections should become smaller or disappear.
+
+In PHD2 Log Viewer, use frequency analysis to compare the peak at the worm period. This is typically around 34 minutes (approximately 2,000 seconds), although the period varies with the target's position as the motor speeds change. With effective correction, this peak should be substantially reduced or disappear.
 
 #### **VI. Important Considerations**
 
@@ -481,16 +521,20 @@ The `PECCONFIG` line contains:
 
 `tau_sec`, `min_dt_sec`
 
-With PEC Worm Gear Correction on, the driver writes two lines each time it reads the worm profile (at the first motor telemetry after start, and after Approve or Reject):
+With PEC Worm Gear Correction on, the driver writes these lines each time it reads the worm profile (at the first motor telemetry after start, after Approve or Reject, and when the lens settings change):
 
+* `WORMPROFILE CHOICE:` is which profile is in use: `the 200mm F4 profile`, `the 200mm F4 profile (closest to 300mm F2.8)`, or `no profile for 300mm F2.8: the generic profile`.
+* `WORMPROFILE IN USE:` is the profile each motor is using, also logged whenever a motor's choice changes (it reverses): `200mm F4: M1 duplex, M2 fwd, M3 rev`. The label is the lens profile chosen, or `generic` for the generic profile (pooled over every lens's approved tests). For each motor, `fwd`/`rev` is its split profile for the way it is turning, `duplex` is one profile for both directions (or a split motor that hasn't moved yet), and `off` is no correction.
 * `WORMPROFILE SUMMARY:` is the profile in a readable form, in the same format as the worm profile test's `WORM PROFILE TEST: END` line. Each motor shows its amplitude ± uncertainty @ peak angle and significance (σ), with `off` for a motor left uncorrected.
 * `WORMPROFILE {...}` is the profile itself as a Python dict (read it with `ast.literal_eval`):
   * `motors` gives each motor's coefficients in arcsec (sin and cos for each harmonic);
   * `worm_theta` and `harmonics` give the worm period and which harmonics are fitted;
   * `angle_reference` gives which angle each motor's coefficients use (`zeta`: the 517 MCU angles);
-  * `applied` gives when the calibration was approved.
+  * `direction_motors` gives the forward and reverse coefficients of the motors split by direction (absent when none is);
+  * `setup` gives the lens whose profile is in use (`None`: the generic profile);
+  * `applied` gives when the profile was last rebuilt (an Approve or Reject).
 
-  The profile file changes when a later calibration is approved, so this line keeps a record of the coefficients the session actually ran with. Match it with `WORMPROFILE {`, since the summary line also starts with `WORMPROFILE`.
+  The profile file changes whenever a test is approved or rejected, so this line keeps a record of the coefficients the session actually ran with. Match it with `WORMPROFILE {`, since the summary line also starts with `WORMPROFILE`.
 
 Each `PECLOG` entry is a Python dict. Read it with `ast.literal_eval`. Paired RA/Dec values are represented as `[ra, dec]`.
 

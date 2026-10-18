@@ -133,23 +133,29 @@ def test_the_test_runs_fits_keeps_the_test_and_shows_the_pooled_profile(tmp_path
     h = json.load(open(p._sm.path))['calibration_history']
     assert len(h) == 1 and len(h[0]['samples']) == len(POSITIONS) and h[0]['status'] == 'COMPLETED'
 
-    run_test(p, seed=1)                                          # a second test: the row pools both
-    row = p._cm.test_data[PROFILE_TEST]
-    assert row['test_result'].startswith('last 2 tests pooled M1 ') and row['test_change'].startswith('from baseline M1 ')
-
     p._cm.on_worm_profile_approval = p.worm_profile_approval
-    p._cm.toggleApproval(0, [PROFILE_TEST])
+    p._cm.toggleApproval(0, [PROFILE_TEST])                      # approve the first test: it pools
     assert row['test_status'] == 'APPROVED' and p._sm.reloaded == 1
     assert row['dps'].split(' M1 ')[1] == row['test_result'].split(' M1 ')[1]          # baseline: now the pooled profile
     assert row['dps'].startswith('current profile ') and row['test_change'].endswith('+0"')
     assert p.live == [{'advanced_pec_worm': True}]              # the switch is left on; the new profile is refitted
-    ff = WormFeedForward.load(p._sm.path)
-    assert ff.angle_reference == {'M1': 'zeta', 'M2': 'zeta', 'M3': 'zeta'}
-    assert all(coef_error(ff.coef[m][:2], TRUE[M][:2]) < 4.0 for m, M in enumerate(('M1', 'M2', 'M3')))
+    first = WormFeedForward.load(p._sm.path).coef
+
+    run_test(p, seed=1)                                          # a second test: the row shows the pool with it
+    row = p._cm.test_data[PROFILE_TEST]
+    assert row['test_status'] == 'COMPLETED' and row['test_result'].startswith('last 2 tests pooled M1 ')
+    assert row['test_change'].startswith('from baseline M1 ')
     p._cm.toggleApproval(0, [PROFILE_TEST])
-    assert row['test_status'] == 'REJECTED' and p._sm.reloaded == 2
-    assert len(p.live) == 2                                      # rejecting: refitted again, the switch still on
-    assert np.all(WormFeedForward.load(p._sm.path).coef == 0)
+    assert row['test_status'] == 'APPROVED' and p._sm.reloaded == 2
+    ff = WormFeedForward.load(p._sm.path)
+    assert ff.angle_reference == {'M1': 'zeta', 'M2': 'zeta', 'M3': 'zeta'} and ff.meta['applied_profile']['tests'] == 2
+    assert all(coef_error(ff.coef[m][:2], TRUE[M][:2]) < 4.0 for m, M in enumerate(('M1', 'M2', 'M3')))
+    p._cm.toggleApproval(0, [PROFILE_TEST])                      # reject it: the first test's profile again
+    assert row['test_status'] == 'REJECTED' and p._sm.reloaded == 3
+    assert len(p.live) == 3                                      # refitted each time, the switch still on
+    assert np.allclose(WormFeedForward.load(p._sm.path).coef, first)
+    h = json.load(open(p._sm.path))['calibration_history']
+    assert [e['approved'] for e in h] == [True, False]           # both kept
 
 
 def test_stopping_early_keeps_tracking_as_it_was_and_reports_stopped(tmp_path, cfg):

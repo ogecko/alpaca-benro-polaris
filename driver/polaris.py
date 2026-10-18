@@ -50,7 +50,8 @@ from kinematics import THETA2_MIN_MEAS
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
 from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
-from control_worm import store_profile_test, pooled_profile, apply_profile, revert_profile, row_status, MIN_SEPARATION_DEG
+from control_worm import store_profile_test, pooled_profile, set_last_test_approved, row_status, MIN_SEPARATION_DEG
+from control_worm import direction_summary, current_setup
 from control_worm import profile_summary, row_fields_from_file, PROFILE_TEST
 from control_worm import ROLL_TARGET_DEG, ROLL_TOLERANCE_DEG, POSITIONS, SYNC_CYCLE_S, SETTLE_TIMEOUT_S, fit_sweep, MOTORS
 from speed_controller import fast_rate_units, SpeedControllerRuntime, SwitchableMotor
@@ -751,12 +752,12 @@ class Polaris:
             self.lifecycle.reset()
             return
         store_profile_test(path, test.samples, result, timing=test.timing())
-        pooled = pooled_profile(path, worm_theta=test.worm_theta)
+        pooled = pooled_profile(path, worm_theta=test.worm_theta, with_last=True)     # what approving it would give
         # amplitude @ peak: the worm phase (360 x MCU angle / 6 deg) where each motor's wobble peaks
         self.logger.info(f"WORM PROFILE TEST: END {result['status']}: {profile_summary(result)}; checks {result['checks']}, "
-                         f"timing {test.timing()}; pooled over {pooled['checks'].get('tests', 0)} tests: "
-                         f"{profile_summary(pooled)} -> {path}")
-        self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path)),
+                         f"timing {test.timing()}; approving it would pool {pooled['checks'].get('tests', 0)} tests: "
+                         f"{profile_summary(pooled)}; {direction_summary(pooled)} -> {path}")
+        self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path, setup=current_setup())),
                                       row_status(result, pooled))
         self.lifecycle.reset()
 
@@ -788,12 +789,14 @@ class Polaris:
         return roll
 
     def worm_profile_approval(self, approved):
-        """Approve: put the profile pooled over the recent tests into use; reject: restore the previous one."""
+        """Approve or reject the last worm profile test (its flag in the history: approved tests pool) and rebuild the
+        profiles from the approved tests."""
         path = self._sm.worm_profile_path()
-        done = apply_profile(path) if approved else revert_profile(path)
+        done = set_last_test_approved(path, approved)
         if done:
             self._sm.reload_worm_ff()
-            self.logger.info(f"WORMPROFILE CHANGE: {'applied to' if approved else 'reverted in'} {path}")
+            self.logger.info(f"WORMPROFILE CHANGE: last test {'approved' if approved else 'rejected'}, "
+                             f"profiles rebuilt from the approved tests in {path}")
             # the row's Baseline is the profile in use: show the new one (and Change against it)
             cm = getattr(self, '_cm', None)
             if cm is not None and PROFILE_TEST in cm.test_data:
@@ -803,7 +806,7 @@ class Polaris:
             if Config.advanced_pec_worm:
                 self.make_config_params_live({'advanced_pec_worm': True})
         else:
-            self.logger.warning(f"WORMPROFILE CHANGE: nothing to {'apply' if approved else 'revert'} in {path}")
+            self.logger.warning(f"WORMPROFILE CHANGE: no worm profile test to {'approve' if approved else 'reject'} in {path}")
         return done
 
 
@@ -1962,9 +1965,11 @@ class Polaris:
                 self._sm.optimize_alignQ_B2T()
                 self._sm.refresh_pid_setpoints_from_q1()
                 self._sm.streamSyncData()
-            elif param == "advanced_pec_worm":
-                # the worm gear correction is part of every sync point's prediction: refit QUEST with or without it;
-                # clearing sync guiding also restarts the drift model, which learnt the drift with the other setting
+            elif param == "advanced_pec_worm" or (param in ("focal_length", "focal_ratio") and Config.advanced_pec_worm):
+                # the worm gear correction is part of every sync point's prediction: refit QUEST with or without it
+                # (or with the profile for the new lens, which the next tick loads); clearing sync guiding also
+                # restarts the drift model, which learnt the drift with the other setting
+                self._sm.reload_worm_ff()
                 self._sm.clear_sync_guiding()
                 self._sm.optimize_alignQ_B2T()
                 self._sm.refresh_pid_setpoints_from_q1()

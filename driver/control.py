@@ -242,7 +242,7 @@ class CalibrationManager:
         self.test_data = {}
         self.calibration_data = {}
         self.interpolator_data = {0:{}, 1:{}, 2:{}}
-        self.on_worm_profile_approval = None   # fn(approved) -> bool: apply/revert the pooled worm profile (Polaris)
+        self.on_worm_profile_approval = None   # fn(approved) -> bool: add / take the last worm profile test to / out of the pool (Polaris)
         self.on_calibration_update = None      # fn(): the calibration changed (Polaris: new FAST speed tables)
         if self.liveInstance:
             self.initialiseCalibrationData()
@@ -299,7 +299,8 @@ class CalibrationManager:
             self.saveTestDataToFile()
 
     def _wormProfileApproval(self, approved):
-        """Apply (approved) or revert the pooled worm profile through on_worm_profile_approval. False: leave the status."""
+        """Add (approved) the last worm profile test to the pool or take it out, through on_worm_profile_approval. False:
+        leave the status."""
         if self.on_worm_profile_approval is None:
             return True
         return bool(self.on_worm_profile_approval(approved))
@@ -379,7 +380,7 @@ class CalibrationManager:
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
-            if status in ['COMPLETED', 'REJECTED']:
+            if status in ['COMPLETED', 'REJECTED'] or (self.isWormProfile(testName) and status == 'POOR FIT'):
                 if self.isWormProfile(testName) and not self._wormProfileApproval(True):
                     continue
                 self.test_data[testName]['test_status'] = 'APPROVED'
@@ -408,7 +409,9 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             if testData and testData.get('axis')==axis:
                 status = testData.get('test_status','')
-                if status in ['COMPLETED', 'REJECTED']:
+                # the worm profile row adds its last test to the pool even when it fit poorly on its own (it joins
+                # only with a clean fit); the button then takes it out again, as often as wanted
+                if status in ['COMPLETED', 'REJECTED'] or (self.isWormProfile(testName) and status == 'POOR FIT'):
                     if self.isWormProfile(testName) and not self._wormProfileApproval(True):
                         continue
                     self.test_data[testName]['test_status'] = 'APPROVED'
@@ -2595,6 +2598,8 @@ class SyncManager(PecMixin, WormMixin):
             "zeta": zeta,                       # the MCU's motor angles (517): the worm gear correction's reference
             "backlash": [float(x) for x in self.backlash_deg] if np.any(self.backlash_deg) else None,
                                                 # Backlash Compensation's adjustment then (deg, motor - output shaft)
+            "wdir": [int(x) for x in getattr(self, 'worm_direction', np.zeros(3))],
+                                                # each motor's direction of travel then: its forward or reverse worm
             "a_ra": None,
             "a_dec": None,
             "a_az": None,
@@ -3492,6 +3497,7 @@ class SyncManager(PecMixin, WormMixin):
                     'theta':      [float(x) for x in entry['theta']] if entry.get('theta') is not None else None,
                     'zeta':       [float(x) for x in entry['zeta']] if entry.get('zeta') is not None else None,
                     'backlash':   [float(x) for x in entry['backlash']] if entry.get('backlash') is not None else None,
+                    'wdir':       [int(x) for x in entry['wdir']] if entry.get('wdir') is not None else None,
                     'a_ra':       float(entry['a_ra'])   if entry.get('a_ra')   is not None else None,
                     'a_dec':      float(entry['a_dec'])  if entry.get('a_dec')  is not None else None,
                     'a_az':       float(entry['a_az'])   if entry.get('a_az')   is not None else None,
