@@ -607,3 +607,12 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2) + sync"
 records = ["pec", "sg", "sync"]
 notes = ""
+
+[sessions."mark_Beta8.0_10_17_PulseGuide"]
+logs = ["alpaca.mark_Beta8.0_10_17_PulseGuide_a*.log"]
+phd2 = "alpaca.mark_Beta8.0_10_17_PulseGuide_a1_PHD2_GuideLog_2026-10-17_210622.txt"
+date = "2026-10-17"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = ""
