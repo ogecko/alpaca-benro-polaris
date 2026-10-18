@@ -258,3 +258,105 @@ def worm_gains(df, C, coef, y, harmonics=HARMONICS, worm_theta=WORM_THETA, rate_
     summary = {'left_now': float(np.std(Y - X @ ideal)), 'left_fitted': float(np.std(r)),
                'worm_profile': float(np.std(X @ ideal)), 'worm_fitted': float(np.std(X @ beta))}
     return pd.DataFrame(rows), summary
+
+
+# ── the worm feed-forward rebuilt between PECLOG rows ─────────────────────────────────────────────
+# PECLOG is written at each guide update: dense while pulse guiding, but once per plate-solve sync while only sync
+# guiding, so its logged wff misses the worm between syncs. The feed-forward runs every control tick from each
+# motor's MCU angle; while tracking those angles change smoothly, so the feed-forward can be rebuilt on a fine grid
+# from the angles interpolated between rows and the profile the session ran with (its WORMPROFILE log line).
+
+def logged_worm_profiles(log_paths):
+    """[(timestamp, profile dict)] from the WORMPROFILE {...} lines of the driver logs (the profile the feed-forward
+    ran with, from each time it was read: start, Approve/Reject, a lens change), oldest first."""
+    import ast
+    out = []
+    for path in log_paths:
+        with open(path, errors='replace') as f:
+            for line in f:
+                k = line.find('WORMPROFILE {')
+                if k < 0:
+                    continue
+                try:
+                    prof = ast.literal_eval(line[k + len('WORMPROFILE '):].strip())
+                except (ValueError, SyntaxError):
+                    continue
+                out.append((pd.Timestamp(line[:23]), prof))
+    return sorted(out, key=lambda p: p[0])
+
+
+def _profile_coef(prof, direction):
+    """(3, 2 x len(harmonics)) arcsec: a logged profile's coefficients per motor, its forward / reverse ones for a
+    motor split by direction (direction: per motor +1 / -1 / 0)."""
+    coef = np.array([prof['motors'][M] for M in MOTORS], float)
+    for m, M in enumerate(MOTORS):
+        split = (prof.get('direction_motors') or {}).get(M)
+        if split and direction[m]:
+            coef[m] = split['forward' if direction[m] > 0 else 'reverse']
+    return coef
+
+
+def rebuilt_wff(df, site_lat, profiles, step_s=10.0, max_gap_s=900.0, max_rate_dps=0.02):
+    """The worm feed-forward (RA/Dec arcmin) on a step_s grid between PECLOG rows: each motor's MCU angle and the pose
+    interpolated linearly between rows no more than max_gap_s apart (a longer gap is left out, and so is one where a
+    motor turned faster than max_rate_dps: a goto or jog, not tracking -- ~5x the fastest sidereal motor rate), and the profile in use then (profiles: logged_worm_profiles), forward or reverse by each motor's direction
+    of travel. Returns (DataFrame timestamp, wff_1, wff_2, rebuilt at the rows' own times as a check: the rms of
+    rebuilt - logged in arcsec, or None)."""
+    cols = ['theta_raw_1', 'theta_raw_2', 'theta_raw_3', 'az', 'alt', 'roll']
+    d = df.dropna(subset=cols).sort_values('timestamp').reset_index(drop=True)
+    if len(d) < 2 or not profiles:
+        return pd.DataFrame(columns=['timestamp', 'wff_1', 'wff_2']), None
+    off = d[['zeta_offset_1', 'zeta_offset_2', 'zeta_offset_3']].astype(float).ffill().bfill() \
+        if 'zeta_offset_1' in d else pd.DataFrame(np.zeros((len(d), 3)))
+    t = (d['timestamp'] - d['timestamp'].iloc[0]).dt.total_seconds().to_numpy()
+    unwrap = {c: np.degrees(np.unwrap(np.radians(d[c].to_numpy(float)))) for c in ('theta_raw_1', 'theta_raw_3', 'az')}
+    vals = {c: unwrap.get(c, d[c].to_numpy(float)) for c in cols}
+    rows = []
+    for i in range(len(d) - 1):
+        dt = t[i + 1] - t[i]
+        if dt <= 0 or dt > max_gap_s:
+            continue
+        jump = max(abs(vals[c][i + 1] - vals[c][i]) for c in ('theta_raw_1', 'theta_raw_2', 'theta_raw_3'))
+        if jump > max_rate_dps * dt + 0.05:             # a goto or jog between the rows: not tracking
+            continue
+        for tt in np.arange(t[i], t[i + 1], step_s):
+            f = (tt - t[i]) / dt
+            r = {c: vals[c][i] + f * (vals[c][i + 1] - vals[c][i]) for c in cols}
+            r.update({f'zeta_offset_{m + 1}': off.iloc[i, m] for m in range(3)})
+            r['t'] = tt
+            r['dir'] = [int(np.sign(vals[c][i + 1] - vals[c][i])) for c in ('theta_raw_1', 'theta_raw_2', 'theta_raw_3')]
+            rows.append(r)
+    if not rows:
+        return pd.DataFrame(columns=['timestamp', 'wff_1', 'wff_2']), None
+    g = pd.DataFrame(rows)
+    g['timestamp'] = d['timestamp'].iloc[0] + pd.to_timedelta(g['t'], unit='s')
+    for c in ('theta_raw_1', 'theta_raw_3', 'az'):
+        g[c] = g[c] % 360
+    C, _ = wff_coupling(g, site_lat)
+    ang = motor_angles(g)
+    times = [p[0] for p in profiles]
+    out = np.zeros((len(g), 2))
+    for k in range(len(g)):
+        j = np.searchsorted(times, g['timestamp'].iloc[k], side='right') - 1
+        prof = profiles[max(j, 0)][1]
+        coef = _profile_coef(prof, g['dir'].iloc[k])
+        harmonics = prof.get('harmonics', HARMONICS)
+        phi = 2 * np.pi * ang[k] / float(prof.get('worm_theta', WORM_THETA))
+        e = np.zeros(3)
+        for h_i, h in enumerate(harmonics):
+            e += coef[:, 2 * h_i] * np.sin(h * phi) + coef[:, 2 * h_i + 1] * np.cos(h * phi)
+        out[k] = np.einsum('m,mk->k', e / 3600, C[k])
+    res = pd.DataFrame({'timestamp': g['timestamp'], 'wff_1': out[:, 0], 'wff_2': out[:, 1]})
+    check = None
+    if 'wff_1' in d:
+        logged = d[['timestamp', 'wff_1', 'wff_2']].rename(columns={'wff_1': 'l1', 'wff_2': 'l2'})
+        logged['timestamp'] = logged['timestamp'].astype('datetime64[ns]')
+        logged[['l1', 'l2']] = logged[['l1', 'l2']].astype(float)
+        left = res.sort_values('timestamp').copy()
+        left['timestamp'] = left['timestamp'].astype('datetime64[ns]')
+        near = pd.merge_asof(left, logged.sort_values('timestamp'), on='timestamp', direction='nearest',
+                             tolerance=pd.Timedelta(seconds=step_s / 2))
+        ok = near.dropna(subset=['l1'])
+        if len(ok):
+            check = float(np.sqrt(np.mean((ok[['wff_1', 'wff_2']].to_numpy() - ok[['l1', 'l2']].to_numpy()) ** 2)) * 60)
+    return res, check

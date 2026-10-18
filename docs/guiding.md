@@ -361,6 +361,8 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 * **Tips:**
   * It ignores PHD2 and CCDciel guider calibration pulses, so it can stay on while calibrating.
   * It pauses learning while a motor reverses its tracking direction, for example M2 as a target passes its highest point. The motor first turns through its gear backlash before the lens follows, so the star drifts for several minutes and the guider pulls it back. PEC keeps applying the rate it had learned, but doesn't learn that drift, so it doesn't keep correcting it after the gear has caught up. The driver log shows when learning pauses and resumes.
+  * It stops applying the rate if the guide corrections stop, for example clouds pass preventing plate solving: after about 5 minutes, or three times the usual time between corrections if that is longer. It carries on from the next correction.
+  * A single correction far larger than usual, such as a bad plate solve or the mount slipping, is treated as a one-off jump rather than drift, so it doesn't throw the rate off. Several large corrections in a row are taken as a real change in drift and learned.
   * Switch it **off** if you dither: dither steps look like drift, and PEC would learn them.
   * A good Multi-Point Alignment (and Mechanical Alignment Correction) reduces the drift in the first place.
 

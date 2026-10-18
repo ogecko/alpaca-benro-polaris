@@ -14,7 +14,8 @@
 #     gating        nothing is applied until an axis's model has converged: pec_min_observations, rmse below
 #                   pec_max_rmse_arcmin, R2 above pec_min_r2 (PecInhibit says why not); residuals above
 #                   pec_max_resid_arcmin are ignored; gotos, pans, rolls, tracking off and settings changes reset the
-#                   model (reset_pec_model)
+#                   model (reset_pec_model); an axis with no guide update for too long stops applying (PEC_STALE_*),
+#                   and a residual far outside its prediction is a step, not learned (PEC_STEP_*)
 #     logging       PECCONFIG once per session, PECLOG per update (drift totals, model, inhibit, motor angles) for
 #                   utility/analyse_tracking.ipynb
 #   PecAxis       one axis's drift model: the observed drift rate, exponentially smoothed (EMA, time constant
@@ -566,6 +567,11 @@ class PecMixin:
             # per-axis fit status: TOO_FEW_OBS -> LOW_R2/HIGH_RMSE -> VALID
             "inhibit": [ra.inhibit.name, dec.inhibit.name],
 
+            # this residual taken as a step (folded in, not learned: PEC_STEP_*); the rate not applied before it, no
+            # update having arrived for too long (PEC_STALE_*)
+            "step": [bool(ra.last_step), bool(dec.last_step)],
+            "stale": [bool(ra.stale), bool(dec.stale)],
+
             # fit quality, 0-1, dimensionless
             "r2": [round(float(ra.r2), 4), round(float(dec.r2), 4)],
 
@@ -681,6 +687,22 @@ class PecInhibit(IntEnum):
     HIGH_RMSE    = 4
     LOW_R2       = 5
 
+
+# Guide updates that stop (a guider stopped, plate solves failing) leave the last rate applied for as long as none
+# arrive: 2026-10-17 PHD2 stopped at 22:42 with the rate swung to -12.8"/min by its last pulses, and PEC applied it for
+# the 12.6 min until sync guiding started (-161" on RA, undone by the first sync). An axis with no update for longer
+# than PEC_STALE_FACTOR x its recent update interval (at least PEC_STALE_MIN_S) stops applying until the next one.
+PEC_STALE_FACTOR = 3.0
+PEC_STALE_MIN_S = 300.0
+PEC_INTERVAL_ALPHA = 0.3            # EMA weight of each new update interval in the recent interval
+# A residual far outside the model's prediction is a step -- a bad plate solve, an M2 slip, a guider's burst -- not
+# drift: 2026-10-17 23:27 a +165" Dec sync, then -185" at the next, drove the rate to +22"/min. One more than
+# PEC_STEP_SIGMA x the prediction rms and PEC_STEP_MIN_ARCSEC is folded into the total without moving the rate; more
+# than PEC_STEP_MAX_RUN in a row are taken as a real change of drift and learned.
+PEC_STEP_SIGMA = 4.0
+PEC_STEP_MIN_ARCSEC = 30.0
+PEC_STEP_MAX_RUN = 2
+
 class PecAxis:
     """
     One axis's drift model: an exponential moving average of the observed drift rate.
@@ -710,6 +732,10 @@ class PecAxis:
         self._accum  = 0.0
         self._applied_accum = 0.0
         self._applied_rate  = 0.0   # last applied instantaneous rate, deg/s -- for status reporting
+        self._interval = None       # recent update interval (EMA, s): how stale is stale
+        self._steps_in_row = 0      # residuals taken as steps since the last one learned
+        self.last_step = False      # the last ingest was taken as a step (PECLOG)
+        self.stale = False          # no update for too long: not applying (PECLOG)
 
     def reset(self):
         """Full reset -- preserves configuration (tau/min_dt), clears the rate and fit state."""
@@ -729,10 +755,42 @@ class PecAxis:
         Ingest a new guide residual and update the model.
         resid_deg: guide residual for this axis in degrees.
         t: seconds since session start.
+        A residual far outside the prediction (is_step) is folded into the total as a step: the rate and fit are left
+        as they were and the differencing restarts after it.
         """
         self._accum += resid_deg + self._applied_accum
         self._applied_accum = 0.0
-        self._update(self._accum - self._ref, t, var_alpha, sse_alpha)
+        y = self._accum - self._ref
+        self.last_step = self.is_step(y, t)
+        if self.last_step:
+            self._steps_in_row += 1
+            self._note_interval(t)
+            self._y_last, self._t_last = y, t
+            return
+        self._steps_in_row = 0
+        self._update(y, t, var_alpha, sse_alpha)
+
+    def stale_after(self):
+        """Seconds without an update after which the rate stops being applied."""
+        return max(PEC_STALE_MIN_S, PEC_STALE_FACTOR * self._interval) if self._interval else PEC_STALE_MIN_S
+
+    def is_stale(self, t):
+        return self._y_last is not None and t - self._t_last > self.stale_after()
+
+    def is_step(self, y, t):
+        """A total y at t far outside the model's prediction: a step, not drift (PEC_STEP_*). Not after a stale gap
+        (the drift then builds over the whole gap without PEC: the rate observed over it is real), nor before the model
+        has a prediction rms, nor more than PEC_STEP_MAX_RUN times in a row."""
+        if self._y_last is None or self.sse <= 0 or self._steps_in_row >= PEC_STEP_MAX_RUN or self.is_stale(t):
+            return False
+        err = abs(y - (self._y_last + self.rate * (t - self._t_last)))
+        return err > max(PEC_STEP_SIGMA * math.sqrt(self.sse), PEC_STEP_MIN_ARCSEC / 3600.0)
+
+    def _note_interval(self, t):
+        if self._y_last is not None and t > self._t_last:
+            dt = t - self._t_last
+            self._interval = dt if self._interval is None else \
+                PEC_INTERVAL_ALPHA * dt + (1 - PEC_INTERVAL_ALPHA) * self._interval
 
     def hold(self):
         """
@@ -754,7 +812,8 @@ class PecAxis:
         if dt < self.min_dt:
             return    # too soon since this axis's own last update -- skip rather than corrupt the fit
         self.lam = math.exp(-dt / self.tau)
-
+        if not self.is_stale(t):                    # a stale gap's length isn't the guider's interval
+            self._note_interval(t)
         y_pred = (self._y_last + self.rate * dt) if self._y_last is not None else y
         err    = y - y_pred
         self.var = var_alpha * y * y     + (1 - var_alpha) * self.var
@@ -790,6 +849,10 @@ class PecAxis:
         Returns (d, correction_was_applied). d is in degrees.
         """
         if not self.converged():
+            return 0.0, False
+        self.stale = self.is_stale(t)
+        if self.stale:                              # no guide update for too long: don't run on with the last rate
+            self._applied_rate = 0.0
             return 0.0, False
         rate = self.predicted_rate(t)
         self._applied_rate = rate
