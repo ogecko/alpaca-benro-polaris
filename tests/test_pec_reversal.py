@@ -111,9 +111,10 @@ SMC_TURN = (162.0, 44.0, 12.4)      # the SMC from Sydney on 2026-10-11 at 21:19
 EAST = (100.0, 30.0, 0.0)           # rising in the east: every motor turning one way for hours
 
 
-def tracking_twin(monkeypatch, pose=SMC_TURN):
+def tracking_twin(monkeypatch, pose=SMC_TURN, blc=False):
+    blc_config = {'advanced_backlash': True, 'coordinated_speed_control': True, 'backlash_deg': [0.1] * 3} if blc else {}
     tw = Twin(monkeypatch, config={'advanced_pec_drift': True, 'pec_reversal_pause': True,
-                                   'pec_reversal_lead_sec': LEAD, 'pec_reversal_backlash_deg': BACKLASH})
+                                   'pec_reversal_lead_sec': LEAD, 'pec_reversal_backlash_deg': BACKLASH, **blc_config})
     tw.place(azaltroll_to_theta_ik(*pose))
     tw.start_tracking()
     tw.run(5)
@@ -274,8 +275,11 @@ def test_no_reversal_is_announced_tracking_in_the_east(monkeypatch, caplog):
     assert reversal_lines(caplog) == []
 
 
-def test_a_new_target_refreshes_the_turning_points(monkeypatch):
-    tw = tracking_twin(monkeypatch)                           # the SMC at its M2 turn
+@pytest.mark.parametrize('blc', [False, True], ids=['no-blc', 'blc'])
+def test_a_new_target_refreshes_the_turning_points(monkeypatch, blc):
+    """With Backlash Compensation on it asks for the turning points early in a tick, when a new target's delta_sp is
+    set but the tracking reference is still the old one: the old path was kept for the new target for 5 min."""
+    tw = tracking_twin(monkeypatch, blc=blc)                  # the SMC at its M2 turn
     sm = tw.polaris._sm
     assert [t[0] for t in sm.motor_turns(tw.clock.monotonic())] == [1]
     tw.pid.set_alpha_target({'az': EAST[0], 'alt': EAST[1], 'roll': EAST[2]})   # a new target, PEC not reset

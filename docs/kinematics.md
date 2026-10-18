@@ -635,6 +635,8 @@ A sync taken while compensation is acting keeps its adjustment alongside its raw
 
 #### III. When is Backlash Compensation Active?
 
+Backlash Compensation needs **Coordinated Speed Control** on: only that controller can push a motor through its slack and hold it while the sky catches up. With Coordinated Speed Control off it stays inactive, even when switched on.
+
 When enabled, Backlash Compensation operates only:
 
 - **After a Goto, Rotate, SlewAbsolute or SlewRelative:** Until each motor is engaged in its final tracking direction.
@@ -654,7 +656,7 @@ Compensation is also inhibited on a motor under the following conditions:
 
 | Setting | Default | Description |
 |---|---|---|
-| `advanced_backlash` | `false` | Enables Backlash Compensation in Pilot settings (BETA). |
+| `advanced_backlash` | `true` | Enables Backlash Compensation in Pilot settings (BETA). Needs `coordinated_speed_control`. |
 | `backlash_deg` | `[0.04, 0.12, 0.08]` | Estimated backlash in degrees for M1, M2 and M3, respectively (144, 432 and 288 arcsec). |
 
 **Setting backlash values:** The defaults are based on measured backlash. Overestimating slack generally increases take-up time, while underestimating it can leave some slack uncompensated. M2 may require particular attention because its backlash varies with load and position.

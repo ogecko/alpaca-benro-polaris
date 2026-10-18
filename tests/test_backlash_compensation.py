@@ -489,7 +489,34 @@ def test_the_worm_profile_test_pauses_it_even_through_a_planned_reversal(monkeyp
     assert sm.corrQ_BLC.degrees == 0
 
 
-def test_off_by_default():
-    Config.load(pilotpath="/nonexistent")                 # config.toml's default (not this machine's Pilot settings)
-    assert Config.advanced_backlash is False
-    assert len(Config.backlash_deg) == 3
+def test_without_coordinated_speed_control_it_stays_off(monkeypatch):
+    """Only the coordinated controller pushes a motor through its slack and holds it while the sky catches up: with
+    the legacy controller the hold still counted as arrived, and gotos completed up to 15" short (twin, 2026-10-18)."""
+    monkeypatch.setattr(Config, 'advanced_backlash', True, raising=False)
+    monkeypatch.setattr(Config, 'backlash_deg', [BACKLASH] * 3, raising=False)
+    monkeypatch.setattr(Config, 'coordinated_speed_control', True, raising=False)
+    assert BacklashCompensator.enabled()
+    monkeypatch.setattr(Config, 'coordinated_speed_control', False, raising=False)
+    assert not BacklashCompensator.enabled()
+
+
+def test_a_legacy_goto_with_it_switched_on_still_completes_on_target(monkeypatch):
+    import math
+    for seed in (0, 1, 2):
+        tw = Twin(monkeypatch, config={**config(True), 'coordinated_speed_control': False}, seed=seed)
+        tw.place(azaltroll_to_theta_ik(135.0, 45.0, 0.0))
+        tw.start_tracking()
+        tw.run(30)
+        ra, dec = tw.polaris.rightascension, tw.polaris.declination
+        target = (ra, dec + 3 / 60)
+        tw.goto_radec(*target)
+        t0 = tw.clock.t
+        while tw.clock.t - t0 < 60 and tw.polaris.goto_complete_at is None:
+            tw.run(0.2)
+        assert tw.polaris.goto_complete_at is not None
+        d1, d2 = math.radians(target[1]), math.radians(tw.polaris.declination)
+        c = math.sin(d1) * math.sin(d2) + math.cos(d1) * math.cos(d2) * math.cos(math.radians((target[0] - tw.polaris.rightascension) * 15))
+        miss = math.degrees(math.acos(min(1.0, c))) * ARCSEC
+        assert miss <= 5.0, f'seed {seed}: completed {miss:.1f}" from the target'
+        assert not np.any(tw.pid.backlash.active)
+        tw.close()

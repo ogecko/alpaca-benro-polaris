@@ -244,7 +244,7 @@ class PecMixin:
         self._pec_reversals     = []
         self._pec_turns         = None        # cached motor turning points [(motor, monotonic time, theta, accel)]
         self._pec_turns_next    = 0.0         # when to recompute them
-        self._pec_turns_target  = None        # the tracked target (delta_sp) they were computed for
+        self._pec_turns_target  = None        # the RA/Dec of the tracking reference (pid.cameraQ_ref) they were computed for
 
         self._pec_var_alpha  = 0.05           # EMA factor for var estimate, more stable R2
         self._pec_sse_alpha  = 0.15           # EMA factor for sse estimate, faster tracking decay
@@ -288,6 +288,18 @@ class PecMixin:
             out[k] = last[side] = np.asarray(q_to_theta(q, lp), float)
         return out
 
+    def _pec_turns_key(self, cameraQ_ref):
+        """(RA deg, Dec deg) of the tracking reference -- fixed while it tracks a sidereal target -- or None."""
+        if cameraQ_ref is None:
+            return None
+        from kinematics import q_to_azaltroll
+        try:
+            az, alt, _ = q_to_azaltroll(cameraQ_ref)
+            ra, dec = self.polaris.altaz2radec(alt, az)
+        except (AttributeError, TypeError, ValueError):
+            return None
+        return (float(ra) * 15.0, float(dec))
+
     def motor_turns(self, now):
         """
         The tracked target's motor turning points [(motor, monotonic time, theta, accel)] (motor_turning_points), []
@@ -295,10 +307,13 @@ class PecMixin:
         kinematics solves) and refreshed every REVERSAL_REFRESH_SEC, when the PEC model resets or the target changes.
         """
         pid = getattr(self.polaris, '_pid', None)
-        sp = getattr(pid, 'delta_sp', None)
-        target = None if sp is None else np.asarray(sp, float).copy()
+        # keyed on the RA/Dec of the tracking reference the path is built from (pec_sidereal_path), not delta_sp: Backlash
+        # Compensation asks early in a tick, when a new target's delta_sp is set but cameraQ_ref is still the old one,
+        # and the old path was then kept for the new target until the next refresh (5 min)
+        target = self._pec_turns_key(getattr(pid, 'cameraQ_ref', None))
         moved = (self._pec_turns_target is None or target is None or
-                 np.max(np.abs(target - self._pec_turns_target)) > 1 / 60)
+                 abs((target[0] - self._pec_turns_target[0] + 180) % 360 - 180) * np.cos(np.radians(target[1])) > 1 / 60
+                 or abs(target[1] - self._pec_turns_target[1]) > 1 / 60)
         if self._pec_turns is None or now >= self._pec_turns_next or moved:
             lead = float(getattr(Config, 'pec_reversal_lead_sec', 120.0))
             times = np.arange(-REVERSAL_MAX_SEC, max(lead, REVERSAL_ANNOUNCE_SEC) + REVERSAL_LOOKAHEAD_SEC + 1e-9,

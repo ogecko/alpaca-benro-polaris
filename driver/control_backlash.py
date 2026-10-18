@@ -105,7 +105,11 @@ class BacklashCompensator:
 
     @staticmethod
     def enabled():
-        return bool(getattr(Config, 'advanced_backlash', False)) and bool(np.any(BacklashCompensator.slack() > 0))
+        """On, with some slack to take up, and with Coordinated Speed Control: only its controller pushes a motor
+        through its slack and holds it while the sky catches up (push, clutch); the legacy controller can't, and with
+        the hold still counting as arrived its gotos completed up to 15\" short (twin, 2026-10-18)."""
+        return (bool(getattr(Config, 'advanced_backlash', False)) and bool(getattr(Config, 'coordinated_speed_control', False))
+                and bool(np.any(BacklashCompensator.slack() > 0)))
 
     def update(self, theta_m, omega_ff, tracking, move_pending, turns=(), now=0.0):
         """Each control tick: the adjustment (deg, per motor) to take off the motor angles theta_m for the PID's error.

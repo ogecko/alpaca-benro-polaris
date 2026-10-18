@@ -47,6 +47,8 @@ TWIN_CONFIG = {
     "advanced_control": True, "advanced_kf": True, "advanced_slewing": True, "advanced_goto": True,
     "advanced_tracking": True, "advanced_alignment": False, "advanced_scc_enabled": False,
     "advanced_align_mac": False, "advanced_pec_drift": False, "advanced_pec_worm": False, "advanced_sync_guiding": False,
+    "advanced_backlash": False,         # its own default, whatever config.toml ships: BLC tests switch it on (the twin has
+                                        # no gear backlash unless asked, backlash_deg)
     "advanced_pulse_guiding": True, "advanced_orbitals": False, "coordinated_speed_control": False,
     "log_position": False, "log_pec": False, "log_quest_model": False,
     "site_latitude": LAT, "site_longitude": LON, "pid_Ka": 0.0, "pid_Kv": 0.0,
