@@ -471,6 +471,11 @@ class BLE_Controller:
         "already connected" case is the normal steady state, checked every
         30s, and would spam the log if logged unconditionally there.
         """
+        # A second click (Pilot sent two 4 ms apart, 2026-10-17) would run its own join alongside: both drive netsh
+        # on the same adapter. No await before the flag is set, so the check can't race.
+        if self.isEnablingWifi:
+            self.logger.info("Join Wi-Fi: a join is already in progress - ignoring")
+            return
         self.isEnablingWifi = True
         self.isWifiEnabled  = False
 
