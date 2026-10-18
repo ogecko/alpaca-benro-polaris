@@ -314,3 +314,34 @@ def test_on_the_twin_m2s_profile_follows_its_tracking_direction_across_the_merid
     assert lines == ['WORMPROFILE IN USE: generic: M1 off, M2 duplex, M3 off'] + \
         [f'WORMPROFILE IN USE: generic: M1 off, M2 {names[d]}, M3 off' for d in seen]
     tw.close()
+
+
+def test_a_test_record_starts_with_its_status_approval_and_lens(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    store(p, DIRS[:1])
+    raw = json.load(open(p))['calibration_history']
+    raw[0] = {k: raw[0][k] for k in ('samples', 'result', 'setup', 'approved', 'test', 'created', 'status', 'timing')}
+    d = json.load(open(p))
+    d['calibration_history'] = raw
+    json.dump(d, open(p, 'w'))
+    WormFeedForward.load(p).save(p)                                      # an older file's records are reordered
+    keys = list(json.load(open(p))['calibration_history'][0])
+    assert keys[:5] == ['test', 'created', 'status', 'approved', 'setup'] and keys[-1] in ('samples', 'timing')
+
+
+def test_a_test_from_before_the_flags_gets_them_written_so_it_can_be_edited(tmp_path):
+    p = str(tmp_path / 'worm_profile.json')
+    store(p, DIRS[:2])
+    d = json.load(open(p))
+    for e in d['calibration_history']:
+        del e['approved'], e['setup']
+    json.dump(d, open(p, 'w'))
+    WormFeedForward.load(p).save(p)
+    h = json.load(open(p))['calibration_history']
+    assert [(e['approved'], e['setup']) for e in h] == [(True, None), (True, None)]   # as they read: all approved
+    h[0]['approved'] = False                                                    # rejected by hand
+    d = json.load(open(p))
+    d['calibration_history'] = h
+    json.dump(d, open(p, 'w'))
+    assert setup_tests(WormFeedForward.load(p).meta['calibration_history'], None)[0] == [
+        e for e in WormFeedForward.load(p).meta['calibration_history'][1:]]

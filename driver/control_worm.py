@@ -171,6 +171,8 @@ class WormFeedForward:
         # the profile in use first (what a reader opens the file for), then the applied profile's details and other
         # provenance, the (long) test history last; provenance never overrides the profile
         meta = {k: v for k, v in self.meta.items() if k not in core and k not in ('profile_setup', 'profile_warnings')}
+        if isinstance(meta.get('calibration_history'), list):
+            meta['calibration_history'] = [_history_order(e) for e in meta['calibration_history']]
         d = {**core, **{k: v for k, v in meta.items() if k == 'applied_profile'},
              **{k: v for k, v in meta.items() if k not in ('applied_profile', 'calibration_history')},
              **{k: v for k, v in meta.items() if k == 'calibration_history'}}
@@ -226,6 +228,22 @@ class WormFeedForward:
         if warnings:
             meta['profile_warnings'] = warnings
         return cls(worm_theta=worm_theta, harmonics=harmonics, coef=coef, meta=meta, **extra)
+
+
+HISTORY_FIRST = ('test', 'created', 'status', 'approved', 'setup')   # a test record's keys a reader looks for first
+
+
+def _history_order(entry):
+    """A calibration_history record with HISTORY_FIRST at the top (in that order), then the rest as they were (the
+    long samples last). A worm profile test from before the flags were kept gets them written out as they read --
+    approved (they all pooled) and its setup unknown (null) -- so a test can be rejected, or its lens set, by editing
+    the file."""
+    if not isinstance(entry, dict):
+        return entry
+    if entry.get('test') == PROFILE_TEST:
+        entry = {**entry, 'approved': entry.get('approved', True), 'setup': entry.get('setup')}
+    first = {k: entry[k] for k in HISTORY_FIRST if k in entry}
+    return {**first, **{k: v for k, v in entry.items() if k not in first}}
 
 
 def _profile_parts(src):
@@ -568,7 +586,7 @@ def _sweep(step_deg, steps_out, first, n):
     return out
 
 
-# Motor offsets (deg) from the start at each of the 51 positions (50 steps, ~15 min at one solve every ~16-18 s): each motor sweeps
+# Motor offsets (deg) from the start at each of the 51 positions (50 steps, ~20 min at one solve every ~20-24 s): each motor sweeps
 # back and forth across about +-7.5 deg -- ~2.5 worm turns -- with its own step and reversal points. Over only ~1.5
 # turns (the 33-position schedule) a linear pointing trend mimics much of a worm cycle: on the real mount (2026-10-06)
 # M2's terms correlated ~0.8 with the trend and two clean runs gave 41" and 100". The steps advance the worm phases at
@@ -577,7 +595,8 @@ def _sweep(step_deg, steps_out, first, n):
 POSITIONS = np.array([_sweep(0.75, 10, +1, 51),                           # M1 +-7.5 deg
                       _sweep(0.6, 12, -1, 51),                            # M2 +-7.2 deg
                       _sweep(0.5625, 13, +1, 51)]).T                      # M3 +-7.3 deg
-SYNC_CYCLE_S = 17.5           # a typical solve-and-sync cycle (exposure, solve, wait): the test takes ~ positions x this
+SYNC_CYCLE_S = 23.5           # a solve-and-sync cycle (exposure, solve, wait) with the odd discarded sync: the test takes
+                              # ~ positions x this, ~20 min (users report ~18 min; it was 17.5 s, ~15 min)
 TEST_SUMMARY = f'{len(POSITIONS) - 1} steps, approx {round(len(POSITIONS) * SYNC_CYCLE_S / 60)} min'   # Raw Command column
 QUAD_TREND_MIN_SPAN_DEG = 12.0  # a test sweeping every motor at least this far also fits a quadratic pointing trend
 
@@ -1045,7 +1064,7 @@ def store_profile_test(path, samples, result, timing=None, setup=None):
     ff = _load_or_new(path)
     setup = current_setup() if setup is None else setup
     entry = {'test': PROFILE_TEST, 'created': datetime.datetime.now().isoformat(timespec='seconds'),
-             'status': result['status'], 'setup': setup, 'approved': False,
+             'status': result['status'], 'approved': False, 'setup': setup,
              'result': {k: v for k, v in result.items() if k != 'status'}, 'timing': timing, 'samples': samples}
     ff.meta['calibration_history'] = (list(ff.meta.get('calibration_history', [])) + [entry])[-CALIBRATION_HISTORY:]
     ff.save(path)
