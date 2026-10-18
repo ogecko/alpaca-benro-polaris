@@ -69,7 +69,7 @@ r3 = 0.0                                    # Axis3 of Reference Position (Roll/
 panel = 3                                   # Current panel number: 0=Mosaic-Center, n=Panel-n
 
 [control]
-advanced_control = true                    # Used to disable all advanced control features, must be true to use any advanced feature
+advanced_control = true                     # Used to disable all advanced control features, must be true to use any advanced feature
 advanced_kf = true                          # Enable the Kalman Filtering of measurement data to smooth out noise
 advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
 advanced_slewing = true                     # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
@@ -78,28 +78,22 @@ advanced_tracking = true                    # Perform advanced tracking of targe
 advanced_pulse_guiding = true               # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
 advanced_pulse_pec_tuning = true            # Enable the ASCOM Alpaca Pulse guiding API for tuning of the PEC model
 pec_ignore_guider_calibration = true        # PEC ignores a guider's calibration (PHD2, CCDciel), recognised as 3+ single-axis pulses, identical or each 1.5x the last
-advanced_sync_guiding = false               # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
-advanced_alignment = false                  # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
+advanced_sync_guiding = true                # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
+advanced_alignment = true                   # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
 advanced_scc_enabled = true                 # Enable correction to reduce the number of Slew & Center cycles. Method defined by advanced_scc_choice
 advanced_scc_choice = 2                     # 0 = Zero Last Residual, 1=Local Gausian Adjustment; 2=Sync Guiding Adjustment
 advanced_align_mac = true                   # Mechanical Alignment Correction: fit M2/M3 offsets (and the M2 scale) with the alignment (off: rotation-only QUEST)
-advanced_eq_mode = false                    # BETA: Polaris mounted on a wedge with M1 on the celestial pole (equatorial mode): alignment
-                                            # starts from the ideal wedge for the site latitude, reach limits apply in the mount frame
+advanced_eq_mode = false                    # BETA EXPERIMENTAL: Enable for Polaris mounted on an equatorial wedge, with the M1 axis aligned to the celestial pole.
+advanced_eq_mode_visible = false            # BETA EXPERIMENTAL: Show the Equatorial Mode toggle in Pilot's settings (default is not visible)
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
 advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guide corrections and correct it
 advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json
-                                            # (the M1-M2-M3-WORM-PROFILE test); also used in the QUEST and MAC models
-coordinated_speed_control = true            # BETA: coordinated speed control - shared-level motor speed controller (driver/speed_controller.py),
-                                            # planned goto trajectories, acceleration-shaped jogs and Ki freeze during gotos; switchable live
-advanced_backlash = false                   # Backlash Compensation: while a goto completes and through a planned tracking reversal, drive each
-                                            # motor through its gear backlash so it finishes engaged the way it tracks (control_backlash.py)
+coordinated_speed_control = true            # Enable shared-level motor speed controller, goto plans, acceleration-shaped jogs and Ki freeze during gotos
+advanced_backlash = true                    # Enable backlash compensation as a goto completes and through a planned tracking reversal, pushing through gear slack
 backlash_deg = [0.04, 0.12, 0.08]           # ... each motor's gear backlash (deg, M1/M2/M3; worm profile tests measured ~125-160", 280-620", ~310")
-restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing (saved < 10 min ago, same Polaris
-                                            # session); otherwise stop a mount still running its last command (tracking_restore.py)
-pec_tau_sec = 450                           # PEC smoothing time constant (seconds) of its EMA drift rate: 7.5 min, the middle of the 5-10 min optimum
-                                            # on the archived logs (utility/analyse_sessions.ipynb); averages more solves when sync guiding
-pec_reversal_pause = true                   # PEC pauses learning while a motor reverses its tracking direction: it turns through its gear
-                                            # backlash before the lens follows, and that drift would be learned and applied for the next tau
+restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing (saved < 10 min ago)
+pec_tau_sec = 450                           # PEC smoothing time constant (seconds) of its EMA drift rate: 7.5 min
+pec_reversal_pause = true                   # PEC pauses learning while a motor reverses its tracking direction, ignoring backlash compensation
 pec_reversal_lead_sec = 120                 # ... from this long before the motor's turning point (its gear unloads as it slows)
 pec_reversal_backlash_deg = 0.2             # ... until it has turned this far past it (backlash measured at 150-620")
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.2547885891542383 ]
@@ -115,8 +109,7 @@ pid_Kc = 0.75                               # PID Arc-minutes tollerance to acce
 pid_Ka = 0.0                                # PID Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0.0 to set default of 5) must be float
 pid_Kv = 0.0                                # PID Maximum slew rate (0.0 to 8.5 degrees/s) on any motor axis (use 0.0 to set calibrated max) must be float
 pid_Kt = 0.2                                # PID dead time (s): measurements show a motor's response this late (their age);
-pid_Kl = 0.15                               # PID motor lag (s): the MCU eases a motor to a new speed with this time constant.
-                                            # Goto plans compare measurements with the plan through both (0.2-0.4 s in all on the mount)
+pid_Kl = 0.15                               # PID motor lag (s): the MCU eases a motor to a new speed with this time constant. Goto plans compare measurements with the plan through both (0.2-0.4 s in all on the mount)
 zeta_safety_margin = 10                     # Windup Prevention safety margin inside zeta limits
 z1_min_limit = -270                         # Z1 Axis Raw Motor Control minimum in degrees
 z1_max_limit = +270                         # Z1 Axis Raw Motor Control maximum in degrees

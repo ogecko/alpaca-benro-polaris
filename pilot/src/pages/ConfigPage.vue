@@ -212,7 +212,7 @@
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Sync Guiding (Plate-solve)')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
+                <q-toggle v-if="cfg.advanced_eq_mode_visible || cfg.advanced_eq_mode" class='col-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Pulse Guiding (Guide-camera)')"/>
