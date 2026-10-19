@@ -5,7 +5,8 @@ Worm feed-forward on the digital twin (tests/sim_digital_twin.py) with a gear wo
   * a profile fitted from the guide corrections (utility/pe_analysis.fit_worm) is the
     physical gear error -- same sign and scale -- so it can be written to the profile file as it is
   * with the profile, sync guiding (plate solve every 2 min) no longer chases the worm between solves
-  * with the profile, pulse guiding (PHD2-like) has less error and the guider corrects less
+  * with the profile, pulse guiding (PHD2-like) has less error and the guider corrects less, with a worm the size of
+    the real mount's (REAL_WORM): the guider alone already takes most of the small WORM out
 
 Errors are the guiders' RA/Dec coordinate errors (RA in RA-coordinate arcsec, so larger than on the sky away from the
 equator). The simulations take 30-60 s each: run them with `uv run pytest --runslow`.
@@ -25,6 +26,8 @@ import control_worm
 
 POSE = (180.0, 50.0, 0.0)                 # M3 turns ~15 deg/hr: the 6 deg worm repeats every ~24 min
 WORM = Worm(amplitude_arcsec=(0.0, 30.0, 50.0), theta_deg=6.0, h2=0.35, seed=1)
+# a worm the size of the real mount's (nina01 200mm F2.8 profile, 2026-10-18: M1 20", M2 89", M3 101-113")
+REAL_WORM = Worm(amplitude_arcsec=(20.0, 89.0, 110.0), theta_deg=6.0, h2=0.35, seed=1)
 CONFIG = {"coordinated_speed_control": True, "advanced_pulse_pec_tuning": True, "advanced_sync_guiding": True,
           "advanced_alignment": True, "pec_tau_sec": 450}
 
@@ -46,13 +49,13 @@ def test_true_profile_reproduces_the_twin_worm():
         assert np.allclose(ff.error_deg(th), WORM.error_deg(th), atol=1e-12)
 
 
-def guide(monkeypatch, kind, config, minutes, record=False):
+def guide(monkeypatch, kind, config, minutes, record=False, worm=WORM):
     tw = Twin(monkeypatch, config={**CONFIG, **config}, seed=0)
     tw.place(azaltroll_to_theta_ik(*POSE))
     tw.start_tracking()
     tw.run(30)
-    g = (SimGuider(tw, seeing_arcsec=0.5, worm=WORM) if kind == 'pulse'
-         else SimPlateSolver(tw, interval_s=120, solve_noise_arcsec=2.0, worm=WORM))
+    g = (SimGuider(tw, seeing_arcsec=0.5, worm=worm) if kind == 'pulse'
+         else SimPlateSolver(tw, interval_s=120, solve_noise_arcsec=2.0, worm=worm))
     g.start()
     rec = []
     if record:
@@ -98,12 +101,35 @@ def test_sync_guiding_with_the_feed_forward_no_longer_chases_the_worm(monkeypatc
     assert rms_since(on, 10) < 0.15 * rms_since(off, 10), f'on {rms_since(on, 10):.1f}" off {rms_since(off, 10):.1f}"'
 
 
+def worm_explained_arcsec(g, rec, worm, minutes):
+    """RMS of the part of the guide error (RA, Dec combined) that the worm explains: a least-squares fit of each
+    frame's error to the true worm error of each motor and its rate, at the motor angles then (rec)."""
+    f = np.array([fr for fr in g.frames if fr[0] - g.t0 >= minutes * 60])
+    th = rec[np.clip(np.searchsorted(rec[:, 0], f[:, 0]), 0, len(rec) - 1), 1:4]
+    w = worm.error_deg(th) * ARCSEC
+    X = np.column_stack([w, np.gradient(w, axis=0), np.ones(len(w))])
+    return float(np.hypot(*[np.std(X @ np.linalg.lstsq(X, f[:, 1 + a] * ARCSEC, rcond=None)[0]) for a in (0, 1)]))
+
+
+@pytest.fixture
+def real_profile_path(tmp_path):
+    path = tmp_path / 'worm_profile.json'
+    true_profile(REAL_WORM).save(path)
+    return str(path)
+
+
 @pytest.mark.slow
-def test_pulse_guiding_with_the_feed_forward_has_less_error_and_guider_effort(monkeypatch, profile_path):
-    monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", profile_path)
-    off, _ = guide(monkeypatch, 'pulse', {"advanced_pec_drift": False, "advanced_pec_worm": False}, minutes=50)
-    on, _ = guide(monkeypatch, 'pulse', {"advanced_pec_drift": False, "advanced_pec_worm": True}, minutes=50)
+def test_pulse_guiding_with_the_feed_forward_has_less_error_and_guider_effort(monkeypatch, real_profile_path):
+    """With the real mount's worm size the guider alone leaves ~4.5" of it (the twin's 5-6" RA floor at this pose,
+    M1/M3 counter-rotating, is the rest); with the profile that part is gone and the total no worse. The smaller WORM
+    only showed the floor's run-to-run spread (+-14% over seeds), so it passed or failed by the seed."""
+    monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", real_profile_path)
+    runs = {on: guide(monkeypatch, 'pulse', {"advanced_pec_drift": False, "advanced_pec_worm": on}, minutes=50,
+                      record=True, worm=REAL_WORM) for on in (False, True)}
+    (off, rec_off), (on, rec_on) = runs[False], runs[True]
     effort = lambda g: sum(abs(c[2]) for c in g.corrections if c[0] - g.t0 >= 10 * 60)
-    # twin 2026-10-03 (90 min): error 6.0" -> 5.0", corrections -14%
-    assert rms_since(on, 10) < 0.92 * rms_since(off, 10), f'on {rms_since(on, 10):.2f}" off {rms_since(off, 10):.2f}"'
-    assert effort(on) < 0.92 * effort(off)
+    worm_off, worm_on = worm_explained_arcsec(off, rec_off, REAL_WORM, 10), worm_explained_arcsec(on, rec_on, REAL_WORM, 10)
+    # twin 2026-10-19, seeds 0/2/5: worm part 4.5" -> 0.3-0.5" (x0.07-0.12), total x0.70-0.74, effort x0.71-0.76
+    assert worm_on < 0.3 * worm_off, f'worm part on {worm_on:.2f}" off {worm_off:.2f}"'
+    assert rms_since(on, 10) < 0.85 * rms_since(off, 10), f'on {rms_since(on, 10):.2f}" off {rms_since(off, 10):.2f}"'
+    assert effort(on) < 0.85 * effort(off)

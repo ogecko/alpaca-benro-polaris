@@ -9,8 +9,9 @@ remaps (UNWIND / FLIP / LOCK / EQ ROOM transitions), M1's tracking
 room, and the kinematics work done per control tick (R4: counted calls, not wall time, so it is the same on any
 machine).
 
-The acceptance tests are xfail(strict=False) until the redesign lands: they record what today's planner does, and one
-that starts passing shows as XPASS. A seeded subset runs in the suite; the full sweep (--runslow) prints the report
+The acceptance tests not yet met are xfail(strict=False): they record what today's planner does, and one that starts
+passing shows as XPASS (then it becomes a guard: every goto completing on target, no motor limit and no mid-goto remap
+did, 2026-10-19). A seeded subset runs in the suite; the full sweep (--runslow) prints the report
 the study quotes:
 
     uv run pytest tests/test_control_plan.py --runslow -s -k report
@@ -706,26 +707,23 @@ def test_idle_gotos_end_on_an_enumerated_solution(sweep):
 
 
 # ---------------------------------------------------------------------------------------
-# Acceptance criteria (docs/study_goto_response.md): xfail until the redesign lands
+# Acceptance criteria (docs/study_goto_response.md): the ones met are guards, the rest xfail until met
 # ---------------------------------------------------------------------------------------
 
 BASELINE = pytest.mark.xfail(strict=False, reason="baseline: today's planner (study acceptance criteria)")
 
 
-@BASELINE
-def test_every_goto_completes_on_target(sweep):
+def test_every_goto_completes_on_target(sweep):  # met 2026-10-19: a guard now
     bad = sweep[sweep.done_s.isna() | (sweep.miss_arcmin > 2.0)]
     assert bad.empty, f"{len(bad)} gotos incomplete or > 2' off:\n{bad[['case', 'seed', 'done_s', 'miss_arcmin']]}"
 
 
-@BASELINE
-def test_no_motor_limit(sweep):
+def test_no_motor_limit(sweep):  # met 2026-10-19: a guard now
     bad = sweep[sweep.limit]
     assert bad.empty, f"{len(bad)} gotos reached a motor limit:\n{bad[['case', 'seed']]}"
 
 
-@BASELINE
-def test_no_mid_goto_remap(sweep):
+def test_no_mid_goto_remap(sweep):  # met 2026-10-19: a guard now
     bad = sweep[sweep.remaps.map(bool)]
     assert bad.empty, f"{len(bad)} gotos remapped mid-goto:\n" + "\n".join(
         f"  {r.case} seed {r.seed}: {r.remaps[0]}" for r in bad.itertuples())

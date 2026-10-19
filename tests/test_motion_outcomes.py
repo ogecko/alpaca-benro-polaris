@@ -161,8 +161,7 @@ def test_goal_corrective_goto_while_tracking_completes_within_3s(monkeypatch):
         f"a 3' corrective goto while tracking took {fmt(times)} s to reach 2.25\" and complete (goal <= 3 s)")
 
 
-@goal
-def test_goal_large_goto_while_tracking_completes_within_15s(monkeypatch):
+def test_goal_large_goto_while_tracking_completes_within_15s(monkeypatch):  # met 2026-10-19: a guard now
     times = []
     for seed in SEEDS:
         tw = tracking_twin(monkeypatch, CANDIDATE, seed)
