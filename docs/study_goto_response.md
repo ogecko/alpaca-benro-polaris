@@ -468,9 +468,11 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   100-109' -> 17-41', true 19-23' -> 12-27' (better at three), same times. Every 518 at all speeds (tried first) made
   the legacy controller's tracking swing (north alt 15, 27" one seed) and a below-horizon 5' correction time out
   (`tests/test_kalman_m3_hold.py`). On the mount rolls look much smoother.
-  **Planner speed share 0.9 (2026-10-19).** `GOTO_RATE_SHARE` 0.8 -> 0.9 (~8 deg/s at Kv 8.9): calibrated sweep, 160
-  gotos, median 23.4 -> 21.4 s, p90 44.5 -> 41.2 s, arrivals/LIMIT/misses/remaps unchanged. (Measurements above quote
-  the planner at 0.8 Kv.)
+  **Planner speed share 0.9 (2026-10-19, tried and reverted).** `GOTO_RATE_SHARE` 0.8 -> 0.9 (~8 deg/s at Kv 8.9):
+  calibrated sweep, 160 gotos, median 23.4 -> 21.4 s, p90 44.5 -> 41.2 s, arrivals/LIMIT/misses/remaps unchanged. But
+  `test_guard_goto_into_gimbal_lock_does_not_stutter[short]` failed (M1 reversing 3 times), and on the mount a 3 deg/s
+  Az jog overshot 101' after release (58' at 0.8; jog shaping caps at Kv x the share). Back to 0.8 for Beta 8; 0.9
+  needs separate goto and jog shares and the gimbal-lock reversals looked at.
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).

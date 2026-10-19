@@ -1597,8 +1597,10 @@ class PID_Controller():
     JOG_LOCK_DEG = 6.0                               # |theta2| below this: Az/Alt/Roll jogs walk in motor angles
     JOG_LOCK_RCOND = 0.1                             # ... dropping pointing motion the motors can hardly make there
     GOTO_RETARGET_DEG = 0.5 / 60                     # re-plan when the goto target moves more than this
-    GOTO_RATE_SHARE = 0.9                            # planner speed as a share of Kv (headroom for feedback): 0.8 -> 0.9
-                                                     # (twin sweep, calibrated: median goto 23.4 -> 21.4 s, same arrivals/LIMIT)
+    GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback). 0.9 (tried
+                                                     # 2026-10-19): gotos 23.4 -> 21.4 s median on the twin, but a short goto
+                                                     # into gimbal lock reversed M1 3 times and a 3 deg/s Az jog overshot
+                                                     # 101' (58' at 0.8) on the mount
     GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
 
     GOTO_CONTROLLED_PATH_DEG = 15.0                  # idle gotos moving the pointing further go straight in motor angles
