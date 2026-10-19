@@ -34,6 +34,10 @@
 #                         than the twin's), and the two became a limit cycle.
 #                         A motor that still crosses its slack more than MAX_CROSSINGS times in a goto is given up
 #                         until the next goto or planned reversal (each gets its own MAX_CROSSINGS).
+#     crossing            a motor left uncompensated after a goto (too slow, about to turn, at the edges, given up) and
+#                         crossing its slack turns while the output stands still: the guider sees the sky move. Not
+#                         pushed (its side isn't settled: corrections can outpace it), but reported (crossing_slack) so
+#                         PEC doesn't learn that as drift, until it is engaged the way it tracks (control_pec.py).
 #     limits              the dead band follows the 518 motor angles, sampled every 0.2 s and M3's held ~0.6 s, so an
 #                         overshoot reversing between samples can move the output further than the estimate sees: it
 #                         can then end a goto up to ~1.5' off (M3 in the twin, about one Slew & Center correction in
@@ -76,6 +80,10 @@ TURN_SOON_SEC = 300.0               # a goto doesn't compensate a motor turning 
 GIMBAL_LOCK_DEG = 12.0              # ... nor any motor with M2 within this of gimbal lock (theta2 0): M1/M3's tracking
                                     # sides swap within seconds as the pointing moves (a 5' correction swings them by degrees)
 M2_LIMIT_MARGIN_DEG = 1.0           # ... or within this of M2's limit (THETA2_MAX): the goto can't settle there anyway
+CROSSING_FLANK_ARCSEC = 10.0        # a motor left uncompensated after a goto is crossing its slack (crossing_slack)
+                                    # while further than this from both flanks ...
+CROSSING_WATCH_SEC = 900.0          # ... watched until it is engaged the way it tracks, at most this long: at M2's
+                                    # 0.24"/s, tracking alone takes 30 min over 432" (nina01 2026-10-18 20:36)
 
 
 def wrap180(x):
@@ -101,6 +109,9 @@ class BacklashCompensator:
         self._heading = np.zeros(3)
         self._rate = np.zeros(3)
         self.hold = np.zeros(3, dtype=bool)          # holding while the sky catches up (update_hold)
+        self.watch = np.zeros(3, dtype=bool)         # since the last goto, not yet engaged the way it tracks
+        self._watch_until = 0.0
+        self.crossing = np.zeros(3, dtype=bool)      # ... and crossing its slack uncompensated (crossing_slack)
 
     @staticmethod
     def slack():
@@ -131,6 +142,9 @@ class BacklashCompensator:
         if move_pending and not self._was_pending:  # a new goto: compensate every motor again
             self._crossings[:] = 0
             self.given_up[:] = False
+        if self._was_pending and not move_pending:  # a goto completed: watch each motor until engaged (crossing_slack)
+            self.watch[:] = True
+            self._watch_until = now + CROSSING_WATCH_SEC
         self._was_pending = move_pending
         if move_pending:
             self.latched[:] = False                  # a goto re-engages every motor the way it then tracks
@@ -180,7 +194,24 @@ class BacklashCompensator:
         self.active = ((((move_pending | (self.active & ~engaged)) & settled) | self.latched) & (self.flank != 0)
                        & ~self.given_up)
         self.adjust = np.where(self.active, adj, 0.0)
+        self._update_crossing(lead, half, np.sign(w), move_pending, now)
         return self.adjust
+
+    def _update_crossing(self, lead, half, heading, move_pending, now):
+        """After a goto, the motors left uncompensated (e.g. under ENGAGE_RATE_ARCSEC_S) that are crossing their slack:
+        between its flanks, the motor turns and the output doesn't, so the guider sees the sky move -- drift PEC must
+        not learn (nina01 2026-10-18 20:36: M2 at 0.24"/s, 455" of turning while the residual grew to 38"). Watched
+        from the end of the goto until the motor is engaged the way it tracks (its sidereal heading, however slow),
+        at most CROSSING_WATCH_SEC; engaged on its far flank it isn't crossing, the output follows."""
+        tol = CROSSING_FLANK_ARCSEC / 3600
+        if move_pending or now > self._watch_until:
+            self.watch[:] = False
+        self.watch &= ~((heading != 0) & (np.abs(lead - heading * half) <= tol))
+        self.crossing = self.watch & ~self.active & (half > tol) & (np.abs(lead) < half - tol)
+
+    def crossing_slack(self):
+        """The motors (bool, per motor) crossing their slack uncompensated since the last goto (_update_crossing)."""
+        return self.crossing.copy()
 
     def taking_up(self):
         """A compensated motor is not yet engaged the way it tracks: its slack is still being taken up. A slow motor

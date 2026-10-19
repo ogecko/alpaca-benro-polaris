@@ -26,7 +26,8 @@
 #                   output follows, and the guider pulls back the drift that makes: learning pauses from
 #                   pec_reversal_lead_sec before the motor's turning point until it has turned pec_reversal_backlash_deg
 #                   past it (pec_reversal_pause), found along the target's sidereal path (motor_turning_points,
-#                   reversal_pauses); the rate already learned keeps being applied
+#                   reversal_pauses); the rate already learned keeps being applied. Likewise while a motor left
+#                   uncompensated after a goto crosses its slack (BacklashCompensator.crossing_slack)
 #   GuiderCalibrationDetector
 #                 recognises a guider's calibration (PHD2, CCDciel) in the pulses, so PEC doesn't learn its large
 #                 deliberate moves as drift; what was learnt during it is rolled back (pec_ignore_guider_calibration)
@@ -218,6 +219,7 @@ class PecMixin:
         self._pec_generation = 0                # bumped by reset_pec_model(), invalidates a snapshot across resets
         self._pec_ingest_seq = 0                # bumped on every PEC seed/ingest, invalidates a snapshot if anything else ingests
         self._pec_paused = None                 # motors whose reversal pauses learning, e.g. 'M2' (None: learning)
+        self._pec_slack_paused = None           # motors crossing their slack after a goto, e.g. 'M2' (None: learning)
         self._reversals_announced = []          # (motor, monotonic turning time) already logged
         self._reversal_announce_next = 0.0
         self.init_pec_model()
@@ -392,6 +394,29 @@ class PecMixin:
                 self._pec_paused = paused
         return self._pec_paused is not None
 
+    def _pec_crossing_paused(self):
+        """True while a motor left uncompensated after a goto crosses its gear slack (BacklashCompensator.
+        crossing_slack): it turns, the output doesn't, and the guider pulls back the sky's motion -- not drift (nina01
+        2026-10-18 20:36: learnt as 50'/h in Dec, then fought the syncs for 30 min). Logs when a pause starts and
+        ends. Off with pec_reversal_pause, as the reversal pause."""
+        backlash = getattr(getattr(self.polaris, '_pid', None), 'backlash', None)
+        crossing = (backlash.crossing_slack() if backlash is not None and getattr(Config, 'pec_reversal_pause', True)
+                    else np.zeros(3, dtype=bool))
+        paused = ','.join(MOTORS[m] for m in np.flatnonzero(crossing)) or None
+        if paused != self._pec_slack_paused:
+            if paused:
+                self.logger.info(f"->> Polaris: PEC drift learning paused while {paused} crosses its gear backlash "
+                                 f"after a goto; applying the rate learned so far")
+            else:
+                self.logger.info(f"->> Polaris: PEC drift learning resumed ({self._pec_slack_paused} backlash taken up)")
+            self._pec_slack_paused = paused
+        return paused is not None
+
+    def _pec_paused_motors(self):
+        """The motors pausing learning, reversing or crossing their slack, e.g. 'M2' (PECLOG paused), or None."""
+        motors = [m for p in (self._pec_paused, self._pec_slack_paused) if p for m in p.split(',')]
+        return ','.join(dict.fromkeys(motors)) or None
+
     def ingest_pulse_for_pec(self, axis, sign, duration_ms, angle_deg):
         """
         Feed one pulse guide correction to the PEC model, ignoring a guider's calibration.
@@ -482,9 +507,10 @@ class PecMixin:
         if not self._pec_initialised(now, ra_resid, dec_resid):
             return False
 
-        if self._pec_reversal_paused(now):
-            # a motor reversing: its backlash shows as drift the guider pulls back -- log the residual (the drift
-            # analysis needs every guide correction) but keep it out of the model
+        reversing = self._pec_reversal_paused(now)
+        if self._pec_crossing_paused() or reversing:
+            # a motor reversing, or crossing its slack after a goto: its backlash shows as drift the guider pulls
+            # back -- log the residual (the drift analysis needs every guide correction) but keep it out of the model
             pec_accum_snapshot = (self._pec_ra._applied_accum, self._pec_dec._applied_accum)
             if ra_resid is not None:
                 self._pec_ra.hold()
@@ -623,9 +649,9 @@ class PecMixin:
             # is actually being corrected (see docs/control.md)
             "pec_active": self._pec_active,
 
-            # motors whose reversal pauses learning, e.g. 'M2' (pec_reversal_pause): this entry's residual was not
-            # learned (it is still in resid); None while learning
-            "paused": self._pec_paused,
+            # motors whose reversal, or slack crossing after a goto, pauses learning, e.g. 'M2' (pec_reversal_pause):
+            # this entry's residual was not learned (it is still in resid); None while learning
+            "paused": self._pec_paused_motors(),
 
             # seconds since the last real 518 telemetry -- large value means this entry landed
             # in a telemetry gap

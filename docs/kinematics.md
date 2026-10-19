@@ -652,6 +652,8 @@ Compensation is also inhibited on a motor under the following conditions:
 - **Near gimbal lock or the M2 limit:** Compensation is disabled for all three motors when M2 is within 12° of gimbal lock or within 1° of its 81.5° limit.
 - **Unsettled gear engagement:** Compensation is skipped for a planned reversal if the motor is not engaged on its previous tracking side.
 
+A motor left uncompensated after a goto can still be engaged on the side away from its tracking direction. When tracking or guiding then turns it into its slack, the motor turns but the camera doesn't, so the guider sees the sky move. Backlash Compensation doesn't push such a motor, because corrections can outpace it, but it reports it as crossing its slack. PEC Drift Correction doesn't learn from it (§2.6), until the motor is engaged in its tracking direction, for at most 15 minutes after the goto.
+
 
 #### IV. Configuration
 
@@ -1080,7 +1082,10 @@ is unaffected by noise, guide pulses or a driver restart; they are cached per ta
 (8.6 ms on nina01). Learning pauses from `pec_reversal_lead_sec` (120 s) before a turning point until the motor has
 turned `pec_reversal_backlash_deg` (0.2°) past it, at most 30 minutes. A reversal too slow to take its slack up within
 30 minutes (e.g. M2 after a ZM2 roll, chosen to keep it still) doesn't pause: that drift lasts many time constants, and
-PEC should follow it. While paused, each residual is logged (PECLOG `paused`, e.g.
+PEC should follow it. Learning also pauses while a motor that Backlash Compensation left uncompensated after a goto
+(e.g. M2 under 0.5"/s) crosses its slack (`BacklashCompensator.crossing_slack()`, §2.7.III): on 2026-10-18 M2 at 0.24"/s
+turned through its 432" slack under 6 s plate-solve syncs, and PEC learnt that as 50'/h of Dec drift, then fought the
+syncs for 30 minutes. While paused, each residual is logged (PECLOG `paused`, e.g.
 `'M2'`) but not learned, the rate already learned keeps being applied, and the first residual after the pause restarts
 the rate's differencing.
 Independently of PEC and guiding, `announce_motor_reversals()` (every control tick while tracking, checked every 10 s,
