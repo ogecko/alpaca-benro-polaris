@@ -679,6 +679,22 @@ def test_choose_end_solution_lets_a_small_move_near_the_twist_limit_go_the_fast_
     assert chosen(hard - 2, hard + 2) == 1                # past the hard limit: unwound
 
 
+def test_guard_small_correction_with_the_cables_already_wound_goes_the_short_way():
+    """Az 135 Alt -5 (the flipped branch) leaves the cables at +315: a 5' Slew & Center correction there added 0.1 deg
+    of twist, counted as over the limit, and turned M1 a full turn the other way for 50 s (it then timed out).
+    Winding them no more than CABLE_TWIST_CREEP_DEG further, it goes the short way."""
+    from kinematics import reachable_azaltroll
+    from test_backlash_compensation import correction, tracking_twin
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = tracking_twin(mp, on=True, pose=tuple(round(float(v), 2) for v in reachable_azaltroll(135.0, -5.0, 0.0)))
+        done, err = correction(tw, 1, 0)
+        tw.close()
+    finally:
+        mp.undo()
+    assert done is not None and done < 30.0, f"the 5' correction took {done} s"
+
+
 def test_guard_goto_while_tracking_at_the_m2_limit_ends_its_move():
     """A goto while tracking whose PA the motors can't reach (M2 at its 81.5 deg limit near the zenith) aims at the
     reachable PA: its move compared that with the PA asked for, 25 deg apart, re-planned every tick and never ended,

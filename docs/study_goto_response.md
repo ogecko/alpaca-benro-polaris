@@ -448,6 +448,29 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
   The other, 6 s slower, left -42; `wraps_cables` only judges flips, so neither counted. `choose_end_solution` now
   prefers end solutions within `CABLE_TWIST_MAX_DEG` 270 of net twist (180 undid eq mode's tracking-room turn, +204
   at the zenith, by swinging M1 282 deg) (`test_guard_goto_does_not_wind_the_cables`).
+  **Cable twist near the limit (2026-10-19, slow BLC pose sweep).** Below the horizon the flipped branch sits at
+  +-270-287 of net twist (M3 near 180), so a 3 deg goto (+4-7) crossed the 270 and chose a 360 deg M3 unwind, 50-56 s
+  slower (28 poses timed out). A move may now end up to `CABLE_TWIST_SLACK_DEG` 30 past the limit when it winds the
+  cables no more than that further than they are, and any move winding them no more than `CABLE_TWIST_CREEP_DEG` 5
+  further is fine up to `CABLE_TWIST_HARD_DEG` 360: at +315 (Az 135 Alt -5) a 5' correction had turned M1 a full turn
+  for 50 s (`cable_twist_over`; `test_guard_small_correction_with_the_cables_already_wound_goes_the_short_way`). The
+  field case (0 -> +318 in one goto) is still turned away.
+  **M2 at its limit (2026-10-19).** A goto while tracking aims at the reachable PA (`_reachable_delta`); its MotorMove
+  compared that `delta_goal` with the PA asked for, 25 deg apart at M2's 81.5 deg, re-planned every tick and never
+  ended, so tracking's feed-forward never resumed and a 3 deg goto at Alt 82 timed out. The move keeps the target asked
+  for (`delta_requested`) (`test_guard_goto_while_tracking_at_the_m2_limit_ends_its_move`).
+  **M3's sample-and-hold in the KF (2026-10-19).** The 518 M3 value refreshes every ~0.6 s. On the mount the roll goto
+  hardware test read 97' of pointing wander (reported Az/Alt); the twin, which models the hold, gave 109' reported
+  against 19' true camera wander: most of it was the estimate pulled back to the held value (the goto noise scale makes
+  the KF follow 518 closely), and the fixed 0.18 s `M3_HOLD_DELAY_S` in the path reference compensated that. While M3 is
+  commanded faster than `KF_M3_AWARE_MIN_DPS` 0.1 deg/s, `KalmanFilter._m3_rows` takes M3 only on a refresh (its rate
+  across the refresh interval) and predicts it between; the delay goes. Twin rolls at 4 deg/s, five poses: reported
+  100-109' -> 17-41', true 19-23' -> 12-27' (better at three), same times. Every 518 at all speeds (tried first) made
+  the legacy controller's tracking swing (north alt 15, 27" one seed) and a below-horizon 5' correction time out
+  (`tests/test_kalman_m3_hold.py`). On the mount rolls look much smoother.
+  **Planner speed share 0.9 (2026-10-19).** `GOTO_RATE_SHARE` 0.8 -> 0.9 (~8 deg/s at Kv 8.9): calibrated sweep, 160
+  gotos, median 23.4 -> 21.4 s, p90 44.5 -> 41.2 s, arrivals/LIMIT/misses/remaps unchanged. (Measurements above quote
+  the planner at 0.8 Kv.)
   Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
   `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
   chase unwinds into LIMIT (with 200 samples too).
@@ -745,6 +768,17 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 * **KF position trust (2026-10-16).** Decided: trust position more only during gotos (`kf_goto_noise_scale`), done.
   Still open: check on the mount that 0.1 suits its real 518 noise (~2" per sample), and whether tracking itself would gain from
   less smoothing.
+
+* **End-of-roll clunk (2026-10-19), not reproduced.** Heard at the end of rolls with coordinated speed control (all
+  three motors at different speeds; not with M1 alone). The protocol log shows motors leaving FAST while still moving
+  (M1 at +2.04 deg/s when SLOW +5A took over, 16:06:54) and, as the shared SLOW level follows the fastest axis,
+  reversals at level 5 (+5A/-5A, also by a lone pacer whose demand lies between two levels). Listening tests on
+  nina01, one motor at a time: SLOW reversals loaded or dithering at level 5, slow reversals, FAST at 0.5 deg/s into
+  an opposite SLOW, and full-speed ramps down at 5 deg/s² into -5A or -5B/+5B/-5B/+4B: one clunk in 13, with the same
+  commands as three silent repeats. So the driver's commands alone don't decide it (gear position, MCU timing?).
+  Tried and reverted: FAST glide (keep a braking axis in FAST while it would make another reverse at level 5: fewer
+  level-5 reversals on the twin, clunk still heard). Next: capture with protocol logging on during ordinary rolls and
+  note the time (and roll) of each clunk.
 
 * Tracking room: 8 h in both modes? Alt/az tracking turns M1 and M3 at rates that vary with the pointing, so its room
   needs the projected motor path, not a rate.
