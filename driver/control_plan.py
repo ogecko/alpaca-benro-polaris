@@ -263,6 +263,8 @@ CABLE_TWIST_MAX_DEG = 270.0      # net cable twist (raw M1 + M3 angles) an end s
 CABLE_TWIST_SLACK_DEG = 30.0     # ... up to this much past it is fine for a move winding them no more than this further:
                                  # below the horizon the flipped branch sits at +-270-287 (M3 near 180), and a 3 deg
                                  # goto there (+4-7) chose a 360 deg M3 unwind, 50-56 s slower, and timed out
+CABLE_TWIST_CREEP_DEG = 5.0      # ... and any move winding them no more than this further, up to CABLE_TWIST_HARD_DEG: at
+CABLE_TWIST_HARD_DEG = 360.0     # +315 (az 135 alt -5) a 5' correction turned M1 a full turn the other way for 50 s
 
 
 def choose_end_solution(solutions, theta_now, omega_now, max_rate, max_accel, has_room=None, twist=None):
@@ -283,9 +285,12 @@ def choose_end_solution(solutions, theta_now, omega_now, max_rate, max_accel, ha
 
 def cable_twist_over(twist, theta, theta_now):
     """How far (deg) the cables' net twist at end solution theta is past CABLE_TWIST_MAX_DEG, 0 within it -- or within
-    CABLE_TWIST_SLACK_DEG past it for a move that winds them no more than that further than they are now."""
+    CABLE_TWIST_SLACK_DEG past it for a move that winds them no more than that further than they are now, or (up to
+    CABLE_TWIST_HARD_DEG) for one winding them no more than CABLE_TWIST_CREEP_DEG further."""
     t, now = abs(float(twist(theta))), abs(float(twist(theta_now)))
     if t <= CABLE_TWIST_MAX_DEG or (t <= CABLE_TWIST_MAX_DEG + CABLE_TWIST_SLACK_DEG and t <= now + CABLE_TWIST_SLACK_DEG):
+        return 0.0
+    if t <= CABLE_TWIST_HARD_DEG and t <= now + CABLE_TWIST_CREEP_DEG:
         return 0.0
     return t - CABLE_TWIST_MAX_DEG
 

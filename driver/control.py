@@ -42,6 +42,15 @@ ARRIVED_SETTLED_MEAS = 3      # ...for this many measurements in a row (0.6 s): 
 # ************* Kalman Filter *************
 
 
+KF_M3_REFRESH_DEG = 3 / 3600   # M3's 518 value is sample-and-hold (refreshed every ~0.6 s): a change of more than this
+                               # is a refresh, less a repeat of the held value
+KF_M3_HOLD_MAX_S = 1.0         # ... and no refresh for this long: M3 is nearly still, so its value is current again
+KF_M3_AWARE_MIN_DPS = 0.1      # ... only while M3 is commanded faster than this (deg/s): slower (tracking, small corrections)
+                               # a held value is at most ~0.06 deg stale and every 518 is a measurement, as before -- taking
+                               # M3 only on a refresh there (or once a second) made the legacy controller's tracking at
+                               # north alt 15 swing to 27" in one twin seed, and a below-horizon 5' correction time out
+
+
 class KalmanFilter:
     def __init__(self, logger, initial_state):
         self._logger = logger
@@ -60,6 +69,8 @@ class KalmanFilter:
         self.P = np.eye(6)                      # Initial estimate covariance
         self.I = np.eye(6)
         self.K = np.zeros((6, 6))
+        self._m3_refresh = None                 # (monotonic time, value) of M3's last 518 refresh -- see observe()
+        self.m3_fresh = True                    # the last observe() took M3 as a new measurement
 
     def set_control_matrix_B(self, accel_nudge_vel=0.5):
         # Control matrix (B): acceleration nudging velocity
@@ -147,17 +158,21 @@ class KalmanFilter:
 
         theta_meas = np.array(theta).reshape(3, 1)
         omega_meas = np.array(omega).reshape(3, 1)
+        rows = self._m3_rows(theta_meas, omega_meas, omega_ref)
         self.z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
 
-        # Measurement residual
+        # Measurement residual, over the rows measured this time (M3's only when it refreshed)
         theta_residual = wrap_angle_residual(theta_meas, self.x[:3])
         omega_residual = omega_meas - self.x[3:]
-        y = np.vstack((theta_residual, omega_residual))
-        S = self.H @ self.P @ self.H.T + self.R
-        self.K = self.P @ self.H.T @ np.linalg.inv(S)
+        y = np.vstack((theta_residual, omega_residual))[rows]
+        H = self.H[rows]
+        S = H @ self.P @ H.T + self.R[np.ix_(rows, rows)]
+        K = self.P @ H.T @ np.linalg.inv(S)
+        self.K = np.zeros((6, 6))
+        self.K[:, rows] = K
 
-        self.x = self.x + self.K @ y
-        self.P = (self.I - self.K @ self.H) @ self.P
+        self.x = self.x + K @ y
+        self.P = (self.I - K @ H) @ self.P
         self.x = wrap_state_angles(self.x)
 
         # Log meas, state and ref for websocket streaming. While tracking, report
@@ -194,6 +209,33 @@ class KalmanFilter:
         if Config.log_position and (theta_ref is not None or self.log_untracked):
             self._logger.info(f"KFLOG {payload}")
 
+
+    def _m3_rows(self, theta_meas, omega_meas, omega_ref=None):
+        """The measurement rows observe() updates from (position 0-2, velocity 3-5). M3's 518 value is sample-and-hold,
+        refreshed every ~0.6 s: a repeat says nothing new, and taken as a measurement it pulls the estimate back to where
+        M3 was (during a 4 deg/s roll up to 2.4 deg, so the reported pointing swung ~100' while the camera moved ~20').
+        So M3's rows join only on a refresh, its velocity then taken across the refresh interval rather than the 0.2 s
+        step (omega_meas is changed in place); between refreshes predict() carries M3 on. With no refresh for
+        KF_M3_HOLD_MAX_S M3 is nearly still and its value current. Only while M3 is commanded faster than
+        KF_M3_AWARE_MIN_DPS (slower, every row every time). This replaced a fixed 0.18 s M3 delay in the coordinated
+        path's reference (M3_HOLD_DELAY_S): twin rolls at 4 deg/s, reported wander ~100' -> 17-25', true 19-23' ->
+        12-20'."""
+        now, m3 = time.monotonic(), float(theta_meas[2, 0])
+        last = self._m3_refresh
+        fast = omega_ref is not None and abs(float(np.ravel(omega_ref)[2])) > KF_M3_AWARE_MIN_DPS
+        if last is None or not fast:
+            if last is None or abs((m3 - last[1] + 180.0) % 360.0 - 180.0) > KF_M3_REFRESH_DEG:
+                self._m3_refresh = (now, m3)              # kept current, for when M3 speeds up
+            self.m3_fresh = True
+            return [0, 1, 2, 3, 4, 5]
+        moved = abs((m3 - last[1] + 180.0) % 360.0 - 180.0)
+        fresh = moved > KF_M3_REFRESH_DEG or now - last[0] >= KF_M3_HOLD_MAX_S
+        if fresh and moved > KF_M3_REFRESH_DEG and now - last[0] > 1e-3:
+            omega_meas[2, 0] = ((m3 - last[1] + 180.0) % 360.0 - 180.0) / (now - last[0])
+        if fresh:
+            self._m3_refresh = (now, m3)
+        self.m3_fresh = fresh
+        return [0, 1, 2, 3, 4, 5] if fresh else [0, 1, 3, 4]
 
     def get_state(self):
         state = self.x.flatten()
@@ -1554,12 +1596,9 @@ class PID_Controller():
 
     JOG_LOCK_DEG = 6.0                               # |theta2| below this: Az/Alt/Roll jogs walk in motor angles
     JOG_LOCK_RCOND = 0.1                             # ... dropping pointing motion the motors can hardly make there
-    M3_HOLD_DELAY_S = 0.18                           # M3's 518 value is sample-and-hold (refreshed every ~0.6 s): on
-                                                     # a coordinated path it reads this much later than M1/M2, less
-                                                     # than half the hold (the KF's velocity takes up some). 0.3 was
-                                                     # tuned with M3's FAST speed biased: true M3 then ran 0.1 s late
     GOTO_RETARGET_DEG = 0.5 / 60                     # re-plan when the goto target moves more than this
-    GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback)
+    GOTO_RATE_SHARE = 0.9                            # planner speed as a share of Kv (headroom for feedback): 0.8 -> 0.9
+                                                     # (twin sweep, calibrated: median goto 23.4 -> 21.4 s, same arrivals/LIMIT)
     GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
 
     GOTO_CONTROLLED_PATH_DEG = 15.0                  # idle gotos moving the pointing further go straight in motor angles
@@ -1670,7 +1709,7 @@ class PID_Controller():
             # calibrated) against 180-530' with the previous controller, and a +45 roll takes 18-23 s (56 s at 1 deg/s)
             slow = travel <= self.SMALL_MOVE_DEG                 # SLOW speeds: no FAST lag (see _motor_move)
             self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL),
-                                            float(Config.pid_Kt) + np.array([0.0, 0.0, self.M3_HOLD_DELAY_S]),
+                                            np.full(3, float(Config.pid_Kt)),     # M3 read current: KalmanFilter._m3_rows
                                             0.0 if slow else float(Config.pid_Kl))
             self.goto_traj.space = self.mode
             self.goto_traj.start(start, theta_pv, goal)

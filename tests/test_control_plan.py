@@ -673,6 +673,10 @@ def test_choose_end_solution_lets_a_small_move_near_the_twist_limit_go_the_fast_
     assert chosen(lim + slack - 10, lim + slack - 5) == 0
     assert chosen(lim + slack - 10, lim + slack + 5) == 1     # past the slack: unwound
     assert chosen(lim - 20, lim + slack - 5) == 1         # winding them more than the slack further: unwound
+    creep, hard = control_plan.CABLE_TWIST_CREEP_DEG, control_plan.CABLE_TWIST_HARD_DEG
+    assert chosen(315.0, 315.1) == 0                      # a 5' correction at +315 (az 135 alt -5): the fast way
+    assert chosen(315.0, 315.0 + creep + 5) == 1          # winding them further than the creep: unwound
+    assert chosen(hard - 2, hard + 2) == 1                # past the hard limit: unwound
 
 
 def test_guard_goto_while_tracking_at_the_m2_limit_ends_its_move():
