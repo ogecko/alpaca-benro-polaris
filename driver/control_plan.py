@@ -260,6 +260,9 @@ def wraps_cables(theta_from, theta_to):
 
 CABLE_TWIST_MAX_DEG = 270.0      # net cable twist (raw M1 + M3 angles) an end solution may leave before a slower one wins:
                                  # above eq mode's tracking-room turn (+204 at the zenith; 180 unwound M1 282 deg there)
+CABLE_TWIST_SLACK_DEG = 30.0     # ... up to this much past it is fine for a move winding them no more than this further:
+                                 # below the horizon the flipped branch sits at +-270-287 (M3 near 180), and a 3 deg
+                                 # goto there (+4-7) chose a 360 deg M3 unwind, 50-56 s slower, and timed out
 
 
 def choose_end_solution(solutions, theta_now, omega_now, max_rate, max_accel, has_room=None, twist=None):
@@ -274,8 +277,17 @@ def choose_end_solution(solutions, theta_now, omega_now, max_rate, max_accel, ha
     times = [move_time(theta_now, s, omega_now, max_rate, max_accel) for s in solutions]
     room = [bool(has_room(s)) if has_room else True for s in solutions]
     wrap = [wraps_cables(theta_now, s) for s in solutions]
-    over = [max(0.0, abs(float(twist(s))) - CABLE_TWIST_MAX_DEG) if twist else 0.0 for s in solutions]
+    over = [cable_twist_over(twist, s, theta_now) if twist else 0.0 for s in solutions]
     return min(range(len(solutions)), key=lambda i: (not room[i], wrap[i], over[i], times[i]))
+
+
+def cable_twist_over(twist, theta, theta_now):
+    """How far (deg) the cables' net twist at end solution theta is past CABLE_TWIST_MAX_DEG, 0 within it -- or within
+    CABLE_TWIST_SLACK_DEG past it for a move that winds them no more than that further than they are now."""
+    t, now = abs(float(twist(theta))), abs(float(twist(theta_now)))
+    if t <= CABLE_TWIST_MAX_DEG or (t <= CABLE_TWIST_MAX_DEG + CABLE_TWIST_SLACK_DEG and t <= now + CABLE_TWIST_SLACK_DEG):
+        return 0.0
+    return t - CABLE_TWIST_MAX_DEG
 
 
 class MotorMove:

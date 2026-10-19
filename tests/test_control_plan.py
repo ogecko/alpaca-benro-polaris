@@ -654,6 +654,50 @@ def test_guard_goto_does_not_wind_the_cables(caplog):
         f"raw M1 {zeta[0]:+.0f} M3 {zeta[2]:+.0f}: twist {zeta[0] + zeta[2]:+.0f}"
 
 
+def test_choose_end_solution_lets_a_small_move_near_the_twist_limit_go_the_fast_way():
+    """Below the horizon the flipped branch sits at a twist of +-270-287 (M3 near 180): a 3 deg goto there (+4-7)
+    chose a 360 deg M3 unwind, 50-56 s slower, and timed out. Within CABLE_TWIST_SLACK_DEG past the limit, a move
+    winding the cables no more than that further goes the fast way; beyond it, or winding further, it doesn't."""
+    still, rate, accel = np.zeros(3), 7.1, 5.0
+    twist = lambda t: (t[0] - 180.0) + t[2]             # raw M1 (theta - 180) + raw M3
+    lim, slack = control_plan.CABLE_TWIST_MAX_DEG, control_plan.CABLE_TWIST_SLACK_DEG
+
+    def chosen(twist_now, twist_fast):
+        now = np.array([180.0 + twist_now - 180.0, 5.0, 180.0])
+        fast = np.array([now[0] + (twist_fast - twist_now), 5.0, 180.0])
+        unwound = fast - [0.0, 0.0, 360.0]                # M3 the other way round: slower, twist - 360
+        return choose_end_solution(np.array([fast, unwound]), now, still, rate, accel, twist=twist)
+
+    assert chosen(270.0, 274.0) == 0                      # a 3 deg goto at the flipped branch: the fast way
+    assert chosen(lim + slack - 10, lim + slack - 5) == 0
+    assert chosen(lim + slack - 10, lim + slack + 5) == 1     # past the slack: unwound
+    assert chosen(lim - 20, lim + slack - 5) == 1         # winding them more than the slack further: unwound
+
+
+def test_guard_goto_while_tracking_at_the_m2_limit_ends_its_move():
+    """A goto while tracking whose PA the motors can't reach (M2 at its 81.5 deg limit near the zenith) aims at the
+    reachable PA: its move compared that with the PA asked for, 25 deg apart, re-planned every tick and never ended,
+    so tracking's feed-forward never resumed and the goto timed out (a 3 deg goto at Alt 82)."""
+    from kinematics import azaltroll_to_theta_ik, reachable_azaltroll
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+        tw.place(azaltroll_to_theta_ik(*reachable_azaltroll(0.0, 82.0, 0.0)))
+        tw.start_tracking()
+        tw.run(30)
+        cosd = math.cos(math.radians(tw.pid.delta_sp[1]))
+        tw.slew_relative(ra=3.0 / max(cosd, 0.1) / 15, dec=-3.0)
+        t0, ended = tw.clock.t, None
+        while tw.clock.t - t0 < 20 and ended is None:
+            tw.run(0.5)
+            if tw.pid.goto_traj is None and np.any(tw.pid.omega_ff != 0):
+                ended = tw.clock.t - t0
+        tw.close()
+    finally:
+        mp.undo()
+    assert ended is not None and ended < 12, f"the move never ended (re-planned every tick)" if ended is None else ended
+
+
 def test_idle_gotos_end_on_an_enumerated_solution(sweep):
     idle = sweep[sweep.case.str.endswith("idle") & sweep.done_s.notna() & (sweep.miss_arcmin < 2.0)]   # arrived
     assert len(idle) > 0

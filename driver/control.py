@@ -1577,7 +1577,10 @@ class PID_Controller():
             # e.g. a flip past gimbal lock)
             if (self.theta_ref_cache is None and self.mode in ('AUTO', 'TRACK') and not self._has_active_jog()
                     and not self.goto_traj.done and self.dt > 0):
-                delta_goal = getattr(self.goto_traj, 'delta_goal', None)
+                # against the target it was asked for, not delta_goal: where the PA isn't reachable (M2 at its limit),
+                # delta_goal's PA is the reachable one, 25 deg off, and the move was re-planned every tick, never
+                # ending (a 3 deg goto at Alt 82 timed out)
+                delta_goal = getattr(self.goto_traj, 'delta_requested', getattr(self.goto_traj, 'delta_goal', None))
                 if (delta_goal is not None and self.mode == 'TRACK'
                         and self._alpha_distance(delta_goal, self.delta_ref) > self.GOTO_RETARGET_DEG):
                     self.goto_traj, self.move_planned = None, None    # a new target while tracking: plan again
@@ -1831,6 +1834,7 @@ class PID_Controller():
             drift = np.zeros(3)                           # onto another branch within a second (gimbal lock): none
         move = self._motor_move(theta_goal, rate, drift)
         move.delta_goal = np.array(delta_goal, dtype=float)
+        move.delta_requested = np.array(self.delta_ref, dtype=float)    # the target asked for (delta_goal: its reachable PA)
         return move
 
     def _motor_move(self, theta_goal, rate=None, drift=None):
