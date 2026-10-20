@@ -41,7 +41,7 @@ This guide provides an overview of the **Advanced Control Features** of the Alpa
 - **[Sync Guiding (Plate-solve)](./guiding.md#approach-1-plate-solvesync-guiding-hardware-free):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
 - **[Pulse Guiding (Guide-camera)](./guiding.md#approach-2-pulse-guiding-hardware-based):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
 - **[Coordinated Speed Control](#coordinated-speed-control):** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
-- **[Backlash Compensation](./kinematics.md#27-backlash-compensation):** Drives each motor through its gear backlash at the end of a goto and through a planned tracking reversal, so Slew & Center corrections land first time and the camera doesn't drift as a motor reverses.
+- **[Backlash Compensation](./kinematics.md#27-backlash-compensation):** Drives each motor through its gear backlash at the end of a goto, so Slew & Center corrections land first time (not through a tracking reversal, which is left to the guider).
 
 
 For a comprehensive technical reference on the updated kinematics, refer to [kinematics.md](./kinematics.md).

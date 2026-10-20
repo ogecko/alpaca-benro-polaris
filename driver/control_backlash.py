@@ -6,7 +6,8 @@
 # (measured 150-620" on the real mount) before the output shaft, and the camera, follows. A goto that finishes with a
 # motor moving against its tracking direction leaves that slack open: tracking then takes it up and the image moves
 # by up to the backlash after the plate solve (Slew & Center landing arcminutes off). A planned tracking reversal (M2
-# near transit) stalls the output while the motor crosses the slack: a drift bump the guider has to chase.
+# near transit) stalls the output while the motor crosses the slack: a drift bump the guider has to chase (not
+# compensated: see `when`).
 #
 #   BacklashCompensator   one dead band per motor (backlash_deg) estimates where the output shaft is: it moves only
 #                         once the motor has crossed the slack. While compensating, the forward kinematics applies it
@@ -17,23 +18,25 @@
 #                         adjustment it was taken with. On a reversal the estimate stands still, the error stays, and a take-up push drives
 #                         the motor through the slack (on top of the PID, slowing as it nears the far flank: the motor
 #                         lags its speed command, and an overrun moves the output).
-#     when                only where a reversal is known: while a goto or rotate completes (and until the motor is
-#                         engaged again), and through a planned tracking reversal along the target's sidereal path
-#                         (SyncManager.motor_turns), latched from just before the turning point until the next goto.
+#     when                only while a goto or rotate completes, and until the motor is engaged again the way it tracks.
 #                         Not during ordinary tracking and guiding: a motor barely moving under guide pulses reverses
-#                         constantly, and pushing it through its slack each time becomes a limit cycle. Nor where a
-#                         motor has no settled tracking side: under ENGAGE_RATE_ARCSEC_S, about to turn, or at the edges
-#                         of the mount's reach (M2 near gimbal lock or its limit).
-#     flank               the side a motor is engaged on: its tracking direction, held through a latched reversal --
-#                         the alignment was learnt on the old flank, so the motor runs the backlash ahead of its old
-#                         path afterwards instead of the camera falling behind by it.
+#                         constantly, and pushing it through its slack each time becomes a limit cycle. Nor through a
+#                         planned tracking reversal: every one is slow (the motor's speed passes through zero; 15 to
+#                         over 30 min to take its slack up), so the guide corrections, not tracking, set its direction,
+#                         and compensating it became the same limit cycle. Of 9 reversals compensated on the mount
+#                         (2026-10-14 to 10-19), 4 were given up after MAX_CROSSINGS crossings and none was clean (10-19
+#                         20:37, M3 under PHD2: a 5-15" kick at each push, Dec to 22"). The guider takes that slack up,
+#                         and PEC pauses learning through it (control_pec.py). Nor where a motor has no settled tracking
+#                         side: under ENGAGE_RATE_ARCSEC_S, about to turn, or at the edges of the mount's reach (M2 near
+#                         gimbal lock or its limit).
+#     flank               the side a motor is engaged on: its tracking direction.
 #     one-way             a push only ever goes towards the tracking flank; an engaged motor that overran its target a
 #                         little never reverses: its speed is held at zero against the flank until the sky catches up
 #                         (as far as the sky closes in HOLD_MAX_SEC, up to HOLD_ARCSEC), and it counts as arrived. A push
 #                         back across the slack overran in turn on the real mount (its speed lags the command by more
 #                         than the twin's), and the two became a limit cycle.
 #                         A motor that still crosses its slack more than MAX_CROSSINGS times in a goto is given up
-#                         until the next goto or planned reversal (each gets its own MAX_CROSSINGS).
+#                         until the next goto.
 #     crossing            a motor left uncompensated after a goto (too slow, about to turn, at the edges, given up) and
 #                         crossing its slack turns while the output stands still: the guider sees the sky move. Not
 #                         pushed (its side isn't settled: corrections can outpace it), but reported (crossing_slack) so
@@ -72,9 +75,6 @@ SLOW_TAKEUP_ARCSEC_S = 2.0          # a motor tracking slower than this doesn't 
                                     # (taking_up), and has it pushed through even with a small error: tracking alone took
                                     # 30-40 s over the last 30" (worm test roll at Az 295 Alt 34, M1/M2 at 0.8"/s: 47 s,
                                     # timed out on the mount 2026-10-18 00:00)
-TURN_LEAD_SEC = 10.0                # latch a planned reversal from this long before its turning point ...
-TURN_LATE_SEC = 60.0                # ... until this long after it (not later: by then the camera has fallen behind)
-LATCH_ENGAGED_ARCSEC = 5.0          # ... and only a motor engaged on its old flank (within this)
 TURN_SOON_SEC = 300.0               # a goto doesn't compensate a motor turning within this from now: its tracking side
                                     # is about to change
 GIMBAL_LOCK_DEG = 12.0              # ... nor any motor with M2 within this of gimbal lock (theta2 0): M1/M3's tracking
@@ -98,15 +98,12 @@ class BacklashCompensator:
     def reset(self):
         self.output = None                           # estimated output shaft angles (deg, motor angle space)
         self.flank = np.zeros(3)                     # +1/-1: the side each motor is engaged on (its tracking way)
-        self.latched = np.zeros(3, dtype=bool)       # through a planned tracking reversal, until the next goto
         self.active = np.zeros(3, dtype=bool)        # the adjustment applies to the error signal
         self.adjust = np.zeros(3)                    # motor angle - controlled angle (deg)
         self._pushing = np.zeros(3, dtype=bool)
-        self._latched_turns = set()
-        self._crossings = np.zeros(3, dtype=int)     # full slack crossings pushed this goto (or planned reversal)
-        self.given_up = np.zeros(3, dtype=bool)      # ... too many: not compensated until the next goto (or reversal)
+        self._crossings = np.zeros(3, dtype=int)     # full slack crossings pushed this goto
+        self.given_up = np.zeros(3, dtype=bool)      # ... too many: not compensated until the next goto
         self._was_pending = False
-        self._heading = np.zeros(3)
         self._rate = np.zeros(3)
         self.hold = np.zeros(3, dtype=bool)          # holding while the sky catches up (update_hold)
         self.watch = np.zeros(3, dtype=bool)         # since the last goto, not yet engaged the way it tracks
@@ -129,7 +126,8 @@ class BacklashCompensator:
     def update(self, theta_m, omega_ff, tracking, move_pending, turns=(), now=0.0):
         """Each control tick: the adjustment (deg, per motor) to take off the motor angles theta_m for the PID's error.
         omega_ff: the tracking feed-forward (deg/s); tracking: sidereal (or other) tracking under PID TRACK;
-        move_pending: a goto/rotate under way; turns: the target's motor turning points [(motor, monotonic time, ...)]."""
+        move_pending: a goto/rotate under way; turns: the target's motor turning points [(motor, monotonic time, ...)]:
+        a goto doesn't compensate a motor about to turn (TURN_SOON_SEC)."""
         if not self.enabled() or not tracking:
             if self.output is not None:
                 self.reset()
@@ -137,8 +135,7 @@ class BacklashCompensator:
         theta_m = np.asarray(theta_m, float)
         half = self.slack() / 2
         w = np.asarray(omega_ff, float) * 3600
-        self._heading = np.sign(w)                   # the way each motor tracks now (a latched one: its new way)
-        self._rate = np.abs(w)                       # ... and how fast ("/s)
+        self._rate = np.abs(w)                       # how fast each motor tracks now ("/s)
         if move_pending and not self._was_pending:  # a new goto: compensate every motor again
             self._crossings[:] = 0
             self.given_up[:] = False
@@ -146,10 +143,8 @@ class BacklashCompensator:
             self.watch[:] = True
             self._watch_until = now + CROSSING_WATCH_SEC
         self._was_pending = move_pending
-        if move_pending:
-            self.latched[:] = False                  # a goto re-engages every motor the way it then tracks
         moving = np.abs(w) > ENGAGE_RATE_ARCSEC_S
-        self.flank = np.where(moving & ~self.latched, np.sign(w), self.flank)
+        self.flank = np.where(moving, np.sign(w), self.flank)
         if self.output is None:                                # engaged the way it moves (however slowly)
             self.output = theta_m - np.where(self.flank != 0, self.flank, np.sign(w)) * half
         lead = wrap180(theta_m - self.output)
@@ -157,32 +152,7 @@ class BacklashCompensator:
         lead = wrap180(theta_m - self.output)
         t2 = abs(wrap180(theta_m[1]))
         edge = t2 < GIMBAL_LOCK_DEG or t2 > THETA2_MAX - M2_LIMIT_MARGIN_DEG     # the edges of the mount's reach
-        if edge:
-            self.latched[:] = False                  # left alone at the edges, even through a reversal
-        if not move_pending and not edge:
-            for m, tc, *_ in turns:
-                key = (m, round(tc))                 # each turn latches once (not again after a goto through it)
-                if not (tc - TURN_LEAD_SEC <= now <= tc + TURN_LATE_SEC and w[m] != 0 and not self.latched[m]
-                        and key not in self._latched_turns):
-                    continue
-                # the flank it was engaged on: the way it moved before the turn (slowing into it, it can be well
-                # under ENGAGE_RATE_ARCSEC_S, e.g. the SMC's M2 at 0.17"/s 3 min before) -- only if it is engaged
-                # there: a goto ending at the turn leaves no tracked flank to keep
-                f = np.sign(w[m]) if now < tc else -np.sign(w[m])
-                if abs(lead[m] - f * half[m]) * 3600 > LATCH_ENGAGED_ARCSEC:
-                    continue
-                self.flank[m] = f
-                self.latched[m] = True
-                self._latched_turns.add(key)
-                # a reversal has its own crossing budget: a motor given up during the goto (often one with many
-                # back-and-forth crossings, 2026-10-14 Tuc47) is otherwise left uncompensated through its reversal
-                self._crossings[m] = 0
-                self.given_up[m] = False
-                if self.logger:
-                    self.logger.info(f"->> Polaris: BACKLASH M{m + 1} reversing its tracking direction "
-                                     f"{'in' if tc >= now else 'since'} {abs(tc - now):.0f} s: compensating its "
-                                     f"{half[m] * 2 * 3600:.0f}\" slack until the next goto")
-        adj = np.where(self.flank != 0, lead - self.flank * half, 0.0)     # 0 while engaged the way it tracks
+        adj =np.where(self.flank != 0, lead - self.flank * half, 0.0)     # 0 while engaged the way it tracks
         adj = np.where(np.abs(adj) < 1e-9, 0.0, adj)                        # (not wrap180's rounding)
         engaged = np.abs(adj) <= ENGAGED_ARCSEC / 3600
         # a motor tracking too slowly to load its gear either way (e.g. M2 at 0.01"/s) has no side to engage, and one
@@ -191,8 +161,7 @@ class BacklashCompensator:
         for m, tc, *_ in turns:
             turning[m] |= 0.0 <= tc - now < TURN_SOON_SEC    # ahead: once past, its new side is settled
         settled = moving & ~turning & ~edge
-        self.active = ((((move_pending | (self.active & ~engaged)) & settled) | self.latched) & (self.flank != 0)
-                       & ~self.given_up)
+        self.active = (move_pending | (self.active & ~engaged)) & settled & (self.flank != 0) & ~self.given_up
         self.adjust = np.where(self.active, adj, 0.0)
         self._update_crossing(lead, half, np.sign(w), move_pending, now)
         return self.adjust
@@ -231,7 +200,7 @@ class BacklashCompensator:
         window = np.clip(self._rate * HOLD_MAX_SEC, HOLD_MIN_ARCSEC, HOLD_ARCSEC)
         ahead = (np.sign(err) == -self.flank) & (np.abs(err) * 3600 <= window)
         engaged = np.abs(self.adjust) <= ENGAGED_ARCSEC / 3600
-        self.hold = self.active & ~self.latched & ahead & engaged
+        self.hold = self.active & ahead & engaged
         return self.hold
 
     def holding(self, error=None, limit_arcsec=HOLD_ARCSEC):
@@ -255,13 +224,12 @@ class BacklashCompensator:
             return np.zeros(3)
         half = self.slack() / 2
         err = np.asarray(error, float)
-        # only ever the way the motor keeps moving: its tracking flank, or for a latched reversal its new direction
-        way = np.where(self.latched, self._heading, self.flank)
+        way = self.flank                             # only ever the way the motor keeps moving: its tracking flank
         s = np.sign(err)
         s = s * (s == way) * (np.abs(err) * 3600 >= PUSH_ENGAGE_ERR_ARCSEC) * self.active
         # a slow motor isn't left to take its slack up by tracking alone: push it its own way while its error doesn't
         # want the other way (pushing through the slack moves the motor, not the output, so not the pointing)
-        slow = self.active & ~self.latched & (np.abs(self._rate) < SLOW_TAKEUP_ARCSEC_S) & \
+        slow = self.active & (np.abs(self._rate) < SLOW_TAKEUP_ARCSEC_S) & \
             ((np.sign(err) == way) | (np.abs(err) * 3600 < PUSH_ENGAGE_ERR_ARCSEC))
         s = np.where(slow & (s == 0), way, s)
         rem = wrap180(self.output + s * half - np.asarray(theta_m, float))
@@ -279,7 +247,7 @@ class BacklashCompensator:
             omega = np.where(over, 0.0, omega)
             starting = starting & ~over
             if self.logger:
-                self.logger.warning("->> Polaris: BACKLASH compensation stopped until the next goto or planned reversal "
+                self.logger.warning("->> Polaris: BACKLASH compensation stopped until the next goto "
                                     "for " + ", ".join(f"M{m + 1}" for m in np.flatnonzero(over))
                                     + f": crossed its slack more than {MAX_CROSSINGS} times")
         crossing = crossing & ~over

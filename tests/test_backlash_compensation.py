@@ -1,7 +1,8 @@
 """
 Backlash Compensation (advanced_backlash, driver/control_backlash.py): the PID controls each motor's output shaft, a
-dead band of backlash_deg after the motor, while a goto completes and through a planned tracking reversal, so the
-motor finishes engaged the way it tracks and the camera doesn't fall behind by the slack.
+dead band of backlash_deg after the motor, while a goto completes, so the motor finishes engaged the way it tracks.
+Not through a planned tracking reversal: those are all slow, and compensating them became a limit cycle with the guide
+corrections (2026-10-19 20:37, M3 under PHD2; control_backlash.py, when).
 
 The MCU measures each motor's angle before the gearbox, so a motor that finishes a goto moving against its tracking
 direction arrives (by its own angle) while the output shaft still lags by the backlash: Slew & Center corrections then
@@ -18,7 +19,7 @@ import numpy as np
 import pytest
 
 from config import Config
-from control_backlash import BacklashCompensator, PUSH_DPS, PUSH_ENGAGE_ERR_ARCSEC, HOLD_ARCSEC, MAX_CROSSINGS, TURN_LEAD_SEC
+from control_backlash import BacklashCompensator, PUSH_DPS, PUSH_ENGAGE_ERR_ARCSEC, HOLD_ARCSEC, MAX_CROSSINGS
 from kinematics import azaltroll_to_theta_ik, q_to_azaltroll, theta_to_q
 from sim_digital_twin import Twin
 from test_motion_outcomes import radec_sep_arcmin, run_goto
@@ -120,22 +121,19 @@ def test_after_a_goto_a_motor_stays_compensated_until_it_is_engaged(comp):
     assert not np.any(comp.update([1.0, 45.0, 3.0], TRACK, True, False))    # released: guiding sees motor angles
 
 
-def test_a_planned_reversal_is_latched_with_the_old_flank_until_the_next_goto(comp):
+def test_a_planned_reversal_is_left_to_the_guider(comp):
+    """Through a tracking reversal the motor reads its own angle: no adjustment and no push, however far it turns into
+    its slack (the guider takes the slack up; PEC pauses learning through it)."""
     comp.update([1.0, 45.0, 3.0], TRACK, True, True)
+    comp.update([1.0, 45.0, 3.0], TRACK, True, False)                 # the goto is over, M1 engaged
     turns = [(0, 100.0, 1.0, 1e-6)]                                  # M1 turns at t = 100 s
-    comp.update([1.0, 45.0, 3.0], TRACK, True, False, turns, now=100.0 - TURN_LEAD_SEC - 1)
-    assert not comp.latched[0]
-    comp.update([1.0, 45.0, 3.0], TRACK, True, False, turns, now=100.0 - TURN_LEAD_SEC + 1)
-    assert comp.latched[0] and comp.active[0]
+    assert not np.any(comp.update([1.0, 45.0, 3.0], TRACK, True, False, turns, now=95.0))
     reversed_ = TRACK * [-1, 1, 1]                                    # after the turn M1 tracks the other way
-    adj = comp.update([1.0 - 0.06, 45.0, 3.0], reversed_, True, False, turns, now=150.0)
-    assert comp.flank[0] == 1 and adj[0] == pytest.approx(-0.06)      # still the flank the alignment was learnt on
-    adj = comp.update([1.0 - 0.2, 45.0, 3.0], reversed_, True, False, turns, now=200.0)
-    assert adj[0] == pytest.approx(-BACKLASH)                         # carried: the motor runs the slack ahead
-    comp.update([1.0 - 0.2, 45.0, 3.0], reversed_, True, True, turns, now=300.0)     # a goto
-    assert not comp.latched[0] and comp.flank[0] == -1               # re-engages the way it now tracks
-    comp.update([1.0 - 0.2, 45.0, 3.0], reversed_, True, False, turns, now=310.0)
-    assert not comp.latched[0]                                        # that turn is done with
+    for now, theta in ((150.0, 1.0 - 0.06), (200.0, 1.0 - 0.2)):    # into its slack, then through it
+        adj = comp.update([theta, 45.0, 3.0], reversed_, True, False, turns, now)
+        assert not np.any(adj) and not comp.active[0]
+        assert not np.any(comp.push(np.array([-60 / ARCSEC, 0.0, 0.0]), [theta, 45.0, 3.0], 0.2))
+    assert comp.flank[0] == -1                                        # its tracking side follows the new direction
 
 
 def test_a_motor_too_slow_to_load_its_gear_is_left_alone(comp):
@@ -143,16 +141,6 @@ def test_a_motor_too_slow_to_load_its_gear_is_left_alone(comp):
     comp.update([1.0, 45.0, 3.0], slow, True, True)
     adj = comp.update([1.0, 45.0 + 0.03, 3.0], slow, True, True)
     assert adj[1] == 0.0 and not comp.active[1]
-
-
-def test_a_turn_latches_only_a_motor_engaged_on_its_old_flank(comp):
-    comp.update([1.0, 45.0, 3.0], TRACK, True, True)
-    comp.update([1.0 - 0.06, 45.0, 3.0], TRACK, True, True)           # a goto leaves M1 inside its slack ...
-    turns = [(0, 100.0, 1.0, 1e-6)]
-    comp.update([1.0 - 0.06, 45.0, 3.0], TRACK, True, False, turns, now=95.0)    # ... right at its turning point
-    assert not comp.latched[0]                                        # no tracked flank to keep
-    comp.update([1.0 + 0.1, 45.0, 3.0], TRACK, True, False, turns, now=96.0)     # engaged again before the turn
-    assert comp.latched[0]
 
 
 def test_taking_up_until_every_compensated_motor_is_engaged(comp):
@@ -208,50 +196,29 @@ def test_a_motor_crossing_its_slack_again_and_again_is_given_up_until_the_next_g
     assert not comp.given_up[0]
 
 
-def cross_again_and_again(comp, theta, pending, turns=(), now=0.0):
+def cross_again_and_again(comp, theta, pending):
     """Drive M1 back past its slack and push it across, MAX_CROSSINGS + 1 times. Returns the final M1 angle."""
     towards = np.array([60 / ARCSEC, 0.0, 0.0])
     for i in range(MAX_CROSSINGS + 1):
-        comp.update([theta, 45.0, 3.0], TRACK, True, pending, turns, now)     # engaged the way it tracks (+)
-        theta -= BACKLASH + 0.02                                              # driven back past the slack
-        comp.update([theta, 45.0, 3.0], TRACK, True, pending, turns, now)
+        comp.update([theta, 45.0, 3.0], TRACK, True, pending)     # engaged the way it tracks (+)
+        theta -= BACKLASH + 0.02                                  # driven back past the slack
+        comp.update([theta, 45.0, 3.0], TRACK, True, pending)
         comp.push(np.zeros(3), [theta, 45.0, 3.0], 0.2)
         comp.push(towards, [theta, 45.0, 3.0], 0.2)
         theta += BACKLASH                                                     # it crosses
     return theta
 
 
-def test_a_motor_given_up_in_the_goto_is_compensated_again_through_a_planned_reversal(comp):
-    """2026-10-14 Tuc47: the goto gave up all three motors, and the give-up carried into tracking, so M2's planned
-    reversal ~1 h later went uncompensated. A reversal now starts its own crossing budget."""
+def test_a_motor_given_up_in_the_goto_stays_given_up_through_a_planned_reversal(comp):
+    """A reversal no longer starts its own crossing budget (it isn't compensated): given up until the next goto."""
     comp.update([1.0, 45.0, 3.0], TRACK, True, True)
     theta = cross_again_and_again(comp, 1.0, pending=True)
     assert comp.given_up[0]
-    comp.update([theta, 45.0, 3.0], TRACK, True, False)               # the goto is over: tracking, still given up
-    assert comp.given_up[0] and not comp.active[0]
     turns = [(0, 100.0, 1.0, 1e-6)]                                  # M1 turns at t = 100 s
-    comp.update([theta, 45.0, 3.0], TRACK, True, False, turns, now=100.0 - TURN_LEAD_SEC - 1)
-    assert comp.given_up[0] and not comp.latched[0]                   # not yet in the turn's window
-    comp.update([theta, 45.0, 3.0], TRACK, True, False, turns, now=100.0 - TURN_LEAD_SEC + 1)
-    assert comp.latched[0] and comp.active[0] and not comp.given_up[0]
-    assert comp._crossings[0] == 0
-    assert comp.given_up[1] == comp.given_up[2] == False              # the other motors are untouched (never given up)
-
-
-def test_a_reversal_still_gives_up_a_motor_crossing_its_slack_again_and_again(comp):
-    """The fresh budget is per reversal: a limit cycle through the turn (2026-10-14 23:21, Pegasus M2) is still
-    stopped, and the same turn doesn't re-latch to start another."""
-    comp.update([1.0, 45.0, 3.0], TRACK, True, True)
-    comp.update([1.0, 45.0, 3.0], TRACK, True, False)
-    turns = [(0, 100.0, 1.0, 1e-6)]
-    now = 100.0 - TURN_LEAD_SEC + 1
-    comp.update([1.0, 45.0, 3.0], TRACK, True, False, turns, now)
-    assert comp.latched[0] and not comp.given_up[0]
-    theta = cross_again_and_again(comp, 1.0, pending=False, turns=turns, now=now)
-    assert comp.given_up[0] and not comp.active[0]
-    comp.update([theta, 45.0, 3.0], TRACK, True, False, turns, now + 5)
-    assert comp.given_up[0] and not comp.active[0]                     # that turn has had its budget
-    comp.update([theta, 45.0, 3.0], TRACK, True, True, turns, now + 10)     # the next goto
+    for now in (95.0, 100.0, 105.0):
+        comp.update([theta, 45.0, 3.0], TRACK, True, False, turns, now)
+        assert comp.given_up[0] and not comp.active[0]
+    comp.update([theta, 45.0, 3.0], TRACK, True, True, turns, 300.0)  # the next goto
     assert not comp.given_up[0]
 
 
@@ -313,44 +280,28 @@ def test_a_wrong_backlash_is_still_better_than_none(monkeypatch, slack, twin_bac
     assert max(errs[True]) < max(errs[False]), errs
 
 
-def test_tracking_through_a_planned_reversal_keeps_the_camera_on_target(monkeypatch):
-    """The SMC's M2 reversal: switched off, the camera falls behind by the slack while the motor crosses it (the drift
-    bump on 2026-10-11); compensated, the motor is driven through it and runs the slack ahead of its old path."""
+def test_tracking_through_a_planned_reversal_is_the_same_on_or_off(monkeypatch):
+    """The SMC's M2 reversal: the camera falls behind by the slack while the motor crosses it (the drift bump on
+    2026-10-11), on or off -- Backlash Compensation leaves it to the guider (no adjustment, no push)."""
     drift = {}
     for on in (False, True):
-        tw = tracking_twin(monkeypatch, on=on, pose=SMC_BEFORE_TURN, settle_s=60)
-        flank = np.sign(tw.pid.omega_ff)                  # the flank the alignment was learnt on
-        tw.output = tw.theta - flank * tw.backlash / 2    # engaged, as after hours of tracking (M2 creeps at 0.17"/s)
-        if on:                                           # ... and so the compensator's estimate of it
-            tw.pid.backlash.output = np.asarray(tw.polaris._theta_raw, float) - flank * BACKLASH / 2
-        target = lambda: (tw.pid.delta_sp[0] / 15, tw.pid.delta_sp[1])
-        start = radec_sep_arcmin(*target(), *aligned_radec(tw, flank)) * 60
-        tw.run(900)                                      # M2 turns ~3 min in
-        drift[on] = radec_sep_arcmin(*target(), *aligned_radec(tw, flank)) * 60 - start
-        assert np.sign(tw.pid.omega_ff[1]) != flank[1]   # M2 did reverse
-        if on:
-            assert tw.pid.backlash.latched[1]
-    assert drift[False] > 150, drift                     # ~200": the camera fell behind by the slack
-    assert abs(drift[True]) < 60, drift
-
-
-def test_a_planned_reversal_is_compensated_after_a_goto_that_gave_up(monkeypatch):
-    """As above, but the goto before it gave every motor up (2026-10-14 Tuc47, 20:46: more than MAX_CROSSINGS
-    crossings each): the reversal is still compensated, not left to the goto's give-up."""
-    tw = tracking_twin(monkeypatch, on=True, pose=SMC_BEFORE_TURN, settle_s=60)
-    flank = np.sign(tw.pid.omega_ff)
-    tw.output = tw.theta - flank * tw.backlash / 2
-    tw.pid.backlash.output = np.asarray(tw.polaris._theta_raw, float) - flank * BACKLASH / 2
-    tw.pid.backlash.given_up[:] = True                   # what the goto left
-    tw.pid.backlash._crossings[:] = MAX_CROSSINGS + 1
-    target = lambda: (tw.pid.delta_sp[0] / 15, tw.pid.delta_sp[1])
-    start = radec_sep_arcmin(*target(), *aligned_radec(tw, flank)) * 60
-    tw.run(900)
-    drift = radec_sep_arcmin(*target(), *aligned_radec(tw, flank)) * 60 - start
-    assert np.sign(tw.pid.omega_ff[1]) != flank[1]       # M2 did reverse
-    assert tw.pid.backlash.latched[1] and not tw.pid.backlash.given_up[1]
-    assert abs(drift) < 60, drift
-    assert tw.pid.backlash.given_up[0] and tw.pid.backlash.given_up[2]   # the motors without a turn stay given up
+        mp = pytest.MonkeyPatch()
+        try:
+            tw = tracking_twin(mp, on=on, pose=SMC_BEFORE_TURN, settle_s=60)
+            flank = np.sign(tw.pid.omega_ff)                  # the flank the alignment was learnt on
+            tw.output = tw.theta - flank * tw.backlash / 2    # engaged, as after hours of tracking (M2 at 0.17"/s)
+            target = lambda: (tw.pid.delta_sp[0] / 15, tw.pid.delta_sp[1])
+            start = radec_sep_arcmin(*target(), *aligned_radec(tw, flank)) * 60
+            acted = []
+            tw.run(900, on_measure=lambda t: acted.append(bool(np.any(t.pid.backlash.adjust))
+                                                          or bool(np.any(t.pid.omega_backlash))))
+            drift[on] = radec_sep_arcmin(*target(), *aligned_radec(tw, flank)) * 60 - start
+            assert np.sign(tw.pid.omega_ff[1]) != flank[1]   # M2 did reverse
+            assert acted and not any(acted)
+        finally:
+            mp.undo()
+    assert drift[False] > 150, drift                         # ~200": the camera fell behind by the slack
+    assert drift[True] == pytest.approx(drift[False], abs=5), drift
 
 
 @pytest.mark.parametrize('pose', [(300.0, 40.0, 45.0), (240.0, 40.0, -45.0)])   # M1/M2 barely moving
@@ -472,8 +423,8 @@ def test_a_sync_point_keeps_the_adjustment_it_was_taken_with(monkeypatch):
 
 def test_the_worm_profile_test_pauses_it_even_through_a_planned_reversal(monkeypatch):
     """The worm profile test approaches each position the tracking way and fits each motor's backlash itself: Backlash
-    Compensation pauses for it (as PEC and the worm correction do), even through a motor's planned reversal, which
-    would otherwise latch and shift theta_pv mid-test."""
+    Compensation pauses for it (as PEC and the worm correction do), so nothing shifts theta_pv mid-test, also through
+    a motor's planned reversal."""
     from control_worm import WormProfileTest
     tw = tracking_twin(monkeypatch, pose=SMC_BEFORE_TURN, settle_s=60)
     flank = np.sign(tw.pid.omega_ff)
@@ -483,7 +434,7 @@ def test_the_worm_profile_test_pauses_it_even_through_a_planned_reversal(monkeyp
     sm.worm_test = WormProfileTest(now=tw.clock.monotonic())
     seen = []
     tw.run(900, on_measure=lambda t: seen.append((bool(np.any(sm.backlash_deg)), bool(np.any(t.pid.backlash.active)),
-                                                  bool(np.any(t.pid.backlash.latched)), bool(np.any(t.pid.omega_backlash)))))
+                                                  bool(np.any(t.pid.omega_backlash)))))
     assert np.sign(tw.pid.omega_ff[1]) != flank[1]                     # M2 did reverse
     assert seen and not any(any(x) for x in seen), [i for i, x in enumerate(seen) if any(x)][:5]
     assert sm.corrQ_BLC.degrees == 0

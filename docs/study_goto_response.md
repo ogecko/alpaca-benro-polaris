@@ -771,6 +771,16 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
   Still open: check on the mount that 0.1 suits its real 518 noise (~2" per sample), and whether tracking itself would gain from
   less smoothing.
 
+* **BLC through a planned reversal while pulse guiding (2026-10-19, nina01, RA 20.77h Dec +30.9, M2 73 deg).** M3
+  turned at ~20:37; BLC latched it (20:36:52) and pushed it through its 288" slack at 20:38:23 and 20:41:11 while
+  PHD2 guided, then gave up at 20:42:04 (more than 2 crossings): M3 barely moving at its turn, the guide pulses kept
+  reversing it across the slack. Guiding went from 2.5-2.9" (20:30-20:36) to 6-12" with 35-38" RA jumps and 8-9 s of
+  Dec pulses per 2 min. Not over at the give-up: M3 then crossed its slack uncompensated, Dec to +22" under up to 60"
+  of pulses per 10 s, until it engaged at 20:43:20. M3's slack here looked like 350-400", not the 288" configured.
+  Sync guiding too (2026-10-14 23:20, M2: given up in 68 s with no sync between), and every reversal is slow (15 to
+  over 30 min to take the slack up; 4 of 9 compensated ones given up, none clean). Decided (2026-10-20): BLC no
+  longer compensates tracking reversals; the guider takes the slack up and PEC pauses learning through it.
+
 * **End-of-roll clunk (2026-10-19), not reproduced.** Heard at the end of rolls with coordinated speed control (all
   three motors at different speeds; not with M1 alone). The protocol log shows motors leaving FAST while still moving
   (M1 at +2.04 deg/s when SLOW +5A took over, 16:06:54) and, as the shared SLOW level follows the fastest axis,

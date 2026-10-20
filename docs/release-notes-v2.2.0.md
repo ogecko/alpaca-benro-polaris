@@ -33,7 +33,7 @@
 - **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. 
 - **[PEC Settings]** PEC Drift Correction and PEC Worm Gear Correction are switched separately in Pilot's settings; the status panel's PEC button switches both, and its badge shows which are on and the drift rate being applied.
 - **[MAC and MPA]** Mechanical Alignment Correction is rebuilt, reducing Multi Point Polar Alignment Residuals below 10' (previously up to 120'), leading to reduced drift.
-- **[Backlash Compensation]** Takes up gear backlash after a goto and during planned tracking reversals, improving Slew & Center accuracy and reducing camera drift.
+- **[Backlash Compensation]** Takes up gear backlash after a goto, improving Slew & Center accuracy. 
 - **[Goto Plans]** Gotos are fully planned before they begin, including the path, flips, unwinds and rolls. Typical slews complete around 25% faster, with controlled braking to prevent overshoot and coordinated motor movements to keep pointing steady throughout.
 - **[Zero M2 Roll]** Use the **ZM2** preset on the Dashboard's Roll dial to select a roll angle that minimises M2 movement over the next 120 minutes, helping to reduce tracking disturbances.
 - **[Resume Tracking]** Tracking resumes from its previous position after a driver restart, provided the restart occurs within 10 minutes.

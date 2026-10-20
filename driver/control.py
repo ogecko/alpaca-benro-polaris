@@ -2247,7 +2247,7 @@ class PID_Controller():
 
     def backlash_adjust(self):
         """Backlash Compensation: refresh the adjustment (deg, motor angle - output shaft) from the MCU's motor angles,
-        nonzero only while a goto completes or through a planned tracking reversal (control_backlash.py). The forward
+        nonzero only while a goto completes (control_backlash.py; not through a planned tracking reversal). The forward
         kinematics applies it as its first correction ([BLC], SyncManager.baseQ_to_topoQ), so theta_pv, the sky
         positions, ASCOM and syncs describe the output shafts while it acts."""
         tracking = self.mode == 'TRACK' and bool(getattr(self.polaris, '_tracking', False))
@@ -2551,7 +2551,7 @@ class PID_Controller():
         if self.backlash.output is not None:            # Backlash Compensation acting or tracking its slack state
             b = self.backlash
             payload["blc"] = {"adj": (b.adjust * 3600).round(1).tolist(), "active": b.active.astype(int).tolist(),
-                              "flank": b.flank.astype(int).tolist(), "latched": b.latched.astype(int).tolist(),
+                              "flank": b.flank.astype(int).tolist(),
                               "hold": b.hold.astype(int).tolist(),
                               "push": (self.omega_backlash * 3600).round(1).tolist(),
                               "given_up": b.given_up.astype(int).tolist()}

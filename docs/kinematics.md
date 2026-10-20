@@ -616,14 +616,13 @@ Backlash can cause:
 #### II. How does Backlash Compensation Work?
 When enabled, the driver estimates the camera's position beyond the gearbox and accounts for mechanical slack in its position control.
 
-Compensation operates in two situations:
+Compensation operates **after a goto or rotate:** The driver takes up the backlash until each compensated motor is engaged in its tracking direction. The move completes only when this is done, helping the camera remain at the position confirmed by any subsequent plate solve. The same process occurs when tracking resumes after a driver restart.
 
-1. **After a goto or rotate:** The driver takes up the backlash until each compensated motor is engaged in its tracking direction. The move completes only when this is done, helping the camera remain at the position confirmed by any subsequent plate solve. The same process occurs when tracking resumes after a driver restart.
-2. **Through a planned tracking reversal:** From 10 seconds before the turning point, the driver keeps the motor's previous tracking side as its reference (the side the alignment was learnt on) and drives the motor through the backlash into its new direction, so the camera keeps following the target instead of stalling while the slack is taken up. The offset is carried until the next goto.
+It does **not** compensate a planned tracking reversal. Every reversal is slow: the motor's speed passes through zero at its turning point. Near the turn the guide corrections, not tracking, decide which way the motor moves..
 
 Slack take-up and overshoot: 
 
-The driver applies a slack take-up push of 0.05°/s, slowing near the end to reduce overshoot. Pushes only ever go the way the motor will keep moving: towards its tracking side, or through a planned reversal its new direction. A motor that is engaged and has overshot slightly ahead of its target never reverses back across its backlash: it holds still while the sky catches up, and counts as arrived once within 15 arcsec (other motors complete within the usual `pid_Kc` tolerance). It holds only as far ahead as the sky closes in about 6 seconds at that motor's tracking rate (between 15 and 120 arcsec); further ahead, the PID corrects it in the usual way. If a motor requires more than two full backlash crossings during a goto, compensation for that motor is disabled until the next goto or its next planned tracking reversal, and a warning is logged. Each planned reversal starts its own count, so a motor stopped during a goto is still compensated through a later reversal, and one that crosses more than twice during the reversal is stopped again.
+The driver applies a slack take-up push of 0.05°/s, slowing near the end to reduce overshoot. Pushes only ever go the way the motor will keep moving: towards its tracking side. A motor that is engaged and has overshot slightly ahead of its target never reverses back across its backlash: it holds still while the sky catches up, and counts as arrived once within 15 arcsec (other motors complete within the usual `pid_Kc` tolerance). It holds only as far ahead as the sky closes in about 6 seconds at that motor's tracking rate (between 15 and 120 arcsec); further ahead, the PID corrects it in the usual way. If a motor requires more than two full backlash crossings during a goto, compensation for that motor is disabled until the next goto, and a warning is logged.
 
 Reported position: 
 
@@ -640,17 +639,15 @@ Backlash Compensation needs **Coordinated Speed Control** on: only that controll
 When enabled, Backlash Compensation operates only:
 
 - **After a Goto, Rotate, SlewAbsolute or SlewRelative:** Until each motor is engaged in its final tracking direction.
-- **During a planned motor tracking reversal:**  To carry the motor through its backlash as it changes direction, so the camera doesn't stall; the offset is carried until the next goto.
 
-It is inactive during ordinary tracking and guiding, jogging, the worm profile test, and whenever tracking is off, or the mount is parked.
+It is inactive during ordinary tracking and guiding, planned tracking reversals, jogging, the worm profile test, and whenever tracking is off, or the mount is parked.
 
 Compensation is also inhibited on a motor under the following conditions:
 
-- **Low tracking speed:** A motor moving below 0.5 arcsec/s has no settled tracking side to engage, except during a planned reversal.
+- **Low tracking speed:** A motor moving below 0.5 arcsec/s has no settled tracking side to engage.
 - **Slow motors don't delay a goto:** A goto doesn't wait for a motor tracking below 2 arcsec/s to finish taking up its slack. The pointing still allows for the remaining slack, and the motor finishes taking it up by tracking, with a push, after the goto completes.
 - **A goto near a turning point:** During a goto, compensation is skipped for any motor expected to reach its turning point within 5 minutes.
 - **Near gimbal lock or the M2 limit:** Compensation is disabled for all three motors when M2 is within 12° of gimbal lock or within 1° of its 81.5° limit.
-- **Unsettled gear engagement:** Compensation is skipped for a planned reversal if the motor is not engaged on its previous tracking side.
 
 A motor left uncompensated after a goto can still be engaged on the side away from its tracking direction. When tracking or guiding then turns it into its slack, the motor turns but the camera doesn't, so the guider sees the sky move. Backlash Compensation doesn't push such a motor, because corrections can outpace it, but it reports it as crossing its slack. PEC Drift Correction doesn't learn from it (§2.6), until the motor is engaged in its tracking direction, for at most 15 minutes after the goto.
 
@@ -672,13 +669,9 @@ Changing either setting while running resets the backlash model using the curren
 
 - **Sampling:** The backlash model updates from motor-angle measurements every 0.2 seconds, with M3 updated approximately every 0.6 seconds. Reversals between samples can cause unmodelled motion. In testing, goto errors reached approximately 1.5 arcmin (one or two Slew & Center corrections in eight, always M3), still generally better than without compensation.
 - **Variable backlash:** M2 backlash changes with load and position. Gravity may also hold the gears against one side, reducing or eliminating the slack during a reversal. Digital-twin tests remained beneficial with backlash estimates 30% too low or too high and with M2 held by gravity.
-- **Offset after reversal:** A compensated motor retains its tracking-side offset until the next goto. The goto re-engages the motor for its current tracking direction; the subsequent plate solve and sync account for any remaining positional offset.
+- **Tracking reversals:** Not compensated (§II): while a motor reverses, the camera can stall by up to its backlash until the guider has taken the slack up.
 
 #### VI. Log Messages
-
-At a planned reversal:
-
-`->> Polaris: BACKLASH M2 reversing its tracking direction in 9 s: compensating its 432" slack until the next goto`
 
 When a full slack take-up starts:
 
@@ -688,7 +681,9 @@ If a motor keeps crossing its slack (compensation for it stops until the next go
 
 `->> Polaris: BACKLASH compensation stopped until the next goto for M2: crossed its slack more than 2 times`
 
-Reversal warnings are issued approximately 5 minutes in advance, whether compensation is enabled or not (see [§4.4](#44-sync-guide-ingestion--residual--q_syncguide_b-and-pec-learning)).
+Logs before 2026-10-20 also show `BACKLASH M2 reversing its tracking direction in 9 s: compensating its 432" slack until the next goto` where a planned reversal was compensated.
+
+Reversal warnings are still issued approximately 5 minutes in advance, whether compensation is enabled or not (see [§4.4](#44-sync-guide-ingestion--residual--q_syncguide_b-and-pec-learning)).
 
 
 
@@ -1092,9 +1087,9 @@ Independently of PEC and guiding, `announce_motor_reversals()` (every control ti
 skipped during gotos and jogs) logs each coming reversal once, about 5 minutes ahead, from the same cached turning
 points (`motor_turns()`, refreshed every 5 minutes or when the target changes): `->> Polaris: M2 reverses its tracking
 direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min`.
-With `Config.advanced_backlash`, the PID also drives each motor through its gear backlash at the end of a goto and
-through a planned reversal, from the same turning points: see [§2.7 Backlash Compensation](#27-backlash-compensation)
-(`driver/control_backlash.py`).
+With `Config.advanced_backlash`, the PID also drives each motor through its gear backlash at the end of a goto (not
+through a planned reversal: those are left to the guider), skipping a motor that will turn within 5 minutes, from the
+same turning points: see [§2.7 Backlash Compensation](#27-backlash-compensation) (`driver/control_backlash.py`).
 The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`); the worm feed-forward and the
 worm profile test in `driver/control_worm.py` (`WormMixin`, `WormProfileTest`, `fit_worm_profile`).
 
