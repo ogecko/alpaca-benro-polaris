@@ -1409,8 +1409,12 @@ class PID_Controller():
         self.lock_checked = False
         self.room_checked = False
         self.is_deviating = True
+        # the goto timeout (shared: a rotate often follows a goto closely, and replans it): without one a rotate that
+        # never arrived left the Pilot's Rotating indicator, and ASCOM IsMoving, on until the next move (2026-10-19)
+        self.time_goto = ephem.now()
+        self.rotate_started = time.monotonic()       # for the completion log line
         self.rotate_complete_callback = fn
-              
+
     def set_slew_complete_callback(self, fn):
         self.is_slewing = True
         self.slew_complete_callback = fn
@@ -2498,18 +2502,23 @@ class PID_Controller():
         # and only once the motors have settled (errsignal): measurements lag a moving motor
         arrived = (not self.is_deviating and self.is_settled and not self.goto_in_progress()
                    and not self.backlash.taking_up())
-        if (arrived or self.goto_timeout()) and self.goto_complete_callback:
-            err = np.abs(np.array(self.error_signal, dtype=float)) * 3600
-            how = 'STOPPED AT A MOTOR LIMIT' if self.mode == 'LIMIT' else 'on target' if arrived else 'TIMED OUT'
+        timed_out = bool(self.goto_timeout())        # once for both: the goto's completion clears the timer
+        err = np.abs(np.array(self.error_signal, dtype=float)) * 3600
+        how = 'STOPPED AT A MOTOR LIMIT' if self.mode == 'LIMIT' else 'on target' if arrived else 'TIMED OUT'
+        if (arrived or timed_out) and self.goto_complete_callback:
             self.logger.info(f'GOTO complete {how} in {self.mode} after '
                              f'{time.monotonic() - getattr(self, "goto_started", time.monotonic()):.1f} s, error '
                              f'{err[0]:.1f}" {err[1]:.1f}" {err[2]:.1f}"')
             self.goto_complete_callback()
             self.goto_complete_callback = None
             self.time_goto = None
-        if arrived and self.rotate_complete_callback:
+        if (arrived or timed_out) and self.rotate_complete_callback:
+            self.logger.info(f'ROTATE complete {how} in {self.mode} after '
+                             f'{time.monotonic() - getattr(self, "rotate_started", time.monotonic()):.1f} s, error '
+                             f'{err[0]:.1f}" {err[1]:.1f}" {err[2]:.1f}"')
             self.rotate_complete_callback()
             self.rotate_complete_callback = None
+            self.time_goto = None
         if not self.is_deviating and self.parking_complete_callback:
             self.parking_complete_callback()
             self.parking_complete_callback = None

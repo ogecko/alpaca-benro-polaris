@@ -393,7 +393,7 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
     M3's FAST speed uncalibrated on this mount.
   **Field test, 2026-10-16 later (b37052c5; level, eq toggled).** Three more, reproduced in the twin and fixed:
   - *Tracking at Alt 0 Az 180 never completed* (goto TIMED OUT at 46 s with M2 15" behind, the rotate pending for
-    good) and the pointing sank ~13"/s. Inside the gimbal lock `q_to_theta` held the M1/M3 split (M3 from zeta) but
+    good: fixed 2026-10-20, a rotate shares the goto timeout and logs `ROTATE complete`) and the pointing sank ~13"/s. Inside the gimbal lock `q_to_theta` held the M1/M3 split (M3 from zeta) but
     kept M2 from the exact solution, which tilts M3's axis about *that* split's M2 axis. On the held split it tilted
     the camera the wrong way: M2 followed the field rotation (roll the motors can't make there; ~12"/s at Az 180)
     and the pointing went down with it (22' in 2 min in the twin). Now M1/M2 are solved for the boresight with M3

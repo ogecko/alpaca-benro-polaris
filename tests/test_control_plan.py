@@ -466,6 +466,70 @@ def test_guard_roll_change_during_a_goto_completes_on_target():
     assert done is not None and float(np.max(err)) < 30.0, f"done {done and done - t0}, error {err.round(0)}\""
 
 
+def rotate_twin(mp, never_arrives=False):
+    """A tracking twin for the rotator tests; never_arrives keeps Backlash Compensation taking up slack, so no move
+    can arrive (as a rotate the mount never judged arrived, 2026-10-19)."""
+    tw = Twin(mp, config={"coordinated_speed_control": True}, seed=0)
+    tw.place((200.0, 40.0, 0.0))
+    tw.start_tracking()
+    tw.run(5)
+    if never_arrives:
+        mp.setattr(tw.pid.backlash, "taking_up", lambda: True)
+    return tw
+
+
+def rotate(tw, roll, done):
+    tw.pid.set_alpha_target({"roll": roll})
+    tw.pid.set_rotate_complete_callback(lambda: done.setdefault("rotate", tw.clock.t))
+
+
+@pytest.mark.parametrize("never_arrives", [False, True])
+def test_guard_a_rotate_completes_or_times_out_as_a_goto_does(never_arrives, caplog):
+    """2026-10-19: the Pilot's Rotating indicator (ASCOM IsMoving) stayed on: a rotate completed only on arriving, with
+    no timeout. It now shares the goto timeout (45 s, plus its planned path), and logs its completion."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = rotate_twin(mp, never_arrives)
+        done, t0 = {}, tw.clock.t
+        with caplog.at_level(logging.INFO):
+            rotate(tw, 30.0, done)
+            while tw.clock.t - t0 < 150 and "rotate" not in done:
+                tw.run(0.2)
+        tw.close()
+    finally:
+        mp.undo()
+    took = done.get("rotate", np.inf) - t0
+    logged = [r.getMessage() for r in caplog.records if r.getMessage().startswith("ROTATE complete")]
+    if never_arrives:
+        assert GOTO_TIMEOUT_S <= took < GOTO_TIMEOUT_S + 30, took
+        assert logged and "TIMED OUT" in logged[-1], logged
+    else:
+        assert took < GOTO_TIMEOUT_S, took
+        assert logged and "on target" in logged[-1], logged
+
+
+def test_guard_a_goto_timing_out_releases_a_rotate_asked_for_during_it():
+    """2026-10-19 23:14: a rotate 23 s into a goto, another 10 s later, and the goto TIMED OUT: the rotates are
+    released with it, not left waiting to arrive."""
+    mp = pytest.MonkeyPatch()
+    try:
+        tw = rotate_twin(mp, never_arrives=True)
+        done, t0 = {}, tw.clock.t
+        tw.goto_altaz(210.0, 42.0)
+        tw.run(23.0)
+        rotate(tw, 30.0, done)
+        tw.run(10.0)
+        rotate(tw, 33.0, done)
+        while tw.clock.t - t0 < 200 and (tw.polaris.goto_complete_at is None or "rotate" not in done):
+            tw.run(0.2)
+        goto_done = tw.polaris.goto_complete_at
+        tw.close()
+    finally:
+        mp.undo()
+    assert goto_done is not None and "rotate" in done, (goto_done, done)
+    assert abs(done["rotate"] - goto_done) < 1.0, (goto_done, done)      # together, on the shared timeout
+
+
 def test_guard_roll_past_the_reach_while_tracking_keeps_the_pointing():
     """2026-10-17: a +90 roll at Alt 15 is past the roll the motors reach there (81 deg). The path ran in PA towards
     the unreachable PA; once its samples passed the reach the clip switched to the frame nearer level (a 175 deg jump),
