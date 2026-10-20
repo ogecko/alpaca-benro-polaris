@@ -36,6 +36,7 @@
 - **[Backlash Compensation]** Takes up gear backlash after a goto, improving Slew & Center accuracy. 
 - **[Goto Plans]** Gotos are fully planned before they begin, including the path, flips, unwinds and rolls. Typical slews complete around 25% faster, with controlled braking to prevent overshoot and coordinated motor movements to keep pointing steady throughout.
 - **[Zero M2 Roll]** Use the **ZM2** preset on the Dashboard's Roll dial to select a roll angle that minimises M2 movement over the next 120 minutes, helping to reduce tracking disturbances.
+- **[Oribital lead]** Improve orbital tracking by advancing the tracking setpoint by 0.3 seconds, enabling Starlink satellites to be tracked at 680 mm focal length.
 - **[Resume Tracking]** Tracking resumes from its previous position after a driver restart, provided the restart occurs within 10 minutes.
 - **[Smooth Charts]** Live charts on the Analysis pages scroll smoothly and use less CPU.
 - **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
