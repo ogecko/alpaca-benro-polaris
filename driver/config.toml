@@ -86,6 +86,7 @@ advanced_align_mac = true                   # Mechanical Alignment Correction: f
 advanced_eq_mode = false                    # BETA EXPERIMENTAL: Enable for Polaris mounted on an equatorial wedge, with the M1 axis aligned to the celestial pole.
 advanced_eq_mode_visible = false            # BETA EXPERIMENTAL: Show the Equatorial Mode toggle in Pilot's settings (default is not visible)
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
+orbital_lead_sec = 0.3                      # ... aim this far ahead of an orbital body (s): the loop's dead time (0.2-0.4 s)
 advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guide corrections and correct it
 advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json
 coordinated_speed_control = true            # Enable shared-level motor speed controller, goto plans, acceleration-shaped jogs and Ki freeze during gotos

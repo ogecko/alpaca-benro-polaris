@@ -740,7 +740,7 @@ at longer focal lengths. That is more a tracking than a goto problem, but the tw
 * **A moving target needs its velocity (and acceleration) in the feed-forward**: a PID that closes errors with
   τ ≈ 2 s lags a target moving at rate v by about v × τ unless the feed-forward carries the motion. The fixed 2.5 s
   lead should match the loop's real lag instead - the measured dead time is 0.2-0.4 s - and at 1 deg/s every 0.1 s
-  of mismatch is 6'.
+  of mismatch is 6'. Done 2026-10-20 (`orbital_lead_sec`, default 0.3 s), after the mount led NORAD 45417 live.
 * PEC (worm feed-forward) and BLC have since addressed periodic error and backlash, two of the problems that made
   orbitals hard; what's left is the moving-target feed-forward, the dead time and planning the acquisition: a
   planned goto to where the orbital will be on arrival (design item 2), then tracking with its rate.

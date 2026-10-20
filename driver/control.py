@@ -1179,7 +1179,11 @@ class PID_Controller():
                 orbital = orbital_data[self.orbital_sp_name]["body"]
 
         if orbital and self.polaris._trackingrate in [1,2,3]:
-            self.observer.date = ephem.Date(datetime.datetime.utcnow()) + ephem.second * 2.5    # 2.5 seconds in the future
+            # the setpoint leads the body by orbital_lead_sec, the loop's dead time (0.2-0.4 s): the feed-forward follows
+            # the setpoint's own motion, so a fixed 2.5 s lead put a satellite's setpoint, and the mount, ahead of it
+            # (2026-10-20, NORAD 45417; at 1 deg/s each 0.1 s is 6')
+            lead_s = float(getattr(Config, 'orbital_lead_sec', 0.3) or 0.0)
+            self.observer.date = ephem.Date(datetime.datetime.utcnow()) + ephem.second * lead_s
             self.observer.epoch = ephem.now()
             orbital.compute(self.observer)
             # self.logger.info(f"Tracking - Alt: {rad2deg(orbital.alt):.2f} Az: {rad2deg(orbital.az):.2f}")    
