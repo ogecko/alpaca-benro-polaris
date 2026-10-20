@@ -84,10 +84,10 @@ const now = ref(Date.now());
 registerInterval( ()  => { now.value = Date.now() }, 1000 )
 
 // Status arrives every 200ms, but a Wi-Fi client in power-save mode (phones, a laptop on battery -- worst on the Pi's
-// alpaca-hotspot) gets it in bursts, with gaps over 1s. So allow 3s, as for the 517/518 updates below. A hidden tab
+// alpaca-hotspot) gets it in bursts, with gaps over 1s. So allow 5s, as for the 517/518 updates below. A hidden tab
 // unsubscribes from status (AltLayout.vue), so on its return the last status is old until the resubscribe delivers:
 // count the 3s from when the tab became visible again too, not just from the last status.
-const STATUS_STALE_MS = 3000
+const STATUS_STALE_MS = 5000
 const visibleSince = ref(Date.now())
 watch(() => dev.isVisible, (visible) => { if (visible) { visibleSince.value = now.value = Date.now() } })
 
