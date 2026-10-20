@@ -634,3 +634,12 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2) + sync"
 records = ["pec", "sg", "sync"]
 notes = ""
+
+[sessions."jdm_Beta8.0_10_20_KFLOG_PIDLOG_Orbital_PulseGuide"]
+logs = ["alpaca.jdm_Beta8.0_10_20_KFLOG_PIDLOG_Orbital_PulseGuide_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_20_KFLOG_PIDLOG_Orbital_PulseGuide_a1_PHD2_GuideLog_2026-10-20_181114.txt"
+date = "2026-10-20"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["kf", "pec", "pid"]
+notes = ""
