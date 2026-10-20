@@ -402,6 +402,7 @@ fi
 sudo nmcli connection modify "$AP_CONN" \
     connection.interface-name wlan0 \
     802-11-wireless.mode ap 802-11-wireless.band bg \
+    802-11-wireless.powersave 2 \
     ipv4.method shared \
     wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$AP_PASSWORD" \
     connection.autoconnect-priority 0
