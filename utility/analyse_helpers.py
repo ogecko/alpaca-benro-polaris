@@ -1828,7 +1828,44 @@ def correction_breakdown(df, rate_half_window_s=300.0):
     return out
 
 
-SLIP_ARCSEC = 8.0                                      # M2 stepping back more than this against its motion in one step
+_BLC_RE = re.compile(r'^(?P<ts>\S+) \S+ ->> Polaris: BACKLASH (?P<msg>.*)$')
+_BLC_MOTORS_RE = re.compile(r'M[123]')
+
+
+def load_blc_events(log_filenames, log_dir='.'):
+    """
+    Backlash Compensation's events, from the driver log's '->> Polaris: BACKLASH ...' lines (control_backlash.py):
+      latch      a planned tracking reversal latched ('M3 reversing its tracking direction in 10 s: ...')
+      take_up    a push through a motor's slack ('taking up slack: M3 +288"'), after a goto or through a reversal
+      given_up   compensation stopped for a motor that crossed its slack more than MAX_CROSSINGS times
+    Its per-tick state (adjustment, push, hold) is only in PIDLOG's blc (log_position), so these mark where BLC acted,
+    not how far it moved the sky. Returns DataFrame: timestamp, kind, motors (e.g. 'M1,M3'), detail; empty if none.
+    """
+    rows = []
+    for log_path in resolve_log_files(log_filenames, log_dir=log_dir):
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if 'BACKLASH' not in line:
+                    continue
+                m = _BLC_RE.match(line.rstrip('\n'))
+                if not m:
+                    continue
+                msg = m.group('msg')
+                if msg.startswith('taking up slack:'):
+                    kind, detail = 'take_up', msg.split(':', 1)[1].strip()
+                elif msg.startswith('compensation stopped'):
+                    kind, detail = 'given_up', msg
+                elif 'reversing its tracking direction' in msg:
+                    kind, detail = 'latch', msg
+                else:
+                    continue
+                motors = ','.join(dict.fromkeys(_BLC_MOTORS_RE.findall(msg.split(':')[0] if kind != 'take_up' else detail)))
+                rows.append(dict(timestamp=pd.Timestamp(m.group('ts')), kind=kind, motors=motors, detail=detail))
+    out = pd.DataFrame(rows, columns=['timestamp', 'kind', 'motors', 'detail'])
+    return out.sort_values('timestamp', kind='stable').reset_index(drop=True)
+
+
+SLIP_ARCSEC = 8.0                                     # M2 stepping back more than this against its motion in one step
 SLIP_SPEED_BINS = (0, 2, 5, 8, 11, 15, 25, 60)         # M2 speed bins ("/s) for m2_slip_summary
 
 

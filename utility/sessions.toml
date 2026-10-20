@@ -625,3 +625,12 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2) + sync"
 records = ["pec", "sg", "sync"]
 notes = ""
+
+[sessions."jdm_Beta8.0_10_19_PG"]
+logs = ["alpaca.jdm_Beta8.0_10_19_PG_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_19_PG_a1_PHD2_GuideLog_2026-10-19_185152.txt"
+date = "2026-10-19"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
