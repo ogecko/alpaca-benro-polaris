@@ -84,6 +84,9 @@
         </div>
         <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_remote_shutdown', 'Allow Remote Shutdown of Driver Host OS')"/>
+            <q-input class="col-4" label="Update Timeout" suffix="ms" type="number" input-class="text-right" step="500" min="1000"
+            :model-value="ui.driverTimeout" v-on:update:model-value="ui.setDriverTimeout">
+            </q-input>
         </div>
     </q-card>
 
@@ -94,10 +97,12 @@
 import { useQuasar } from 'quasar'
 import { onMounted } from 'vue'
 import { useConfigStore } from 'stores/config';
+import { useUIStore } from 'src/stores/ui'
 import { debounce } from 'quasar'
 
 const $q = useQuasar()
 const cfg = useConfigStore()
+const ui = useUIStore()
 
 onMounted(async () => {
 })

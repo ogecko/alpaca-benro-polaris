@@ -43,7 +43,8 @@
 - **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
 - **[Guiding Tips]** Add a new section **Improving Guiding Performance**, in the [Guiding guide](./guiding.md#6-improving-guiding-performance) explaining how to recognise and solve common guiding problems.
 - **[PINS and Touch n Stars]** Update the Raspberry Pi documentation with instructions for installing the Alpaca Driver on a PINS Pi and configuring it for use with Touch ’n Stars.
-  
+- **[Network Settings]** Added a configurable update timeout to prevent transient Alpaca Pilot warnings caused by mobile or laptop Wi-Fi power-saving modes.
+- 
 ## What's new in v2.2 Beta 7
 - **[Speed Controller v2]** Better tracking at low altitude and zero roll, and a better response to guiding, from a new motor speed controller.
 - **[Motion Planner v2]** Less drift while rolling: motor speed profiles are planned, slowing on tight curves.

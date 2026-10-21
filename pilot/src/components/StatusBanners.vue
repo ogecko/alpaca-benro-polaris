@@ -73,11 +73,13 @@
 <script setup lang="ts">
 import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
+import { useUIStore } from 'src/stores/ui'
 import { computed, ref, watch } from 'vue'
 import { useInterval } from 'quasar'
 
 const dev = useDeviceStore()
 const p = useStatusStore()
+const ui = useUIStore()
 const { registerInterval } = useInterval()
 
 const now = ref(Date.now());
@@ -87,11 +89,10 @@ registerInterval( ()  => { now.value = Date.now() }, 1000 )
 // alpaca-hotspot) gets it in bursts, with gaps over 1s. So allow 3s, as for the 517/518 updates below. A hidden tab
 // unsubscribes from status (AltLayout.vue), so on its return the last status is old until the resubscribe delivers:
 // count the 3s from when the tab became visible again too, not just from the last status.
-const STATUS_STALE_MS = 3000
 const visibleSince = ref(Date.now())
 watch(() => dev.isVisible, (visible) => { if (visible) { visibleSince.value = now.value = Date.now() } })
 
-const isStatusOld = computed(() => { return now.value - Math.max(p.fetchedAt, visibleSince.value) > STATUS_STALE_MS;   });
+const isStatusOld = computed(() => { return now.value - Math.max(p.fetchedAt, visibleSince.value) > ui.driverTimeout;   });
 const is517Old = computed(() => { return p.age517 > 3.0;   });
 const is518Old = computed(() => { return p.age518 > 3.0;   });
 const isNoAstroModule = computed(() => { return p.polarisastrover==''   });

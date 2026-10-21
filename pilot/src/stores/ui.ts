@@ -11,6 +11,7 @@ export const useUIStore = defineStore('ui', {
     catalogSort: sessionStorage.getItem('ui.catalogSort') ?? '',
     showStatusPanel: sessionStorage.getItem('ui.showStatusPanel') === 'true',
     showLeftDrawer: (sessionStorage.getItem('ui.showLeftDrawer') ?? 'true')=== 'true',
+    driverTimeout: (sessionStorage.getItem('ui.driverTimeout') ?? 1000) as number,
   }),
   actions: {
     setCoordFrame(val: 0 | 1 | 2) {
@@ -50,6 +51,11 @@ export const useUIStore = defineStore('ui', {
       // persists to sessionStorage, not just the explicit toggle button.
       this.showLeftDrawer = val
       sessionStorage.setItem('ui.showLeftDrawer', String(val))
-    }
+    },
+    setDriverTimeout(val: string | number | null) {
+      // Used in StatusBanners to detect stale connection from Pilot to the Driver
+      this.driverTimeout = Math.max(1000, val as number)
+      sessionStorage.setItem('ui.driverTimeout', String(this.driverTimeout))
+    },
   }
 })
