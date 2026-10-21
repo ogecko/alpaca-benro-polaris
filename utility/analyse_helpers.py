@@ -78,7 +78,8 @@ def parse_payload_line(line, tag):
     Split 'TIMESTAMP INFO <TAG> {dict}' and literal_eval the trailing dict, flattening any
     list-valued field into '<key>_<i+1>' columns -- the shared axis-indexed convention used
     by PECLOG ('resid', 'ra_model'/'dec_model', ... -> 1=RA, 2=Dec) and KFLOG/PIDLOG
-    ('θ_meas', ... -> 1=M1, 2=M2, 3=M3).
+    ('θ_meas', ... -> 1=M1, 2=M2, 3=M3). A dict-valued field (PIDLOG's 'blc') is flattened the same way under
+    '<key>_<subkey>' (e.g. 'blc_adj_1'): left as a dict, the column is unhashable and the loaders' dedup fails.
     """
     if f" {tag} " not in line:
         return None
@@ -89,8 +90,12 @@ def parse_payload_line(line, tag):
     except (ValueError, SyntaxError):
         return None
     rec = {"timestamp": ts}
-    for key, val in payload.items():
-        if isinstance(val, list):
+    items = list(payload.items())
+    while items:
+        key, val = items.pop(0)
+        if isinstance(val, dict):
+            items[:0] = [(f"{key}_{k}", v) for k, v in val.items()]
+        elif isinstance(val, list):
             for i, v in enumerate(val):
                 # None (e.g. PECLOG's resid/guide fields on a cycle where only one axis
                 # updated) must not be stringified to "None" first -- float("None") raises,

@@ -296,11 +296,15 @@ def _profile_coef(prof, direction):
     return coef
 
 
-def rebuilt_wff(df, site_lat, profiles, step_s=10.0, max_gap_s=900.0, max_rate_dps=0.02):
+def rebuilt_wff(df, site_lat, profiles, step_s=10.0, max_gap_s=900.0, max_rate_dps=0.02, dir_window_s=120.0):
     """The worm feed-forward (RA/Dec arcmin) on a step_s grid between PECLOG rows: each motor's MCU angle and the pose
     interpolated linearly between rows no more than max_gap_s apart (a longer gap is left out, and so is one where a
     motor turned faster than max_rate_dps: a goto or jog, not tracking -- ~5x the fastest sidereal motor rate), and the profile in use then (profiles: logged_worm_profiles), forward or reverse by each motor's direction
-    of travel. Returns (DataFrame timestamp, wff_1, wff_2, rebuilt at the rows' own times as a check: the rms of
+    of travel. That direction is its net travel over the tracking intervals within +-dir_window_s/2 (kept while it
+    stands), as the driver takes its tracking direction (control_worm.update_worm_direction): from one row to the
+    next ~1 s apart while pulse guiding, the angle's change is the 518 noise and the guide pulses, and its sign
+    flipped a forward/reverse motor's profile back and forth (2026-10-20: a comb of 100-300" spikes in RA).
+    Returns (DataFrame timestamp, wff_1, wff_2, rebuilt at the rows' own times as a check: the rms of
     rebuilt - logged in arcsec, or None)."""
     cols = ['theta_raw_1', 'theta_raw_2', 'theta_raw_3', 'az', 'alt', 'roll']
     d = df.dropna(subset=cols).sort_values('timestamp').reset_index(drop=True)
@@ -311,20 +315,36 @@ def rebuilt_wff(df, site_lat, profiles, step_s=10.0, max_gap_s=900.0, max_rate_d
     t = (d['timestamp'] - d['timestamp'].iloc[0]).dt.total_seconds().to_numpy()
     unwrap = {c: np.degrees(np.unwrap(np.radians(d[c].to_numpy(float)))) for c in ('theta_raw_1', 'theta_raw_3', 'az')}
     vals = {c: unwrap.get(c, d[c].to_numpy(float)) for c in cols}
+    motors = ('theta_raw_1', 'theta_raw_2', 'theta_raw_3')
+    step = np.column_stack([np.diff(vals[c]) for c in motors])          # (n - 1, 3): each interval's travel
+    dts = np.diff(t)
+    tracking = (dts > 0) & (dts <= max_gap_s) & (np.abs(step).max(axis=1) <= max_rate_dps * dts + 0.05)
+    # each tracking interval's direction: the net travel of the tracking intervals around it (cumulative sums over the
+    # tracking intervals only, so a goto or jog in the window doesn't count), its last one while it stands
+    mid = (t[:-1] + t[1:]) / 2
+    cum = np.vstack([np.zeros(3), np.cumsum(np.where(tracking[:, None], step, 0.0), axis=0)])
+    lo = np.searchsorted(mid, mid - dir_window_s / 2, side='left')
+    hi = np.searchsorted(mid, mid + dir_window_s / 2, side='right')
+    net = cum[hi] - cum[lo]
+    span = np.cumsum(np.r_[0.0, np.where(tracking, dts, 0.0)])
+    still = np.abs(net) < 1e-5 * np.maximum(span[hi] - span[lo], 1e-9)[:, None]   # driver: TRACK_RATE_MIN_DPS
+    direction = np.zeros((len(step), 3), dtype=int)
+    last = np.zeros(3, dtype=int)
+    for i in range(len(step)):
+        if tracking[i]:
+            last = np.where(still[i], last, np.sign(net[i]).astype(int))
+        direction[i] = last
     rows = []
     for i in range(len(d) - 1):
         dt = t[i + 1] - t[i]
-        if dt <= 0 or dt > max_gap_s:
-            continue
-        jump = max(abs(vals[c][i + 1] - vals[c][i]) for c in ('theta_raw_1', 'theta_raw_2', 'theta_raw_3'))
-        if jump > max_rate_dps * dt + 0.05:             # a goto or jog between the rows: not tracking
+        if not tracking[i]:                             # a long gap, or a goto or jog between the rows
             continue
         for tt in np.arange(t[i], t[i + 1], step_s):
             f = (tt - t[i]) / dt
             r = {c: vals[c][i] + f * (vals[c][i + 1] - vals[c][i]) for c in cols}
             r.update({f'zeta_offset_{m + 1}': off.iloc[i, m] for m in range(3)})
             r['t'] = tt
-            r['dir'] = [int(np.sign(vals[c][i + 1] - vals[c][i])) for c in ('theta_raw_1', 'theta_raw_2', 'theta_raw_3')]
+            r['dir'] = direction[i].tolist()
             rows.append(r)
     if not rows:
         return pd.DataFrame(columns=['timestamp', 'wff_1', 'wff_2']), None
