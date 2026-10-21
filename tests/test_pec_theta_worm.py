@@ -16,10 +16,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 import numpy as np
 import pytest
 
-from pe_analysis import (WORM_THETA, worm_features, sky_weights, motor_errors, fit_worm, WormProfile,
+from pe_analysis import (WORM_THETA, worm_features, sky_weights, fit_worm, WormProfile,
                          replay_worm_pec_rate, causal_worm_pec_rate, replay_pec_rate, rate_scores, PecModel, Segment)
 
-EMA = PecModel('EMA 7.5m', 'dema', 0, 450, k=0.0)          # plain EMA (same as PecAxis EMA, faster to replay)
+EMA = PecModel('EMA 7.5m', 450)
 H = (1, 2)
 LAT = -33.65
 TRUE = np.zeros(3 * 2 * len(H))
@@ -66,15 +66,6 @@ def test_at_the_pole_an_m1_error_is_pure_ra():
 def test_an_m2_error_moves_the_boresight_and_so_shows_in_ra_or_dec():
     w = sky_weights(np.array([[30.0, 40.0, 0.0]]), LAT)
     assert np.hypot(w[0, 0, 1], w[0, 1, 1]) > 0.5
-
-
-def test_motor_errors_reproduce_the_sky_residual_and_skip_ill_conditioned_poses():
-    theta = np.array([[30.0, 40.0, 10.0], [120.0, 55.0, -30.0], [60.0, 0.5, 20.0]])   # last: M1/M3 nearly aligned
-    ra, dec = np.array([5.0, -3.0, 2.0]), np.array([1.0, 4.0, -2.0])
-    e = motor_errors(ra, dec, theta, LAT)
-    w = sky_weights(theta, LAT)
-    assert np.allclose(np.einsum('nij,nj->ni', w[:2], e[:2]), np.column_stack([ra, dec])[:2], atol=1e-9)
-    assert np.isnan(e[2]).all()
 
 
 def test_worm_features_repeat_every_worm_turn_of_each_motor():
@@ -206,26 +197,6 @@ def test_sky_weights_match_the_driver_kinematics():
 
 # ── per-motor view: partial residuals ────────────────────────────────────
 
-def test_partial_errors_separate_the_motors_where_the_least_error_split_mixes_them():
-    """A worm on M2 only. The least-error split leaks it into M1/M3; the partial residuals (fitted profile of that
-    motor + what the joint fit leaves unexplained) show it on M2 and next to nothing on M1/M3."""
-    from pe_analysis import partial_motor_errors
-    coef = np.zeros_like(TRUE)
-    coef[4:8] = [30.0, -10.0, 5.0, 0.0]
-    p = part(40, rates=(16.0, 10.0, 11.0), start=(100.0, 28.0, 3.0), coef=coef, hours=3.0)
-    t, ra, dec, th, lat = p
-    true = WormProfile(coef, WORM_THETA, H).motor_error(th)
-    detr = lambda y: y - np.polyval(np.polyfit(t, y, 2), t)
-    mixed = motor_errors(detr(ra), detr(dec), th, lat)
-    assert np.nanstd(mixed[:, 0]) > 3.0                                       # M2's worm leaks into M1
-    prof = fit_worm([p], harmonics=H)
-    part_e = partial_motor_errors(t, ra, dec, th, lat, prof)
-    assert np.nanstd(part_e[:, 0]) < 0.4 * np.nanstd(mixed[:, 0])
-    assert np.corrcoef(part_e[:, 1], true[:, 1])[0, 1] > 0.9
-
-
-# ── does the worm phase repeat night to night? ───────────────────────────
-
 def test_worm_phase_table_finds_the_same_phase_in_every_session_with_a_consistent_worm():
     from pe_analysis import worm_phase_table, phase_consistency
     segs = [seg(f'{k}#0', str(k), 50 + k, start=(30.0 + 40 * k, 30.0 + 8 * k, None)) for k in range(4)]
@@ -244,3 +215,109 @@ def test_phase_consistency_of_random_phases_is_low():
     rng = np.random.default_rng(1)
     c = phase_consistency(rng.uniform(0, 360, 12))
     assert c['R'] < 0.5 and c['p'] > 0.05
+
+
+def test_removing_the_accumulated_corrections_recovers_the_motor_angles():
+    """PECLOG/SGLOG az/alt/roll is the driver's present value: the motor pose rotated by every guide and PEC
+    correction (total_accum, about the RA and Dec axes). Through the inverse kinematics that shifts the motor angles by
+    up to ~1 deg over a night -- tens of degrees of worm phase -- unless the corrections are taken back out."""
+    from pe_analysis import remove_corrections
+    from kinematics import theta_to_q, q_to_azaltroll, azaltroll_to_theta_ik, calc_equatorial_axes_B
+    from quaternion import Q
+    rng = np.random.default_rng(3)
+    n = 30
+    raw = np.column_stack([150 - 12 * np.linspace(0, 1.5, n), 69 + 6 * np.linspace(0, 1.5, n), 14 + 11 * np.linspace(0, 1.5, n)])
+    ra = np.r_[0.0, np.cumsum(rng.normal(-20, 30, n - 1))]                     # arcsec, accumulated corrections
+    dec = np.r_[0.0, np.cumsum(rng.normal(120, 30, n - 1))]                    # ~1 deg by the end
+    pv = []
+    for th, r, d in zip(raw, ra, dec):
+        p, dax, _ = calc_equatorial_axes_B(theta_to_q(*th), Q(), LAT)
+        q = (Q(axis=p, degrees=r / 3600) * Q(axis=dax, degrees=d / 3600) * theta_to_q(*th)).normalised
+        pv.append(azaltroll_to_theta_ik(*q_to_azaltroll(q)))
+    pv = np.array(pv)
+    assert np.abs(pv - raw).max() > 0.5                                         # what the pose-derived angles look like
+    got = remove_corrections(pv, ra, dec, LAT)
+    assert np.abs(got - raw).max() < 0.01
+
+
+# ── multi-turn cleanup: direction of travel, stationary motors, turns-based trend ──
+
+def test_a_motor_needs_two_worm_turns_to_be_fitted():
+    p = part(16, rates=(12.0, 4.0, 14.0))                                       # M2 moves 10 deg = 1.7 turns
+    prof = fit_worm([p], harmonics=H)
+    assert np.allclose(prof.coef[4:8], 0.0) and np.abs(prof.coef[8:]).max() > 1.0
+
+
+
+def test_auto_trend_stays_quadratic_with_two_turns():
+    from pe_analysis import auto_trend_degree
+    th = np.column_stack([np.linspace(0, 13, 50), np.linspace(0, 1, 50), np.linspace(0, 12.5, 50)])
+    assert auto_trend_degree(th, 6.0) == 2
+    th[:, 2] = np.linspace(0, 40, 50)                                           # M3 6.7 turns, M1 2.2
+    assert auto_trend_degree(th, 6.0) == 2                                      # limited by the slowest fitted motor
+    th[:, 0] = np.linspace(0, 30, 50)
+    assert auto_trend_degree(th, 6.0) == 4
+
+
+def test_windowed_fit_tracks_a_steady_worm_at_its_true_amplitude_and_phase():
+    from pe_analysis import windowed_worm
+    t, ra, dec, th, lat = part(80, hours=4.0, rates=(14.0, 1.0, 16.0))
+    s = Segment('w', 'w', t, ra, dec, th)
+    w = windowed_worm(s, lat, window_s=5400, step_s=900)
+    m3 = w[(w['motor'] == 'M3') & w['fitted']]
+    assert len(m3) >= 8
+    true_amp, true_phase = np.hypot(TRUE[8], TRUE[9]), np.degrees(np.arctan2(TRUE[9], TRUE[8])) % 360
+    assert np.abs(m3['amp'] - true_amp).max() < 0.2 * true_amp
+    assert np.abs((m3['phase'] - true_phase + 180) % 360 - 180).max() < 15
+    assert not w.loc[w['motor'] == 'M2', 'fitted'].any()                       # M2 hardly turns
+
+
+def test_windowed_fit_keeps_m3s_worm_out_of_m1():
+    """Only M3 has a worm, and M1 and M3 move the star alike; fitted per window, M1 comes out near zero because its
+    worm repeats at a different rate."""
+    from pe_analysis import windowed_worm
+    coef = np.zeros_like(TRUE)
+    coef[8:12] = TRUE[8:12]
+    t, ra, dec, th, lat = part(81, hours=4.0, rates=(7.0, 1.0, 15.0), start=(30.0, 12.0, None), coef=coef)
+    w = windowed_worm(Segment('x', 'x', t, ra, dec, th), lat, window_s=5400, step_s=900)
+    m1 = w[(w['motor'] == 'M1') & w['fitted']]
+    assert len(m1) >= 5 and m1['amp'].max() < 5.0
+
+
+def test_windowed_fit_shows_a_worm_whose_amplitude_changes_through_the_night():
+    from pe_analysis import windowed_worm
+    t, ra, dec, th, lat = part(82, hours=5.0, rates=(14.0, 1.0, 16.0), coef=np.zeros_like(TRUE), noise=1.0)
+    grow = 10 + 60 * t / t[-1]                                                  # M3 worm amplitude 10" -> 70"
+    e3 = grow * np.sin(2 * np.pi * th[:, 2] / WORM_THETA)
+    w3 = sky_weights(th, lat)[:, :, 2]
+    s = Segment('g', 'g', t, ra + w3[:, 0] * e3, dec + w3[:, 1] * e3, th)
+    m3 = windowed_worm(s, lat, window_s=5400, step_s=900)
+    m3 = m3[(m3['motor'] == 'M3') & m3['fitted']].sort_values('t_min')
+    assert m3['amp'].iloc[-1] > 2.5 * m3['amp'].iloc[0]
+
+
+def test_windows_where_m1_and_m3_turn_at_about_the_same_speed_are_flagged():
+    """Then their worms repeat at nearly the same rate in time, and even a joint fit can't tell them apart."""
+    from pe_analysis import windowed_worm
+    t, ra, dec, th, lat = part(83, hours=3.0, rates=(-16.0, 1.0, 15.0))
+    w = windowed_worm(Segment('s', 's', t, ra, dec, th), lat)
+    assert set(w.columns) >= {'rate', 'm1_m3_separable'}
+    assert not w['m1_m3_separable'].any()
+    assert w.loc[w['motor'] == 'M1', 'rate'].iloc[0] == pytest.approx(-16.0, abs=0.5)
+    t, ra, dec, th, lat = part(84, hours=3.0, rates=(7.0, 1.0, 15.0))
+    assert windowed_worm(Segment('s', 's', t, ra, dec, th), lat)['m1_m3_separable'].all()
+
+
+# ── motors too slow to fit in a segment: use their profile from the other sessions ──
+
+def test_only_keeps_the_named_motors():
+    prof = WormProfile(TRUE, WORM_THETA, H)
+    m3 = prof.only(['M3'])
+    assert np.allclose(m3.coef[:8], 0.0) and np.allclose(m3.coef[8:], TRUE[8:])
+
+
+def shared_coef(A, phases):
+    """WormProfile coefficients (harmonic 1 only) for e_i = A sin(phi_i + p_i)."""
+    p = np.radians(phases)
+    return np.column_stack([A * np.cos(p), A * np.sin(p)]).ravel()
+

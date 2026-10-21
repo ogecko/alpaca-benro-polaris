@@ -17,7 +17,6 @@ Contents
                       crota2_to_roll  (used by fits_extract)
   IK / FK             theta_to_q, q_to_theta, q_to_azaltroll, azaltroll_to_q
                       azaltroll_to_theta, azaltroll_to_q, LastPosition
-  Mechanical corr.    MountModelParams, apply_mechanical_corrections
   QUEST alignment     quest_solve
 """
 
@@ -27,7 +26,6 @@ import dataclasses
 from quaternion import Q as Quaternion
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
-from scipy.optimize import minimize
 import ephem
 
 # ── Angle helpers ─────────────────────────────────────────────────────────────
@@ -508,6 +506,18 @@ def theta_to_q(theta1, theta2, theta3):
     return q if noflip else -q
 
 
+JACOBIAN_RCOND = 0.035     # singular values below this share of the largest are dropped (|theta2| within ~2 deg)
+
+
+def theta_rates(theta, omega_B):
+    """Motor rates (rad/s) for a Base-frame angular velocity omega_B (rad/s) at motor angles theta (deg): J^-1 omega,
+    as a least-squares solve that drops what the motors can't produce. Near gimbal lock (theta2 ~ 0, M1 and M3 on one
+    axis) the camera can't roll about its boresight; the exact solve demanded it as M1/M3 counter-rotating at up to
+    2.4 deg/s while tracking at alt 0, and the split between them swung back and forth."""
+    J = theta_to_jacobian(*theta)
+    return np.linalg.lstsq(J, np.asarray(omega_B, dtype=float), rcond=JACOBIAN_RCOND)[0]
+
+
 def theta_to_jacobian(theta1, theta2, theta3):
     """
     Compute the 3x3 Jacobian matrix at the given base frame orientation theta.
@@ -650,9 +660,61 @@ def q_to_theta(motorQ_C2B, lastPos=LastPosition(), theta2_min=-8.0):
         locked_sum = theta1 + theta3
         theta3 = lastPos.get_fallback_theta3()
         theta1 = locked_sum - theta3
+        theta1, theta2 = _lock_pointing(q1.rotate(np.array([0, 0, -1])), theta1, theta2, theta3)
 
     return float(theta1), float(theta2), float(theta3)
 
+
+def _lock_pointing(bore, theta1, theta2, theta3, iterations=3):
+    """Near gimbal lock with theta3 held: theta1 and theta2 that put the boresight on bore (Gauss-Newton). theta2 from
+    the exact solution tilts M3's axis about the exact split's M2 axis; on the held split's M2 axis it tilted the camera
+    the wrong way: tracking at alt 0, M2 followed the field rotation (roll the motors can't make there) and the pointing
+    sank with it (22' in 2 min). A pose that is reachable comes out as it was."""
+    def bore_of(t1, t2):
+        return theta_to_q(t1, t2, theta3).rotate(np.array([0, 0, -1]))
+    h = 1e-4
+    for _ in range(iterations):
+        b = bore_of(theta1, theta2)
+        r = bore - b
+        if np.linalg.norm(r) < 1e-12:
+            break
+        J = np.column_stack(((bore_of(theta1 + h, theta2) - b) / h, (bore_of(theta1, theta2 + h) - b) / h))
+        d1, d2 = np.linalg.lstsq(J, r, rcond=1e-3)[0]
+        theta1 += float(np.clip(d1, -5.0, 5.0))
+        theta2 += float(np.clip(d2, -5.0, 5.0))
+    return theta1, theta2
+
+
+
+LOCK_SOLUTION_DEG = 3.0     # |theta2| below this: an end solution may give up the roll (LastPosition's GIMBAL_EXIT)
+
+
+def theta_solutions(motorQ_C2B, theta_lo, theta_hi, tol_deg=1e-3):
+    """Every motor solution (n, 3) for a camera pose within [theta_lo, theta_hi] (deg, per motor): both IK branches
+    (the second is theta1 + 180, -theta2, theta3 + 180: the same pose) and every M1/M3 turn of 360 inside the range.
+    Empty if the pose is out of the motors' reach. Near gimbal lock (theta2 ~ 0) only theta1 + theta3 is defined and
+    the split is q_to_theta's, and a solution counts when its boresight matches: the roll the motors can't make there
+    is given up, as q_to_theta does (a goto to Alt 0 with roll 0.01 after Find Home found no end solution, so it
+    wasn't planned straight and ran into the lock on a sampled path: M1/M3 driven back and forth at up to 1.8 deg/s)."""
+    base = np.array(q_to_theta(motorQ_C2B, LastPosition(), theta2_min=-90.0), dtype=float)
+    target = np.asarray(motorQ_C2B.q, dtype=float)
+    bore = np.asarray(motorQ_C2B.rotate(np.array([0.0, 0.0, -1.0])), dtype=float)
+    lo, hi = np.asarray(theta_lo, dtype=float), np.asarray(theta_hi, dtype=float)
+    out = []
+    for branch in (base, base + np.array([180.0, -2 * base[1], 180.0])):       # the second: theta2 mirrored
+        t1, t2, t3 = branch
+        if not lo[1] - 1e-9 <= t2 <= hi[1] + 1e-9:
+            continue
+        q = theta_to_q(t1, t2, t3)
+        if math.degrees(2 * math.acos(min(1.0, abs(float(np.dot(np.asarray(q.q), target)))))) > tol_deg:
+            bore_q = np.asarray(q.rotate(np.array([0.0, 0.0, -1.0])), dtype=float)
+            at_lock = abs(t2) < LOCK_SOLUTION_DEG
+            if not (at_lock and math.degrees(math.acos(min(1.0, float(np.dot(bore_q, bore))))) <= tol_deg):
+                continue                            # q_to_theta clamped: out of reach
+        for a in np.arange(math.ceil((lo[0] - t1) / 360), math.floor((hi[0] - t1) / 360) + 1):
+            for b in np.arange(math.ceil((lo[2] - t3) / 360), math.floor((hi[2] - t3) / 360) + 1):
+                out.append((t1 + 360 * a, t2, t3 + 360 * b))
+    return np.array(out, dtype=float).reshape(-1, 3)
 
 
 def q_to_azaltroll(cameraQ_C2T):
@@ -694,7 +756,7 @@ def azaltroll_to_theta(p_az: float, p_alt: float, p_roll: float,
     """Az/alt/roll (degrees) -> (theta1, theta2, theta3) via IK. Returns (None,None,None) on error."""
     try:
         motorQ = azaltroll_to_q(p_az, p_alt, p_roll)
-        return q_to_theta(motorQ, lastPos)
+        return q_to_theta(motorQ, lastPos if lastPos is not None else LastPosition())
     except Exception:
         return None, None, None
 
@@ -798,6 +860,10 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     If |alt| > 90 the boresight has gone 'over the top'; flip to the
     equivalent pointing: alt' = 180 - alt (or -180 - alt), az' = az + 180,
     and accumulate a 180° roll flip.
+    Above THETA2_MAX (the zenith zone, and an over-the-top pose that lands in it) alt is clamped to the
+    limit on the same az: the nearest reachable pointing, directly below the target. A target in
+    (THETA2_MAX, 90] is NOT flipped: tracking it through the zone keeps M1 on the target's own azimuth
+    (the short way round through the meridian) instead of the mirror image on the far side.
 
     Roll handling
     -------------
@@ -805,7 +871,9 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     The maximum achievable roll at the resolved altitude is altitude_to_maxroll(alt').
     If |roll| <= max_roll  → use roll as-is.
     If |roll| >  max_roll  → try the 180° equivalent (roll - 180 or roll + 180);
-                             if still unreachable, clamp to ±max_roll.
+                             if still unreachable, clamp whichever of the two is
+                             nearer level (|roll| <= 90) to ±max_roll: the frame
+                             closest to the requested footprint.
 
     Returns
     -------
@@ -820,12 +888,12 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     # Resolve over-the-top alt by flipping through the pole 
     roll_flip = 0.0
 
-    if alt_norm > THETA2_MAX:
+    if alt_norm > 90.0:
         # e.g. alt=120 → alt'=60, az+=180, roll+=180
         alt_resolved = 180.0 - alt_norm
         az += 180.0
         roll_flip += 180.0
-    elif alt_norm < -THETA2_MAX:
+    elif alt_norm < -90.0:
         # e.g. alt=-120 → alt'=-60, az+=180, roll+=180
         alt_resolved = -180.0 - alt_norm
         az += 180.0
@@ -833,7 +901,7 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
     else:
         alt_resolved = alt_norm
 
-    # Safety clamp — should not be needed after the flip, but be defensive
+    # Zenith zone: clamp to the limit on the same az (nearest reachable pointing)
     alt_resolved = float(np.clip(alt_resolved, -THETA2_MAX, THETA2_MAX))
 
     # Normalise az to [0, 360)
@@ -854,8 +922,10 @@ def reachable_azaltroll(az: float, alt: float, roll: float, roll_adj: float = 0.
         if abs(roll_flipped) <= max_roll:
             roll_resolved_mech = roll_flipped
         else:
-            # Neither orientation reaches the target — clamp to nearest limit
-            roll_resolved_mech = float(np.clip(roll_total, -max_roll, max_roll))
+            # Neither orientation reaches the target — clamp the one nearer level (the least footprint error:
+            # e.g. 154 at max_roll 25 is -26 upside down -> -25, not +25)
+            nearest = roll_total if abs(roll_total) <= 90.0 else roll_flipped
+            roll_resolved_mech = float(np.clip(nearest, -max_roll, max_roll))
 
     # shift back to ASCOM roll angle (not mechanical roll angle)
     roll_resolved = wrap180(roll_resolved_mech + roll_adj)
@@ -961,228 +1031,6 @@ def quaternion_to_angles(q1, lastPos = LastPosition()):
     return theta1, theta2, theta3, az, alt, roll
 
 
-
-
-# ── Mechanical axis corrections ───────────────────────────────────────────────
-
-@dataclass
-class MountModelParams:
-    """
-    Mechanical axis correction parameters for the Benro Polaris mount.
-    """
-    m3_tilt_dm2:      float = 0.0   # arcmin    — M3 tilt altitude effect
-    m3_tilt_dm1:      float = 0.0   # arcmin    — M3 tilt azimuth effect
-    m3_tilt_dm3:      float = 0.0   # arcmin    — M3 tilt roll effect
-    m2_tilt_dm2_amp:  float = 0.0   # arcmin    — M2 tilt amplitude
-    m2_tilt_dm2_zero: float = 0.0   # degrees   — M2 tilt zero crossing
-    m2_roll_coupling: float = 0.0   # arcmin    — M2 roll coupling (theta2-dependent roll error)
-    m2_roll_zero:     float = 45.0  # degrees   — theta2 where M2 roll coupling is zero
-    m1_offset:        float = 0.0   # arcmin    — Polar Alignment M1/Az offset
-    m2_offset:        float = 0.0   # arcmin    — Polar Alignment M2/Alt offset
-    m3_offset:        float = 0.0   # arcmin    — Polar Alignment M3 offset
-
-    @classmethod
-    def from_config(cls, config):
-        get = (lambda k: config[k]) if isinstance(config, dict) else (lambda k: getattr(config, k))
-        return cls(
-            m3_tilt_dm2      = get('m3_tilt_dm2'),
-            m3_tilt_dm1      = get('m3_tilt_dm1'),
-            m3_tilt_dm3      = get('m3_tilt_dm3'),
-            m2_tilt_dm2_amp  = get('m2_tilt_dm2_amp'),
-            m2_tilt_dm2_zero = get('m2_tilt_dm2_zero'),
-            m2_roll_coupling = get('m2_roll_coupling'),
-            m2_roll_zero     = get('m2_roll_zero'),
-            m1_offset        = get('m1_offset'),
-            m2_offset        = get('m2_offset'),
-            m3_offset        = get('m3_offset'),
-        )
-
-def get_mechanical_correction_q(q: Quaternion, params: MountModelParams):
-    """
-    Create a quaternion for FK mechanical axis corrections applied BEFORE QUEST.
-
-    Architecture: corrections are applied to q_base before QUEST alignment.
-    QUEST is then refitted on corrected sky-pointing pairs, absorbing the
-    altitude-structured component of each correction into the frame alignment.
-
-    Sign convention:
-      All corrections use degrees=-dm* where dm* is the error in degrees.
-      This applies the correction in the apparent 'wrong' motor-space direction,
-      which after QUEST absorption produces the correct net correction.
-      This is NOT the same as post-QUEST scalar corrections (which add the error
-      directly to theta values). The two architectures have opposite sign conventions.
-
-    Constraint on which corrections can be used here:
-      Only corrections whose sky-space projection is altitude-structured (varies
-      with theta2/sky-alt, not theta3/roll) can work before QUEST. QUEST can absorb
-      altitude-varying sky-alt shifts as a frame-tilt adjustment.
-      Roll-varying sky-alt shifts (e.g. m3_tilt_dm2: f*sin(t3)) CANNOT be corrected
-      here — QUEST cannot absorb them, causing double application. Set m3_tilt_dm2=0.
-
-    M3 tilt — theta1 effect [m3_tilt_dm1]
-      Fitted error: dev_q_theta1 = m3_tilt_dm1 * (1 - cos(theta3))
-      dm1 = (m3_tilt_dm1/60) * (1-cos(t3)) + m1_offset/60  [degrees]
-      Applied: Quaternion(m1_axis, degrees=-dm1)
-
-    M3 tilt — theta3 effect (geometrically coupled to theta1)
-      dev_q_theta3 = -cos(theta2) * dev_q_theta1  (j ≈ -1 from FK geometry)
-      dm3 = -cos(t2) * dm1 + m3_offset/60  [degrees]
-      Applied: Quaternion(m3_axis, degrees=-dm3)
-
-    M2 tilt [m2_tilt_dm2_amp, m2_tilt_dm2_zero]
-      Fitted error: dev_q_theta2 = m2_tilt_dm2_amp * sin(theta2 - m2_tilt_dm2_zero)
-      Works before QUEST: sky-alt shift is altitude-structured (sin(t2)).
-      dm2 += (m2_tilt_dm2_amp/60) * sin(t2 - m2_tilt_dm2_zero) + m2_offset/60
-      Applied: Quaternion(m2_axis, degrees=-dm2)
-
-    M3 tilt — theta2 effect [m3_tilt_dm2]
-      Fitted error: dev_q_theta2 = m3_tilt_dm2 * sin(theta3)
-      CANNOT be applied here (roll-varying sky-alt, QUEST cannot absorb).
-      Set m3_tilt_dm2 = 0 in config. Parameter retained for documentation only.
-
-    Correction chain order (right-to-left application):
-      q_corr = q_dm3 * q_dm1 * q_dm2
-      q_fixed = (q_corr * q_base).normalised
-    """
-    t1, t2, t3 = q_to_theta(q)
-
-    qtheta1 = Quaternion(axis=[0, 0, 1], degrees=-t1 + 90)
-    qtheta2 = Quaternion(axis=[0, 1, 0], degrees=-t2 - 90)
-    m2_axis        = qtheta1.rotate([0, 1, 0])
-    m3_axis        = (qtheta1 * qtheta2).rotate([1, 0, 0])
-    m1_axis        = [0.0, 0.0, 1.0]
-    boresight_axis = q.rotate([0, 0, -1])
-
-    # theta1 - M3 tilt effect (around m1_axis)
-    dm1 = (params.m3_tilt_dm1 / 60.0) * (1.0 - math.cos(math.radians(t3)))
-    # theta3 - M3 tilt effect (geometrically coupled to theta1, around m3_axis)
-    dm3 = -math.cos(math.radians(t2)) * dm1
-    # theta2 - M2 tilt effect (around m2_axis)
-    dm2 = (params.m2_tilt_dm2_amp / 60.0) * math.sin(math.radians(t2 - params.m2_tilt_dm2_zero))  
-
-    # Build correction quaternions
-    q_dm2 = Quaternion(axis=m2_axis,  degrees=-dm2)
-    q_dm1 = Quaternion(axis=m1_axis,  degrees=-dm1)
-    q_dm3 = Quaternion(axis=m3_axis,  degrees=-dm3)  
-
-    q_corr    = q_dm3 * q_dm1 * q_dm2
-    magnitude = 2 * math.degrees(math.acos(min(1.0, abs(q_corr.w))))
-
-    return q_corr, magnitude
-
-def apply_mechanical_corrections(q: Quaternion, params: MountModelParams):
-    """
-    Apply mechanical axis corrections to motor/base quaternion.
-    """
-    q_corr, magnitude = get_mechanical_correction_q(q, params)
-    q_fixed = (q_corr * q).normalised
-
-    return q_fixed, magnitude
-
-
-def autotune_mac(sync_history: list[dict], base_params: MountModelParams) -> dict:
-    """
-    Numerically optimise three MAC parameters to minimise QUEST residuals.
-
-    Optimises: m2_tilt_dm2_amp, m2_tilt_dm2_zero, m3_tilt_dm1
-    All other MountModelParams are held fixed at base_params values.
-
-    Parameters
-    ----------
-    sync_history : list of sync entry dicts from SyncManager.sync_history (only non-deleted AzAlt entries are used)
-    base_params  : current MountModelParams (frozen — not mutated)
-
-    Returns
-    -------
-    dict with keys:
-        success          : bool
-        m2_tilt_dm2_amp  : float (arcmin)
-        m2_tilt_dm2_zero : float (degrees)
-        m3_tilt_dm1      : float (arcmin)
-        rms_before       : float (arcmin)
-        rms_after        : float (arcmin)
-        rms_improv       : float (% improvement, negative = worse)
-        r2               : float (fraction of variance explained by MAC)
-        n_points         : int   (number of sync points used)
-        nit              : int   (number of optimiser iterations)
-        message          : str
-    """
-
-    # ── Gather valid sync pairs ───────────────────────────────────────────
-    entries = [
-        e for e in sync_history
-        if not e.get('deleted', False)
-        and e.get('a_az')  is not None
-        and e.get('a_alt') is not None
-    ]
-    n = len(entries)
-    if n < 2:
-        return {'success': False, 'message': f'Need ≥2 sync points, have {n}', 'n_points': n}
-
-    # Pre-compute observed boresight vectors — fixed, roll-independent
-    v_obs_list = [np.array(azalt_to_vector(e['a_az'], e['a_alt'])) for e in entries]
-
-    def _davenport_quest(v_preds: list) -> 'Quaternion':
-        """Solve Wahba's problem via Davenport K matrix, mirroring optimize_alignQ_B2T exactly."""
-        B     = sum(np.outer(vp, vo) for vp, vo in zip(v_preds, v_obs_list))  # pred row, obs col — matches production
-        S     = B + B.T
-        sigma = np.trace(B)
-        Z     = np.array([B[1,2]-B[2,1], B[2,0]-B[0,2], B[0,1]-B[1,0]])
-        K        = np.zeros((4, 4))
-        K[0, 0]  = sigma
-        K[0, 1:] = K[1:, 0] = Z
-        K[1:,1:] = S - sigma * np.eye(3)
-        eigvals, eigvecs = np.linalg.eigh(K)
-        q = eigvecs[:, np.argmax(eigvals)]
-        return Quaternion(q[0], q[1], q[2], q[3])
-
-    def residuals_ss(params: MountModelParams) -> float:
-        v_preds = []
-        for e in entries:
-            motorQ_adj, _ = apply_mechanical_corrections(
-                azaltroll_to_q(e['p_az'], e['p_alt'], e['p_roll']), params)
-            az, alt, _    = q_to_azaltroll(motorQ_adj)
-            v_preds.append(np.array(azalt_to_vector(az, alt)))
-
-        alignQ = _davenport_quest(v_preds)
-
-        ss = 0.0
-        for vp, vo in zip(v_preds, v_obs_list):
-            dot = np.clip(np.dot(np.array(alignQ.rotate(vp)), vo), -1.0, 1.0)
-            ss += math.acos(dot) ** 2
-        return ss
-
-    def objective(x):
-        amp, zero, dm1 = x
-        return residuals_ss(dataclasses.replace(base_params,
-            m2_tilt_dm2_amp=amp, m2_tilt_dm2_zero=zero, m3_tilt_dm1=dm1))
-
-    # ── Optimise ─────────────────────────────────────────────────────────
-    #              m2_tilt_dm2_amp  (arcmin)    m2_tilt_dm2_zero (degrees)    m3_tilt_dm1 (arcmin)
-    x0        = [ base_params.m2_tilt_dm2_amp, base_params.m2_tilt_dm2_zero, base_params.m3_tilt_dm1 ]
-    bounds    = [ (-300.0,  300.0),              (-360.0,  360.0),               (-400.0,  400.0) ]
-    ss_before = objective(x0)
-    result    = minimize(objective, x0, method='Nelder-Mead', bounds=bounds,
-                         options={'xatol': 0.01, 'fatol': 1e-6, 'maxiter': 2000})
-    ss_after  = result.fun
-
-    rms_before = math.degrees(math.sqrt(ss_before / n)) * 60   # arcmin
-    rms_after  = math.degrees(math.sqrt(ss_after  / n)) * 60   # arcmin
-    r2         = 1.0 - (ss_after / ss_before) if ss_before > 0 else 0.0
-
-    return {
-        'success':           result.success,
-        'm2_tilt_dm2_amp':   result.x[0],
-        'm2_tilt_dm2_zero':  result.x[1],
-        'm3_tilt_dm1':       result.x[2],
-        'rms_before':        rms_before,
-        'rms_after':         rms_after,
-        'rms_improv':        (1.0 - rms_after / rms_before) * 100 if rms_before > 0 else 0.0,
-        'r2':                r2,
-        'n_points':          n,
-        'nit':               result.nit,
-        'message':           result.message,
-    }
 
 
 # ── QUEST alignment ──────────────────────────────────────────────────────────

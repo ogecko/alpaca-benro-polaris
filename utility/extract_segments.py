@@ -27,7 +27,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 from catalog_logs import _read_session, _payload, session_key                     # noqa: E402
 from kinematics import azaltroll_to_theta_ik                                       # noqa: E402
+from pe_analysis import remove_corrections                                         # noqa: E402
 
+PHANTOM_GAP_S = 10.0                       # s: syncs closer than this don't let PEC's correction act (bursts)
 DEFAULT_SITE = (-33.654651, 151.12)        # Mount Colah, where most archived sessions were captured
 DEFAULT_UTC_OFFSET_H = 10.0                # driver logs are in local time
 
@@ -88,7 +90,24 @@ def _drift_from_records(rows, has_n):
             r = rows[i][1].get('resid') or [0, 0]
             if all(abs(acc[i, k] - (r[k] or 0) * 60) < 1e-6 for k in range(2)) and np.any(np.abs(acc[i - 1]) > 1e-6):
                 reset[i] = True
-    return t, stitch_accum(acc[:, 0], reset), stitch_accum(acc[:, 1], reset)
+    ra, dec = stitch_accum(acc[:, 0], reset), stitch_accum(acc[:, 1], reset)
+    # rapid-solve bursts: a sync seconds after the last one re-anchors the model before the mount has carried out
+    # PEC's correction, so pec_accum over that interval never happened -- count the residual alone there
+    pec = np.array([r[1].get('pec_accum') if isinstance(r[1].get('pec_accum'), list) else [0.0, 0.0] for r in rows],
+                   dtype=float) * 60
+    sync = np.array([isinstance(r[1].get('resid'), list) and all(v is not None for v in r[1]['resid']) for r in rows])
+    gap = np.r_[np.inf, np.diff([(x - t[0]).total_seconds() for x in t])] if len(t) else np.array([])
+    phantom = sync & (gap < PHANTOM_GAP_S) & ~reset
+    if phantom.any():
+        ra, dec = ra - np.cumsum(np.where(phantom, pec[:, 0], 0.0)), dec - np.cumsum(np.where(phantom, pec[:, 1], 0.0))
+    # worm feed-forward nights: the guide corrections lack what it corrected, logged as wff (arcmin) -- add it back
+    wff = [r[1].get('wff') for r in rows]
+    if any(isinstance(w, list) and len(w) == 2 and all(isinstance(v, (int, float)) for v in w) for w in wff):
+        w = np.array([x if isinstance(x, list) and all(isinstance(v, (int, float)) for v in x) else [np.nan, np.nan]
+                      for x in wff], dtype=float) * 60
+        w = pd.DataFrame(w).ffill().fillna(0.0).values          # rows before the first wff: none applied yet
+        ra, dec = ra + w[:, 0], dec + w[:, 1]
+    return t, ra, dec
 
 
 def _drift_from_sync_lines(paths, start, end):
@@ -182,6 +201,9 @@ def extract_segment(paths, seg, phd2_frames=None, site=DEFAULT_SITE, utc_offset_
         th, tsrc = [], 'none'
     if th:
         theta = _interp_theta(tsec, sec([x[0] for x in th]), [x[1] for x in th])
+        if tsrc in ('peclog', 'sglog') and not (kf or pz or pr or sg):
+            # the logged pose is the driver's present value: every guide/PEC correction is in it -- take them out
+            theta = remove_corrections(theta, out['drift_ra_arcsec'].values, out['drift_dec_arcsec'].values, site[0])
         out['theta1'], out['theta2'], out['theta3'] = theta[:, 0], theta[:, 1], theta[:, 2]
     else:
         out['theta1'] = out['theta2'] = out['theta3'] = np.nan
@@ -189,8 +211,17 @@ def extract_segment(paths, seg, phd2_frames=None, site=DEFAULT_SITE, utc_offset_
     return out
 
 
+def _site_latitude():
+    try:
+        from sessions import site_latitude
+        return site_latitude
+    except ImportError:
+        return None
+
+
 def extract_all(catalog_csv, log_dir, out_dir, phd2=None):
     """Write one CSV per usable segment with a drift signal, plus an index. phd2: {session key: guide log}."""
+    site_latitude = _site_latitude()
     from analyse_helpers import load_phd2_guidelog
     cat = pd.read_csv(catalog_csv, parse_dates=['start', 'end'])
     files = [p for p in glob.glob(os.path.join(log_dir, 'alpaca.*.log')) if os.path.basename(p) != 'alpaca.log']
@@ -203,7 +234,8 @@ def extract_all(catalog_csv, log_dir, out_dir, phd2=None):
         frames = None
         if phd2 and seg['session'] in phd2:
             frames, _ = load_phd2_guidelog(phd2[seg['session']])
-        d = extract_segment(by_session[seg['session']], seg, phd2_frames=frames)
+        lat = site_latitude(seg['session'], default=DEFAULT_SITE[0]) if site_latitude else DEFAULT_SITE[0]
+        d = extract_segment(by_session[seg['session']], seg, phd2_frames=frames, site=(lat, DEFAULT_SITE[1]))
         if d.empty:
             continue
         name = f"{seg['session']}__seg{int(seg['segment'])}.csv"

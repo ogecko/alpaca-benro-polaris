@@ -4,6 +4,7 @@
 [Versions](#which-pi-should-i-buy) | 
 [Image Creation](#install-the-raspberry-pi-os-image) | 
 [Alpaca Installation](#install-pre-requisites-and-the-alpaca-driver) | 
+[Optional GPS](#optional-gps) |
 [Setup.sh Reference](#setupsh-command-reference) | 
 [Troubleshooting](#troubleshooting-the-raspberry-pi)
 
@@ -37,7 +38,7 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
    1942 root      20   0  608352 113132  41640 R  22.4  26.5   8:33.13 python3
 
 ```
-## Install the Raspberry Pi OS Image
+## Install the Raspberry Pi OS Lite Image
 1. Download the Raspberry Pi Imager from the [official website](https://www.raspberrypi.com/software/)
 2. Open the downloaded exe file to install the Imaging program on your PC, following it's installation instructions. Choose to run the program at the end of installation.
 3. Using the Imaging program
@@ -54,21 +55,61 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
     10. Write the image to the SD Card, click **WRITE**
 4. Remove the SD Card storage device and insert it into your Raspberry Pi
 
+## Install the Pi n Stars OS Image
+PINS is a Linux-focused fork of N.I.N.A. aimed at image acquisition on compact systems, including Raspberry Pi. 
+PINS is for users who want to experiment with a more portable, lower-power field computer.
+1. Download the Raspberry Pi Imager from the [official website](https://www.raspberrypi.com/software/)
+2. Download the PINS OS Image from the [Touch-N-Stars website](https://touch-n-stars.eu/) by clicking the `**Download PINS** button.
+3. Using the Imaging program
+    1. Select your Raspberry Pi Device eg Raspberry Pi 4, then click **NEXT**
+    2. Choose your Operating System as **Custom**, then click **NEXT**. 
+    3. Select the PINS OS Image you downloaded above, then click **NEXT**
+    4. Select your Storage Device that will hold the OS, then click **NEXT**
+       > Do not format the SD card with FAT32, as Windows may automatically mount and lock it, preventing the imaging program from writing to the card. Instead, use Disk Management to carefully delete any existing partitions on the SD card before proceeding.
+    5. Write the image to the SD Card, click **WRITE**
+4. Remove the SD Card storage device and insert it into your Raspberry Pi
+5. Power on the Raspberry Pi and let it powerup and advertise its network
+6. Join the `pins-xxxxx` network, by clicking Connect, then choose 'Connect using a password instead', then enter `touchnstars` 
+7. On your PC, open a **Command Prompt** or **Powershell Window** and connect to the Raspberry Pi with the following command. Replacing `pins-xxxxx` with the network name. The default pi user password is **pins**.
+    ```
+    ssh pi@pins-xxxxx
+    ```
+8. Add your home network to PINS. Enter the following command replacing YourSSID and YourPassword with your home network settings.
+    ```
+    sudo nmcli con add type wifi ifname wlan0 con-name home ssid "YourSSID" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "YourPassword"
+    ```
+9. Switch PINS to your home network.
+    ```
+    sudo nmcli con up home
+    ```
+10. Reconnect to PINS via your home network.
+    ```
+    ssh pi@pins-xxxxx
+    ```
+11. Continue with steps 3-7 below to **Install Pre-Requisites and the Alpaca Driver** onto the PINS Pi
+12. Install Touch n Stars on your mobile device. 
+13. Connect Thouch n Stars to your PINS Pi and follow its setup steps.
+    1.  You may need to rebook PINS after you change country and local.
+    2.  Change Max Slew Speed to 9 °/s
+    3.  On the Equipment tab
+        1.  Refresh the Mounts then select the Alapca Driver from the dropdown
+        2.  Refresh the Rotators then select the Alpaca Driver from the dropdown
+
 ## Install Pre-Requisites and the Alpaca Driver
 These instructions assume a fresh install of Raspberry Pi OS Lite, written using the [Raspberry Pi Imager](https://www.raspberrypi.com/software/). 
 
-5. Prepare the Raspberry Pi Zero 2W hardware. Connect the middle MicroUSB Port to a TPLink USB Wifi Adapter using a Micro-USB to USB-A (female) cable. Connect the outer MicroUSB port to a power source, using a Micro-USB to USB-C cable, and wait for it to power up.
+1. Prepare the Raspberry Pi Zero 2W hardware. Connect the middle MicroUSB Port to a TPLink USB Wifi Adapter using a Micro-USB to USB-A (female) cable. Connect the outer MicroUSB port to a power source, using a Micro-USB to USB-C cable, and wait for it to power up.
 
-6. On your PC, open a **Command Prompt** or **Powershell Window** and connect to the Raspberry Pi with the following command. If you used your own `username` and `hostname` in the image above then replace `pi@alpaca` with your `username@hostname`. Enter your username's `password` when prompted. Once `ssh` connects, any commands you enter will run on the Raspberry Pi. 
+2. On your PC, open a **Command Prompt** or **Powershell Window** and connect to the Raspberry Pi with the following command. If you used your own `username` and `hostname` in the image above then replace `pi@alpaca` with your `username@hostname`. Enter your username's `password` when prompted. Once `ssh` connects, any commands you enter will run on the Raspberry Pi. 
     ```
     ssh pi@alpaca
     ```
 
-7. On the Raspberry Pi, download the Alpaca Driver setup.sh script. This is a program that automatically installs everything the Alpaca Driver needs, so you don't have to do it by hand.
+3. On the Raspberry Pi, download the Alpaca Driver setup.sh script. This is a program that automatically installs everything the Alpaca Driver needs, so you don't have to do it by hand.
     ```Bash
     wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_2/platforms/raspberry_pi/setup.sh -O setup.sh
     ```
-8. Make the script runnable, then run it.
+4. Make the script runnable, then run it.
     ```Bash
     chmod +x ./setup.sh
     ```
@@ -79,7 +120,7 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
     ```
     ./setup.sh dev2_2
     ```
-9. The setup script will download and install all the software needed for the Alpaca Driver, setting it up to automatically start whenever the Raspberry Pi is powered on. It will also setup the Bluetooth and Wifi network of the Raspberry Pi. 
+5. The setup script will download and install all the software needed for the Alpaca Driver, setting it up to automatically start whenever the Raspberry Pi is powered on. It will also setup the Bluetooth and Wifi network of the Raspberry Pi. 
 
     | Wifi Mode | Description | 
     | --------- | ----------- |
@@ -91,7 +132,7 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
     The Alpaca Driver should now be installed and running.
 
-10. Start Alpaca Pilot
+6.  Start Alpaca Pilot
 
     To open Alpaca Pilot, open a web browser on any device connected to the same Wi-Fi network as the Raspberry Pi, and go to:
     ```
@@ -99,7 +140,7 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
     ```
     > The `:8080` part is required. Leaving it off will fail to load the page, even though other things (like `ping`) might still work. For security reasons, Linux restricts the standard web address ports (80 and 443) to programs with administrator privileges. Since the Alpaca Driver deliberately doesn't run with those extra privileges, it needs to use different port numbers instead. That's why you always go to `http://ap.local:8080` rather than plain `http://ap.local`.
 
-11. Join the Polaris network
+7.  Join the Polaris network
     
     To request the Alpaca Driver to join the Polaris network
     * Using Alpaca Pilot, navigate to the **Connect** page.
@@ -109,10 +150,49 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
     Once you have completed compass and single star alignment, the Polaris should be ready to use.
 
+## Optional GPS Receiver
+
+Alpaca Pilot's **Locate** button uses the browser's location by default, which needs internet and is often only approximate. At a dark site, a USB GPS receiver plugged into the Pi gives the observing site's latitude, longitude and elevation instead, with no internet needed. How to use it in Pilot is described in [Set Observing Site Location](./pilot.md#e-setup-the-polaris-for-astro-mode); the notes below are specific to the Pi.
+
+### Connecting the receiver
+* **Pi Zero 2 W:** plug the receiver into the micro-USB port marked **USB** with an OTG adapter (not the **PWR** port). Other Pis: any USB port.
+* **Plug it directly into the Pi.** A cheap USB hub, and cameras or USB 3 cables close by, can block the GPS signal completely. In testing, a receiver that got a fix plugged directly into the computer never got one through a hub shared with a guide camera.
+* u-blox receivers appear as `/dev/ttyACM0`, and receivers using a CH340 USB-serial chip as `/dev/ttyUSB0`. To check, run `ls /dev/ttyACM* /dev/ttyUSB*`.
+* The Pi user running the driver must be in the `dialout` group to read the receiver. The default `pi` user already is. To check, run `groups`.
+
+### USB / Serial (NMEA) (recommended)
+The driver reads the receiver directly. Nothing extra needs to be installed.
+1. In Pilot **Settings**, click the arrow beside **Locate** and choose **Use GPS Receiver**.
+2. Leave **Connection to GPS Receiver** as **USB / Serial (NMEA)**, and choose the **Serial Port**. GPS receivers are marked in the list, and if only one is plugged in it is chosen for you.
+3. Leave **Baud Rate** at `9600` unless your receiver's documentation says otherwise. u-blox receivers ignore it.
+4. Click **OK**, then **Locate (GPS)**.
+
+### GPS Daemon (GPSD) (optional)
+GPSD is a Linux service that shares a GPS receiver between programs, for example with KStars/Ekos, or to keep the Pi's clock on GPS time. Use it only if you need that: while GPSD is running it holds the receiver, so choose **GPS Daemon (GPSD)** in Pilot rather than USB / Serial.
+
+1. Install gpsd and its status client:
+    ```Bash
+    ./setup.sh -g
+    ```
+    The `-g` option adds the gpsd packages to setup's package installation; it does not select GPSD in Alpaca Pilot.
+2. Configure gpsd to use the receiver. Find its stable USB path with `ls -l /dev/serial/by-id/`, then set it in `/etc/default/gpsd`, for example:
+    ```Bash
+    DEVICES="/dev/serial/by-id/usb-your-receiver"
+    USBAUTO="false"
+    ```
+3. Start gpsd and confirm the receiver has a fix:
+    ```Bash
+    sudo systemctl enable --now gpsd.socket
+    sudo systemctl restart gpsd
+    cgps -s
+    ```
+    Exit `cgps` with **Ctrl+C** after confirming it reports a fix.
+4. In Pilot **Settings**, click the arrow beside **Locate**, choose **Use GPS Receiver**, and set **Connection to GPS Receiver** to **GPS Daemon (GPSD)**. The defaults (host `127.0.0.1`, port `2947`) are correct when gpsd runs on the Pi itself. Click **OK**, then **Locate (GPS)**.
+
 ## Setup.sh Command Reference
 You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
 ```
-Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-h] [branch]
+Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-g] [-h] [branch]
 
 Options:
     -n <ssid>      Defines the network SSID for the Alpaca Station Mode Wifi connection. 
@@ -126,6 +206,8 @@ Options:
     -p <password>  Password for the network named by -a, min 8 chars for WPA2.
                    (default: keep the existing password on a re-run, otherwise prompted interactively,
                    or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+
+    -g             Install gpsd and gpsd-clients for optional GPS receivers.
 
     -h             Print this help and exit.
 
@@ -280,4 +362,3 @@ The Raspberry Pi Zero 2 W has been known to have problems with some **home mesh 
 To resolve this issue:
 * This is a router-side setting. No change is needed on the Raspberry Pi itself.
 * In your router/mesh app's Wi-Fi settings, find "Roaming Assistant" / "Smart Connect" / "Band Steering" and disable it. 
-

@@ -259,8 +259,7 @@ behind this.
 1. 60s exposures at 400mm on Caldwell C92 (Carina Nebula)
 2. Focus using LensAF and Hocus Focus
 3. Run Multi-Point Alignment (SPole and 5 x Points) template
-4. Run MAC Autotune in Pilot - not applied (red warning with autotune results showing ‘Weak’ -
-image already sent earlier via FB messenger)
+4. Run MAC Autotune in Pilot - not applied (red warning with autotune results showing ‘Weak’ - image already sent earlier via FB messenger)
 5. NINA Framing Assistant - Slew and Centre on Caldwell 92
 6. Run PEC Tune Template (15x iterations)
 7. Plate solve issues due trees being visible at bottom of frame (as per earlier FB messenger)
@@ -269,29 +268,17 @@ image already sent earlier via FB messenger)
 10. Plate solve issues again, possibly due to full moon? (as per FB messenger)
 11. Clear run and select new target. Slew and centre to SMC
 12. Run PEC Tune Template (15x iterations) - plate solving absolutely fine (even with full moon)
-13. NINA Framing Assistant - Add target to Advanced Sequencer (existing template) for ‘Solve
-and sync’ every 2 minutes (after every 2 exposures of 60s)
+13. NINA Framing Assistant - Add target to Advanced Sequencer (existing template) for ‘Solve and sync’ every 2 minutes (after every 2 exposures of 60s)
 Loop For Iterations - 10
 Smart Exposure - 2 x 60s
 Solve and Sync
-14. Light frames -there was partial wind, but no vibration from any other source (mechanical or
-footsteps etc)
-Many showing winged and misshaped stars, whilst others had small streaks and tadpoles (as
+14. Light frames -there was partial wind, but no vibration from any other source (mechanical or footsteps etc) Many showing winged and misshaped stars, whilst others had small streaks and tadpoles (as
 per earlier FB messenger)
-15. Observations - on completion of the “Multi-Point Alignment (SPole and 5 x Points)” template,
-the camera was now back to its start point (az180 alt 33 roll 0) - perfect. However, when using
-NINA to slew and centre to target, it struggled and was needing many plate solves. Cancelled
-this process and used Pilot to goto SMC ..... NINA was then fine with slew and centre.
+15. Observations - on completion of the “Multi-Point Alignment (SPole and 5 x Points)” template, the camera was now back to its start point (az180 alt 33 roll 0) - perfect. However, when using NINA to slew and centre to target, it struggled and was needing many plate solves. Cancelled this process and used Pilot to goto SMC ..... NINA was then fine with slew and centre.
 16. Residuals were extremely high (images already sent earlier via FB messenger)
-17. With my previous MPA workflow (d-2 etc), residuals were superior compared to the new MPA
-template script. The tripod is always set up in the same location (with dots of paint on the
-driveway, to mark the position of the 3 spiked feet on the tripod). The tripod adjustable base
-ensures that the Benro Polaris is always in the same ‘fixed’ position and its bubble level is
-centred) - this has remained the same throughout all the weeks of testing
-18. MPA Template Script - noticed that the position of the M1 motor did not always reflect the
-“az” figure in the script. Difficult to ascertain its movement properly during the dark, so ran the
-template in the daytime to visually monitor the mount position (albeit without solve and sync
-succeeding)
+17. With my previous MPA workflow (d-2 etc), residuals were superior compared to the new MPA template script. The tripod is always set up in the same location (with dots of paint on the driveway, to mark the position of the 3 spiked feet on the tripod). The tripod adjustable base ensures that the Benro Polaris is always in the same ‘fixed’ position and its bubble level is centred) - this has remained the same throughout all the weeks of testing
+18. MPA Template Script - noticed that the position of the M1 motor did not always reflect the “az” figure in the script. Difficult to ascertain its movement properly during the dark, so ran the
+template in the daytime to visually monitor the mount position (albeit without solve and sync succeeding)
 19. Here are my findings:
 
     | Point | Az | Alt | Roll | Comments
@@ -303,15 +290,44 @@ succeeding)
     |5| 224| 52| -65| Az doesn’t move (still at 105)
     |6| 254| 62| -45| ? Az looks like 225 but maybe Ok
     |7| 180| 33| 0| Ok
-20. The actual figures “Az” within ‘comments’ are based on physically looking at the position of
-the mount and may not be accurate.
+20. The actual figures “Az” within ‘comments’ are based on physically looking at the position of the mount and may not be accurate.
 Point 3 - shows a completely different position (225) to the template figure (135)
 Point 4 - shows a completely different position (105) to the template figure (156)
 Point 5 - the Az position did not move (stayed at 105) - template figure should be (224)
 Point 6 - visually difficult to ascertain position but appears different position (225) to the
 template figure (254)
-21. Whilst this figures are approximations (‘by eye’), they show clear differences and I;’m
-wondering if this is impacting on the success of the MPA etc
+21. Whilst this figures are approximations (‘by eye’), they show clear differences and I;’m wondering if this is impacting on the success of the MPA etc
+
+#### releases-2_2_beta3.1 - 06 August 2026
+1. 60s exposures at 400mm on Caldwell C92 (Carina Nebula)
+2. Focus using LensAF and Hocus Focus
+3. Run Multi-Point Alignment (SPole and 5 x Points) template - note: “Alt” edited from 33
+(Sydney) to 36 (Auckland)
+i.e first and final ‘Device Action’ Parameters changed from previous {“az":180,"alt":36," roll”:0}
+to “{az":180,"alt":36," roll”:0}
+4. Residuals - on completion of the MPA template script, these were showing high (please see
+image A below) but MAC left OFF
+5. To reduce the residuals (RMS 116.9’), I deleted the last entry of MPA 17.4’ (image A), which
+left the lower remaining residuals. However, this replaced the deleted residual with a higher
+one of 27.0’ (image B) and RMS also increased to 130.4’
+6. N.I.N.A Framing Assistant - Slew and Centre on Caldwell 92
+7. Checking the residuals, this showed an crease in RMS to 142.3’ but the list of residuals all
+looked better and the 27.0’ had gone (?) ............ not sure if removing the 17.4’ residual
+(bullet point 5 above), improved matters or made it worse
+8. Run PEC Tune Template (45x iterations) ... takes only about 15 minutes to complete
+9. N.I.N.A Framing Assistant - Add target to sequencer (template) ... solve and sync every 2 mins
+(after 2x 60s exposures) 20x Iterations produces total of 40 images
+10. Light frames - the sky was crystal clear, there was no wind and no moon
+11. PixInsight - the Weighted Batch Preprocessing script was used to stack the 40 images. 10
+images failed, which gives a 75% success rate.
+12. Yesterday, I reported the strange movement (sudden drop and jump back) of stars which was
+noticeable when checking the Light frames in sequence. With this latest run using 45x
+iterations in the PEC Autotune script template, there was virtually zero noticeable movement
+... even zoomed in by 300% on the image. A massive improvement.
+13. ‘Law of diminishing returns’ - the clear improvement by increasing to 45x iterations in PEC
+Autotune, could perhaps be improved further, at 60x (probably just over 20 mins to complete).
+However, there may come a point where there is little gain for the extra workflow steps and
+time taken, compared to using a separate guide camera
 
 #### releases-2_2_beta4.3- 04 September 2026
 * See alpaca.mark_Beta4.3_09_04_a*.log; Includes issue #88 fixes 1-13, not 14
@@ -345,7 +361,6 @@ wondering if this is impacting on the success of the MPA etc
 * This means that 40 minutes was required for the ‘Solve & Sync’ process ….. 33% of the available time (2 hours)
 * This 33% loss of imaging time is unfortunate, but would be improved by changing the ‘Solve & Sync’ to run every 2 minutes (after 4x 30s exposures). 
 * There would probably be a trade off, however, with more squiggles and lost frames. So I guess it’s a balance with compromises either way
-
 
 
 #### releases-2_2_beta4.4- 09 September 2026

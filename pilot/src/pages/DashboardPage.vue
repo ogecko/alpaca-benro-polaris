@@ -114,6 +114,7 @@ import PIDStatus from 'src/components/PIDStatus.vue'
 import StatusPanel  from 'src/components/StatusPanel.vue'
 import type { DomainStyleType } from 'src/components/ScaleDisplay.vue'
 import { angularDifference } from 'src/utils/angles'
+import { zeroM2Roll } from 'src/utils/zeroM2'
 
 
 const $q = useQuasar()
@@ -127,14 +128,28 @@ const isStopOutline = ref<boolean>(true)
 
 const noWarnings:     [number, number][] = []
 const glatWarnings:   [number, number][] = [[90,200],[-90,-200]]
+const azWarnings = computed((): [number, number][] => {
+    if (!cfg.advanced_eq_mode) return []        // level: M2 doesn't depend on Az
+    const alt = Math.round((p.altitude ?? 0) * 2) / 2, roll = Math.round((p.roll ?? 0) * 2) / 2
+    return eqWarningRuns(p.azimuth ?? 0, (az) => [az, alt, roll])
+})
 const rollWarnings = computed((): [number, number][] => {
+    if (cfg.advanced_eq_mode) return eqRotationWarnings(p.roll ?? 0)
     const altRounded = Math.round((p.altitude ?? 0) * 2) / 2 // round to 0.5 deg
     const maxRoll = altitudeToMaxRoll(altRounded)
     if (maxRoll <= 0) return []
     const rollAdj = p.roll_adj ?? 0
     return [[maxRoll + rollAdj, 270], [-maxRoll + rollAdj, -270]]
 })
+const paWarnings = computed((): [number, number][] => {
+    if (!cfg.advanced_eq_mode) return []        // level: PA follows roll, whose limit the Roll dial shows
+    return eqRotationWarnings(p.positionangle ?? 0)
+})
 const altWarnings = computed((): [number, number][] => {
+    if (cfg.advanced_eq_mode) {
+        const az = Math.round((p.azimuth ?? 0) * 2) / 2, roll = Math.round((p.roll ?? 0) * 2) / 2
+        return eqWarningRuns(p.altitude ?? 0, (alt) => [az, alt, roll])
+    }
     const rollAdj = p.roll_adj ?? 0
     const mechRoll = (p.roll ?? 0) - rollAdj
     const rollRounded = Math.round(mechRoll * 2) / 2 // round to 0.5 deg
@@ -165,10 +180,18 @@ const decWarnings = computed((): [number, number][] => {
     const lat = cfg.site_latitude
     const maxDec = Math.min(90, Math.round(lat + 90))
     const minDec = Math.max(-90, Math.round(lat - 90))
-    return [
+    const horizon: [number, number][] = [
         [maxDec, 200] as [number, number],
         [-200, minDec] as [number, number],
     ]
+    if (!cfg.advanced_eq_mode) return horizon
+    // Eq: the base frame is equatorial, so its altitude is Dec toward the visible pole and a Dec move at a fixed PA
+    // keeps its roll. M2 stops at the cap around the pole: |base alt| > altitudeToMaxRoll(base roll).
+    const maxBaseAlt = altitudeToMaxRoll(Math.round((p.proll ?? 0) * 2) / 2)
+    const toDec = (lat >= 0 ? 1 : -1)
+    const dec = p.declination ?? 0, baseAlt = p.paltitude ?? 0
+    const capEdge = dec + toDec * (maxBaseAlt - baseAlt), farEdge = dec + toDec * (-maxBaseAlt - baseAlt)
+    return [...horizon, [capEdge, capEdge + toDec * 200], [farEdge, farEdge - toDec * 200]]
 })
 
 
@@ -177,7 +200,7 @@ const displayConfig = computed(() => {
     if (ui.coordFrame === 1) return [
         { label: 'Right Ascension', pv: p.rightascension, sp: p.deltarefRAhrs, domain: 'ra_24' as DomainStyleType,   warnings: raWarnings.value },
         { label: 'Declination',     pv: p.declination,    sp: p.deltaref[1],   domain: 'dec_180' as DomainStyleType, warnings: decWarnings.value },
-        { label: 'Position Angle',  pv: p.positionangle,  sp: p.deltaref[2],   domain: 'pa_360' as DomainStyleType,  warnings: noWarnings }
+        { label: 'Position Angle',  pv: p.positionangle,  sp: p.deltaref[2],   domain: 'pa_360' as DomainStyleType,  warnings: paWarnings.value }
     ]
     if (ui.coordFrame === 2) return [
         { label: 'Galactic Lon', pv: p.gpv[0], sp: p.gsp[0], domain: 'az_360' as DomainStyleType,   warnings: noWarnings },
@@ -185,7 +208,7 @@ const displayConfig = computed(() => {
         { label: 'Galactic PA',  pv: p.gpv[2], sp: p.gsp[2], domain: 'gpa_180' as DomainStyleType,  warnings: noWarnings }
     ]
     return [
-        { label: 'Azimuth',  pv: p.azimuth,  sp: p.alpharef[0], domain: 'az_360' as DomainStyleType,   warnings: noWarnings },
+        { label: 'Azimuth',  pv: p.azimuth,  sp: p.alpharef[0], domain: 'az_360' as DomainStyleType,   warnings: azWarnings.value },
         { label: 'Altitude', pv: p.altitude, sp: p.alpharef[1], domain: 'alt_90' as DomainStyleType,   warnings: altWarnings.value },
         { label: 'Roll',     pv: p.roll,     sp: p.alpharef[2], domain: 'roll_180' as DomainStyleType, warnings: rollWarnings.value }
     ]
@@ -238,6 +261,62 @@ function altitudeToMaxRoll(altDeg: number, theta2Max = 81.5): number {
     const cosRatio = Math.cos(theta2Max * Math.PI / 180) / Math.cos(altDeg * Math.PI / 180)
     if (Math.abs(cosRatio) > 1) return 0
     return Math.acos(cosRatio) * 180 / Math.PI
+}
+
+// Eq mode (wedge): M2's angle is the angle between the camera's up axis and the base's M1 axis, cos(theta2) =
+// up . baseZ (driver kinematics; level, baseZ is the zenith and this is altitudeToMaxRoll's cos(alt) x cos(roll)).
+// The wedge tilts baseZ to the pole, so M2's limit is no longer a fixed band in Alt and Roll.
+
+// A rotation about the boresight (Roll, PA) moves the base roll by the same amount, so its limit is the base
+// frame's: |base roll| > altitudeToMaxRoll(base alt), offset to the dial's angle.
+function eqRotationWarnings(pv: number): [number, number][] {
+    const maxBaseRoll = altitudeToMaxRoll(Math.round((p.paltitude ?? 0) * 2) / 2)
+    const offset = pv - (p.proll ?? 0)
+    if (maxBaseRoll <= 0) return []
+    return [[maxBaseRoll + offset, offset + 270], [-maxBaseRoll + offset, offset - 270]]
+}
+
+type Vec3 = [number, number, number]
+type Quat = [number, number, number, number]   // w, x, y, z
+
+function quatRotate(q: Quat, v: Vec3): Vec3 {
+    const [w, x, y, z] = q
+    const tx = 2 * (y * v[2] - z * v[1]), ty = 2 * (z * v[0] - x * v[2]), tz = 2 * (x * v[1] - y * v[0])
+    return [v[0] + w * tx + (y * tz - z * ty), v[1] + w * ty + (z * tx - x * tz), v[2] + w * tz + (x * ty - y * tx)]
+}
+
+// baseZ in topocentric (East, North, Up): camera = align x motor, so align = qpv x qstate^-1
+function eqBaseZ(): Vec3 | null {
+    const qpv = p.qpv as Quat, qs = p.qstate as Quat
+    if (!qpv || !qs || (qs[0] === 0 && qs[1] === 0 && qs[2] === 0 && qs[3] === 0)) return null
+    const motorZ = quatRotate(qs.map((c, i) => (i === 0 ? c : -c)) as Quat, [0, 0, 1])
+    return quatRotate(qpv, motorZ)
+}
+
+// The camera's up axis (camera +X) at az/alt/roll, as the driver's q_to_azaltroll
+function cameraUp(az: number, alt: number, roll: number): Vec3 {
+    const A = az * Math.PI / 180, L = alt * Math.PI / 180, R = roll * Math.PI / 180
+    const sA = Math.sin(A), cA = Math.cos(A), sL = Math.sin(L), cL = Math.cos(L), cR = Math.cos(R), sR = Math.sin(R)
+    return [-cR * sL * sA - sR * cA, -cR * sL * cA + sR * sA, cR * cL]
+}
+
+// The parts of a dial (pv +-180, unwrapped like the dial's own domain) where M2 would pass THETA2_MAX
+function eqWarningRuns(pv: number, pose: (v: number) => [number, number, number], step = 0.5): [number, number][] {
+    const baseZ = eqBaseZ()
+    if (!baseZ) return []
+    const cosMax = Math.cos(81.5 * Math.PI / 180)
+    const runs: [number, number][] = []
+    let start: number | null = null
+    const v0 = Math.round(pv / step) * step
+    for (let v = v0 - 180; v <= v0 + 180; v += step) {
+        const [az, alt, roll] = pose(v)
+        const u = cameraUp(az, alt, roll)
+        const blocked = u[0] * baseZ[0] + u[1] * baseZ[1] + u[2] * baseZ[2] < cosMax
+        if (blocked && start === null) start = v
+        if (!blocked && start !== null) { runs.push([start, v]); start = null }
+    }
+    if (start !== null) runs.push([start, v0 + 180])
+    return runs
 }
 
 // ------------------- Event Handlers ---------------------
@@ -326,8 +405,22 @@ async function onClickScale(e: { label:string, angle: number, radialOffset: numb
 }
 
 
-async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number}) {
+async function onClickFabAngle(e: { az?: number, alt?: number, roll?: number, zm2?: boolean }) {
   if (cannotPerformCommand('slew')) return
+
+  if (e.zm2) {
+    // ZM2: the roll that keeps M2 still for the next couple of hours (src/utils/zeroM2.ts)
+    const best = zeroM2Roll(p.rightascension, p.declination, cfg.site_latitude, cfg.site_longitude)
+    if (!best) {
+      $q.notify({ message: 'ZM2: target too low to choose a roll', type: 'warning', position: 'top' })
+      return
+    }
+    $q.notify({ message: `ZM2: Roll ${best.roll.toFixed(1)}°, M2 ~${best.m2Mean.toFixed(1)}"/s over the next ${best.minutes} min`,
+                type: 'info', position: 'top', timeout: 5000 })
+    await dev.alpacaMoveMechanical(best.roll)
+    console.log('Fab ZM2:', best)
+    return
+  }
 
   const az = e.az ?? p.alpharef[0] ?? 0;
   const alt = e.alt ?? p.alpharef[1] ?? 0;

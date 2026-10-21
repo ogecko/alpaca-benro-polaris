@@ -1,29 +1,25 @@
 """
-Per-motor periodic-error analysis over the extracted segment datasets (utility/extract_segments.py).
+Drift and worm analysis over the extracted segment datasets (utility/extract_segments.py), for
+analyse_sessions.ipynb (and the PEC rate replay for analyse_tracking.ipynb).
 
-The question: does the mount's periodic drift repeat with each MOTOR's angle (a worm on that motor,
-period THETA degrees of its rotation), or with time? On an alt-az-roll mount each motor turns at a
-pose-dependent rate, so a worm gives a different time period at every pose while a time-based source
-does not.
+Worm or time? On an alt-az-roll mount each motor turns at a pose-dependent rate, so a worm on a motor gives a
+different time period at every pose while a time-based source does not.
+theta_scan()    -- for each motor and candidate worm angle, the mean Lomb-Scargle power (RA and Dec, trend
+                   removed) at the period that worm would give in each segment: angle / motor rate.
+time_scan()     -- the same at one fixed time period in every segment. Compare the two on the same data: the
+                   pooled angle scan alone can show peaks for a time-based signal too.
 
-time_scan()     -- the same at one fixed time period in every segment: the time-based hypothesis.
-                   Compare the two on the same data; the pooled angle scan alone can show peaks for a
-                   time-based signal too, because each segment hits some THETA = T x rate.
-theta_scan()    -- for each motor and candidate THETA, the mean Lomb-Scargle power (RA and Dec, trend
-                   removed) at the period that worm would give in each segment: THETA / motor rate.
-                   A worm on motor i shows as one THETA where power peaks across segments whose time
-                   periods all differ. exclude_session gives leave-one-session-out estimates.
-forecast_skill() -- fit each candidate model on the first part of a segment and score how well it
-                   predicts the rest (what PEC has to do): linear trend only, the current time-based
-                   shape (34 + 17 min), and per-motor worm terms (1 or 2 harmonics) for each motor
-                   turning at least min_rate deg/hr.
+PEC drift (the driver's EMA, control_pec.PecAxis) replayed on the drift:
+replay_pec_rate(), rate_scores(), benchmark_segments(), pooled_relative()
 
-Theta-space PEC (worm profile on top of EMA, scored like analyse_pec_catalog):
+Worm profile on each motor's angle, on top of the EMA:
 fit_worm()              -- drift as sin/cos of each motor's worm phase, fitted on 1-min drift increments.
 replay_worm_pec_rate()  -- PEC rate with a fixed profile: EMA on the drift minus the profile + the profile's rate.
 causal_worm_pec_rate()  -- the same with the profile learnt only from the segment so far.
 worm_benchmark()        -- hindsight / same-session / other-sessions / live tiers vs EMA; relative_to() pools them.
 worm_angle_control()    -- hindsight gain by assumed worm angle: a real worm dips at its angle.
+worm_phase_table(), phase_consistency()  -- does each motor's worm phase repeat night to night?
+windowed_worm()         -- each motor's worm in sliding windows through a segment.
 """
 import os
 from dataclasses import dataclass, field
@@ -73,20 +69,77 @@ class Segment:
         return self._pg
 
 
-def load_segments(seg_dir, min_minutes=60, exclude=DUPLICATES):
+SETTLE_S = 120.0                 # s dropped after a rapid-solve burst (about one normal solve; see _clean_parts):
+                                 # the drift rate right after a burst is no higher than later (2026-10-03 archive)
+
+
+def _clean_parts(t, burst_interval_s=30.0, burst_min_run=3, settle_s=SETTLE_S):
+    """Index arrays of the usable parts of a segment's samples. Sync-guided segments (median interval >= 10 s) often
+    open with a burst of plate solves a few seconds apart, to seed PEC. Each sync re-anchors the model before the
+    mount has carried out PEC's correction, so PECLOG's pec_accum there never happened; extract_segments now leaves it
+    out (PHANTOM_GAP_S), so bursts are usable and kept by default -- drop_bursts=True removes them. Samples
+    in a run of >= burst_min_run intervals under burst_interval_s (and under half the segment's median interval), and
+    those within settle_s after it, are dropped;
+    a burst inside a segment splits it, as the running total jumps across it. Pulse-guided segments are dense by
+    nature and kept whole."""
+    t = np.asarray(t, float)
+    n = len(t)
+    if n < 3 or np.median(np.diff(t)) < 10:
+        return [np.arange(n)]
+    fast = np.diff(t) < min(burst_interval_s, 0.5 * np.median(np.diff(t)))     # fast for this segment's cadence
+    bad = np.zeros(n, bool)
+    k = 0
+    while k < len(fast):
+        if not fast[k]:
+            k += 1
+            continue
+        j = k
+        while j < len(fast) and fast[j]:
+            j += 1
+        if j - k >= burst_min_run:                      # samples k..j are the burst
+            bad[k:j + 1] = True
+            bad[(t > t[j]) & (t < t[j] + settle_s)] = True
+        k = j
+    parts, cur = [], []
+    for i in range(n):
+        if bad[i]:
+            if cur:
+                parts.append(np.array(cur))
+            cur = []
+        else:
+            cur.append(i)
+    if cur:
+        parts.append(np.array(cur))
+    return parts
+
+
+def load_segments(seg_dir, min_minutes=60, exclude=DUPLICATES, drop_bursts=False, burst_interval_s=30.0,
+                  burst_min_run=3, settle_s=SETTLE_S, dedupe=True):
+    """Segments (>= min_minutes) from the extracted datasets. drop_bursts: remove rapid plate-solve bursts and their
+    settling (_clean_parts; off by default since extract_segments drops their phantom PEC correction), splitting a segment at a burst inside it (names '#k.1', '#k.2', ...). dedupe: load a
+    capture archived under two names once (identical drift and timing)."""
     idx = pd.read_csv(os.path.join(seg_dir, 'index.csv'))
-    out = []
+    out, seen = [], set()
     for _, r in idx.iterrows():
         if any(x in r['session'] for x in exclude):
             continue
         d = pd.read_csv(os.path.join(seg_dir, r['file']))
         if d[['theta1', 'theta2', 'theta3']].isna().all().any() or len(d) < 20:
             continue
-        if d['t_sec'].iloc[-1] - d['t_sec'].iloc[0] < min_minutes * 60:
-            continue
-        out.append(Segment(name=f"{r['session']}#{int(r['segment'])}", session=r['session'], t=d['t_sec'].values,
-                           ra=d['drift_ra_arcsec'].values, dec=d['drift_dec_arcsec'].values,
-                           theta=d[['theta1', 'theta2', 'theta3']].values))
+        t = d['t_sec'].values.astype(float)
+        ra, dec = d['drift_ra_arcsec'].values, d['drift_dec_arcsec'].values
+        theta = d[['theta1', 'theta2', 'theta3']].values
+        if dedupe:
+            key = (len(t), round(float(t[-1] - t[0]), 3), round(float(np.nansum(ra)), 3), round(float(np.nansum(dec)), 3))
+            if key in seen:
+                continue
+            seen.add(key)
+        parts = _clean_parts(t, burst_interval_s, burst_min_run, settle_s) if drop_bursts else [np.arange(len(t))]
+        parts = [p for p in parts if len(p) >= 20 and t[p[-1]] - t[p[0]] >= min_minutes * 60]
+        base = f"{r['session']}#{int(r['segment'])}"
+        for i, p in enumerate(parts):
+            out.append(Segment(name=base if len(parts) == 1 else f'{base}.{i + 1}', session=r['session'],
+                               t=t[p] - t[p[0]], ra=ra[p], dec=dec[p], theta=theta[p]))
     return out
 
 
@@ -133,83 +186,11 @@ def time_scan(segs, periods_s):
     return pd.DataFrame(rows).set_index('period_s')
 
 
-def best_theta(scan):
-    return {m: float(scan[m].idxmax()) for m in MOTORS if scan[m].notna().any()}
-
-
-def _design(t, theta, kind, thetas, fast):
-    cols = [np.ones_like(t), t / 3600]
-    if kind == 'time_34_17':
-        for T in (34 * 60, 17 * 60):
-            cols += [np.sin(2 * np.pi * t / T), np.cos(2 * np.pi * t / T)]
-    elif kind in ('worm', 'worm_h2'):
-        for i in fast:
-            for h in ((1,) if kind == 'worm' else (1, 2)):
-                a = 2 * np.pi * h * theta[:, i] / thetas[MOTORS[i]]
-                cols += [np.sin(a), np.cos(a)]
-    return np.column_stack(cols)
-
-
-def forecast_skill(seg, thetas, train_frac=0.6, min_rate=5.0):
-    """Hold-out RMS (arcsec, RA and Dec pooled) of each model fitted on the first train_frac of the segment."""
-    t = seg.t - seg.t[0]
-    fast = [i for i in range(3) if seg.rates[i] >= min_rate]
-    cut = t[-1] * train_frac
-    tr, te = t <= cut, t > cut
-    out = {'segment': seg.name, 'hours': round(seg.hours, 2), 'fast_motors': [MOTORS[i] for i in fast]}
-    for kind in ('trend', 'time_34_17', 'worm', 'worm_h2'):
-        X = _design(t, seg.theta, kind, thetas, fast)
-        sq = []
-        for y in (seg.ra, seg.dec):
-            c, *_ = np.linalg.lstsq(X[tr], y[tr], rcond=None)
-            sq.append((y[te] - X[te] @ c) ** 2)
-        out[kind] = float(np.sqrt(np.mean(np.concatenate(sq))))
-    return out
-
-
-def rolling_forecast(seg, thetas, window_s=40 * 60, horizon_s=10 * 60, step_s=10 * 60, min_rate=5.0):
-    """
-    PEC's actual job: repeatedly fit the last window_s of drift and predict the next horizon_s.
-    Returns the RMS forecast error (arcsec, RA and Dec pooled, error relative to the drift at the
-    forecast origin) of each model over every window in the segment.
-    """
-    t = seg.t - seg.t[0]
-    fast = [i for i in range(3) if seg.rates[i] >= min_rate]
-    out = {'segment': seg.name, 'hours': round(seg.hours, 2), 'fast_motors': [MOTORS[i] for i in fast]}
-    errs = {k: [] for k in ('trend', 'time_34_17', 'worm', 'worm_h2')}
-    n = 0
-    for t0 in np.arange(window_s, t[-1] - horizon_s + 1e-9, step_s):
-        tr = (t > t0 - window_s) & (t <= t0)
-        te = (t > t0) & (t <= t0 + horizon_s)
-        if tr.sum() < 10 or te.sum() < 2:
-            continue
-        n += 1
-        for kind in errs:
-            X = _design(t, seg.theta, kind, thetas, fast)
-            for y in (seg.ra, seg.dec):
-                c, *_ = np.linalg.lstsq(X[tr], y[tr], rcond=None)
-                errs[kind].append((y[te] - X[te] @ c) ** 2)
-    for kind, e in errs.items():
-        out[kind] = float(np.sqrt(np.mean(np.concatenate(e)))) if e else np.nan
-    out['n_windows'] = n
-    return out
-
-
-# ── PEC rate benchmark ───────────────────────────────────────────────────────────────────
-# PEC applies a RATE continuously and the guider removes what is left at each correction. So a PEC model
-# is scored on (1) how well its causal rate estimate tracks the actual drift rate (a centred local slope
-# of the drift, only computable afterwards) and (2) the drift left for the guider per correction interval,
-# y(t + dt) - y(t) - rate(t) * dt, for realistic guide intervals. The model is the driver's own PecAxis
-# replayed causally on the drift series (total_accum: the mount's drift with PEC's effect removed).
-
 @dataclass
 class PecModel:
+    """A PEC setting to replay: the driver's PecAxis (EMA of the drift rate) with time constant tau_s."""
     name: str
-    mode: str = 'ema'            # 'ema' or 'rls' (the driver's PecAxis), or 'dema' (benchmark only, see below)
-    n_harmonics: int = 0
-    tau_s: float = 1260.0
-    T: float = 2040.0
-    k: float = 1.0               # 'dema' lag compensation: rate = e1 + k * (e1 - e2); 0 = plain EMA, 1 = DEMA
+    tau_s: float = 450.0
 
 
 def true_rate(t, y, half_window_s=300.0):
@@ -225,31 +206,10 @@ def true_rate(t, y, half_window_s=300.0):
     return out
 
 
-def _replay_dema(t, y, tau_s, k):
-    """Lag-compensated EMA of the observed rate: e1 = EMA(rate), e2 = EMA(e1), rate = e1 + k (e1 - e2).
-    Same per-sample smoothing as PecAxis's EMA mode (alpha = 1 - exp(-dt / tau)); with a steadily changing
-    rate e1 lags by ~tau and e2 by ~2 tau, so k = 1 cancels the lag (at the cost of more noise and overshoot)."""
-    out = np.zeros(len(t))
-    e1 = e2 = 0.0
-    for i in range(2, len(t)):                  # like PecAxis: the first ingest only sets the reference point
-        dt = t[i] - t[i - 1]
-        if dt <= 0:
-            out[i] = out[i - 1]
-            continue
-        alpha = 1.0 - np.exp(-dt / tau_s)
-        obs = (y[i] - y[i - 1]) / dt * 60
-        e1 += alpha * (obs - e1)
-        e2 += alpha * (e1 - e2)
-        out[i] = e1 + k * (e1 - e2)
-    return out
-
-
 def replay_pec_rate(t, y, model, var_alpha=0.05, sse_alpha=0.15):
     """Rate (arcsec/min) the driver's PecAxis would apply after ingesting each sample of drift y (arcsec)."""
-    if model.mode == 'dema':
-        return _replay_dema(np.asarray(t, float), np.asarray(y, float), model.tau_s, model.k)
-    from control_pec import PecAxis, PecMode
-    ax = PecAxis(T=model.T, n_harmonics=model.n_harmonics, mode=PecMode(model.mode), tau=model.tau_s, min_dt=0.05)
+    from control_pec import PecAxis
+    ax = PecAxis(tau=model.tau_s, min_dt=0.05)
     ax.reset_seed(y[0] / 3600)
     out = np.zeros(len(t))
     for k in range(1, len(t)):
@@ -334,44 +294,37 @@ def sky_weights(theta, lat):
     """(n, 2, 3): arcsec of RA (row 0) and Dec (row 1) correction per arcsec of error in each motor's angle,
     at each pose (motor angles, deg) and site latitude. Same maths as kinematics.theta_to_jacobian and
     calc_equatorial_axes_B with an ideal (level, north-aligned) base."""
+    return sky_matrix(theta, lat)[:, :2, :]
+
+
+def sky_matrix(theta, lat):
+    """(n, 3, 3): rotation about the RA (pole), Dec and boresight (field rotation) axes per unit of each motor's angle
+    -- rows RA, Dec, field rotation; columns M1-M3. sky_weights is its first two rows."""
     th = np.radians(np.atleast_2d(np.asarray(theta, float)))
     n = len(th)
     z, y, x = (np.tile(e, (n, 1)) for e in np.eye(3)[::-1])
-    a1 = z
     a2 = _rodrigues(z, -th[:, 0] + np.pi / 2, y)
     a3 = _rodrigues(z, -th[:, 0] + np.pi / 2, _rodrigues(y, -th[:, 1] - np.pi / 2, x))
-    J = -np.stack([a1, a2, a3], axis=2)                                   # columns: rotation per unit motor angle
-    v = _rodrigues(z, -th[:, 0] + np.pi / 2, _rodrigues(y, -th[:, 1] - np.pi / 2, -z))   # boresight
+    J = -np.stack([z, a2, a3], axis=2)
+    v = _rodrigues(z, -th[:, 0] + np.pi / 2, _rodrigues(y, -th[:, 1] - np.pi / 2, -z))
     v = _rodrigues(a3, -th[:, 2], v)
     lr = np.radians(lat)
-    p = np.tile([0.0, np.cos(lr), np.sin(lr)], (n, 1))                    # celestial pole (RA axis)
+    p = np.tile([0.0, np.cos(lr), np.sin(lr)], (n, 1))
     d = np.cross(p, v)
     nd = np.linalg.norm(d, axis=1, keepdims=True)
     d = np.where(nd > 1e-6, d / np.maximum(nd, 1e-12), [1.0, 0.0, 0.0])
-    d *= np.where(np.sum(np.cross(d, v) * p, axis=1) < 0, -1.0, 1.0)[:, None]   # +Dec = northward
-    return np.linalg.solve(np.stack([p, d, v], axis=2), J)[:, :2, :]
+    d *= np.where(np.sum(np.cross(d, v) * p, axis=1) < 0, -1.0, 1.0)[:, None]
+    return np.linalg.solve(np.stack([p, d, v], axis=2), J)
 
 
-def motor_errors(ra, dec, theta, lat, min_theta2=5.0):
-    """(n, 3) per-motor angle error (arcsec) that explains each RA/Dec drift sample with the least total motor
-    error (field rotation is unobserved, so the split is a choice). NaN where |theta2| < min_theta2: M1 and M3
-    are then nearly coaxial and their split is arbitrary."""
-    W = sky_weights(theta, lat)
-    r = np.column_stack([ra, dec])
-    e = np.einsum('nji,nj->ni', W, np.linalg.solve(W @ np.transpose(W, (0, 2, 1)), r[:, :, None])[:, :, 0])
-    e[np.abs(np.atleast_2d(theta)[:, 1]) < min_theta2] = np.nan
-    return e
-
-
-def partial_motor_errors(t, ra, dec, theta, lat, profile, min_theta2=5.0):
-    """(n, 3) per-motor partial residuals (arcsec): each motor's fitted profile + what the joint fit leaves
-    unexplained (RA/Dec drift minus the whole mapped profile, quadratic trend removed, split with
-    motor_errors). Unlike motor_errors on the raw drift, the other motors' fitted cycles don't leak in."""
-    t = np.asarray(t, float)
-    f_ra, f_dec = profile.drift(theta, lat)
-    detr = lambda y: y - np.polyval(np.polyfit(t, y, 2), t)
-    r = motor_errors(detr(np.asarray(ra, float) - f_ra), detr(np.asarray(dec, float) - f_dec), theta, lat, min_theta2)
-    return profile.motor_error(theta) + r
+def remove_corrections(theta, ra, dec, lat):
+    """Motor angles from a pose-derived theta (PECLOG/SGLOG az/alt/roll through the inverse kinematics), with the
+    corrections accumulated since the first sample taken back out. That pose is the driver's present value: the motor
+    pose rotated by every guide and PEC correction (RA/Dec drift totals ra, dec in arcsec), which shifts the angles by
+    up to ~1 deg over a night. A constant offset (the corrections before the first sample) is left in."""
+    theta = np.atleast_2d(np.asarray(theta, float))
+    c = np.column_stack([np.asarray(ra, float) - ra[0], np.asarray(dec, float) - dec[0], np.zeros(len(theta))]) / 3600.0
+    return theta - np.linalg.solve(sky_matrix(theta, lat), c[:, :, None])[:, :, 0]
 
 
 def worm_features(theta, worm_theta=WORM_THETA, harmonics=(1, 2)):
@@ -392,13 +345,40 @@ class WormProfile:
         f = worm_features(theta, self.worm_theta, self.harmonics) * self.coef
         return f.reshape(len(f), 3, -1).sum(axis=2)
 
+    def only(self, motors):
+        """The profile with every motor but `motors` (e.g. ['M3']) zeroed."""
+        coef = np.asarray(self.coef, float).reshape(3, -1).copy()
+        coef[[m for m in range(3) if f'M{m + 1}' not in motors]] = 0.0
+        return WormProfile(coef.ravel(), self.worm_theta, self.harmonics)
+
     def drift(self, theta, lat):
         """(ra, dec) arcsec of drift the profile predicts at these motor angles."""
         rd = np.einsum('nij,nj->ni', sky_weights(theta, lat), self.motor_error(theta))
         return rd[:, 0], rd[:, 1]
 
 
-def fit_worm(parts, worm_theta=WORM_THETA, harmonics=(1, 2), grid_s=60.0, ridge=1e-3, min_turns=1.0):
+def _grid_turns(t, theta, worm_theta, grid_s=60.0):
+    """Worm turns each motor travels (path length, so a reversal counts both ways), on a grid_s grid."""
+    t = np.asarray(t, float)
+    tg = np.arange(t[0], t[-1] + grid_s / 2, grid_s)
+    g = np.column_stack([np.interp(tg, t, np.asarray(theta, float)[:, i]) for i in range(3)])
+    return np.abs(np.diff(g, axis=0)).sum(axis=0) / worm_theta
+
+
+def auto_trend_degree(theta, worm_theta=WORM_THETA, min_turns=2.0, max_degree=4, t=None):
+    """Polynomial degree of the slow-drift trend a segment can support next to its worm: 2 (quadratic) when the slowest
+    motor worth fitting (>= min_turns worm turns) makes ~2 turns, one more per extra turn, up to max_degree. With few
+    turns a flexible trend and the worm can't be told apart; with many, the repeating worm pins itself down."""
+    theta = np.asarray(theta, float)
+    turns = (_grid_turns(t, theta, worm_theta) if t is not None
+             else np.abs(np.diff(theta, axis=0)).sum(axis=0) / worm_theta)
+    fitted = turns[turns >= min_turns]
+    if not len(fitted):
+        return 2
+    return int(np.clip(2 + np.floor(fitted.min() - 2), 2, max_degree))
+
+
+def fit_worm(parts, worm_theta=WORM_THETA, harmonics=(1, 2), grid_s=60.0, ridge=1e-3, min_turns=2.0, trend_degree=2):
     """Fit a WormProfile to drift data. parts: list of (t, ra, dec, theta, lat). On a grid_s grid, each minute's
     RA and Dec drift increment = that part's own drift-rate trend per axis (not penalised) + the change of the
     mapped profile over that minute; RA and Dec share the motor coefficients (small ridge penalty). A motor's
@@ -414,26 +394,29 @@ def fit_worm(parts, worm_theta=WORM_THETA, harmonics=(1, 2), grid_s=60.0, ridge=
         tg = np.arange(t[0], t[-1], grid_s)
         thg = np.column_stack([np.interp(tg, t, theta[:, i]) for i in range(3)])
         F = worm_features(thg, worm_theta, harmonics)
+        turns = np.abs(np.diff(thg, axis=0)).sum(axis=0) / worm_theta
         for m in range(3):
-            if np.ptp(thg[:, m]) < min_turns * worm_theta:
+            if turns[m] < min_turns:
                 F[:, m * per_motor:(m + 1) * per_motor] = 0.0
         W = sky_weights(thg, lat)
         motor = np.repeat(np.arange(3), per_motor)
-        tm = (tg[1:] - tg[1:].mean()) / 3600
+        deg = auto_trend_degree(thg, worm_theta, min_turns) if trend_degree == 'auto' else int(trend_degree)
+        x = 2 * (tg[1:] - tg[1]) / max(tg[-1] - tg[1], 1e-9) - 1
+        rate_basis = np.polynomial.legendre.legvander(x, deg - 1)              # drift rate: degree deg - 1
         for ax, y in enumerate((ra, dec)):
             G = W[:, ax, motor] * F                                     # profile -> this axis, per coefficient
-            blocks.append((np.diff(G, axis=0), np.column_stack([np.ones(len(tm)), tm]),
-                           np.diff(np.interp(tg, t, y))))
+            blocks.append((np.diff(G, axis=0), rate_basis, np.diff(np.interp(tg, t, y))))
     if not blocks:
         return WormProfile(np.zeros(n_coef), worm_theta, tuple(harmonics))
-    X = np.zeros((sum(len(b[2]) for b in blocks), n_coef + 2 * len(blocks)))
+    X = np.zeros((sum(len(b[2]) for b in blocks), n_coef + sum(b[1].shape[1] for b in blocks)))
     Y = np.zeros(len(X))
-    r = 0
-    for j, (dG, trend, dy) in enumerate(blocks):
+    r, c = 0, n_coef
+    for dG, trend, dy in blocks:
         X[r:r + len(dy), :n_coef] = dG
-        X[r:r + len(dy), n_coef + 2 * j:n_coef + 2 * j + 2] = trend
+        X[r:r + len(dy), c:c + trend.shape[1]] = trend
         Y[r:r + len(dy)] = dy
         r += len(dy)
+        c += trend.shape[1]
     A = X.T @ X
     pen = np.zeros(len(A))
     pen[:n_coef] = ridge * max(np.trace(A[:n_coef, :n_coef]) / n_coef, 1e-12) + 1e-9
@@ -587,3 +570,39 @@ def phase_consistency(phases_deg):
     z = np.exp(1j * ph).mean()
     R = float(abs(z))
     return {'n': n, 'mean': float(np.degrees(np.angle(z)) % 360), 'R': R, 'p': float(np.exp(-n * R ** 2))}
+
+
+def windowed_worm(seg, lat, window_s=5400.0, step_s=900.0, worm_theta=WORM_THETA, harmonics=(1,), min_turns=1.5,
+                  trend_degree=2, m1_m3_ratio=1.25):
+    """Each motor's worm amplitude (arcsec) and phase (deg, of e = A sin(worm phase + phase)) through a segment, from
+    joint fits over sliding windows (window_s long, every step_s). Fitting the motors together in a window separates
+    them by their different worm periods -- which a sample-by-sample split can't do for M1 and M3 -- so a real change
+    through the night (amplitude or phase) shows as a trend here, and leakage doesn't. One harmonic by default, to keep
+    each window's fit stable; a motor is fitted only in windows where it turns >= min_turns worm turns.
+    m1_m3_separable is False in windows where M1 and M3 turn within m1_m3_ratio of the same speed: their worms then
+    repeat at nearly the same rate in time and even a joint fit trades one for the other.
+    DataFrame: t_min (window centre, from the segment start), motor, turns, rate (deg/hr), amp, phase, fitted,
+    m1_m3_separable."""
+    t = np.asarray(seg.t, float)
+    rows = []
+    start = t[0]
+    while start + window_s <= t[-1] + 1e-9:
+        k = (t >= start) & (t <= start + window_s)
+        if k.sum() >= 20:
+            th = seg.theta[k]
+            prof = fit_worm([(t[k], seg.ra[k], seg.dec[k], th, lat)], worm_theta=worm_theta, harmonics=tuple(harmonics),
+                            min_turns=min_turns, trend_degree=trend_degree)
+            turns = np.abs(np.diff(th, axis=0)).sum(axis=0) / worm_theta
+            rate = np.polyfit(t[k] / 3600, th, 1)[0]                     # deg/hr
+            ratio = abs(rate[0]) / max(abs(rate[2]), 1e-9)
+            separable = bool(ratio < 1 / m1_m3_ratio or ratio > m1_m3_ratio)
+            per_motor = 2 * len(harmonics)
+            for m in range(3):
+                a, b = prof.coef[m * per_motor], prof.coef[m * per_motor + 1]
+                fitted = bool(turns[m] >= min_turns)
+                rows.append(dict(t_min=(start + window_s / 2 - t[0]) / 60, motor=f'M{m + 1}', turns=float(turns[m]),
+                                 rate=float(rate[m]), amp=float(np.hypot(a, b)) if fitted else np.nan,
+                                 phase=float(np.degrees(np.arctan2(b, a)) % 360) if fitted else np.nan, fitted=fitted,
+                                 m1_m3_separable=separable))
+        start += step_s
+    return pd.DataFrame(rows, columns=['t_min', 'motor', 'turns', 'rate', 'amp', 'phase', 'fitted', 'm1_m3_separable'])

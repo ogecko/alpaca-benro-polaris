@@ -161,8 +161,7 @@ def test_goal_corrective_goto_while_tracking_completes_within_3s(monkeypatch):
         f"a 3' corrective goto while tracking took {fmt(times)} s to reach 2.25\" and complete (goal <= 3 s)")
 
 
-@goal
-def test_goal_large_goto_while_tracking_completes_within_15s(monkeypatch):
+def test_goal_large_goto_while_tracking_completes_within_15s(monkeypatch):  # met 2026-10-19: a guard now
     times = []
     for seed in SEEDS:
         tw = tracking_twin(monkeypatch, CANDIDATE, seed)
@@ -351,6 +350,31 @@ def test_guard_goto_within_the_overlap_does_not_flip(monkeypatch, config, move, 
     assert not flips, f"goto alt {alt0} -> {alt1} (roll {roll}) flipped: {flips}"
     assert m1_turn < 90, f"goto alt {alt0} -> {alt1} (roll {roll}) turned M1 {m1_turn:.0f} deg (a flip)"
     assert sep < 1.5, f"goto alt {alt0} -> {alt1} (roll {roll}) ended {sep:.1f}' from the target (completion tolerance 0.75' per motor)"
+
+
+@pytest.mark.parametrize("config", [{}, CANDIDATE], ids=["legacy", "coordinated"])
+def test_guard_limit_stops_every_motor(monkeypatch, config):
+    """Passing a motor limit stops every motor and keeps them stopped until the alarm is acknowledged. Was: LIMIT
+    mode sent no commands, so each motor ran on at its last speed (in the twin M2 swung on to 157 deg, M1 at full
+    speed)."""
+    from config import Config
+    tw = Twin(monkeypatch, config=config, seed=0)
+    tw.place(azaltroll_to_theta_ik(180.0, 30.0, 0.0))                  # M2 ~30 (zeta2 ~-15)
+    monkeypatch.setattr(Config, "z2_max_limit", -5.0)                   # M2's limit lowered to ~40
+    t0 = tw.clock.t
+    tw.goto_altaz(240.0, 70.0)                                          # M2 up through it, M1 turning too
+    while tw.clock.t - t0 < 30 and tw.pid.mode != "LIMIT":
+        tw.run(0.2)
+    assert tw.pid.mode == "LIMIT", "the goto never reached M2's lowered limit"
+    tw.run(3.0)                                                         # the motors' lag (FAST, tau 0.35 s) runs out
+    held = tw.theta
+    tw.run(3.0)
+    moved = np.abs(tw.theta - held)
+    over = tw.polaris._zeta_meas[1] - Config.z2_max_limit
+    tw.close()
+    assert tw.pid.mode == "LIMIT"
+    assert (moved < 0.02).all(), f"motors still moving in LIMIT: {np.round(moved, 3)} deg in 3 s"
+    assert over < 10.0, f"M2 ran {over:.1f} deg past its limit"          # stopping from speed (LIMIT acts once past)
 
 
 @pytest.mark.parametrize("wind", [(0, 0), (360, 0), (0, -360), (360, -360)], ids=["m1_0_m3_0", "m1_+360", "m3_-360", "m1_+360_m3_-360"])

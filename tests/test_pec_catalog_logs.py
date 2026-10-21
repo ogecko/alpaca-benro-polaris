@@ -137,3 +137,44 @@ def test_segment_without_records_but_with_a_target_can_be_rebuilt(tmp_path):
     assert s['pose_source'] == 'target'
     assert s['roll_set'] == pytest.approx(-35.0)
     assert s['usable'] is True
+
+
+# ── worm gear correction and worm gear tests ──────────────────────────────────────────────────
+def tracking_session(tmp_path, body):
+    t0 = pd.Timestamp('2026-10-04T20:00:00')
+    L = [f"{ts(t0, 0)} INFO ==STARTUP== ALPACA BENRO POLARIS DRIVER v2.2.0 Beta 8.0 =========== \n",
+         f"{ts(t0, 10)} INFO ->> Polaris: GOTO Observed   RA 10h45m16.17s     Dec -060d01'59.75\"\n",
+         f"{ts(t0, 12)} INFO Advanced Control: START tracking\n"]
+    L += [line(t0) for line in body]
+    p = tmp_path / 'alpaca.test_Beta8.0_10_04_a1.log'
+    p.write_text(''.join(L))
+    return [str(p)]
+
+
+def test_segments_record_whether_the_worm_gear_correction_was_on(tmp_path):
+    on = [lambda t0, k=k: peclog(ts(t0, 60 + k), 150.0, 40.0, 10.0).replace("'pec_active': True}",
+                                                                           "'pec_active': True, 'wff': [0.3, -0.1]}")
+          for k in range(0, 60 * 60, 30)]
+    assert catalog_session(tracking_session(tmp_path, on))[0]['worm_ff'] == 'on'
+    off = [lambda t0, k=k: peclog(ts(t0, 60 + k), 150.0, 40.0, 10.0).replace("'pec_active': True}",
+                                                                            "'pec_active': True, 'wff': [0.0, 0.0]}")
+           for k in range(0, 60 * 60, 30)]
+    assert catalog_session(tracking_session(tmp_path, off))[0]['worm_ff'] == 'off'
+    old = [lambda t0, k=k: peclog(ts(t0, 60 + k), 150.0, 40.0, 10.0) for k in range(0, 60 * 60, 30)]
+    assert catalog_session(tracking_session(tmp_path, old))[0]['worm_ff'] == 'off'
+
+
+def test_a_worm_gear_test_is_left_out_of_the_segments(tmp_path):
+    body = [lambda t0, k=k: peclog(ts(t0, 60 + k), 150.0, 40.0, 10.0) for k in range(0, 50 * 60, 30)]
+    test_start, test_end = 60 + 50 * 60 + 10, 60 + 66 * 60
+    body.append(lambda t0: f"{ts(t0, test_start)} INFO WORM GEAR TEST M2: START, 49 positions, 0.5 deg steps\n")
+    body += [lambda t0, k=k: (f"{ts(t0, test_start + 20 + k)} INFO KFLOG {{'θ_meas_raw': [180.0, {40 + k / 100}, 0.0]}}\n")
+             for k in range(0, 15 * 60, 10)]
+    body.append(lambda t0: f"{ts(t0, test_end)} INFO WORM GEAR TEST M2: END COMPLETED 61.8\" @ 101.7 deg\n")
+    body += [lambda t0, k=k: peclog(ts(t0, test_end + 60 + k), 155.0, 42.0, 10.0) for k in range(0, 50 * 60, 30)]
+    segs = catalog_session(tracking_session(tmp_path, body))
+    assert [s['end_reason'] for s in segs] == ['worm_gear_test', 'log_end']
+    assert segs[1]['start_reason'] == 'worm_gear_test'
+    t0 = pd.Timestamp('2026-10-04T20:00:00')
+    for s in segs:                                              # nothing overlaps the test
+        assert s['end'] <= t0 + pd.Timedelta(seconds=test_start) or s['start'] >= t0 + pd.Timedelta(seconds=test_end)

@@ -1,3 +1,4 @@
+import sys
 # =================================================================
 # POLARIS.PY - Proxy for Benro Polaris device
 # =================================================================
@@ -48,10 +49,15 @@ from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, byte
 from kinematics import THETA2_MIN_MEAS
 from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
 from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
-from control_pec import zeta_raw_offset
-from speed_controller import RateUnits, SpeedControllerRuntime, SwitchableMotor
+from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
+from control_worm import store_profile_test, pooled_profile, set_last_test_approved, row_status, MIN_SEPARATION_DEG
+from control_worm import direction_summary, current_setup
+from control_worm import profile_summary, row_fields_from_file, PROFILE_TEST
+from control_worm import ROLL_TARGET_DEG, ROLL_TOLERANCE_DEG, POSITIONS, SYNC_CYCLE_S, SETTLE_TIMEOUT_S, fit_sweep, MOTORS
+from speed_controller import fast_rate_units, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
 from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
+from gps_receiver import locate_status
 import tracking_restore
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
@@ -236,7 +242,8 @@ class Polaris:
         self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
         self._restore_checked = False               # tracking_restore: the start-up check ran (once per driver start)
-        self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_pec.zeta_raw_offset
+        self._worm_test_rolling = False             # the worm profile test is rotating to / from its roll: ignore syncs
+        self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_worm.zeta_raw_offset
         self._zeta_theta_offset = None               # [theta1,theta2,theta3] - [zeta1,zeta2,zeta3], refreshed on each "517". The Benro
                                                       # Polaris firmware performs its own Single Point Alignment (Compass/Single Star),
                                                       # which shifts its "517" zeta reporting independently of our theta_state (518/KF)
@@ -248,13 +255,16 @@ class Polaris:
         self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
         self._omega_meas = None                     # The latest calculated Polaris motor axis angular velocity [omega1, omega2, omega3] measured from 6 sample history
         self._cm = CalibrationManager()
+        self._cm.on_worm_profile_approval = self.worm_profile_approval
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
         # Legacy per-axis controllers and the shared-level v2 controller (BETA) run side by side;
         # each self._motors[axis] routes to one of them, chosen by Config.coordinated_speed_control
         # and switchable live (see select_speed_controller).
         legacy_motors = {axis: MotorSpeedController(logger, self._cm, axis, self.send_msg) for axis in (0, 1, 2)}
-        self._speed_v2 = SpeedControllerRuntime({axis: RateUnits(self._cm.baseline_data[axis]) for axis in (0, 1, 2)},
+        self._speed_v2 = SpeedControllerRuntime(fast_rate_units(self._cm.calibration_data, self._cm.baseline_data, logger),
                                                 self.send_msg, log=logger)
+        self._cm.on_calibration_update = lambda: self._speed_v2.set_units(
+            fast_rate_units(self._cm.calibration_data, self._cm.baseline_data, logger))
         use_v2 = bool(getattr(Config, 'coordinated_speed_control', False))
         self._motors = {
             axis: SwitchableMotor(legacy_motors[axis], self._speed_v2.axis(axis), use_new=use_v2)
@@ -263,6 +273,7 @@ class Polaris:
         self._pid = PID_Controller(logger, self, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
         self._sm = SyncManager(logger, self)
+        self._eq_mode_live = bool(Config.advanced_eq_mode)    # the base the sync points were taken on (see make_config_params_live)
         restore_orbital_bodies_from_orbital_cache()
         
     async def shutdown(self):
@@ -549,27 +560,61 @@ class Polaris:
         return time
 
 
+    SPEED_TEST_MAX_S = 15 + 1                        # the longest one speed's measurement runs (max_interval) + a margin
+
+    def _speed_test_limits(self, axis):
+        """The raw (zeta) range a speed test may run M1/M3 in: the motor limits less the safety margin."""
+        safety = Config.zeta_safety_margin
+        lo = getattr(Config, f'z{axis + 1}_min_limit') + safety
+        hi = getattr(Config, f'z{axis + 1}_max_limit') - safety
+        return lo, hi
+
     async def moveaxis_speed_test(self, axis, rates):
         self.lifecycle.start()
+        self._kf.log_untracked = True                # log_position: KFLOG (raw 518 angles, omega_meas) while it runs
         motor = self._motors[axis]
-        for rate in rates:
-            if self.lifecycle.should_stop():
-                break
-            direction = +1
-            # check axis 1 bounds and reverse direction if necc 
-            if axis==1 and self._theta_raw.any():
-                if self._theta_raw[1] > 60:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
-                    direction = -1
-                if self._theta_raw[1] < 20:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
+        direction = +1
+        try:
+            # the PID commands the motors while it homes/parks/goes to: a test started during the last test's return
+            # home measured the PID's settling, not its speed (M1 RAW 1000 read RAW -1.8, -0.012 deg/s)
+            t0 = time.monotonic()
+            while self._pid.mode in ('HOMING', 'PARKING', 'AUTO') and time.monotonic() - t0 < 120:
+                if self.lifecycle.should_stop():
+                    return
+                await asyncio.sleep(0.5)
+            for rate in rates:
+                if self.lifecycle.should_stop():
+                    break
+                # check axis 1 bounds and reverse direction if necc
+                if axis==1 and self._theta_raw.any():
                     direction = +1
-            # send the move request
-            await motor.set_motor_speed(rate * direction, "RAW")
-            result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
-            self._cm.addTestResult(axis, rate, result, stdev, status)
+                    if self._theta_raw[1] > 60:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = -1
+                    if self._theta_raw[1] < 20:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = +1
+                elif axis in (0, 2) and self._zeta_meas is not None:
+                    # M1/M3: run towards the limit with room for this speed's whole measurement (M3 ran into its
+                    # limit at the fast speeds: 8 deg/s for 15 s is 120 deg); stop first when reversing, as M2 does
+                    lo, hi = self._speed_test_limits(axis)
+                    z = float(self._zeta_meas[axis])
+                    travel = abs(motor.to_dps(rate, "RAW")) * self.SPEED_TEST_MAX_S
+                    room = {+1: hi - z, -1: z - lo}
+                    want = direction if room[direction] >= travel else -direction if room[-direction] >= travel \
+                        else max(room, key=room.get)
+                    if want != direction:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = want
+                # send the move request
+                await motor.set_motor_speed(rate * direction, "RAW")
+                result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
+                self._cm.addTestResult(axis, rate, result, stdev, status)
+        finally:
+            self._kf.log_untracked = False
 
         # ensure we stop all movement
         await motor.set_motor_speed(0, "RAW")
@@ -598,12 +643,19 @@ class Polaris:
                 return 0,0,0,"NO DATA"
             omega = self._omega_meas[axis]
             omega_samples.append(omega)
+            if axis in (0, 2) and self._zeta_meas is not None:
+                lo, hi = self._speed_test_limits(axis)
+                if not lo <= float(self._zeta_meas[axis]) <= hi:
+                    await self._motors[axis].set_motor_speed(0, "RAW")
+                    self.logger.warning(f"== TEST == Axis {axis} | RAW {rate_raw} | stopped at the motor limit margin "
+                                        f"(zeta {self._zeta_meas[axis]:+.1f})")
+                    return 0, abs(rate_raw), 0, "LIMIT"
 
             # if we potentially have enough samples, take a window the last set
             if len(omega_samples) >= required_stable_samples:
                 window = omega_samples[-required_stable_samples:]
                 stdev = np.std(window)
-                if stdev < stable_tolerance and (np.mean(window) > 0.002 or rate == 0):
+                if stdev < stable_tolerance and (abs(np.mean(window)) > 0.002 or rate == 0):   # either direction
                     measured_dps = float(np.mean(window)) if rate>0 else 0
                     self.logger.info(f"== TEST == Stable | Axis {axis} |  RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
                     break
@@ -613,6 +665,149 @@ class Polaris:
             status = "HIGH STDEV"
             self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
         return abs(measured_dps), abs(rate_raw), stdev, status
+
+
+    async def worm_profile_test(self):
+        """The worm profile test (control_worm): step all three motors through their worm schedule around the current
+        pointing while sidereal tracking holds the sky, recording each plate-solve sync after the step has settled and
+        stepping again at once. The fit, its timing and the samples go into the worm profile file's history; the row
+        shows the profile pooled over the recent tests, which Approve applies."""
+        self.lifecycle.start()
+        sm = self._sm
+        if not (Config.advanced_control and Config.advanced_tracking):
+            self.logger.warning("WORM PROFILE TEST: needs advanced control and advanced tracking")
+            self._cm.addWormProfileResult({}, 'NO DATA')
+            self.lifecycle.reset()
+            return
+        was_tracking = self._tracking
+        if not was_tracking:
+            await self.start_tracking()
+        roll_before = await self._worm_test_roll(ROLL_TARGET_DEG)
+        if roll_before is False:                             # the roll move didn't finish: stopped, or timed out
+            self._cm.addWormProfileResult({}, 'STOPPED')
+            if not was_tracking:
+                await self.stop_tracking()
+            self.lifecycle.reset()
+            return
+        # keep every motor's sweep where it can go: a step it can't reach (M2 against the Alt/Roll limit, a motor
+        # limit) never settles, and the test would wait on the plate-solves for ever
+        pid = self._pid
+        theta0 = np.array(pid.theta_ref if pid.theta_ref is not None else pid.theta_pv, float)
+        lo, hi = sm.worm_test_reach(theta0, self._zeta_meas, getattr(pid, 'omega_ff', np.zeros(3)),
+                                    len(POSITIONS) * SYNC_CYCLE_S)
+        positions, scale = fit_sweep(POSITIONS, lo, hi)
+        test = WormProfileTest(positions)
+        moved = [m for m in range(3) if np.any(np.abs(positions[:, m] - POSITIONS[:, m]) > 1e-9)]
+        if moved:
+            self.logger.info("WORM PROFILE TEST: sweep fitted inside what the motors can reach here: " + "; ".join(
+                f"{MOTORS[m]} {POSITIONS[:, m].min():+.1f}..{POSITIONS[:, m].max():+.1f} -> "
+                f"{positions[:, m].min():+.1f}..{positions[:, m].max():+.1f} deg (reach {lo[m]:+.1f}..{hi[m]:+.1f})"
+                + (f", {scale[m] * 100:.0f}% of the sweep" if scale[m] < 1 else '') for m in moved))
+            if np.any(scale < 0.7):
+                self.logger.warning("WORM PROFILE TEST: a motor has little room to move at this pose -- its worm "
+                                    "will be less certain; a lower altitude or smaller roll gives more")
+        sep, sens = sm.motor_separation(np.array(self._pid.theta_pv, float))
+        self.logger.info(f"WORM PROFILE TEST: START, {len(test.positions)} positions, all motors; requires plate-solve "
+                         f"syncs, one per position after the step settles (~8-12 s: a wait between solves of ~10 s, "
+                         f"longer if syncs are discarded as moving), stops after {test.no_sync_timeout_s:.0f} s without a sync. M1-M3 "
+                         f"separation {sep:.0f} deg, sensitivity {sens}")
+        if sep < MIN_SEPARATION_DEG:
+            self.logger.warning(f"WORM PROFILE TEST: M1 and M3 move the view in nearly the same direction here "
+                                f"({sep:.0f} deg apart, Roll near 0): their worms may not separate -- a pose with Roll "
+                                f"{ROLL_TARGET_DEG:.0f}-60 deg either way is better")
+        sm.worm_test = test
+        if np.any(positions[0] != 0):                        # the fitted sweep starts off the current pose: go there
+            pid.step_motor_targets(positions[0])
+            test.step_at = time.monotonic()
+        try:
+            shown = None
+            while not test.done and not test.aborted and not self.lifecycle.should_stop():
+                if test.index != shown:
+                    shown = test.index
+                    self._cm.setWormProfileProgress(shown, len(test.positions))
+                if test.settle_overdue(time.monotonic()):
+                    test.abort('not settling')
+                    err = np.abs(np.array(pid.error_signal, float)) * 3600 if pid.error_signal is not None else np.zeros(3)
+                    self.logger.warning(f"WORM PROFILE TEST: position {test.index}/{len(test.positions)} not reached "
+                                        f"in {SETTLE_TIMEOUT_S:.0f} s (motor errors {err.round(0).tolist()}\") -- "
+                                        f"ending the test with the positions measured so far")
+                if test.timed_out(time.monotonic()):
+                    test.abort('no syncs')
+                    self.logger.warning(f"WORM PROFILE TEST: no plate-solve sync for {test.no_sync_timeout_s:.0f} s "
+                                        f"-- Rerun test while running continuous plate-solve and sync.")
+                await asyncio.sleep(0.5)
+        finally:
+            sm.worm_test = None
+            if test.done and roll_before is not None:        # finished: back to the framing it started with
+                await self._worm_test_roll(roll_before)
+            if not was_tracking:
+                await self.stop_tracking()
+        result = fit_worm_profile([test.samples], worm_theta=test.worm_theta)
+        path = sm.worm_profile_path()
+        if result['status'] == 'NO DATA':
+            status = 'NO DATA' if test.abort_reason == 'no syncs' else 'STOPPED'
+            why = 'no plate-solve syncs arrived' if not test.samples else f"only {len(test.samples)} positions measured"
+            self.logger.info(f"WORM PROFILE TEST: END {status}, {why} -- nothing saved")
+            self._cm.addWormProfileResult({}, status)
+            self.lifecycle.reset()
+            return
+        store_profile_test(path, test.samples, result, timing=test.timing())
+        pooled = pooled_profile(path, worm_theta=test.worm_theta, with_last=True)     # what approving it would give
+        # amplitude @ peak: the worm phase (360 x MCU angle / 6 deg) where each motor's wobble peaks
+        self.logger.info(f"WORM PROFILE TEST: END {result['status']}: {profile_summary(result)}; checks {result['checks']}, "
+                         f"timing {test.timing()}; approving it would pool {pooled['checks'].get('tests', 0)} tests: "
+                         f"{profile_summary(pooled)}; {direction_summary(pooled)} -> {path}")
+        self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path, setup=current_setup())),
+                                      row_status(result, pooled))
+        self.lifecycle.reset()
+
+    async def _worm_test_roll(self, target, timeout_s=120.0):
+        """Rotate to a roll that separates M1 and M3 (or back to `target`, the roll before the test), keeping Az/Alt.
+        Going to the test pose, `target` is ROLL_TARGET_DEG, used with the sign of the current roll (the test always
+        runs there: the best separation measured). Returns the roll before the move (None: already there), or False if
+        the move didn't finish (the test was stopped, or it timed out)."""
+        roll = float(self._pid.alpha_pv[2])
+        if target == ROLL_TARGET_DEG:
+            target = ROLL_TARGET_DEG if roll >= 0 else -ROLL_TARGET_DEG
+            if abs(roll - target) <= ROLL_TOLERANCE_DEG:
+                return None
+            self.logger.info(f"WORM PROFILE TEST: rotating Roll {roll:.1f} -> {target:.0f} deg (M1 and M3 separate "
+                             f"with roll; back to {roll:.1f} afterwards)")
+        else:
+            self.logger.info(f"WORM PROFILE TEST: rotating Roll back to {target:.1f} deg")
+        self._worm_test_rolling = True                       # syncs while rotating are ignored (sync_telescope)
+        try:
+            self.slew_axis({'roll': target})
+            await asyncio.wait_for(self.wait_for_goto_complete(), timeout_s)
+        except asyncio.TimeoutError:
+            self.logger.warning(f"WORM PROFILE TEST: the roll move didn't finish in {timeout_s:.0f} s")
+            return False
+        finally:
+            self._worm_test_rolling = False
+        if self.lifecycle.should_stop():
+            return False
+        return roll
+
+    def worm_profile_approval(self, approved):
+        """Approve or reject the last worm profile test (its flag in the history: approved tests pool) and rebuild the
+        profiles from the approved tests."""
+        path = self._sm.worm_profile_path()
+        done = set_last_test_approved(path, approved)
+        if done:
+            self._sm.reload_worm_ff()
+            self.logger.info(f"WORMPROFILE CHANGE: last test {'approved' if approved else 'rejected'}, "
+                             f"profiles rebuilt from the approved tests in {path}")
+            # the row's Baseline is the profile in use: show the new one (and Change against it)
+            cm = getattr(self, '_cm', None)
+            if cm is not None and PROFILE_TEST in cm.test_data:
+                cm.test_data[PROFILE_TEST].update(row_fields_from_file(path))
+            # the profile changed; whether it is applied is the user's own PEC Worm Gear Correction switch, left as
+            # it is. With the correction on, refit the alignment through the new profile (as switching it does).
+            if Config.advanced_pec_worm:
+                self.make_config_params_live({'advanced_pec_worm': True})
+        else:
+            self.logger.warning(f"WORMPROFILE CHANGE: no worm profile test to {'approve' if approved else 'reject'} in {path}")
+        return done
 
 
 # ── Polaris Angle Helpers ─────────────────────────────────────────────────────────────
@@ -846,7 +1041,8 @@ class Polaris:
             # Process all 518 msgs through the Kalman Filter [KF] to determine Polaris theta_state. 
             self._kf.predict(omega_ref)
             is_tracking = self._pid.mode == 'TRACK'
-            self._kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self._pid.theta_ref if is_tracking else None))
+            self._kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self._pid.theta_ref if is_tracking else None),
+                             goto=self._pid.move_pending())
             self._theta_state, _ = self._kf.get_state()
 
             # Only process the last 518 msg of a batch through PID control step and motor actuation
@@ -856,8 +1052,8 @@ class Polaris:
 
             motorQ_state = theta_to_q(*self._theta_state)
 
-            # Translate from Base Frame to Topo Frame [MAC] -> [SGC] => [PGC] -> QUEST -> [LGA] -> [RollAdj]
-            cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state)
+            # Translate from Base Frame to Topo Frame [WFF] -> [MAC] -> [SGC] => [PGC] -> QUEST -> [LGA] -> [RollAdj]
+            cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state, theta=self._theta_state)
             theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp, theta2_min=THETA2_MIN_MEAS))   # Beware: theta_pv only has [MAC] -> [SGC] => [PGC] corrections
 
             # update cache of equatorial axes, used by pulse guiding and MAC corrections
@@ -983,6 +1179,7 @@ class Polaris:
         p_az = float(arg_dict['compass'])   # from Polaris direct
         p_alt = -float(arg_dict['alt'])     # from Polaris direct
 
+        self._pid.seed_branch(self._zeta_meas)       # once: resolve on the motors' own IK branch from the start
         theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp, theta2_min=THETA2_MIN_MEAS))
         omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
         omega_raw = omega_ref                          # commanded rate echoed back -- not an independent measurement, kept for status/UI only
@@ -1437,7 +1634,9 @@ class Polaris:
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
         if not self._restore_checked:               # first connection since the driver started (not a reconnect)
             self._restore_checked = True
-            self.lifecycle.create_task(self.restore_tracking_on_start(), name='TrackingRestore')
+            self.lifecycle.create_task(self.restore_tracking_on_start(), name='TrackingRestoreRestart')
+        else:
+            self.lifecycle.create_task(self.restore_tracking_on_reconnect(), name='TrackingRestoreReconnect')
 
 
 # ── Tracking restore (tracking_restore.py) ─────────────────────────────────────────────────────
@@ -1452,7 +1651,20 @@ class Polaris:
             self.logger.warning(f"==STARTUP== Tracking restore failed: {e}")
         await self.tracking_state_loop()
 
-    async def _restore_or_stop(self):
+    async def restore_tracking_on_reconnect(self):
+        """After a comms loss (the watchdog rebooted the connection): the driver's own tracking carries on through it
+        (TRACK and the target are kept); if it is no longer tracking but the saved state says it was, restore it as at
+        a restart, with the same checks."""
+        try:
+            if self._tracking and self._pid.mode == 'TRACK':
+                self.logger.info("==RECONNECT== Tracking carried on through the reconnect")
+                return
+            if getattr(Config, 'restore_tracking_on_restart', False):
+                await self._restore_or_stop(prefix='==RECONNECT==')
+        except Exception as e:
+            self.logger.warning(f"==RECONNECT== Tracking restore failed: {e}")
+
+    async def _restore_or_stop(self, prefix='==STARTUP=='):
         t0 = time.monotonic()
         while (self._zeta_raw_offset is None or self._zeta_meas is None) and time.monotonic() - t0 < 30.0:
             if self.lifecycle.should_stop():
@@ -1469,21 +1681,21 @@ class Polaris:
         if reason is None and state.get('trackingrate') == 3 and state.get('orbital') not in orbital_data:
             reason = f"orbital target {state.get('orbital')!r} is not in the orbital cache"
         if reason is None:
-            await self._restore_tracking(state)
+            await self._restore_tracking(state, prefix)
             return
-        self.logger.info(f"==STARTUP== Tracking not restored: {reason}")
+        self.logger.info(f"{prefix} Tracking not restored: {reason}")
         await asyncio.sleep(tracking_restore.MOTION_WINDOW_S)
         if self._tracking_in_benro:
-            self.logger.info("==STARTUP== The Polaris is tracking by itself (Benro tracking): left running")
+            self.logger.info(f"{prefix} The Polaris is tracking by itself (Benro tracking): left running")
             return
         if self._tracking or self._slewing or self._pid.mode not in ('IDLE',):
             return                                   # something in this driver has started moving it meanwhile
         if tracking_restore.is_moving(zeta_before, self._zeta_meas):
-            self.logger.warning("==STARTUP== The mount is moving (the last command from before the restart?): STOP")
+            self.logger.warning(f"{prefix} The mount is moving (the last command from before the restart?): STOP")
             for axis in range(3):
                 await self._motors[axis].stop()
 
-    async def _restore_tracking(self, state):
+    async def _restore_tracking(self, state, prefix='==STARTUP=='):
         """Track the saved target again: TRACK from where the mount is, then the saved target -- the PID pulls the
         mount back onto it."""
         pid = self._pid
@@ -1503,7 +1715,16 @@ class Polaris:
                     getattr(pid, name)[:] = state[name]
             what = f"RA {hr2hms(ra / 15)} Dec {deg2dms(dec)} PA {pa:.2f}"
         age = time.time() - float(state['saved_at'])
-        self.logger.info(f"==STARTUP== Tracking restored: {what} (saved {age:.0f} s ago)")
+        self.logger.info(f"{prefix} Tracking restored: {what} (saved {age:.0f} s ago)")
+        # the catch-up onto the target is a move like a goto: it completes once on target, and Backlash Compensation
+        # (advanced_backlash) finishes it with every motor engaged the way it tracks -- a mount that ran ahead while
+        # the driver was down comes back against tracking, which otherwise leaves the gear slack open
+        started = time.monotonic()
+
+        def settled():
+            how = 'timed out' if pid.goto_timeout() else 'on target'
+            self.logger.info(f"{prefix} Tracking restore settled {how} after {time.monotonic() - started:.0f} s")
+        pid.set_goto_complete_callback(settled)
 
     async def tracking_state_loop(self):
         """Keep data/tracking_state.json current: at once on any change (tracking on/off, target), and every
@@ -1563,6 +1784,9 @@ class Polaris:
         pec_ra_status = pec_ra.r2   if pec_ra.converged() else -pec_ra.inhibit
         pec_dec_status = pec_dec.r2 if pec_dec.converged() else -pec_dec.inhibit
         pidmode = self._pid.mode if self._pid.theta_ref_cache is None else self._pid.theta_ref_cache_cause
+        traj = self._pid.goto_traj
+        if self._pid.theta_ref_cache is None and traj is not None and not traj.done and getattr(traj, 'cause', None):
+            pidmode = traj.cause                     # a planned flip / long M1 or M3 turn (control_plan.MotorMove)
         with self._lock:
             res = {
                 'polarismode': self._polaris_mode,
@@ -1646,14 +1870,24 @@ class Polaris:
                 'bleselected' : self._ble.selectedDevice,
                 'bleisenablingwifi': self._ble.isEnablingWifi,
                 'bleiswifienabled': self._ble.isWifiEnabled,
+                'platform': sys.platform,                # the driver's OS (win32, linux, darwin): Pilot offers what applies
+                'gpsrun': locate_status['run'],          # GPS Locate: which one (counts Locates)
+                'gpsstate': locate_status['state'],      # idle | running | found | no_fix | error
+                'gpsattempts': locate_status['attempts'],
+                'gpserror': locate_status['error'],
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,
-                'rbcerror': self._sm.rbc_error,
+                'rbcerror': self._sm.mac_error,
+                'alignmodel': [self._sm.mac_d2, self._sm.mac_d3, self._sm.mac_terms()[2] * 100],
+                'alignstatus': [self._sm.mac_offsets_status, self._sm.mac_s2_status],   # Pilot: Fitted/Held/Default
+                'alignguide': self._sm.align_guidance,
                 'sccerror': self._sm.scc_error,
                 'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
                 'sgstatus': [self._sm.valid_sync_guide, sg_interval, sg_last_time, pulseg_last_time, pecg_last_time],
                 'pec': [pec_ra._applied_rate*3600, pec_dec._applied_rate*3600, pec_ra_status, pec_dec_status],
+                # deg of motor angle, each motor's worm gear correction now (0 when PEC Worm Gear Correction is off)
+                'pecworm': [float(x) for x in self._sm.worm_error_deg],
                 # arcmin, PEC correction actually applied since the *previous* guide-sync only (resets on
                 # each sync ingest) -- same value/units as PECLOG's pec_accum field, but live between syncs.
                 'pec_accum': [pec_ra._applied_accum*60, pec_dec._applied_accum*60],
@@ -1689,6 +1923,9 @@ class Polaris:
             elif param == "site_latitude":
                 self.sitelatitude = float(Config.site_latitude)
                 self._pid.check_latlon_configured()
+                if Config.advanced_eq_mode:             # the wedge the alignment starts from depends on the latitude
+                    self._sm.optimize_alignQ_B2T()
+                    self._sm.refresh_pid_setpoints_from_q1()
             elif param == "site_longitude":
                 self.sitelongitude = float(Config.site_longitude)
                 self._pid.check_latlon_configured()
@@ -1706,11 +1943,47 @@ class Polaris:
                 self.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
             elif param == "guide_rate_dec":
                 self.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
-            elif param in ["advanced_alignment", "advanced_scc_enabled", "advanced_scc_choice", "advanced_align_mac"]:
+            elif param == "advanced_eq_mode":
+                if bool(Config.advanced_eq_mode) == self._eq_mode_live:
+                    continue                          # sent again unchanged: keep the sync points
+                self._eq_mode_live = bool(Config.advanced_eq_mode)
+                # sync points taken on a level base say nothing of a wedge (and back): with them kept, eq mode refitted
+                # the level alignment and the mount went on as alt-az. Clear them all; the M2 scale is the mount's own
+                sm = self._sm
+                m2_scale = (sm.mac_s2, sm.mac_s2_accepted, sm.mac_s2_status)
+                cleared = sum(1 for e in sm.sync_history if not e.get('deleted', False))
+                sm.set_alignQ_to_identity()           # the base seed: the ideal wedge in eq mode, level otherwise
+                sm.mac_s2, sm.mac_s2_accepted, sm.mac_s2_status = m2_scale
+                sm.optimize_alignQ_B2T()
+                sm.refresh_pid_setpoints_from_q1()
+                sm.streamSyncData()                   # and persist the empty sync list
+                self.logger.info(f"EQ MODE {'ON' if Config.advanced_eq_mode else 'OFF'}: cleared {cleared} sync points "
+                                 f"(taken on the other base)")
+            elif param in ["advanced_alignment", "advanced_scc_enabled", "advanced_scc_choice", "advanced_align_mac",
+                           "align_m2_scale"]:
                 self._sm.clear_sync_guiding()
                 self._sm.optimize_alignQ_B2T()
                 self._sm.refresh_pid_setpoints_from_q1()
                 self._sm.streamSyncData()
+            elif param == "advanced_pec_worm" or (param in ("focal_length", "focal_ratio") and Config.advanced_pec_worm):
+                # the worm gear correction is part of every sync point's prediction: refit QUEST with or without it
+                # (or with the profile for the new lens, which the next tick loads); clearing sync guiding also
+                # restarts the drift model, which learnt the drift with the other setting
+                self._sm.reload_worm_ff()
+                self._sm.clear_sync_guiding()
+                self._sm.optimize_alignQ_B2T()
+                self._sm.refresh_pid_setpoints_from_q1()
+                self._sm.streamSyncData()
+            elif param == "advanced_pec_drift":
+                self._sm.reset_pec_model()
+            elif param in ("advanced_backlash", "backlash_deg"):
+                self._pid.backlash.reset()          # start again from the motors' angles, engaged the way they track
+                if param == "advanced_backlash" and any(e.get('backlash') for e in self._sm.sync_history):
+                    # sync points taken while compensating keep their adjustment, factored in only while it is on:
+                    # refit QUEST/MAC with or without it, as for the worm gear correction
+                    self._sm.optimize_alignQ_B2T()
+                    self._sm.refresh_pid_setpoints_from_q1()
+                    self._sm.streamSyncData()
             elif param == "ref_action":
                 if changed_params["ref_action"]=="update":    # Update Reference Position with Current Orientation
                     match Config.ref:
@@ -2344,6 +2617,15 @@ class Polaris:
             self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
             return
 
+        if self._worm_test_rolling:
+            # the worm profile test is rotating: an exposure taken while moving must not become an alignment point
+            self.logger.info("->> Polaris: SYNC ignored: the worm profile test is rotating to or from its roll")
+            return
+        if self._sm.worm_test is not None:
+            # worm profile test: a measurement of the motors' gear error, not applied to any model
+            self._sm.record_worm_sync(a_ra, a_dec, a_az, a_alt)
+            return
+
         syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
         self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
 
@@ -2549,9 +2831,10 @@ class Polaris:
 
 
     def theta_to_alpha(self, theta) -> tuple:
-        """Motor angles in the PID's base frame (theta1-3, deg) -> topocentric Az/Alt/Roll, through the
-        same corrections as the live position (MAC, SGC, PGC, QUEST, LGA, roll_adj)."""
-        cameraQ, _ = self._sm.baseQ_to_topoQ(theta_to_q(*theta))
+        """The PID's motor angles (theta_ref / theta_pv, deg) -> topocentric Az/Alt/Roll. They are already corrected
+        (worm, MAC, sync and pulse guiding), so only QUEST, SCC and roll_adj remain: the inverse of how
+        topoQ_to_baseQ makes theta_ref."""
+        cameraQ = self._sm.pvQ_to_topoQ(theta_to_q(*theta))
         return q_to_azaltroll(cameraQ)
 
     def parse_slew_parameters(self, parameters: dict) -> dict:
@@ -2611,6 +2894,11 @@ class Polaris:
                 await self.send_cmd_change_tracking_state(True)
 
     def pulse_guide(self, direction: int, duration: int):
+        if self._sm.worm_test is not None:
+            # a guider moving the mount would corrupt the worm profile test: end it, and drop this pulse
+            self._sm.worm_test.abort('pulse guide')
+            self.logger.warning(f"WORM PROFILE TEST: stopped by a pulse guide (dropped: direction {direction}, {duration}ms)")
+            return
         if Config.advanced_pulse_guiding and Config.advanced_control:
             if Config.log_pulse_guiding:
                 self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")

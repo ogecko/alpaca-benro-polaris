@@ -3,9 +3,9 @@
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
-* **Version:** 2.2.0 Beta 6
-* **Release Date:** 23-Sep-2026
-* **Availability:** Download from [Alpaca Driver v2.2 Beta 6 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
+* **Version:** 2.2.0 Beta 8
+* **Release Date:** TBD
+* **Availability:** Download from [Alpaca Driver v2.2 Beta 8 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
 * **Current Branch:** dev2_2
 
@@ -27,16 +27,30 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
+## What's new in v2.2 Beta 8
+- **[GPS Location]** Locate the observing site with a GPS receiver plugged into the Alpaca Driver's computer (thanks to @rbaranga for authorship).
+- **[PEC Drift]** PEC learns the remaining drift as a 7.5 minute moving average, ignoring PHD2/CCDciel calibration pulses, and ignoring backlash correction pulses, so it can always remain enabled.
+- **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. 
+- **[PEC Settings]** PEC Drift Correction and PEC Worm Gear Correction are switched separately in Pilot's settings; the status panel's PEC button switches both
+- **[MAC and MPA]** Mechanical Alignment Correction is rebuilt, reducing Multi Point Polar Alignment Residuals below 10' (previously up to 120'), leading to reduced drift.
+- **[Backlash Compensation]** Takes up gear backlash after a goto, improving Slew & Center accuracy. 
+- **[Goto Plans]** Gotos are fully planned before they begin, including the path, flips, unwinds, rolls and braking. Typical slews complete around 25% faster.
+- **[Oribital Accuracy]** Improve orbital tracking by advancing the tracking setpoint by 0.3 seconds, enabling Starlink satellites to be tracked at 680 mm focal length.
+- **[Roll Accuracy]** Improved Kalman Filter handling of the Astro Module's slower updates, leading to more accurate pointing during rolls.
+- **[Zero M2 Roll]** Use the **ZM2** preset on the Dashboard's Roll dial to select a roll angle that minimises M2 movement over the next 120 minutes, helping to reduce tracking disturbances.
+- **[Resume Tracking]** Tracking resumes from its previous position after a driver restart, provided the restart occurs within 10 minutes.
+- **[Smooth Charts]** Live charts on the Analysis pages scroll smoothly and use less CPU.
+- **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
+- **[Guiding Tips]** Add a new section **Improving Guiding Performance**, in the [Guiding guide](./guiding.md#6-improving-guiding-performance) explaining how to recognise and solve common guiding problems.
+- **[PINS and Touch n Stars]** Update the Raspberry Pi documentation with instructions for installing the Alpaca Driver on a PINS Pi and configuring it for use with Touch ’n Stars.
+- **[Network Settings]** Added a configurable update timeout to prevent transient Alpaca Pilot warnings caused by mobile or laptop Wi-Fi power-saving modes.
+- 
 ## What's new in v2.2 Beta 7
-- **[Speed Controller v2]** Improve tracking at low alt/zero roll. Improve response to guiding corrections. Add motor speed control v2 based on new SLOW (532/533/534) protocol understanding.
-- **[Motion Planner v2]** Reduce drifting while rolling. Add improved motion planning v2 (plans motor speed profiles, slowing on tight "curves")
-- **[Ramped Jogging]** Reduce jogging overshoot by ramping "up to" and "down from" jogging speed changes.
-- **[Goto Settle Time]** Reduce goto settle time by preventing Ki windup and false marking of completion.
-- **[PEC Guider Calibration]** PEC detects and ignores PHD2/CCDciel calibration pulses, so PEC can stay on while calibrating.
-- **[Smooth Charts]** Live charts on the Analysis pages (PID, Kalman, PWM, Speed) now scroll smoothly instead of hiccuping now and then, and use less CPU in the browser.
-- **[Restore Tracking]** Restore the previous tracking target when the driver restarts within 10 minutes.
-- **[CCDciel Scripts]** New CCDciel scripts for Sync Guiding, Panoramas and Absolute/Relative slews on any axis (RA/Dec/PA, Az/Alt/Roll, galactic or motor), with a Windows installer (`utility/ccdciel/install.bat`). The CCDciel guide now covers autofocus, plate solving, scripting and pulse guiding.
-  
+- **[Speed Controller v2]** Better tracking at low altitude and zero roll, and a better response to guiding, from a new motor speed controller.
+- **[Motion Planner v2]** Less drift while rolling: motor speed profiles are planned, slowing on tight curves.
+- **[Ramped Jogging]** Less jogging overshoot: jog speed changes are ramped.
+- **[Goto Settle Time]** Gotos settle faster, without Ki windup or completing too early.
+
 ## What's new in v2.2 Beta 6
 - **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
 - **[Raspberry Pi Install]** major refresh of Raspberry Pi installation with setup.sh. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also performs network setup (join Wifi, no driver build, Bluetooth auto-enabled) and setups up auto startup.
@@ -232,6 +246,7 @@
 * Desktop PC, AMD 7950X (Stellarium Desktop, Siril)
 * Desktop PC, AMD Ryzen 5 3600
 * Raspberry Pi Zero 2 W and up (Driver)
+* GPS Receivers: u-blox 7 UBX-G7020; G71 G-Mouse VK-172; BN-808 G-Mouse UBX-M8030-KT; M10 G-Mouse UBX-M10050-KB (u-blox SR1612U10)
 ### Portable/Mobile Equipment
 * iPhone 13 Max (Stellarium Mobile PLUS)
 * iPad Pro 3rd Generation

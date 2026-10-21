@@ -293,6 +293,9 @@ def _start_eventloop_watchdog(lifecycle, logger, heartbeat_sec=0.1, threshold_se
     t = threading.Thread(target=heatbeat_monitor, name='loop_watchdog_monitor', daemon=True)
     t.start()
     logger.info('==STARTUP== Heartbeat watchdog thread started.')
+    if Config.log_heartbeat:
+        shr.GcPauseLogger(logger).install()
+        logger.info(f'==STARTUP== Logging garbage collections over {shr.GC_LOG_MIN_S * 1000:.0f} ms (log_heartbeat).')
 
 
 # ==================================================================

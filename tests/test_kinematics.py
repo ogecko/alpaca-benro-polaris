@@ -17,7 +17,6 @@ from kinematics import (
     azaltroll_to_q, azaltroll_to_theta, angular_error_arcmin,
     wrap360, wrap180, wrap90,
     calc_parallactic_angle, crota2_from_cd, crota2_to_roll,
-    apply_mechanical_corrections, MountModelParams,
     quest_solve,
 )
 
@@ -71,57 +70,6 @@ class TestKinematics:
 # ── Unit tests: mechanical axis corrections ───────────────────────────────────
 
 
-class TestMechanicalCorrections:
-
-    def test_zero_params_is_identity(self):
-        """MountModelParams with all zeros should not change pointing."""
-        params = MountModelParams()
-        for t1, t2, t3 in [(180, 40, 0), (90, 30, 20), (270, 50, -30)]:
-            q = theta_to_q(t1, t2, t3)
-            q_corr, _ = apply_mechanical_corrections(q, params)
-            az0, alt0, _ = q_to_azaltroll(q)
-            azc, altc, _ = q_to_azaltroll(q_corr)
-            err = angular_error_arcmin(az0, alt0, azc, altc)
-            assert err < TIGHT_TOL, f"Zero params changed pointing by {err}'"
-
-    def test_m2_tilt_zero_crossing(self):
-        """At theta2 = m2_tilt_dm2_zero, M2 tilt correction should be zero."""
-        params = MountModelParams(m2_tilt_dm2_amp=52.0, m2_tilt_dm2_zero=36.4)
-        q = theta_to_q(180, 36.4, 0)
-        q_corr, _ = apply_mechanical_corrections(q, params)
-        az0, alt0, _ = q_to_azaltroll(q)
-        azc, altc, _ = q_to_azaltroll(q_corr)
-        err = angular_error_arcmin(az0, alt0, azc, altc)
-        assert err < TIGHT_TOL, f"M2 tilt correction at zero crossing = {err}'"
-
-    def test_m2_tilt_affects_only_altitude(self):
-        """M2 tilt correction should not change azimuth or roll."""
-        params = MountModelParams(m2_tilt_dm2_amp=52.0, m2_tilt_dm2_zero=36.4)
-        q = theta_to_q(180, 50, 0)
-        q_corr, _ = apply_mechanical_corrections(q, params)
-        az0, _, roll0 = q_to_azaltroll(q)
-        azc, _, rollc = q_to_azaltroll(q_corr)
-        assert abs(wrap180(azc - az0)) * 60 < TIGHT_TOL,   "M2 tilt changed azimuth"
-        assert abs(wrap180(rollc - roll0)) * 60 < TIGHT_TOL, "M2 tilt changed roll"
-
-
-    def test_m2_correction_produces_zero_roll(self):
-        """M2 tilt correction rotates around M2 axis (⊥ boresight) so roll is unchanged."""
-        params = MountModelParams(m2_tilt_dm2_amp=52.0, m2_tilt_dm2_zero=36.4)
-        for t1, t2 in [(90, 30), (180, 45), (270, 60), (45, 70)]:
-            q = theta_to_q(t1, t2, 0)
-            q_corr, _ = apply_mechanical_corrections(q, params)
-            _, _, roll0 = q_to_azaltroll(q)
-            _, _, rollc = q_to_azaltroll(q_corr)
-            droll = abs(wrap180(rollc - roll0)) * 60
-            assert droll < TIGHT_TOL, \
-                f"M2 correction changed roll by {droll}' at t1={t1} t2={t2}"
-
-
-# ── Unit tests: MAC correction ────────────────────────────────────────────────
-
-
-
 class TestAngleHelpers:
     def test_wrap180(self):
         assert pm.wrap180(270)  == -90.0
@@ -161,40 +109,6 @@ class TestAngleHelpers:
         assert isinstance(roll, float) and isinstance(para, float)
         assert -180 <= roll <= 180 and -180 <= para <= 180
 
-
-class TestM3TiltCorrection:
-    """Tests for M3 tilt correction (m3_tilt_dm2) — was B5."""
-
-    def test_m3_tilt_dm2_stored_in_arcmin_per_deg(self):
-        """m3_tilt_dm2 field stores value directly in arcmin/deg (no /60 in dataclass)."""
-        p = pm.MountModelParams(m3_tilt_dm2=-2.394)
-        assert p.m3_tilt_dm2 == pytest.approx(-2.394)
-
-    def test_m3_tilt_dm2_no_correction_at_t3_zero(self):
-        """M3 tilt correction should be zero when theta3=0."""
-        p = pm.MountModelParams(m3_tilt_dm2=-2.394)
-        q = pm.theta_to_q(180, 40, 0)
-        q_corr, _ = pm.apply_mechanical_corrections(q, p)
-        t1r, t2r, t3r = pm.q_to_theta(q)
-        t1c, t2c, t3c = pm.q_to_theta(q_corr)
-        assert abs(t2c - t2r) < 0.01
-
-    def test_m3_tilt_and_m2_tilt_independent(self):
-        """M3 tilt and M2 tilt applied together give independent corrections."""
-        p_m3_only = pm.MountModelParams(m3_tilt_dm2=-2.394)
-        p_both    = pm.MountModelParams(m3_tilt_dm2=-2.394,
-                                        m2_tilt_dm2_amp=52.2, m2_tilt_dm2_zero=36.4)
-        q = pm.theta_to_q(180, 60, 30)
-        q_m3, _    = pm.apply_mechanical_corrections(q, p_m3_only)
-        q_both,_   = pm.apply_mechanical_corrections(q, p_both)
-        t1_m3,   t2_m3,   _ = pm.q_to_theta(q_m3)
-        t1_both, t2_both, _ = pm.q_to_theta(q_both)
-        # M2 tilt adds additional theta2 correction on top of M3 tilt
-        # At theta2=60, zero=36.4: sin(23.6°)=0.40, correction = 52.2*0.40/60 = 0.35°
-        assert abs(t2_m3 - t2_both) > 0.1, "M2 tilt should add extra theta2 shift on top of M3 tilt"
-
-
-# ── Unit tests: calc_equatorial_axes_B ───────────────────────────────────────
 
 from kinematics import calc_equatorial_axes_B
 class TestCalcEquatorialAxesB:

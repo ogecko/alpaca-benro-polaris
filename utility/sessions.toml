@@ -455,3 +455,191 @@ driver = "v2.2.0 Beta 5.0"
 guiding = "pulse (PHD2)"
 records = ["pec"]
 notes = "pulse guiding, pec with logs(pec)"
+
+[sessions."jdm_Beta7.3_10_04_worm"]
+logs = ["alpaca.jdm_Beta7.3_10_04_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta7.3_10_04_worm_a1_PHD2_GuideLog_2026-10-04_183457.txt"
+date = "2026-10-04"
+driver = "v2.2.0 Beta 7.3"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = "first worm gear profile, and pulse guiding after"
+
+[sessions."jdm_Beta8.0_10_06_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_06_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_06_worm_a1_PHD2_GuideLog_2026-10-06_165252.txt"
+date = "2026-10-06"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = "300mm f2.8 (2.4 kg). Worm profile tests 22:13 and 22:32 (Roll -30/-24). Worm on/off A/B: blocks C, D, E below. NGC1365 stops tracking ~02:20 (alt 81, M2 limit)."
+
+[sessions."jdm_Beta8.0_10_08_Tuc47_300mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = "300mm f2.8 (2.4 kg). Worm profile test 19:29 (approved 19:52, used all night). Worm on/off A/B: blocks A, B below; M2 lifting the lens gave guiding kicks every 10-40 s."
+
+# 2026-10-08 worm on/off A/B with the 300mm f2.8: one entry per block (same logs, own window)
+[sessions."jdm_Beta8.0_10_08_300mm_A_Tuc47_drift"]
+logs = ["alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 20:08"
+t_to = "2026-10-08 21:10"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block A: PEC drift only, 1 h. Roll -30, M2 lifting (kicks), M3 7-20 deg. PHD2 5.9/4.4". Profile would have removed 76% of the slow error.'
+
+[sessions."jdm_Beta8.0_10_08_300mm_B_Tuc47_drift_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 21:11"
+t_to = "2026-10-08 22:10"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block B: PEC drift + worm, 1 h. M2 lifting (kicks), M3 22-29 deg. PHD2 7.6/4.6" (kicks). Worm removed 73% of the slow error.'
+
+[sessions."jdm_Beta8.0_10_08_300mm_C_C62_drift_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 23:08"
+t_to = "2026-10-08 23:35"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block C: PEC drift + worm, 27 min. Roll -60 (M2 still), M3 16-21 deg. PHD2 1.9/2.1". Too short for the worm (<1 turn).'
+
+[sessions."jdm_Beta8.0_10_08_300mm_D_C62_drift"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-08 23:35"
+t_to = "2026-10-09 00:05"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block D: PEC drift only, 30 min. Roll -60 (M2 still), M3 10-15 deg. PHD2 2.2/3.7". Too short for the worm (<1 turn).'
+
+[sessions."jdm_Beta8.0_10_08_300mm_E_NGC1365_drift_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_08_C62_NGC1365_300mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_08_Tuc47_300mm_worm_a1.log_PHD2_GuideLog_2026-10-08_183156.txt"
+t_from = "2026-10-09 00:12"
+t_to = "2026-10-09 02:20"
+date = "2026-10-08"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = 'Block E: PEC drift + worm, 2.2 h. Roll +60, M3 -35..-11 deg (never calibrated): measured M3 50"@135 vs profile 99"@205, the worm correction added slow error. PHD2 2.0/2.0".'
+
+[sessions."jdm_Beta8.0_10_10_M11_200mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_10_M11_200mm_worm_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_10_M11_200mm_worm_a1_PHD2_GuideLog_2026-10-10_192848.txt"
+date = "2026-10-10"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_10_NGC1763_200mm_worm"]
+logs = ["alpaca.jdm_Beta8.0_10_10_NGC1763_200mm_worm_a*.log"]
+date = "2026-10-10"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_11_NGC2006_200mm_worm_mac"]
+logs = ["alpaca.jdm_Beta8.0_10_11_NGC2006_200mm_worm_mac_a*.log"]
+date = "2026-10-11"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_11_SMC_200mm_worm_mac"]
+logs = ["alpaca.jdm_Beta8.0_10_11_SMC_200mm_worm_mac_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_11_SMC_200mm_worm_mac_a1_PHD2_GuideLog_2026-10-11_191748.txt"
+date = "2026-10-11"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["kf", "pec", "pid"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_14_Tuc47_Pegasus_200mm_worm_mac_blc"]
+logs = ["alpaca.jdm_Beta8.0_10_14_Tuc47_Pegasus_200mm_worm_mac_blc_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_14_Tuc47_Pegasus_200mm_worm_mac_blc_a1_PHD2_GuideLog_2026-10-14_175056.txt"
+date = "2026-10-14"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = "19:56 SPA, 19:57 MPA6, 20:10 WormProfile, 20:33 SCC Gotos, 20:48 PHD2Calib, 20:50 Tuc47, 22:22 Pegasus, 22:24 Rotate0, 22:42 Rotate18, 22:34 PHDCalib, 22:48 Pegasus PG, 23:15 Pegasus SG; Differences from prev nights: 1. I aligned SPA close to correct MPA alignment, 2. Used GPS Receiver for lat/lon, 3. Added a roll_adj of around 1 degree based on ASTAP platesolve roll."
+
+[sessions."jdm_Beta8.0_10_15_Goto_Response"]
+logs = ["alpaca.jdm_Beta8.0_10_15_Goto_Response_a*.log"]
+date = "2026-10-15"
+driver = "v2.2.0 Beta 8.0"
+guiding = "none"
+records = ["kf", "pid"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_17_Goto_Plan"]
+logs = ["alpaca.jdm_Beta8.0_10_17_Goto_Plan_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_17_Goto_Plan_a1_PHD2_GuideLog_2026-10-17_181736.txt"
+date = "2026-10-17"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
+
+[sessions."mark_Beta8.0_10_17_PulseGuide"]
+logs = ["alpaca.mark_Beta8.0_10_17_PulseGuide_a*.log"]
+phd2 = "alpaca.mark_Beta8.0_10_17_PulseGuide_a1_PHD2_GuideLog_2026-10-17_210622.txt"
+date = "2026-10-17"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_18_SyncGuide_and_PulseGuide"]
+logs = ["alpaca.jdm_Beta8.0_10_18_SyncGuide_and_PulseGuide_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_18_SyncGuide_and_PulseGuide_a1_PHD2_GuideLog_2026-10-18_194740.txt"
+date = "2026-10-18"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_19_PG"]
+logs = ["alpaca.jdm_Beta8.0_10_19_PG_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_19_PG_a1_PHD2_GuideLog_2026-10-19_185152.txt"
+date = "2026-10-19"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2) + sync"
+records = ["pec", "sg", "sync"]
+notes = ""
+
+[sessions."jdm_Beta8.0_10_20_KFLOG_PIDLOG_Orbital_PulseGuide"]
+logs = ["alpaca.jdm_Beta8.0_10_20_KFLOG_PIDLOG_Orbital_PulseGuide_a*.log"]
+phd2 = "alpaca.jdm_Beta8.0_10_20_KFLOG_PIDLOG_Orbital_PulseGuide_a1_PHD2_GuideLog_2026-10-20_181114.txt"
+date = "2026-10-20"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["kf", "pec", "pid"]
+notes = ""

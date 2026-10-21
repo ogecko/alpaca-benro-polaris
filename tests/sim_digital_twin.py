@@ -28,11 +28,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 sys.path.insert(0, os.path.dirname(__file__))
 
 import control                                                           # noqa: E402
+import control_worm                                                      # noqa: E402
 from config import Config, CONFIG_TOML_PATH                             # noqa: E402
 from control import PID_Controller, SyncManager, KalmanFilter           # noqa: E402
 from kinematics import theta_to_q, q_to_theta, q_to_azaltroll, calc_parallactic_angle, wrap360, THETA2_MIN_MEAS  # noqa: E402
-from speed_controller import RateUnits, SpeedCoordinator                # noqa: E402
-from sim_polaris_mcu import McuModel                                          # noqa: E402
+from speed_controller import fast_rate_units, SpeedCoordinator          # noqa: E402
+from sim_polaris_mcu import McuModel, _FAST_UNITS, _FAST_DPS                  # noqa: E402
 from shr import deg2rad, rad2deg, rad2hr                                # noqa: E402
 
 LAT, LON = -33.654651, 151.12
@@ -45,10 +46,15 @@ START_UTC = _dt.datetime(2026, 9, 27, 11, 0, 0)
 TWIN_CONFIG = {
     "advanced_control": True, "advanced_kf": True, "advanced_slewing": True, "advanced_goto": True,
     "advanced_tracking": True, "advanced_alignment": False, "advanced_scc_enabled": False,
-    "advanced_align_mac": False, "advanced_pec": False, "advanced_sync_guiding": False,
+    "advanced_align_mac": False, "advanced_pec_drift": False, "advanced_pec_worm": False, "advanced_sync_guiding": False,
+    "advanced_backlash": False,         # its own default, whatever config.toml ships: BLC tests switch it on (the twin has
+                                        # no gear backlash unless asked, backlash_deg)
     "advanced_pulse_guiding": True, "advanced_orbitals": False, "coordinated_speed_control": False,
     "log_position": False, "log_pec": False, "log_quest_model": False,
     "site_latitude": LAT, "site_longitude": LON, "pid_Ka": 0.0, "pid_Kv": 0.0,
+    "pid_Kt": 0.35, "pid_Kl": 0.4,      # the twin's lag, fitted open loop (a straight move tracks its plan within 0.21 deg):
+                                        # McuModel's 0.35 s first order plus the speed ramp and the KF (0.6 s by
+                                        # cross-correlation; the mount 0.2-0.4 s)
 }
 
 
@@ -173,8 +179,19 @@ class TwinPolaris:
         self.goto_complete_at = self.twin.clock.monotonic()
 
 
+def twin_fast_calibration(table):
+    """A speed table with its FAST points measured on the twin's motors (sim_polaris_mcu's FAST table)."""
+    out = {k: list(v) for k, v in table.items()}
+    i = out["RAW"].index(5) + 1
+    for k, raw in enumerate(out["RAW"][i:], start=i):
+        if raw in _FAST_UNITS:
+            out["DPS"][k] = _FAST_DPS[_FAST_UNITS.index(raw)]
+    return out
+
+
 class Twin:
-    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0, m3_hold_s=M3_HOLD_S):
+    def __init__(self, monkeypatch, config=None, fast_lag_s=0.35, seed=0, m3_hold_s=M3_HOLD_S, backlash_deg=0.0,
+                 calibrated=False):
         Config.load(tomlpath=CONFIG_TOML_PATH, pilotpath="/nonexistent")
         for key, value in {**TWIN_CONFIG, **(config or {})}.items():
             monkeypatch.setattr(Config, key, value, raising=False)
@@ -183,12 +200,22 @@ class Twin:
         shim = types.SimpleNamespace(datetime=_Datetime, timedelta=_dt.timedelta)
         monkeypatch.setattr(control, "datetime", shim)
         monkeypatch.setattr(control.time, "monotonic", self.clock.monotonic)
+        if control_worm.WORM_PROFILE_PATH == control_worm.DATA_DIR / 'worm_profile.json':
+            # the worm gear correction uses data/worm_profile.json when it is switched on: a developer's own must not
+            # change the twin (a test that wants a profile sets control_worm.WORM_PROFILE_PATH before creating the twin)
+            monkeypatch.setattr(control_worm, "WORM_PROFILE_PATH", control_worm.DATA_DIR / 'twin_has_no_worm_profile.json')
         monkeypatch.setattr(ephem, "now", lambda: ephem.Date(self.clock.utc()))
         self.rng = np.random.default_rng(seed)
         self.logger = logging.getLogger("twin")
         self.polaris = TwinPolaris(self)
         if Config.coordinated_speed_control:
-            units = {a: RateUnits(control.CalibrationManager(liveInstance=False).baseline_data[a]) for a in range(3)}
+            cm = control.CalibrationManager(liveInstance=False)
+            # the twin's motors all run M1's FAST table (sim_polaris_mcu), so M2/M3 run faster than the driver's
+            # baseline says, as the mount's do; calibrated=True gives the driver an approved FAST calibration of them
+            calibration = cm.baseline_data
+            if calibrated:
+                calibration = {a: twin_fast_calibration(cm.baseline_data[a]) for a in range(3)}
+            units = fast_rate_units(calibration, cm.baseline_data)
             self.core = SpeedCoordinator(units)
             self.polaris._motors = {a: MotorShim(self.core, units, a, self.clock) for a in range(3)}
             self._motor_tick = lambda t: [msg for _a, msg in self.core.tick(t)]
@@ -207,21 +234,44 @@ class Twin:
         self._last_raw = None
         self.m3_hold_s = m3_hold_s
         self._m3_held, self._m3_next = None, self.clock.t
+        # Gear backlash after the motor: the MCU (and so the driver) measures the motor's angle, but the pointing
+        # follows the output shaft, which lags it by up to the dead band when the motor reverses
+        self.backlash = np.broadcast_to(np.asarray(backlash_deg, float), (3,)).copy()
+        self.output = self.mcu.position.copy()
         self.pid.check_latlon_configured()
 
     # ---- mount state -----------------------------------------------------------------
     def place(self, theta):
         """Put the mount at motor angles theta (deg) and let the loop settle idle."""
         self.mcu.position = np.array(theta, dtype=float)
+        self.output = self.mcu.position.copy()            # slack centred: neither side taken up
         self.kf = KalmanFilter(self.logger, np.concatenate([self.mcu.position, np.zeros(3)]))
         self._last_raw = None
         self._m3_held = None
+        self.pid._lp_seeded = False                      # the driver meets the mount here: seed its branch afresh
         self.run(2.0)
         self.pid.reset_sp()
 
     @property
     def theta(self):
         return self.mcu.position.copy()
+
+    @property
+    def true_theta(self):
+        """The output shafts' angles: the motors' less the backlash not yet taken up."""
+        return self.output.copy()
+
+    def true_radec(self):
+        """Where the camera really points (RA hours, Dec deg), from the output shafts (the twin has no hidden
+        alignment)."""
+        az, alt, _ = q_to_azaltroll(theta_to_q(*self.output))
+        return self.polaris.altaz2radec(alt, az)
+
+    def _update_output(self):
+        half = self.backlash / 2
+        lead = self.mcu.position - self.output
+        self.output = np.where(lead > half, self.mcu.position - half,
+                               np.where(lead < -half, self.mcu.position + half, self.output))
 
     # ---- the control loop --------------------------------------------------------------
     def _measure_and_control(self):
@@ -235,13 +285,16 @@ class Twin:
         omega_meas = omega_ref if self._last_raw is None else (theta_raw - self._last_raw) / MEASURE_DT
         self._last_raw = theta_raw
         p._theta_raw = theta_raw
+        p._q1 = theta_to_q(*theta_raw)                      # polaris.py: the raw 518 motor quaternion (refresh_pid_setpoints_from_q1)
         p._zeta_meas = [theta_raw[0] - 180.0, theta_raw[1] - 45.0, theta_raw[2]]   # "517" raw motor angles (hardware: zeta = theta - (180, 45, 0))
+        self.pid.seed_branch(p._zeta_meas)                # polaris.decode_518position_measurement does the same
         self.kf.predict(omega_ref)
         is_tracking = self.pid.mode == 'TRACK'
-        self.kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self.pid.theta_ref if is_tracking else None))
+        self.kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self.pid.theta_ref if is_tracking else None),
+                        goto=self.pid.move_pending())
         theta_state, _ = self.kf.get_state()
         motorQ_state = theta_to_q(*theta_state)
-        cameraQ_pv, motorQ_pv = p._sm.baseQ_to_topoQ(motorQ_state)
+        cameraQ_pv, motorQ_pv = p._sm.baseQ_to_topoQ(motorQ_state, theta=theta_state)
         theta_pv = np.array(q_to_theta(motorQ_pv, self.pid._lp, theta2_min=THETA2_MIN_MEAS))
         p._sm.cache_axes_B(cameraQ_pv if self.pid.cameraQ_ref is None else self.pid.cameraQ_ref)
         p._motorQ_state = motorQ_state
@@ -269,6 +322,7 @@ class Twin:
                 self.mcu.feed(self.clock.t, msg)
             self.clock.t = round(self.clock.t + SIM_DT, 9)
             self.mcu.advance(self.clock.t)
+            self._update_output()
 
     # ---- driver-level actions (mirror the thin glue in polaris.py) ---------------------
     def start_tracking(self):

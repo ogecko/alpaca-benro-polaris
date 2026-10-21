@@ -189,7 +189,7 @@ sync-guiding PEC test, that means the same steps a real session goes through:
    clean, reproducible starting point. This wipes any existing real alignment model, so only do this against a
    mount you're happy to have re-aligned afterwards.
 2. **Slew to the test target** — a real captured `Polaris:SlewAbsolute` line (az/alt/roll).
-3. **Turn on what the test needs** — `Polaris:ConfigUpdate` for `advanced_pec`, `advanced_sync_guiding` (for
+3. **Turn on what the test needs** — `Polaris:ConfigUpdate` for `advanced_pec_drift` (and `advanced_pec_worm`), `advanced_sync_guiding` (for
    `SYNCGUIDE_PE`) or `advanced_pulse_pec_tuning` (for `PULSEGUIDE_PE`), plus `log_position` for extra
    telemetry during system tests.
 4. **Tracking on** — `telescope/0/tracking`, off then on, to clear any old guide-correction/PEC-model state and

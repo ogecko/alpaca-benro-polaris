@@ -31,7 +31,7 @@ def peclog_df(n_s=3600, dt=10.0, reset_at=None):
         rows.append(dict(timestamp=t0 + pd.Timedelta(seconds=float(t)), t_sec=float(t), n=n,
                          resid_1=np.nan if r1 is None else r1, resid_2=np.nan if r2 is None else r2,
                          pec_accum_1=pec1, pec_accum_2=pec2, total_accum_1=acc[0], total_accum_2=acc[1],
-                         fit_rate_1=12.0, fit_rate_2=0.0, ra_model_1=9.0, dec_model_1=0.0,
+                         fit_rate_1=12.0, fit_rate_2=0.0,
                          applied_rate_1=12.0, applied_rate_2=0.0, inhibit_1='VALID', inhibit_2='LOW_R2'))
         n += 1
     return pd.DataFrame(rows)
@@ -69,10 +69,66 @@ def test_rates_sum_to_the_drift_rate():
     assert np.allclose(x['drift_rate'], x['pulse_guide_rate'] + x['sync_guide_rate'] + x['pec_applied_rate'], atol=1e-9)
 
 
-def test_pec_rate_terms_are_signed_contributions():
+def test_pec_model_rate_and_active_per_axis():
     b = correction_breakdown(peclog_df())
     x = b['ra']
     assert x['pec_model_rate'].iloc[-1] == pytest.approx(12.0)
-    assert x['pec_steady_term'].iloc[-1] == pytest.approx(9.0)
-    assert x['pec_harmonic_term'].iloc[-1] == pytest.approx(3.0)        # model rate - steady term
     assert bool(x['pec_active'].iloc[-1]) and not bool(b['dec']['pec_active'].iloc[-1])
+
+
+# ── worm feed-forward nights ──────────────────────────────────────────────────────────────────
+def with_wff(df):
+    """PECLOG wff (arcmin): the feed-forward's correction at each row, split along RA/Dec (a level, not a sum)."""
+    df = df.copy()
+    df['wff_1'] = 0.2 * np.sin(df['t_sec'] / 600)
+    df['wff_2'] = -0.1 * np.cos(df['t_sec'] / 600)
+    return df
+
+
+def test_without_wff_the_worm_ff_column_is_zero():
+    b = correction_breakdown(peclog_df())
+    assert (b['ra']['worm_ff'] == 0).all() and (np.nan_to_num(b['ra']['worm_ff_rate']) == 0).all()   # NaN: window edges
+
+
+def test_on_a_worm_feed_forward_night_mount_drift_adds_back_what_it_corrected():
+    df = with_wff(peclog_df())
+    b = correction_breakdown(df)
+    for ax, i in (('ra', 1), ('dec', 2)):
+        x = b[ax]
+        own = df[f'resid_{i}'].notna()
+        w = df.loc[own, f'wff_{i}'].values * 60
+        assert np.allclose(x['worm_ff'], w - w[0])                # running total from the first row, arcsec
+        assert np.allclose(x['mount_drift'], x['pulse_guide'] + x['sync_guide'] + x['pec_applied'] + x['worm_ff'])
+        assert np.allclose(x['drift_rate'], x['pulse_guide_rate'] + x['sync_guide_rate'] + x['pec_applied_rate']
+                           + x['worm_ff_rate'], equal_nan=True)
+
+
+def test_wff_missing_on_early_rows_counts_as_none_applied_yet():
+    df = with_wff(peclog_df())
+    df.loc[df['t_sec'] < 600, ['wff_1', 'wff_2']] = np.nan
+    x = correction_breakdown(df)['ra']
+    early = x['t_sec'] < 600
+    assert (x.loc[early, 'worm_ff'] == 0).all() and not np.isnan(x['worm_ff']).any()
+
+
+def test_rates_never_cross_a_reset():
+    """2026-10-10: the worm feed-forward switched off at 21:04:52 (a PEC reset) dropped its +40" correction at once;
+    +-5 min slopes across the reset spread that step over 21:00-21:10, showing a worm rate before it changed and
+    after it was off. Each PEC run's rates come from its own rows only."""
+    df = with_wff(peclog_df(reset_at=900.0))                                   # wff_1 near its 12" peak here
+    df.loc[df['t_sec'] >= 900.0, ['wff_1', 'wff_2']] = 0.0                    # switched off at the reset
+    x = correction_breakdown(df, rate_half_window_s=300)['ra']
+    after = x['t_sec'] >= 900.0
+    assert np.allclose(x.loc[after, 'worm_ff_rate'].dropna(), 0.0)            # off: no worm rate at all
+    before = (x['t_sec'] > 600) & (x['t_sec'] < 900)                           # the last 5 min before it
+    want = 0.2 * 60 * np.cos(x.loc[before, 't_sec'] / 600) / 600 * 60          # d(wff)/dt, arcsec/min
+    got = x.loc[before, 'worm_ff_rate']
+    ok = got.notna()
+    assert ok.sum() > 5 and np.allclose(got[ok], want[ok], atol=0.3)          # the worm's own rate, no step in it
+
+
+def test_drift_for_pec_is_the_drift_without_the_worm_feed_forward():
+    df = with_wff(peclog_df())
+    x = correction_breakdown(df)['ra']
+    assert np.allclose(x['drift_for_pec'], x['pulse_guide'] + x['sync_guide'] + x['pec_applied'])
+    assert np.allclose(x['drift_for_pec_rate'], x['drift_rate'] - x['worm_ff_rate'], equal_nan=True)

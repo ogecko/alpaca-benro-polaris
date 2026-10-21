@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import numpy as np
 from control import SyncManager
+import control_worm
 from kinematics import calc_parallactic_angle, calc_equatorial_axes_B, radec_to_altaz, azalt_to_radec
 from kinematics import quaternion_to_angles, azaltroll_to_q, q_to_azaltroll
 from shr import format_timestamp
@@ -21,7 +22,10 @@ DEFAULT_LAT    = -33.86
 DEFAULT_LON    = 151.12
 
 @pytest.fixture
-def mock_config():
+def mock_config(tmp_path, monkeypatch):
+    # the worm gear correction uses worm_profile.json when switched on: start without one (a developer's own
+    # data/worm_profile.json must not change these tests); a test that wants one points WORM_PROFILE_PATH at its own
+    monkeypatch.setattr(control_worm, 'WORM_PROFILE_PATH', tmp_path / 'no_worm_profile.json')
     defaults = {
         "advanced_alignment":       True,
         "advanced_align_lga":       False,
@@ -30,33 +34,23 @@ def mock_config():
         "advanced_sync_guiding":    True,
         "advanced_scc_enabled":     True,
         "advanced_scc_choice":      0,
-        "advanced_pec":             True,
+        "advanced_eq_mode":         False,
+        "advanced_pec_drift":       True,
+        "advanced_pec_worm":        False,
         "log_quest_model":          False,
         "log_pec":                  False,
-        "pec_forgetting_factor":    0.98,
         "pec_min_observations":     3,
         "pec_max_step_arcmin":      0.5,
-        "pec_max_covariance":       0.01,
         "pec_max_rmse_arcmin":      6.0,
         "pec_max_resid_arcmin":     10.0,
-        "pec_forget_horiz":         35*60,
-        "pec_interv_alpha":         0.3,
         "pec_min_r2":               0.5,
-        "m3_tilt_dm1":              0, 
-        "m3_tilt_dm2":              0, 
-        "m3_tilt_dm3":              0, 
-        "m2_tilt_dm2_amp":          0,
-        "m2_tilt_dm2_zero":         0, 
-        "m2_roll_coupling":         0, 
-        "m2_roll_zero":             0, 
-        "m1_offset":                0, 
-        "m2_offset":                0, 
-        "m3_offset":                0, 
-        
+        "align_m2_scale":           1.0,
+
     }
     config_obj = SimpleNamespace(**defaults)
 
-    with patch('control.Config', config_obj), patch('control_pec.Config', config_obj):
+    with patch('control.Config', config_obj), patch('control_pec.Config', config_obj), \
+         patch('control_worm.Config', config_obj):
         yield config_obj
 
 class PID_Controller:
@@ -116,6 +110,18 @@ def test_sync_history(mock_config):
     assert expected_keys.issubset(sm.sync_history[0].keys())
     assert sm.sync_history[0]["a_az"] == 170
     assert sm.sync_history[1]["a_roll"] == 5
+
+def test_syncs_are_saved_to_the_redirected_file_not_data(mock_config):
+    """The sync manager saves on every sync; with SYNC_POINTS_PATH looked up when it saves, tests/conftest.py's
+    temporary file gets them (the default argument fixed at import wrote the developer's data/sync_points.json)."""
+    import control, json
+    p = Polaris()
+    sm = SyncManager(logging.getLogger(), p)
+    sm.sync_az_alt(0, 0, 170, 45.0)
+    saved = json.load(open(control.SYNC_POINTS_PATH))
+    assert str(control.SYNC_POINTS_PATH) != str(control.DATA_DIR / 'sync_points.json')
+    assert [e['a_az'] for e in saved['sync_points']] == [170]
+
 
 def test_no_sync_adj(mock_config):
     p = Polaris()

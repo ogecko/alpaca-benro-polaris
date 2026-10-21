@@ -10,7 +10,7 @@
 [Coordinated Speed](#coordinated-speed-control) | 
 [PID Controller](#pid-controller-and-performance-tuning) | 
 [Orbitals](#orbitals-and-non-sidereal-tracking) | 
-[Dev: API Testing](#developer-automated-pidpec-testing-via-alpaca-api) | 
+[Dev: API Testing](#developer-automated-pid-testing-via-alpaca-api) | 
 [Dev: PID Tuning Utility](#developer-pid-tuning-utility) 
 
 # Challenges with existing Control
@@ -27,19 +27,21 @@ With version 2.0 of the Alpaca Driver, we introduce a complete rewrite of the mo
 
 This guide provides an overview of the **Advanced Control Features** of the Alpaca Driver, including:
 
-- **Kalman Filtering:** Smooths the noisy raw telemetry from the mount into a steadier estimate of its position and velocity.
-- **Alpaca Rotator:** Exposes the third (Astro) axis as an ASCOM Rotator so you can control roll or position angle for framing, mosaics and panoramas.
-- **Slewing:** Lets the driver's own motion controller handle manual slews, moving the set point by Az/Alt/Roll or RA/Dec/PA.
-- **Advanced Goto:** Moves to targets along a shortest-path trajectory with optimised acceleration and deceleration, and preserves roll and tracking state.
-- **PID Tracking:** Uses a closed-loop, three-axis PID controller with feed-forward to hold the mount on its target during tracking.
-- **Coordinated Speed Control:** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
-- **Orbitals Tracking:** Enables non-sidereal tracking of the Sun, Moon, planets, satellites, comets and asteroids.
-- **Multi-Point Alignment:** Uses the QUEST algorithm to build a correction model from three or more plate-solve syncs, compensating for tripod tilt, polar misalignment and cone error.
-- **Mechanical Alignment Correction:** Corrects for the mount's own axis tilts (M2 and M3), which vary with altitude and roll and can otherwise reach hundreds of arcminutes, so alignment syncs are consistent.
-- **Slew & Center Correction:** Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).
-- **Sync Guiding (Plate-solve):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
-- **Pulse Guiding (Guide-camera):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
-- **Periodic Error Correction (PEC):** Learns the mount's roughly 35-minute repeating gear error from guiding corrections and applies proactive fixes every 200 ms.
+- **[Kalman Filtering](#kalman-filter):** Smooths the noisy raw telemetry from the mount into a steadier estimate of its position and velocity.
+- **[Alpaca Rotator](#alpaca-rotator):** Exposes the third (Astro) axis as an ASCOM Rotator so you can control roll or position angle for framing, mosaics and panoramas.
+- **[Slewing](./pilot.md#radial-dials):** Lets the driver's own motion controller handle manual slews, moving the set point by Az/Alt/Roll or RA/Dec/PA. No longer use Benro Polaris firmware for gotos or slews.
+- **[Advanced Goto](./kinematics.md#42-inverse-kinematics--sky--motors-angular-position):** Moves to targets along a shortest-path trajectory with optimised acceleration and deceleration, and preserves roll and tracking state.
+- **[PID Tracking](#pid-controller-and-performance-tuning):** Uses a closed-loop, three-axis PID controller with feed-forward to hold the mount on its target during tracking.
+- **[Orbitals Tracking](#orbitals-and-non-sidereal-tracking):** Enables non-sidereal tracking of the Sun, Moon, planets, satellites, comets and asteroids.
+- **[Multi-Point Alignment](#alignment-models):** Uses the QUEST algorithm to build a correction model from three or more plate-solve syncs, compensating for tripod tilt, polar misalignment and cone error.
+- **[Mechanical Alignment Correction](./kinematics.md#23-mechanical-alignment-corrections-mac):** Fits M2 and M3 offsets (how the camera sits on the head) and the M2 scale with every alignment, cutting typical alignment and goto errors from about an arcdegree to a few arcminutes.
+- **[Slew & Center Correction](./kinematics.md#22-slew--center-correction):** Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).
+- **[PEC Drift Correction](./kinematics.md#iv-drift-correction---convergence):** Learns the remaining slow drift in RA and Dec from guiding corrections and applies proactive fixes every 200 ms.
+- **[PEC Worm Gear Correction](./kinematics.md#v-worm-gear-correction---profile-calibration):** Corrects each motor's worm gear wobble (repeating every 6° of motor rotation, typically around 35 minutes while tracking) from a profile measured once by a calibration test, with no guiding needed.
+- **[Sync Guiding (Plate-solve)](./guiding.md#approach-1-plate-solvesync-guiding-hardware-free):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
+- **[Pulse Guiding (Guide-camera)](./guiding.md#approach-2-pulse-guiding-hardware-based):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
+- **[Coordinated Speed Control](#coordinated-speed-control):** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
+- **[Backlash Compensation](./kinematics.md#27-backlash-compensation):** Drives each motor through its gear backlash at the end of a goto, so Slew & Center corrections land first time (not through a tracking reversal, which is left to the guider).
 
 
 For a comprehensive technical reference on the updated kinematics, refer to [kinematics.md](./kinematics.md).
@@ -449,6 +451,8 @@ The **Kalman Filter** is like a digital stabilizer:
 
 This is exactly what the ABP driver does; giving your mount a steadier, smarter sense of where it’s pointing, even when the raw data is unreliable.
 
+This is particularly important for M3, whose position updates less frequently than the other motors. The Kalman Filter uses M3's velocity to predict its position between updates, helping maintain accurate pointing estimates during fast movements such as rolls and polar-alignment changes.
+
 ## II. Tuning and Diagnostics
 
 While the default settings are well-optimized, the **Kalman Filter Tuning** page in the Alpaca Pilot App allow deeper insight and control. To access the Kalman Filter Tuning Page, Open the **Alpaca Pilot App** and naigate to  **KF Tuning** under the Performance Tuning in the Side Menu
@@ -549,7 +553,7 @@ Calibrating your motor speed controller ensures:
 - Better guiding performance
 - Potentially improved deep-sky imaging results
 
-> **NOTE:** With [Coordinated Speed Control](#coordinated-speed-control) on, motor speed calibration is not used.
+> **NOTE:** With [Coordinated Speed Control](#coordinated-speed-control) on, only the fast-speed calibration is used: slow speeds come from the Polaris firmware's own table.
 
 
 
@@ -565,11 +569,17 @@ Calibrating your motor speed controller ensures:
 ## A. What It Changes
 
 - **Tracking:** Holds all three axes at their required speeds at the same time, which markedly improves tracking at low altitudes and near zero roll. It also responds faster to guiding corrections.
-- **Gotos and Roll Changes:** Moves along a planned path, slowing on tight curves in motor space. During a roll change the mount keeps pointing at the same Az/Alt (not tracking) or the same RA/Dec (tracking), instead of drifting.
-- **Flips:** Some gotos, for example from a negative to a positive altitude, need the mount to flip: M1 and M3 each turn about 180°. The driver decides this at the start of the goto and moves straight to the target along a planned motor path, with M1 and M3 turning in opposite directions to avoid wrapping the cables. The two flip positions overlap by about 8°, so from positive altitudes you can go down to about −8° without flipping, and from negative altitudes up to about +8°.
+- **Gotos:** Each goto is planned at the start, with a speed profile the motors can follow:
+  - **Long gotos** (the pointing moving more than 15°) prioritise speed and move in motor-angle space: each motor moves directly to its target position, with all motors arriving as quickly as possible. If multiple motor-angle solutions can achieve the target, the driver selects the fastest solution that respects motor limits and avoids cable wrap.
+  - **Short gotos** (15° or less) follow a path that moves the pointing smoothly and naturally towards the target. Changes in M3 are coordinated with M1 and M2 to maintain the pointing direction throughout the move. This allows the system to perform rolls while preserving the current pointing, rather than swinging away from the target.
+  - **Gotos while tracking** go straight in motor angles to where the target will be when the mount arrives. Very small moves, such as dithers and Slew & Center corrections, are executed at the slower, more precise speeds to ensure accurate positioning.
+- **Roll and Position Angle Changes:** The mount maintains the same Az/Alt when not tracking, or the same RA/Dec when tracking, while rotating the camera. The rotation runs at the motors' full speed. The pointing wanders a little during it, more when M1 and M3 don't yet have approved fast-speed [calibration](#motor-speed-calibration) tests (a motor running off its baseline speed pulls the pointing further off), and ends on target. At low altitudes, M1 and M3 must rotate further to achieve the same camera rotation, so large changes take longer. A rotation past what the motors can reach at that altitude goes to the nearest one they can reach, keeping the pointing.
+- **Jogging near Altitude 0:** On a level mount, jogging Az/Alt through M2 = 0 (where M1 and M3 turn about the same axis) moves the pointing and lets the camera rotation follow, instead of swinging M1 and M3 to hold it.
+- **Flips:** Some gotos, such as those crossing from negative to positive altitude, require a mount flip, with M1 and M3 each rotating by about 180°. The driver determines this at the start of the goto and moves directly to the target in motor-angle space. Where motor limits permit, M1 and M3 rotate in opposite directions to minimise cable wrap. The two flip solutions overlap by about 8°, allowing moves from positive altitude down to approximately −8°, or from negative altitude up to approximately +8°, without a flip.
+- **Unwinds:** If the nearest motor-angle solution would take M1 or M3 beyond its limit, the driver takes the alternative route around instead. In Equatorial Mode (Wedge), the driver also preserves at least 120° of tracking range on M1 (about 8 hours), performing a full-turn unwind during a goto if necessary rather than interrupting a session. While these moves are in progress, Alpaca Pilot displays **FLIP CW**, **FLIP CCW** or **UNWIND** in its status.
 - **Jogging:** Ramps up to and down from jog speeds, which reduces overshoot when you release a jog.
-- **Goto Settling:** Holds the PID integral during a goto, so it doesn't wind up and disturb tracking afterwards. A goto is only marked complete once the mount is on target.
-- **Faster Motions:** Speeds above the slow range (about 0.24°/s) use the Polaris's fast mode, with each motor running up to its own maximum.
+- **Goto Completion:** During a goto, the driver holds the PID integral to prevent integral windup from disturbing tracking afterwards. A goto is marked complete only when the mount reaches the target and the motors have settled. With Backlash Compensation enabled, this also requires the backlash to be taken up. If the goto has not completed within 45 seconds beyond its planned move time, the driver completes it anyway. The log records the outcome `GOTO complete on target`, `TIMED OUT` or `STOPPED AT A MOTOR LIMIT` along with the elapsed time and final error for each motor. A rotator move (roll or position angle) completes the same way, sharing the timeout, which restarts with each move requested: a goto timing out also completes a rotate asked for during it. It logs `ROTATE complete ...`, and until then the Pilot shows Rotating and ASCOM `IsMoving` is true.
+- **Faster Motions:** Above the slow-speed range (approximately 0.24°/s), the driver uses the Polaris's fast mode, allowing each motor to run at up to its own maximum speed.
 
 ## B. Turning It On or Off
 
@@ -577,7 +587,7 @@ In Alpaca Pilot, open the **Settings** page and use the **Coordinated Speed Cont
 
 ## C. Motor Speed Calibration
 
-With Coordinated Speed Control on, [Motor Speed Calibration](#motor-speed-calibration) is not used. Slow speeds come from the Polaris firmware's own speed table, and fast speeds from the built-in baseline.
+With Coordinated Speed Control on, slow speeds always come from the Polaris firmware's own speed table, so their calibration isn't used. Fast speeds use the [Motor Speed Calibration](#motor-speed-calibration) of each motor once its fast-speed tests are approved, and the built-in baseline until then. Calibrating the fast speeds makes the planned moves more accurate, so gotos finish closer to their planned times. A motor whose calibrated fast speeds don't rise with the commanded speed keeps the baseline, and the log warns about it.
 
 <br>
 <br>
@@ -773,9 +783,9 @@ Artificial satellites present unique challenges due to their speed.
 
 ---
 
-# Developer: Automated PID/PEC Testing via Alpaca API
+# Developer: Automated PID Testing via Alpaca API
 
-This section documents how to control the driver programmatically for regression-testing the PID controller and PEC (Periodic Error Correction).
+This section documents how to control the driver programmatically for regression-testing the PID controller.
 
 ## 1. Running the Driver Natively (WSL2/Linux/macOS)
 
@@ -872,13 +882,13 @@ curl -s "$BASE/tracking?ClientID=1&ClientTransactionID=3"
 # Read config
 curl -s -X PUT "$BASE/action" \
   -d 'Action=Polaris:ConfigFetch' \
-  -d 'Parameters={"configNames":["advanced_pec","advanced_sync_guiding","advanced_alignment"]}' \
+  -d 'Parameters={"configNames":["advanced_pec_drift","advanced_pec_worm","advanced_sync_guiding","advanced_alignment"]}' \
   -d 'ClientID=1' -d 'ClientTransactionID=4'
 
-# Enable Multi-Point Alignment, PEC, and Sync Guiding (all required for the PEC test below)
+# Enable Multi-Point Alignment, PEC Drift Correction, and Sync Guiding
 curl -s -X PUT "$BASE/action" \
   -d 'Action=Polaris:ConfigUpdate' \
-  -d 'Parameters={"advanced_alignment":true,"advanced_pec":true,"advanced_sync_guiding":true}' \
+  -d 'Parameters={"advanced_alignment":true,"advanced_pec_drift":true,"advanced_sync_guiding":true}' \
   -d 'ClientID=1' -d 'ClientTransactionID=5'
 
 # Clean in-process restart (preserves alignment model; NOT the same as killing the process)
@@ -899,93 +909,6 @@ curl -s -X PUT "$BASE/action" \
 ```
 
 **Roll gotcha:** the Rotator device's `position`/`moveabsolute` properties operate on **Position Angle**, not Roll Angle (see § Roll Angle vs. Position Angle, above) — moving `moveabsolute` to `0` will *not* set Roll to `0` except by coincidence. To target Roll Angle directly, either pass `roll` to `Polaris:SlewAbsolute` as above, or use the Rotator device's `movemechanical`/`mechanicalposition` endpoints, which operate on Roll Angle directly.
-
-## 4. Running a PEC Convergence Test
-
-PEC learns from **Sync** corrections (the same "RA Sync Test Case" buttons on the PID Tuning page — see `pilot/src/pages/AnalysePID.vue`'s `runTestCase()`). To drive it from a script, repeatedly nudge the mount's believed RA by a small, realistic offset via `synctocoordinates`:
-
-**Prerequisites** -- without these, the `synctocoordinates` calls below are just plain position
-syncs and PEC never sees them:
-- `Tracking` must be on.
-- `advanced_sync_guiding` and `advanced_pec` must both be enabled. Both are read live at each
-  call site (`Config.advanced_pec`/`Config.advanced_sync_guiding`, not cached at startup), so
-  flipping them via `Polaris:ConfigUpdate` takes effect immediately -- **no config.toml edit or
-  driver restart needed**:
-  ```bash
-  curl -s -X PUT "$BASE/action" \
-    -d 'Action=Polaris:ConfigUpdate' \
-    -d 'Parameters={"advanced_sync_guiding": true, "advanced_pec": true}' \
-    -d 'ClientID=1' -d 'ClientTransactionID=1'
-  ```
-  Only do this via `config.toml` (which needs a restart to load) if you want the setting to
-  survive past this session; for a one-off test, the live update above is both sufficient and
-  less disruptive.
-
-```bash
-# Repeat ~5x, spaced ~5s apart. testVal ≈ 20" is realistic; going much larger/faster
-# (e.g. 80"@4s) can visibly destabilize the real mount -- seen firsthand this session.
-RA=$(curl -s "$BASE/rightascension?ClientID=1&ClientTransactionID=1" | python3 -c "import json,sys;print(json.load(sys.stdin)['Value'])")
-DEC=$(curl -s "$BASE/declination?ClientID=1&ClientTransactionID=2" | python3 -c "import json,sys;print(json.load(sys.stdin)['Value'])")
-NEWRA=$(python3 -c "print($RA + 20/3600/15)")   # +20 arcsec of RA, in hours
-curl -s -X PUT "$BASE/synctocoordinates" -d "RightAscension=$NEWRA" -d "Declination=$DEC" \
-  -d "ClientID=1" -d "ClientTransactionID=3"
-```
-
-Watch the driver's `PECLOG` log lines for convergence. Each line is a dict, one entry per
-guide-sync cycle (same convention as `KFLOG`/`PIDLOG` -- parse with `ast.literal_eval`, see
-`utility/analyse_pec.ipynb`): `inhibit` is `[ra, dec]` status (`TOO_FEW_OBS` → `LOW_R2` →
-`VALID`), `r2` should climb above `0.5`, and `fit_rate` (arcmin/hr) reflects the fitted drift
-as of the last ingest (frozen between syncs).
-
-`pec_active` is `ra.converged() or dec.converged()` -- *either* axis reaching `inhibit==VALID`,
-not both. It's the gate that lets `apply_pec_drift_correction()` proceed past its early-return
-at all, but it is **not** per-axis: `pec_active=True` does not mean a given axis's motor is
-being corrected. Each axis's `eval_correction()` still independently checks that *axis's own*
-`inhibit==VALID` before applying anything -- so to know whether RA (or Dec) specifically is
-being corrected, check `inhibit[0]` (or `[1]`), not `pec_active`. A common case: one axis (often
-Dec, if it's received no real residual yet) converges trivially and flips `pec_active` true
-while the axis that actually matters is still `LOW_R2`/`TOO_FEW_OBS` and applying nothing.
-`fit_rate`/`ra_model`/`dec_model` are the fitted rate regardless of inhibit state either way.
-
-`applied_rate`/`pec_accum` are what was actually pushed to the motors. Reading zero right after
-an axis's `inhibit` flips to `VALID` is expected, not a bug: that axis becomes `VALID` at this
-entry's own ingest (which runs before this line is logged), so every control tick *since the
-previous* entry necessarily still saw it as not-yet-converged and correctly applied nothing --
-the first ticks that can apply anything land between this entry and the next one. Genuine
-staleness looks different: `applied_rate`/`pec_accum` lagging `fit_rate` for more than one
-PECLOG entry *after* `inhibit` has already been `VALID` for a while, which points at 518
-telemetry arriving as a backlog-catchup batch (only the last 518 in a batch triggers a control
-tick) or `apply_pec_drift_correction()`'s own `dt > 5s` guard skipping a tick after a dropout --
-check `age_518` on the same line first, since a large value there means this PECLOG entry itself
-landed amid a telemetry gap.
-
-`theta_raw` is the motor angles [M1, M2, M3] (degrees) derived from 518 at the time of the entry, as SGLOG logs at
-each sync. 518 is the firmware's box attitude times the MCU motor angles, so `theta_raw` M1 includes the session's
-compass / Single Point Alignment heading. `zeta` is the MCU's own motor angles from the last 517 (polled about once a
-minute), `zeta_offset` is `theta_raw - zeta` at that 517 and `zeta_age` its age in seconds: `theta_raw - zeta_offset`
-is the motor angle at every entry, the same reference every session. A worm error belongs to one motor and repeats
-with that angle, so per-motor analysis (`utility/analyse_pec_theta.ipynb`) uses these rather than `az`/`alt`/`roll`,
-which include the session's alignment.
-
-`resid` is the raw residual reported by each sync -- this is the one that should shrink as PEC
-gets better. `total_accum` is *not* "remaining error": it's `resid` + `pec_accum` accumulated
-across every sync since the PEC model was last reset, i.e. what the total drift would have
-been since then if PEC had done nothing. It deliberately does not shrink as PEC improves (that
-would mean the fit is training on an already-partially-corrected signal and would underestimate
-the true periodic error). "Last reset" means `init_pec_model()` ran via `reset_pec_model()` --
-triggered by a goto/slew, any Rotator move, an axis jog/stop, starting orbital tracking,
-stopping Tracking, or a live PEC-related config change (`invalidate_sync_guiding()`/
-`clear_sync_guiding()` in `polaris.py`) -- *not* on every sync-guide, so `total_accum` normally
-spans many syncs. `pec_accum` is the PEC-only piece of that -- total correction actually
-applied to the motors *since the previous PECLOG entry only*, not a running total; it resets to
-0.0 every guide-sync (a much shorter span than `total_accum`'s reset).
-
-Units throughout: arcminutes for position/error fields (`rmse`, `total_accum`, `pec_accum`,
-`resid`), arcmin/hour for rate fields (`fit_rate`, `applied_rate`, `ra_model`/`dec_model`),
-degrees for `az`/`alt`/`roll`, seconds for `age_518`.
-
-**Getting a clean baseline before each test run matters:** don't rely on `Polaris:RestartDriver` to reset PEC — it reloads persisted `q_syncguide_B` guide-correction state from `data/sync_points.json`, which can carry over contamination from a previous test. Instead, toggle `Tracking` off/on (calls `clear_sync_guiding()`, which resets both the PEC model and `q_syncguide_B` to identity in-memory) or perform a small GOTO to the current position.
-
 
 # Developer: PID tuning utility
 
@@ -1016,7 +939,7 @@ on hardware.
   - **`sync`** -- a real `synctocoordinates` call. Typically follows a plate-solve in normal operation. 
     Is used to feed the live QUEST/MPA fit (if `advanced_alignment` enabled). 
     Alternately can be used to drive sync-guiding (if `advanced_sync_guiding` enabled, and no Goto since last sync).
-    Finally, can also be used to train PEC (if `advanced_sync_guiding` and `advanced_pec` is enabled).
+    Finally, can also be used to train PEC (if `advanced_sync_guiding` and `advanced_pec_drift` are enabled).
 
 Every run: slews to the requested Az/Alt/Roll, resets the Multi-Point Alignment model
 (`advanced_alignment` off/on -- **wipes `sync_history`**, see below), then clears

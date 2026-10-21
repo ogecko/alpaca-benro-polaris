@@ -93,6 +93,15 @@
       v-model:selected="selected"
 
                 :rows="rows" :columns="columns" row-key="name">
+                <!-- the worm profile row: the column's label, then one line per motor (and per ⚠ warning), top-aligned so the motors line up -->
+                <template v-for="col in GEAR_TEXT_COLUMNS" :key="col" #[`body-cell-${col}`]="props">
+                  <q-td :props="props" :style="isGear(props.row) ? 'vertical-align: top' : ''">
+                    <template v-if="isGear(props.row)">
+                      <span v-for="(part, i) in motorParts(props.value)" :key="i" class="motor-part">{{ part }}</span>
+                    </template>
+                    <template v-else>{{ props.value }}</template>
+                  </q-td>
+                </template>
               </q-table>
           </div>
         </q-card>
@@ -168,8 +177,17 @@ const rows = computed<TableRow[]>(() => {
   for (const test of testdata) {
     consolidated.set(test.name, test)
   }
-  return Array.from(consolidated.values())
+  // the worm profile test first, then the speed tests in the order the driver sent them
+  const all = Array.from(consolidated.values())
+  return [...all.filter(isGear), ...all.filter(r => !isGear(r))]
 })
+
+const isGear = (r: TableRow) => r.name.endsWith('-WORM-PROFILE')
+// the worm profile row's columns with per-motor text, e.g. 'M1 21"@177 M2 86"@179 M3 85"@224'
+const GEAR_TEXT_COLUMNS = ['dps', 'testdps', 'testchange', 'teststdev']
+// the column's label, then one part per motor and per warning:
+// 'last 5 tests pooled M1 33"@195 M2 ...' -> ['last 5 tests pooled', 'M1 33"@195', ...]
+const motorParts = (v: string | number | null | undefined) => `${v ?? ''}`.split(/ (?=M[1-3] |⚠)/)
 
 watch(axis, ()=>selected.value=[])
 
@@ -300,6 +318,10 @@ function getSelectedString () {
 </script>
 
 <style lang="scss">
+  .motor-part {
+    display: block;
+    white-space: nowrap;
+  }
   .q-markdown--link {
     color: $grey-6;
 

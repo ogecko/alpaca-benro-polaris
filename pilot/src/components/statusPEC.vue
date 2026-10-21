@@ -1,5 +1,7 @@
 <template>
-        <q-chip :color="statusColor" :outline="statusOutline" :icon="statusIcon" class="q-pa-md">
+        <q-chip :color="statusColor" :outline="statusOutline" class="q-pa-md">
+        <q-icon v-if="cfg.advanced_pec_worm" name="mdi-sine-wave" size="xs" class="q-mr-xs"/>
+        <q-icon v-if="cfg.advanced_pec_drift" name="mdi-trending-up" size="xs" class="q-mr-xs"/>
         {{statusLabel}}
       </q-chip>
 </template>
@@ -42,26 +44,27 @@ function col_r2(r2ra: unknown, r2dec: unknown) {
 
 const isIdle = computed(() => (p.pec[2] == 0 && p.pec[3] == 0)  || !p.tracking)
 const isWarmup = computed(() => (p.pec[2] == -2 && p.pec[3] == -2)  || !p.tracking)
-
+const isOff = computed(() => !cfg.advanced_pec_drift && !cfg.advanced_pec_worm)
 const statusLabel = computed(() =>  
-   cfg.advanced_pec==false ? "Disabled" : 
-              isIdle.value ? 'Idle' :
-            isWarmup.value ? 'Warmup' :
-                             `${fmt_r2(p.pec[2])} | ${fmt_r2(p.pec[3])}`
+                 isOff.value ? "Disabled" : 
+    !cfg.advanced_pec_drift  ? "Worm Gear" :
+                isIdle.value ? 'Idle' :
+              isWarmup.value ? 'Warmup' :
+                               `${fmt_r2(p.pec[2])} | ${fmt_r2(p.pec[3])}`
 )
 
 const statusColor = computed(() =>
-    cfg.advanced_pec==false ? "grey-8" : 
-                              col_r2(p.pec[2], p.pec[3])
+                 isOff.value ? "grey-8" : 
+    !cfg.advanced_pec_drift  ? "primary" :
+                               col_r2(p.pec[2], p.pec[3])
 )
 
 const statusOutline = computed(() => 
-           cfg.advanced_pec==false ? true :
-                      isIdle.value ? true :
-                                     false
+                 isOff.value ? true :
+    !cfg.advanced_pec_drift  ? false :
+                isIdle.value ? true :
+                               false
 )
-
-const statusIcon = computed(() => "mdi-sine-wave")
 
 
 

@@ -47,9 +47,9 @@ def test_connected_property_round_trips(session):
 
 
 def test_config_fetch_action_returns_real_values(session):
-    result = session.action("Polaris:ConfigFetch", {"configNames": ["pec_T_sec"]})
-    assert "pec_T_sec" in result
-    assert result["pec_T_sec"] > 0
+    result = session.action("Polaris:ConfigFetch", {"configNames": ["pec_tau_sec"]})
+    assert "pec_tau_sec" in result
+    assert result["pec_tau_sec"] > 0
 
 
 def test_replay_mark_action_is_supported_and_logs(session):

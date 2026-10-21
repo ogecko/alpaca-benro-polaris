@@ -21,7 +21,7 @@ Two test types (see docs/control.md's PID/PEC sections for background):
                                 live QUEST/MPA fit, so use sparingly against a
                                 real alignment model. (PEC's guide-correction
                                 path is exercised the same way, with
-                                advanced_pec additionally enabled.)
+                                advanced_pec_drift additionally enabled.)
                     pulseguide  real ASCOM PulseGuide -- what autoguiders like
                                 PHD2 actually send.
 
@@ -105,7 +105,7 @@ def current_kf_params():
 
 
 def current_pec_state():
-    return ac.config_fetch(["advanced_pec", "advanced_sync_guiding", "advanced_alignment", "advanced_align_mac"])
+    return ac.config_fetch(["advanced_pec_drift", "advanced_pec_worm", "advanced_sync_guiding", "advanced_alignment", "advanced_align_mac"])
 
 
 def run_steady_test(duration_s, settle_skip_s):

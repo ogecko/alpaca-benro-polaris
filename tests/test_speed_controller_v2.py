@@ -673,3 +673,38 @@ def test_scheduled_wakeups_drive_the_same_average(units, modulation):
     v = (mcu.position - p0) / (t - t0)
     for axis in range(3):
         assert_rate(axis, v[axis], rates[axis], window_bound(ctrl, t - t0))
+
+
+# ---------------------------------------------------------------------------------------
+# FAST speed calibration (fast_rate_units)
+# ---------------------------------------------------------------------------------------
+
+def _approved(cm, axis, raw, dps):
+    cm.test_data[f'M{axis + 1}-FAST-{raw}'] = dict(name=f'M{axis + 1}-FAST-{raw}', axis=axis, raw=raw, ascom=0, dps=0,
+                                                    test_result=f'{dps:.7f}', test_change='', test_stdev='',
+                                                    test_status='APPROVED')
+
+
+def test_approved_fast_tests_set_the_fast_speeds():
+    from speed_controller import fast_rate_units
+    cm = CalibrationManager(liveInstance=False)
+    base = fast_rate_units(cm.baseline_data, cm.baseline_data)
+    i = cm.baseline_data[1]['RAW'].index(5) + 1
+    for raw, dps in zip(cm.baseline_data[1]['RAW'][i + 1:], cm.baseline_data[1]['DPS'][i + 1:]):
+        _approved(cm, 1, raw, dps * 1.16)                      # M2 measured 16% faster at every FAST point
+    cm.generateCalibrationFromBaselineAndTestData()
+    units = fast_rate_units(cm.calibration_data, cm.baseline_data)
+    assert units[1].max_dps == pytest.approx(base[1].max_dps * 1.16)
+    assert units[1].fast_units(5.0) < base[1].fast_units(5.0)  # fewer units for the same speed
+    assert units[0].max_dps == base[0].max_dps                 # the other axes untouched
+    assert units[1].to_dps(3, 'RAW') == base[1].to_dps(3, 'RAW')   # SLOW levels: the firmware table
+
+
+def test_a_bad_fast_calibration_keeps_the_baseline(caplog):
+    from speed_controller import fast_rate_units
+    cm = CalibrationManager(liveInstance=False)
+    _approved(cm, 2, 1500, 9.5)                                # faster than the 2500 point: not monotonic
+    cm.generateCalibrationFromBaselineAndTestData()
+    units = fast_rate_units(cm.calibration_data, cm.baseline_data)
+    assert units[2].max_dps == pytest.approx(cm.baseline_data[2]['DPS'][-1])
+    assert "M3 FAST speeds do not rise" in caplog.text

@@ -20,7 +20,7 @@
             </div>
         </div>
         <!-- Alpaca Pilot mDNS Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_mdns', 'Alpaca Pilot mDNS Service')"/>
             <q-input class="col-4" v-bind="bindField('mdns_name', 'Hostname')"
                 :style="{ visibility: cfg.enable_mdns ? 'visible' : 'hidden' }">
@@ -28,7 +28,7 @@
             </q-input>
         </div>
         <!-- Alpaca Pilot Web Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
             <q-space/>
             <div class='content-center'>
@@ -44,7 +44,7 @@
             </q-input>
         </div>
         <!-- Alpaca Pilot Socket Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot Socket IO')"/>
             <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
@@ -52,7 +52,7 @@
             </q-input>
         </div>
         <!-- Rest API Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_restapi', 'Alpaca REST API Service')"/>
             <q-input class="col-4" v-bind="bindField('alpaca_restapi_port', 'Port')"
                 type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }">
@@ -63,7 +63,7 @@
             WARNING: The Alpaca REST API is required for Nina, Stellarium and Alpaca Pilot.
         </q-banner>
         <!-- Rest Discovery Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery Service')"/>
             <q-input class="col-4" v-bind="bindField('alpaca_discovery_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }">
@@ -71,7 +71,7 @@
             </q-input>
         </div>
         <!-- Rest SynSCAN Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_synscan', 'SynSCAN API Service')"/>
             <q-input class="col-4" v-bind="bindField('stellarium_synscan_port', 'Port')"
             type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }">
@@ -79,11 +79,14 @@
             </q-input>
         </div>
         <!-- Auto Reconnect  -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('polaris_auto_retry', 'Auto Retry Polaris Connection')"/>
         </div>
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_remote_shutdown', 'Allow Remote Shutdown of Driver Host OS')"/>
+            <q-input class="col-4" label="Update Timeout" suffix="ms" type="number" input-class="text-right" step="500" min="1000"
+            :model-value="ui.driverTimeout" v-on:update:model-value="ui.setDriverTimeout">
+            </q-input>
         </div>
     </q-card>
 
@@ -94,10 +97,12 @@
 import { useQuasar } from 'quasar'
 import { onMounted } from 'vue'
 import { useConfigStore } from 'stores/config';
+import { useUIStore } from 'src/stores/ui'
 import { debounce } from 'quasar'
 
 const $q = useQuasar()
 const cfg = useConfigStore()
+const ui = useUIStore()
 
 onMounted(async () => {
 })
@@ -146,3 +151,10 @@ async function save() {
 
 </script>
 
+
+<style scoped>
+/* Every setting row is one standard field tall, with or without a port input beside the toggle */
+.setting-row {
+  min-height: 56px;
+}
+</style>

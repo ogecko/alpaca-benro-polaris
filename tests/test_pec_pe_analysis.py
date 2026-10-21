@@ -1,6 +1,6 @@
 """
 Tests for utility/pe_analysis.py -- per-motor periodic-error analysis over the extracted segment
-datasets (utility/extract_segments.py): worm-angle scan and forecast skill of candidate models.
+datasets (utility/extract_segments.py): worm-angle and time scans.
 
 Synthetic segments carry a known worm error on one motor (period THETA of that motor's angle) at
 different motor rates, so a per-motor angle period and a fixed time period can be told apart.
@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pe_analysis import Segment, theta_scan, time_scan, best_theta, forecast_skill, rolling_forecast, load_segments
+from pe_analysis import Segment, theta_scan, time_scan, load_segments
 
 THETA = 6.0
 
@@ -42,7 +42,7 @@ def segs():
 
 def test_scan_peaks_at_the_worm_angle_of_the_motor_carrying_it(segs):
     scan = theta_scan(segs, np.arange(3.0, 12.01, 0.25))
-    best = best_theta(scan)
+    best = {m: float(scan[m].idxmax()) for m in ('M1', 'M3')}
     assert best['M3'] == pytest.approx(THETA, abs=0.3)
     assert best['M1'] == pytest.approx(THETA, abs=0.3)
 
@@ -83,20 +83,6 @@ def test_a_worm_signal_scores_higher_on_its_motor_angle_scan_than_the_time_scan(
     assert angle['M3'].max() > 1.5 * time['power'].max()
 
 
-def test_forecast_prefers_the_worm_model_on_worm_data(segs):
-    thetas = {'M1': THETA, 'M2': THETA, 'M3': THETA}
-    res = pd.DataFrame([forecast_skill(s, thetas) for s in segs])
-    assert (res['worm'] < res['trend']).mean() >= 0.8
-    assert res['worm'].median() < 0.5 * res['trend'].median()
-    assert res['worm'].median() < res['time_34_17'].median()
-
-
-def test_forecast_reports_holdout_rms_for_every_model(segs):
-    r = forecast_skill(segs[0], {'M1': THETA, 'M2': THETA, 'M3': THETA})
-    assert set(r) >= {'segment', 'trend', 'time_34_17', 'worm', 'worm_h2', 'fast_motors'}
-    assert r['fast_motors'] == ['M3']
-
-
 def test_load_segments_reads_the_extracted_datasets(tmp_path):
     t = np.arange(0, 4000, 20.0)
     d = pd.DataFrame({'timestamp': pd.Timestamp('2026-09-01') + pd.to_timedelta(t, 's'), 't_sec': t,
@@ -111,18 +97,67 @@ def test_load_segments_reads_the_extracted_datasets(tmp_path):
     assert segs[0].rates == pytest.approx([1.0, 0.0, 10.0], abs=1e-6)
 
 
-def test_rolling_forecast_favours_the_worm_on_worm_data(segs):
-    thetas = {'M1': THETA, 'M2': THETA, 'M3': THETA}
-    res = pd.DataFrame([rolling_forecast(s, thetas) for s in segs])
-    assert (res['worm'] < 0.6 * res['trend']).all()
-    assert (res['worm'] < res['time_34_17']).mean() >= 0.8
+def write_segment(dirpath, session, k, t, ra, dec=None):
+    th = np.column_stack([10 + t / 3600, 20 + 3 * t / 3600, 30 + 10 * t / 3600])
+    d = pd.DataFrame({'t_sec': t, 'drift_ra_arcsec': ra, 'drift_dec_arcsec': ra * 0 if dec is None else dec,
+                      'theta1': th[:, 0], 'theta2': th[:, 1], 'theta3': th[:, 2]})
+    name = f'{session}__seg{k}.csv'
+    d.to_csv(dirpath / name, index=False)
+    return {'session': session, 'segment': k, 'file': name}
 
 
-def test_rolling_forecast_on_pure_drift_gives_the_models_nothing_to_gain():
-    t = np.arange(0, 3 * 3600, 30.0)
-    rng = np.random.default_rng(1)
-    theta = np.column_stack([10 + 2 * t / 3600, 10 + 3 * t / 3600, 10 + 13 * t / 3600])
-    s = Segment('d', 'd', t, 10 * t / 60 + rng.normal(0, 3, len(t)), -4 * t / 60 + rng.normal(0, 3, len(t)), theta)
-    r = rolling_forecast(s, {'M1': THETA, 'M2': THETA, 'M3': THETA})
-    assert r['worm'] == pytest.approx(r['trend'], rel=0.25)
-    assert r['n_windows'] >= 10
+def sync_times(burst_at=(), burst_n=25, minutes=150, interval=90.0, fast=6.0):
+    """Plate-solve times: one every `interval` s, with a burst of `burst_n` solves `fast` s apart at each burst_at s."""
+    t, x = [], 0.0
+    bursts = sorted(burst_at)
+    while x < minutes * 60:
+        if bursts and x >= bursts[0]:
+            bursts.pop(0)
+            for _ in range(burst_n):
+                t.append(x)
+                x += fast
+        t.append(x)
+        x += interval
+    return np.array(t)
+
+
+def test_a_leading_rapid_solve_burst_and_its_settling_are_dropped(tmp_path):
+    t = sync_times(burst_at=(0.0,))
+    ra = 2.0 * t / 60 + np.where(t < 160, 140.0 * t / 60, 0.0)          # the burst over-counts ~140"/min
+    pd.DataFrame([write_segment(tmp_path, 'alpaca.a', 0, t, ra)]).to_csv(tmp_path / 'index.csv', index=False)
+    s, = load_segments(str(tmp_path), min_minutes=60, drop_bursts=True, settle_s=300)
+    assert s.name == 'alpaca.a#0'
+    assert s.t[0] == 0.0 and np.min(np.diff(s.t)) >= 30                  # rebased, no fast solves left
+    burst_end = t[np.where(np.diff(t) < 30)[0].max() + 1]                 # last solve of the fast run
+    assert len(s.t) == int(np.sum(t >= burst_end + 300))                  # kept: from burst end + settle
+
+
+def test_a_mid_segment_burst_splits_the_segment(tmp_path):
+    t = sync_times(burst_at=(0.0, 140 * 60), minutes=300)
+    ra = 2.0 * t / 60
+    pd.DataFrame([write_segment(tmp_path, 'alpaca.b', 3, t, ra)]).to_csv(tmp_path / 'index.csv', index=False)
+    segs = load_segments(str(tmp_path), min_minutes=60, drop_bursts=True, settle_s=300)
+    assert [s.name for s in segs] == ['alpaca.b#3.1', 'alpaca.b#3.2']
+    assert all(np.min(np.diff(s.t)) >= 30 for s in segs)
+
+
+def test_pulse_guided_segments_are_dense_by_nature_and_kept_whole(tmp_path):
+    t = np.arange(0, 2 * 3600, 2.0)
+    pd.DataFrame([write_segment(tmp_path, 'alpaca.c', 0, t, np.sin(t / 900))]).to_csv(tmp_path / 'index.csv', index=False)
+    s, = load_segments(str(tmp_path), min_minutes=60, drop_bursts=True)
+    assert len(s.t) == len(t)
+
+
+def test_duplicate_captures_are_loaded_once(tmp_path):
+    t = sync_times()
+    ra = 2.0 * t / 60 + 5 * np.sin(t / 900)
+    rows = [write_segment(tmp_path, 'alpaca.x_first', 1, t, ra), write_segment(tmp_path, 'alpaca.y_copy', 4, t, ra)]
+    pd.DataFrame(rows).to_csv(tmp_path / 'index.csv', index=False)
+    assert [s.name for s in load_segments(str(tmp_path), min_minutes=60)] == ['alpaca.x_first#1']
+
+
+def test_bursts_are_kept_by_default_now_that_their_phantom_pec_is_removed_at_extraction(tmp_path):
+    t = sync_times(burst_at=(0.0,))
+    pd.DataFrame([write_segment(tmp_path, 'alpaca.d', 0, t, 2.0 * t / 60)]).to_csv(tmp_path / 'index.csv', index=False)
+    s, = load_segments(str(tmp_path), min_minutes=60)
+    assert len(s.t) == len(t)

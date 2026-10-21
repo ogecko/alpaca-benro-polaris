@@ -7,6 +7,17 @@ import type { ConfigResponse } from 'src/stores/config'
 import type { OrbitalExport, DsoType, CatalogItem } from 'src/stores/catalog'
 import { AppVisibility } from 'quasar'
 
+export type SerialPort = {
+  device: string
+  description: string
+  kind: string            // what the USB ID says the device is, e.g. "u-blox GPS receiver"
+  gps: boolean            // almost certainly a GPS receiver (vendor makes nothing else)
+  manufacturer: string
+  vid: number | null
+  pid: number | null
+  hwid: string
+}
+
 export const useDeviceStore = defineStore('device', {
   state: () => ({
     _connecting: false,             // used in connectRestAPI to manage connecting state
@@ -166,9 +177,6 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:J2000Sync', `{"ra": "${ra}", "dec": "${dec}"}`)
     },
 
-    async alpacaAutotuneMAC() {
-      return await this.apiAction<void>('Polaris:AutotuneMAC')
-    },
     
     async alpacaResetSP() {
       await this.apiAction<void>('Polaris:ResetSP')
@@ -221,6 +229,16 @@ export const useDeviceStore = defineStore('device', {
     async alpacaShutdownMount() {
       await this.apiAction<void>('Polaris:ShutdownMount')
     },
+
+    // starts a GPS Locate, or joins the one running; its progress and result arrive in the status (gpsrun, gpsstate)
+    async alpacaGpsLocate() {
+      return await this.apiAction<{ run: number, joined: boolean }>('Polaris:GpsLocate')
+    },
+
+    async alpacaSerialPorts() {
+      return await this.apiAction<SerialPort[]>('Polaris:SerialPorts')
+    },
+
 
     async bleSelectDevice(name:string) {
       await this.apiAction<void>('Polaris:bleSelectDevice', `{"name": "${name}"}`)

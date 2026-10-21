@@ -137,7 +137,7 @@ class FakePolaris:
     def next_sample(self):
         self._zeta = next(self.samples, self._zeta)
 
-    async def _restore_tracking(self, state):
+    async def _restore_tracking(self, state, prefix='==STARTUP=='):
         self.restored.append(state)
 
 
@@ -184,6 +184,33 @@ def test_a_good_state_is_restored_not_stopped(run_check, monkeypatch):
     monkeypatch.setattr(tr.time, 'time', lambda: NOW + 30)
     p = run_check(FakePolaris(moving=True, state=s))
     assert p.restored == [s] and p.calls == []
+
+
+def test_reconnect_while_tracking_leaves_tracking_alone(monkeypatch, caplog):
+    """A comms loss (the watchdog reboots the connection) keeps the driver's own tracking: nothing to restore."""
+    p = FakePolaris(moving=False, state=tracking_state(), tracking=True, mode='TRACK')
+    called = []
+
+    async def restore_or_stop(prefix='==STARTUP=='):
+        called.append(prefix)
+    p._restore_or_stop = restore_or_stop
+    monkeypatch.setattr(polaris_mod.Config, 'restore_tracking_on_restart', True, raising=False)
+    with caplog.at_level('INFO'):
+        asyncio.run(Polaris.restore_tracking_on_reconnect(p))
+    assert called == [] and any('carried on' in r.getMessage() for r in caplog.records)
+
+
+def test_reconnect_not_tracking_runs_the_restart_check(monkeypatch):
+    """Not tracking after the reconnect: the same check as at a restart (restores a saved tracking state)."""
+    p = FakePolaris(moving=False, state=tracking_state())
+    called = []
+
+    async def restore_or_stop(prefix='==STARTUP=='):
+        called.append(prefix)
+    p._restore_or_stop = restore_or_stop
+    monkeypatch.setattr(polaris_mod.Config, 'restore_tracking_on_restart', True, raising=False)
+    asyncio.run(Polaris.restore_tracking_on_reconnect(p))
+    assert called == ['==RECONNECT==']
 
 
 # ── restored: the PID brings the mount back onto the saved target (twin) ──────────────────────

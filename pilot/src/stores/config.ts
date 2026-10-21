@@ -36,6 +36,14 @@ export const useConfigStore = defineStore('config', {
     mdns_name: 'alpacapailot.local',
 
     // Site Info
+    location_source: 'browser' as 'browser' | 'gps',
+    gps_provider: 'nmea' as 'none' | 'gpsd' | 'nmea' | 'ubx',
+    gpsd_host: '127.0.0.1',
+    gpsd_port: 2947,
+    gps_serial_device: '',
+    gps_serial_baudrate: 9600,
+    gps_max_attempts: 5,
+    gps_retry_max_delay: 15,
     location: 'Unknown',
     location_list: '',
     site_latitude: -33.8598874,
@@ -83,13 +91,18 @@ export const useConfigStore = defineStore('config', {
     advanced_scc_enabled: false,
     advanced_scc_choice: 2,
     advanced_align_mac: false,
+    advanced_eq_mode: false,
+    advanced_eq_mode_visible: false,
     advanced_orbitals: false,
-    advanced_pec: false,
+    advanced_pec_drift: false,
+    advanced_pec_worm: false,
     coordinated_speed_control: false,
+    advanced_backlash: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
     kf_measure_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
+    kf_goto_noise_scale: 0.1,
     pid_Kp: [0.8, 0.8, 0.8],
     pid_Ki: [0.0, 0.0, 0.0],
     pid_Kd: [0.8, 0.8, 0.8],
@@ -97,6 +110,8 @@ export const useConfigStore = defineStore('config', {
     pid_Kc: 1.0,
     pid_Kv: 0.0,
     pid_Ka: 0.0,
+    pid_Kt: 0.2,
+    pid_Kl: 0.15,
 
     z1_min_limit: -190,
     z1_max_limit: +190,
@@ -110,16 +125,8 @@ export const useConfigStore = defineStore('config', {
     guide_rate_ra: 0.5,
     guide_rate_dec: 0.5,
 
-    // Mechanical Correction Models
-    m1_offset: 0.0,
-    m2_offset: 0.0,
-    m3_offset: 0.0,
-    m3_tilt_dm2: 0.0,
-    m3_tilt_dm1: 0.0,
-    m2_tilt_dm2_amp: 0.0,
-    m2_tilt_dm2_zero: 0.0,
-    m2_roll_coupling: 0.0,
-    m2_roll_zero: 0.0,
+    // Mechanical Alignment Correction (alignment model): the M2 scale, a mount constant (%)
+    align_m2_scale: 1.0,
     m3_encoder_scale: 0.0,
 
     // Aiming Adjustment
@@ -153,6 +160,7 @@ export const useConfigStore = defineStore('config', {
     log_polaris_polling: false,
     log_quest_model: false,
     log_orbital_queries: false,
+    log_gps_receiver: false,
     log_pec: false,
     log_heartbeat: false,
     log_position: false,

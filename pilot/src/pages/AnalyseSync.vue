@@ -100,11 +100,11 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
               </q-item-section>
             </q-item>
           </q-list>
-          <!-- Telescope Correction Summary Row -->
-          <div class="text-h7 q-pt-md">Correction Summary</div>
+          <!-- Mount Orientation: the rigid rotation -->
+          <div class="text-h7 q-pt-md">Mount Orientation</div>
           <div class="row">
                 <div class="col-12 text-caption text-grey-6">
-                The telescope alignment model is correcting for the following adjustments.
+                How the mount is aligned with the horizon and compass bearing. 
                 </div>
           </div>
           <div class="row text-center">
@@ -122,6 +122,39 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
             </div>
 
           </div>
+          <!-- Mechanical Alignment: how the camera and M2 sit on the mount (MAC) -->
+          <template v-if="cfg.advanced_align_mac">
+            <div class="text-h7 q-pt-md">Mechanical Alignment</div>
+            <div class="row">
+                <div class="col-12 text-caption text-grey-6">
+                How the camera boresight (M3) and altitude axis (M2) are aligned on the mount.
+                </div>
+            </div>
+            <div class="row text-center">
+              <div class="col-4">
+                  <div class="text-h4">{{formatAngle(macD3,'deg',1)}}</div>
+                  <div class="text-caption">M3 Offset</div>
+                  <div class="text-caption text-grey-6">{{offsetsStatus}}</div>
+              </div>
+              <div class="col-4">
+                  <div class="text-h4">{{formatAngle(macD2,'deg',1)}}</div>
+                  <div class="text-caption">M2 Offset</div>
+                  <div class="text-caption text-grey-6">{{offsetsStatus}}</div>
+              </div>
+              <div class="col-4">
+                  <div class="text-h4">{{macS2}}%</div>
+                  <div class="text-caption">M2 Scale</div>
+                  <div class="text-caption text-grey-6">{{scaleStatus}}</div>
+              </div>
+            </div>
+            <!-- Guidance: how to improve the fit -->
+            <template v-if="p.alignguide">
+              <div class="text-h7 q-pt-md">Guidance</div>
+              <div class="row">
+                  <div class="col-12 text-caption text-grey-6">{{p.alignguide}}</div>
+              </div>
+            </template>
+          </template>
         </q-card>
       </div>
 
@@ -269,10 +302,6 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
           </q-card>
       </div>
 
-      <!-- Mechanical Correction Model -->
-      <div class="col-12 col-md-6 col-lg-4 flex">
-        <MechCorrection />
-      </div>
     </div>
 
   </q-page>
@@ -292,12 +321,21 @@ import { deg2dms, dms2deg } from 'src/utils/angles'
 import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
 import LocationPicker from 'src/components/LocationPicker.vue';
-import MechCorrection from 'src/components/MechCorrection.vue';
 import { getWeatherData, delta_latlon2AzAlt } from 'src/utils/locationServices';
 import { debounce } from 'quasar'
 const socket = useStreamStore()
 const p = useStatusStore()
 const cfg = useConfigStore()
+
+// Mechanical Alignment: the terms (M2/M3 offsets deg, M2 scale %) and status words, as the driver reports them
+function statusWord(s: string | undefined) {
+  return s === 'fitted' ? 'Fitted' : s === 'held' ? 'Held' : 'Default'
+}
+const macD2 = computed(() => p.alignmodel[0] ?? 0)
+const macD3 = computed(() => p.alignmodel[1] ?? 0)
+const macS2 = computed(() => { const v = p.alignmodel[2] ?? 0; return (v >= 0 ? '+' : '') + v.toFixed(2) })
+const offsetsStatus = computed(() => statusWord(p.alignstatus[0]))
+const scaleStatus = computed(() => statusWord(p.alignstatus[1]))
 const dev = useDeviceStore()
 
 const selected = ref([])

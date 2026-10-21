@@ -27,11 +27,66 @@ import json
 from polaris import Polaris
 from shr import DeviceMetadata, LifecycleController, LifecycleEvent, running_in_container
 from orbitals import update_orbital_positions, compose_orbital_positions_for_catalog, loadCustomCatalogDataFromFile, remove_orbital
+from gps_receiver import GPSProviderError, get_gps_location, locate_status
 
 
 logger: Logger = None
 polaris: Polaris = None
 lifecycle: LifecycleController = None
+
+
+async def _run_gps_location() -> None:
+    try:
+
+        def on_attempt(attempt: int, total: int) -> None:
+            locate_status["attempts"] = attempt
+
+        result = await get_gps_location(Config.as_dict(), on_attempt=on_attempt)
+        locate_status["attempts"] = result.attempts
+        if result.fix is None:
+            error = result.error or f"No valid GPS fix after {result.attempts} attempts."
+            locate_status.update(state="no_fix", error=error)
+            logger.info("==GPS== Location detection result: %s", error)
+            return
+
+        changes = {
+            "site_latitude": result.fix.latitude,
+            "site_longitude": result.fix.longitude,
+        }
+        if result.fix.altitude is not None:
+            changes["site_elevation"] = round(result.fix.altitude)
+
+        previous = {key: Config.get(key) for key in changes}
+        applied = Config.apply_changes(changes)
+        try:
+            polaris.make_config_params_live(applied)
+        except Exception:
+            Config.apply_changes(previous)
+            try:
+                polaris.make_config_params_live(previous)
+            except Exception:
+                logger.debug(
+                    "==GPS== Failed to restore live site settings after GPS update failure",
+                    exc_info=True,
+                )
+            raise
+
+        locate_status.update(state="found", error=None)
+        logger.info(
+            "==GPS== Location detection result: location applied after %d attempts",
+            result.attempts,
+        )
+    except asyncio.CancelledError:
+        locate_status.update(state="error", error="GPS location acquisition was cancelled.")
+        logger.info("==GPS== Location detection result: cancelled")
+        raise
+    except GPSProviderError as error:
+        locate_status.update(state="error", error=str(error))
+        logger.info("==GPS== Location detection result: failed: %s", error)
+    except Exception as error:
+        locate_status.update(state="error", error=f"{type(error).__name__}: {error}")
+        logger.info("==GPS== Location detection result: failed: %s", error)
+        logger.debug("==GPS== Unexpected GPS location failure", exc_info=True)
 
 # ----------------------------------------------------------------------
 # Set our reference to the Polaris object (not at import time)
@@ -1517,9 +1572,10 @@ class supportedactions:
             "Polaris:DeviceConnect", "Polaris:DeviceDisconnect", "Polaris:RestartDriver", "Polaris:StopDriver", "Polaris:ShutdownOS", "Polaris:ShutdownMount",
             "Polaris:SetMode", "Polaris:SetCompass", "Polaris:SetAlignment",
             "Polaris:StatusFetch", "Polaris:ConfigFetch", "Polaris:ConfigUpdate", "Polaris:ConfigSave", "Polaris:ConfigRestore",
+            "Polaris:GpsLocate", "Polaris:SerialPorts",
             "Polaris:ReplayMark",
             "Polaris:SpeedTestStart", "Polaris:SpeedTestStop", "Polaris:SpeedTestApprove",
-            "Polaris:SyncRoll", "Polaris:SyncRemove", "Polaris:AutotuneMAC",
+            "Polaris:SyncRoll", "Polaris:SyncRemove",
             "Polaris:J2000Sync", "Polaris:J2000Goto",
             "Polaris:Ack", "Polaris:ResetSP", "Polaris:SetLBracket",
             "Polaris:GetCatalog", "Polaris:GetOrbitals", "Polaris:TrackOrbital", "Polaris:RemoveOrbital",
@@ -1603,15 +1659,34 @@ class action:
             fetched_params['site_longitude'] = polaris.sitelongitude
             fetched_params['site_elevation'] = polaris.siteelevation
 
+            config_names = parameters.get('configNames')
             # only return requested Config.names
-            configNames = parameters.get('configNames')
-            if isinstance(configNames, list) and len(configNames)>0:
-                filtered_params = {k: fetched_params[k] for k in configNames if k in fetched_params}
+            if isinstance(config_names, list) and config_names:
+                filtered_params = {k: fetched_params[k] for k in config_names if k in fetched_params}
             else:
                 filtered_params = fetched_params
 
             resp.text = await PropertyResponse(filtered_params, req)
             return
+
+        elif actionName == "Polaris:GpsLocate":
+            # one Locate at a time: pressing Locate while one runs (e.g. from another Pilot window) joins it
+            gps_task = lifecycle.get_task("GPSLocation")
+            if gps_task is not None and not gps_task.done():
+                resp.text = await PropertyResponse({"run": locate_status["run"], "joined": True}, req)
+                return
+
+            locate_status.update(run=locate_status["run"] + 1, state="running", attempts=0, error=None)
+            lifecycle.create_task(_run_gps_location(), name="GPSLocation")
+            resp.text = await PropertyResponse({"run": locate_status["run"], "joined": False}, req)
+            return
+
+        elif actionName == "Polaris:SerialPorts":
+            # the serial ports present, listed not opened (gps_receiver.list_serial_ports): e.g. to choose the GPS receiver
+            from gps_receiver import list_serial_ports
+            resp.text = await PropertyResponse(list_serial_ports(), req)
+            return
+
         
         elif actionName == "Polaris:ConfigUpdate":
             # Apply changes to store in Config and make them live
@@ -1699,8 +1774,12 @@ class action:
             logger.info(f'SpeedTestStart {parameters}')
             axis = parameters.get('axis', 0)
             testNames = parameters.get('testNames', -1)
-            rates = polaris._cm.pendingTests(axis, testNames)
-            lifecycle.create_task(polaris.moveaxis_speed_test(axis, rates), name="SpeedTest")
+            if polaris._cm.pendingWormProfileTest(testNames):
+                # worm profile row selected: run the worm profile test only (it holds the pointing, the speed tests don't)
+                lifecycle.create_task(polaris.worm_profile_test(), name="SpeedTest")
+            else:
+                rates = polaris._cm.pendingTests(axis, testNames)
+                lifecycle.create_task(polaris.moveaxis_speed_test(axis, rates), name="SpeedTest")
             resp.text = await PropertyResponse('SpeedTest ok', req)  
             return
 
@@ -1882,26 +1961,6 @@ class action:
             resp.text = await PropertyResponse('Polaris PanoOffset ok', req)
             return
 
-        elif actionName == "Polaris:AutotuneMAC":
-            logger.info('Polaris:AutotuneMAC')
-            from kinematics import autotune_mac, MountModelParams
-            base_params = MountModelParams.from_config(Config)
-            result = autotune_mac(polaris._sm.sync_history, base_params)
-            if result['success']:
-                improv_msg = ('improved' if result['rms_improv']>0 else 'worse') + f' {abs(result['rms_improv']):.1f}%'
-                logger.info(
-                    f"AutotuneMAC: Based on {result['n_points']} points, ran {result['nit']} iterations | "
-                    f"R2 {result['r2']:.4f}, "
-                    f"RMS {result['rms_before']:.2f}' to {result['rms_after']:.2f}' ({improv_msg}) | "
-                    f"A = {result['m2_tilt_dm2_amp']:.2f}' "
-                    f"B = {result['m2_tilt_dm2_zero']:.1f}° "
-                    f"C = {result['m3_tilt_dm1']:.2f}'"
-                )
-            resp.text = await PropertyResponse(result, req)
-            return
 
         else:
             resp.text = await MethodResponse(req, NotImplementedException(f'Unknown Action Name: {actionName}'))
-
-
-

@@ -1,5 +1,5 @@
 """
-Hardware acceptance test for coordinated_speed_control (GotoTrajectory + jog shaping).
+Hardware acceptance test for coordinated_speed_control (control_plan.GotoTrajectory + jog shaping).
 
 For each case the same move is made with coordinated_speed_control off (legacy) and on:
   * roll-only goto at low altitude: pointing (reported Az/Alt) must stay within 10' of the start

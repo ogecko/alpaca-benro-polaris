@@ -27,6 +27,14 @@ preset_action = ''                          # Action to trigger preset "<verb>_<
 preset_name = ''                            # name of the preset to take action on
 
 [server]
+location_source = 'browser'                 # Pilot's Locate: 'browser' (the browser's location services) or 'gps' (a GPS receiver)
+gps_provider = 'nmea'                        # GPS receiver protocol: nmea (serial/USB, all platforms), gpsd (Linux), ubx (serial)
+gpsd_host = '127.0.0.1'                     # GPSD server hostname or IP address
+gpsd_port = 2947                             # GPSD server TCP port
+gps_serial_device = ''                      # GPS serial port (e.g. COM9, /dev/ttyACM0): chosen in Pilot's GPS Receiver Settings
+gps_serial_baudrate = 9600                   # GPS serial baud rate
+gps_max_attempts = 5                        # Maximum GPS polls (1-20): 3 agreeing fixes are needed
+gps_retry_max_delay = 15.0                  # Maximum wait between polls; intervals double every two attempts
 location_list   = ''                        # pipe-separated sorted list of saved location names, for Pilot locations dropdown
 location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az.
 site_latitude = -33.8598874                 # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
@@ -61,7 +69,7 @@ r3 = 0.0                                    # Axis3 of Reference Position (Roll/
 panel = 3                                   # Current panel number: 0=Mosaic-Center, n=Panel-n
 
 [control]
-advanced_control = true                    # Used to disable all advanced control features, must be true to use any advanced feature
+advanced_control = true                     # Used to disable all advanced control features, must be true to use any advanced feature
 advanced_kf = true                          # Enable the Kalman Filtering of measurement data to smooth out noise
 advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
 advanced_slewing = true                     # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
@@ -69,24 +77,28 @@ advanced_goto = true                        # Perform advanced goto slewing in A
 advanced_tracking = true                    # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
 advanced_pulse_guiding = true               # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
 advanced_pulse_pec_tuning = true            # Enable the ASCOM Alpaca Pulse guiding API for tuning of the PEC model
-pec_ignore_guider_calibration = true        # PEC ignores a guider's calibration (PHD2, CCDciel), recognised as 3+ identical single-axis pulses
-advanced_sync_guiding = false               # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
-advanced_alignment = false                  # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
+pec_ignore_guider_calibration = true        # PEC ignores a guider's calibration (PHD2, CCDciel), recognised as 3+ single-axis pulses, identical or each 1.5x the last
+advanced_sync_guiding = true                # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
+advanced_alignment = true                   # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
 advanced_scc_enabled = true                 # Enable correction to reduce the number of Slew & Center cycles. Method defined by advanced_scc_choice
 advanced_scc_choice = 2                     # 0 = Zero Last Residual, 1=Local Gausian Adjustment; 2=Sync Guiding Adjustment
-advanced_align_mac = false                  # Enable Mechanical Alignment Correction models, corrects mechanical tilt on M3 and M2
+advanced_align_mac = true                   # Mechanical Alignment Correction: fit M2/M3 offsets (and the M2 scale) with the alignment (off: rotation-only QUEST)
+advanced_eq_mode = false                    # BETA EXPERIMENTAL: Enable for Polaris mounted on an equatorial wedge, with the M1 axis aligned to the celestial pole.
+advanced_eq_mode_visible = false            # BETA EXPERIMENTAL: Show the Equatorial Mode toggle in Pilot's settings (default is not visible)
 advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
-advanced_pec = false                        # Perform Periodic Error Correction Modelling
-coordinated_speed_control = true            # BETA: coordinated speed control - shared-level motor speed controller (driver/speed_controller.py),
-                                            # planned goto trajectories, acceleration-shaped jogs and Ki freeze during gotos; switchable live
-restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing (saved < 10 min ago, same Polaris
-                                            # session); otherwise stop a mount still running its last command (tracking_restore.py)
-pec_mode = "ema"                            # PEC model: "ema" (rate tracking, default) or "rls" (linear + harmonics). EMA tau 5-10 min was best on the
-                                            # archived logs (utility/analyse_pec_catalog.ipynb) and in the twin; RLS + harmonics was no better than no PEC
-pec_T_sec = 2040                            # PEC model worm period T (seconds, 34 min default) -- the basis every fitted harmonic is relative to (RLS only)
-pec_n_harmonics = 0                         # PEC model harmonics fitted per axis, RLS only (0 = pure linear; EMA never uses harmonics)
-pec_tau_sec = 450                           # PEC model smoothing time constant (seconds), used by both RLS and EMA modes (7.5 min: middle of the 5-10 min optimum, averages more solves when sync guiding)
+orbital_lead_sec = 0.3                      # ... aim this far ahead of an orbital body (s): the loop's dead time (0.2-0.4 s)
+advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guide corrections and correct it
+advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json
+coordinated_speed_control = true            # Enable shared-level motor speed controller, goto plans, acceleration-shaped jogs and Ki freeze during gotos
+advanced_backlash = true                    # Enable backlash compensation as a goto completes, pushing through gear slack (needs coordinated_speed_control; not through tracking reversals)
+backlash_deg = [0.04, 0.12, 0.08]           # ... each motor's gear backlash (deg, M1/M2/M3; worm profile tests measured ~125-160", 280-620", ~310")
+restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing (saved < 10 min ago)
+pec_tau_sec = 450                           # PEC smoothing time constant (seconds) of its EMA drift rate: 7.5 min
+pec_reversal_pause = true                   # PEC pauses learning while a motor reverses its tracking direction, ignoring backlash compensation
+pec_reversal_lead_sec = 120                 # ... from this long before the motor's turning point (its gear unloads as it slows)
+pec_reversal_backlash_deg = 0.2             # ... until it has turned this far past it (backlash measured at 150-620")
 kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.2547885891542383 ]
+kf_goto_noise_scale = 0.1                   # KF position measurement noise x this while a goto/rotate is in progress (tracking keeps kf_measure_noise)
 kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 0.0001,                0.0001,                0.0001 ]
 measurement_dt = 0.2                        # KF Polaris' microcontroller emits 518 position updates on this fixed hardware cadence (seconds)
 measurement_catchup_max_dt = 2.0            # KF Maximum delay allowed before genuine 518 protocol outage flagging
@@ -97,6 +109,8 @@ pid_Ke = 0.4                                # PID Expotential Smoothing Gain for
 pid_Kc = 0.75                               # PID Arc-minutes tollerance to accept as not deviating
 pid_Ka = 0.0                                # PID Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0.0 to set default of 5) must be float
 pid_Kv = 0.0                                # PID Maximum slew rate (0.0 to 8.5 degrees/s) on any motor axis (use 0.0 to set calibrated max) must be float
+pid_Kt = 0.2                                # PID dead time (s): measurements show a motor's response this late (their age);
+pid_Kl = 0.15                               # PID motor lag (s): the MCU eases a motor to a new speed with this time constant. Goto plans compare measurements with the plan through both (0.2-0.4 s in all on the mount)
 zeta_safety_margin = 10                     # Windup Prevention safety margin inside zeta limits
 z1_min_limit = -270                         # Z1 Axis Raw Motor Control minimum in degrees
 z1_max_limit = +270                         # Z1 Axis Raw Motor Control maximum in degrees
@@ -112,17 +126,9 @@ guide_rate_dec = 1.0                        # Declination guide rate multiple of
 
 
 [models]
-# Fitted parameters generated by fits_extract.py (copy to config.toml):
-m3_tilt_dm1       =  -261.30                # [arcmin/fn_M3]  FAIR  R2=0.483
-m3_tilt_dm2       =  -148.69                # [arcmin/fn_M3]  GOOD  R2=0.861
-m3_tilt_dm3       =    +0.00                # [arcmin/fn_M3]  WEAK  R2=0.338
-m2_tilt_dm2_amp   =   +94.78                # [arcmin/fn_M2]  FAIR  R2=0.499
-m2_tilt_dm2_zero  =   +20.88                # [degrees     ]  FAIR  R2=0.499
-m2_roll_coupling  =    +0.00                # [arcmin/fn_M2]  POOR  R2=0.013
-m2_roll_zero      =    +0.00                # [degrees     ]  POOR  R2=0.013
-m1_offset         =     0.0                 # [arcmin      ]
-m2_offset         =     0.0                 # [arcmin      ]
-m3_offset         =     0.0                 # [arcmin      ]
+# Alignment model (Mechanical Alignment Correction, advanced_align_mac): the M2/M3 zero offsets are fitted at every
+# sync; the M2 scale (+0.3-2.2% on every Polaris measured) starts here and is refitted at each sync when significantly better.
+align_m2_scale    =     1.0                 # [%           ] default M2 scale: M2 turns this much further than its reported angle (about 45 deg)
 
 
 [device]
@@ -154,8 +160,9 @@ log_synscan_polling = false                 # log frequent polling messages from
 log_polaris_polling = false                 # log frequent polling messages from Benro Polaris
 log_quest_model = true                      # log weights in multi-point sync model
 log_orbital_queries = true                  # log information related to JPL and Celestrak orbital parameter queries
+log_gps_receiver = false                    # log what the GPS receiver sends (NMEA, UBX, GPSD) and each Locate attempt's fix
 log_pec = true                              # log information related to Predictive Error Correction
-log_heartbeat = false                       # log the stack track whenever there is a heartbeat skip
+log_heartbeat = false                       # log the stack trace whenever there is a heartbeat skip, and garbage collections over 100 ms
 log_position = false                        # log full KF (KFLOG) and PID (PIDLOG) telemetry to file every control tick (~200ms while tracking)
 log_hardware_unit_tests = false             # allow unit tests that send real protocol commands to the Polaris (they move the mount) to run
 

@@ -102,14 +102,23 @@ export const useStatusStore = defineStore('status', {
         bleselected: '',
         bleisenablingwifi: false,
         bleiswifienabled: false,
+        platform: '',                       // the driver's OS: win32, linux, darwin
+        gpsrun: 0,                          // the driver's GPS Locate: which one (counts Locates)
+        gpsstate: 'idle' as 'idle' | 'running' | 'found' | 'no_fix' | 'error',
+        gpsattempts: 0,                     // its current attempt (progress on the Locate button)
+        gpserror: null as string | null,    // why it failed (no fix yet, no data from the port, ...)
         polarisswver: '',
         polarishwver: '',
         polarisastrover: '',
         rbcerror: 0,
+        alignmodel: [0, 0, 0],              // alignment model: M2, M3 offsets (deg), M2 scale (%)
+        alignstatus: ['default', 'default'] as string[],  // MAC: offsets ('fitted'|'default'), M2 scale ('fitted'|'held'|'default')
+        alignguide: '',                     // how to improve the alignment ('' when nothing to add)
         sccerror: 0,
         mpastatus: [0,0],
         sgstatus: [0,0,0,0,0],
         pec: [0,0,0,0],
+        pecworm: [0,0,0],
         pec_accum: [0,0],
         pidKc: 0.75,
     }),

@@ -6,10 +6,13 @@ observe()/errsignal() logging). analyse_pec.ipynb and analyse_kf_pid.ipynb both 
 the same underlying log files and payload convention -- analyse_pec.ipynb's outcome
 overview even loads KFLOG as an optional secondary diagnostic -- so keeping this in one
 place means a fix (e.g. to the None/bool handling below) only has to happen once.
+Also the goto response analysis (utility/goto_response.py runs) for analyse_goto_response.ipynb.
 """
 import os
 import re
 import ast
+import math
+import datetime
 from glob import glob
 
 import numpy as np
@@ -75,7 +78,8 @@ def parse_payload_line(line, tag):
     Split 'TIMESTAMP INFO <TAG> {dict}' and literal_eval the trailing dict, flattening any
     list-valued field into '<key>_<i+1>' columns -- the shared axis-indexed convention used
     by PECLOG ('resid', 'ra_model'/'dec_model', ... -> 1=RA, 2=Dec) and KFLOG/PIDLOG
-    ('θ_meas', ... -> 1=M1, 2=M2, 3=M3).
+    ('θ_meas', ... -> 1=M1, 2=M2, 3=M3). A dict-valued field (PIDLOG's 'blc') is flattened the same way under
+    '<key>_<subkey>' (e.g. 'blc_adj_1'): left as a dict, the column is unhashable and the loaders' dedup fails.
     """
     if f" {tag} " not in line:
         return None
@@ -86,8 +90,12 @@ def parse_payload_line(line, tag):
     except (ValueError, SyntaxError):
         return None
     rec = {"timestamp": ts}
-    for key, val in payload.items():
-        if isinstance(val, list):
+    items = list(payload.items())
+    while items:
+        key, val = items.pop(0)
+        if isinstance(val, dict):
+            items[:0] = [(f"{key}_{k}", v) for k, v in val.items()]
+        elif isinstance(val, list):
             for i, v in enumerate(val):
                 # None (e.g. PECLOG's resid/guide fields on a cycle where only one axis
                 # updated) must not be stringified to "None" first -- float("None") raises,
@@ -169,7 +177,7 @@ def _dms_to_deg(sign_deg, minutes, seconds):
 def parse_sync_guiding_residual_line(line):
     """
     Parse the always-present '->> Polaris: SYNC GUIDING Ra <dms>, Dec <dms> Residuals' line
-    (control.py's process_guide_sync(), logged unconditionally regardless of Config.advanced_pec
+    (control.py's process_guide_sync(), logged unconditionally regardless of Config.advanced_pec_drift
     or PECLOG format/version) back into decimal-degree ra_resid_deg/dec_resid_deg -- the inverse
     of shr.py's deg2dms(). This is the only place a legacy (pre-dict-format) PECLOG session's
     'resid' survives; parse_peclog_legacy()'s own payload doesn't carry it.
@@ -207,7 +215,7 @@ def find_site_location(log_filenames, log_dir='.'):
     return {'lat_deg':..., 'lon_deg':...}, or None if not present (this line isn't written by
     every driver version/config, e.g. it's absent when the site is left at its default and
     never explicitly set for that session). Needed to convert a PECLOG resid (RA/Dec) into an
-    Alt/Az/theta delta via the parallactic angle -- see docs/pec_theta_space_plan.md Phase 0.1.
+    Alt/Az/theta delta via the parallactic angle -- see docs/study_pec_motor_space_v2.md Phase 0.1.
     """
     paths = resolve_log_files(log_filenames, log_dir=log_dir)
     if not paths:
@@ -224,15 +232,17 @@ def find_site_location(log_filenames, log_dir='.'):
 
 
 def parse_pecconfig(line):
-    """Extract the PECCONFIG line emitted once per session, if present."""
-    m = re.search(
-        r'PECCONFIG mode,(\w+),n_harmonics,(\d+),T,([\d.]+),tau_sec,([\d.]+),min_dt_sec,([\d.]+)',
-        line
-    )
+    """The PECCONFIG line emitted once per session: {'drift', 'worm'} (the PEC Drift / Worm Gear Correction switches,
+    None in logs before they were split), {'tau', 'min_dt'} (seconds), or None. Logs from before v2.2 Beta 7 also
+    name the model ('mode' rls/ema, harmonics, period); RLS has since been removed, so only EMA sessions replay as
+    they ran."""
+    m = re.search(r'PECCONFIG (?:drift,(True|False),worm,(True|False),)?(?:mode,(\w+),n_harmonics,\d+,T,[\d.]+,)?'
+                  r'tau_sec,([\d.]+),min_dt_sec,([\d.]+)', line)
     if not m:
         return None
-    mode, H, T, tau, min_dt = m.groups()
-    return dict(mode=mode, H=int(H), T=float(T), tau=float(tau), min_dt=float(min_dt))
+    drift, worm, mode, tau, min_dt = m.groups()
+    flag = lambda v: None if v is None else v == 'True'
+    return dict(drift=flag(drift), worm=flag(worm), mode=mode or 'ema', tau=float(tau), min_dt=float(min_dt))
 
 
 def _finalize_log_df(rows):
@@ -349,9 +359,9 @@ def load_sync_guiding_residuals(log_filenames, log_dir='.'):
     """
     Parse every '->> Polaris: SYNC GUIDING Ra <dms>, Dec <dms> Residuals' line into a
     DataFrame with timestamp/resid_1 (RA, arcmin)/resid_2 (Dec, arcmin) -- same convention as
-    PECLOG's own resid_1/resid_2. Unlike load_pec(), this works with Config.advanced_pec off
+    PECLOG's own resid_1/resid_2. Unlike load_pec(), this works with Config.advanced_pec_drift off
     (a session with PEC disabled, sync-guiding enabled -- e.g. for a clean, uncontaminated
-    ground-truth capture per docs/pec_theta_space_plan.md): process_guide_sync() logs this
+    ground-truth capture per docs/study_pec_motor_space_v2.md): process_guide_sync() logs this
     line unconditionally, whether or not PECLOG exists at all for the session.
 
     Raises if no such lines are found -- if you have PECLOG for this session, use load_pec()
@@ -430,7 +440,7 @@ def find_tracking_segments(log_filenames, log_dir='.', min_duration_min=20):
     a real capture session routinely includes several of these (retargeting, dithering,
     meridian flips), and a segment spanning one would inject a large non-periodic-error
     discontinuity into any cumulative-motor-angle analysis (see
-    docs/pec_theta_space_plan.md Phase 0.2). Returns a list of (start_ts, end_ts,
+    docs/study_pec_motor_space_v2.md Phase 0.2). Returns a list of (start_ts, end_ts,
     duration_min) tuples for segments at least min_duration_min long, sorted chronologically;
     shorter segments are dropped rather than returned as noise.
 
@@ -479,7 +489,7 @@ def derive_theta_ground_truth(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
     """
     Per-motor pointing-error ground truth for each PECLOG guide-sync cycle, derived from the
     plate-solve's true observed sky position rather than the RA/Dec resid alone (see
-    docs/pec_theta_space_plan.md Phase 0.1). For each row:
+    docs/study_pec_motor_space_v2.md Phase 0.1). For each row:
       1. predicted_ra/dec = this row's az/alt/roll (the PID's PV) -> ra/dec, via
          kinematics.azalt_to_radec() -- the same conversion the driver itself uses.
       2. observed_ra/dec = predicted_ra/dec + resid (resid_1=RA, resid_2=Dec, both arcmin of
@@ -513,10 +523,8 @@ def derive_theta_ground_truth(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
     kinematics.azaltroll_to_theta()'s IK is multi-valued (two mechanically-distinct motor
     poses can point at the same sky position) and needs a LastPosition to pick the branch
     continuous with the previous row and to unwrap through +/-360 -- called with no lastPos
-    at all it silently returns (None, None, None) for *every* row (its own default argument
-    is passed through as a literal None to kinematics.q_to_theta(), which then fails on
-    None.unwrap() and gets swallowed by azaltroll_to_theta()'s try/except; found by testing
-    this function empirically, not from reading the signature). A single LastPosition is
+    it uses a fresh LastPosition per call, so rows aren't continuous with each other (before
+    2026-10-17 it silently returned (None, None, None) for every row instead). A single LastPosition is
     carried across rows here, advanced by theta_pred only (the real trajectory) after both
     theta_pred and theta_obs are computed against it -- mirroring how the driver carries one
     persistent self._pid._lp across a session, and keeping theta_obs from ever nudging the
@@ -702,7 +710,7 @@ def derive_theta_from_sync_residuals(resid_df, kf_df, lat_deg, lon_deg, theta2_e
       3. Anchor ra0/dec0 at the first usable event, then true_ra/dec(t) = ra0/dec0 +
          cumsum(resid_1/2)(t)/60 (arcmin -> degrees) -- note this has no separate PEC term to
          add back (PEC is off, cumsum(resid) alone is the true uncorrected drift; see the
-         no-hidden-term reasoning for total_accum in docs/pec_theta_space_plan.md -- the same
+         no-hidden-term reasoning for total_accum in docs/study_pec_motor_space_v2.md -- the same
          applies here even more directly, since resid is the *only* correction mechanism
          active).
       4. true_az/alt(t) = true_ra/dec(t) -> az/alt via radec_to_altaz(), combined with this
@@ -802,7 +810,7 @@ def derive_theta_from_sglog(df, lat_deg, lon_deg, theta2_exclude_above=80.0):
     theta_raw_1/2/3 (the real motor position at the moment of each sync) and az/alt/roll (the
     PID's PV) directly on every row, so there's no nearest-sample matching to do, and no
     separate cumsum(resid) bookkeeping either -- total_accum_1/2 (backed by the driver's own
-    delta_guide_accum, see docs/pec_theta_space_plan.md) is already that cumulative sum,
+    delta_guide_accum, see docs/study_pec_motor_space_v2.md) is already that cumulative sum,
     tracked live in the driver.
 
     For each row:
@@ -896,7 +904,7 @@ def lombscargle_periodogram(x, y, min_period=None, max_period=None, n_periods=20
     Lomb-Scargle periodogram of y against x, for irregularly-sampled data -- PECLOG's own
     guide-sync cadence isn't uniform, and this is used for both the time-domain (x=t_sec) and
     angle-domain (x=cumulative motor rotation, e.g. theta_pred_i) periodicity tests in
-    docs/pec_theta_space_plan.md Phase 0.2, so it needs to handle irregular spacing in either
+    docs/study_pec_motor_space_v2.md Phase 0.2, so it needs to handle irregular spacing in either
     axis without resampling artifacts. Returns (periods, power) with `periods` in the same
     units as `x` (minutes if x is t_sec/60, degrees if x is a theta_pred_i column) and `power`
     scipy's normalized Lomb-Scargle power at each period -- comparable in shape to (though not
@@ -960,7 +968,7 @@ def periodogram_false_alarm_probability(x, y, n_shuffles=200, rng=None, **period
     noise alone regularly produces a peak just as strong, i.e. the "peak" isn't trustworthy.
 
     This exists because of a real failure mode found while validating Phase 0.2 (see
-    docs/pec_theta_space_plan.md): with the small sample sizes PECLOG-cadence segments give
+    docs/study_pec_motor_space_v2.md): with the small sample sizes PECLOG-cadence segments give
     (tens to a few hundred points), the raw peak period/power alone kept landing near
     suspiciously round numbers of cycles across unrelated motors/segments even after
     detrending -- a classic small-sample periodogram bias (a long period has more freedom to
@@ -1113,7 +1121,7 @@ def load_high_cpu_events(log_filenames, log_dir='.'):
     triggered whenever a system_vitals() call -- i.e. any of load_vitals()'s three warning
     kinds -- observes CPU > 95%). This is the single most direct signal for "was this dropout
     caused by CPU contention on the machine running the driver" -- found essential while
-    investigating a real overnight dropout (docs/pec_theta_space_plan.md): the disconnect at
+    investigating a real overnight dropout (docs/study_pec_motor_space_v2.md): the disconnect at
     2026-09-01T00:21:52 was preceded by NINA.exe (imaging software) and the driver's own
     python.exe pushing CPU to 100%, starving the driver's asyncio event loop long enough that
     the connection was forcibly closed.
@@ -1366,7 +1374,7 @@ def load_connection_events(log_filenames, log_dir='.'):
     That sort is not optional: rotated log files are numbered by *reverse* recency (a fresh
     'alpaca.log' plus '.1', '.2', ... or an equivalent NN-suffixed archive naming), so
     concatenating them in filename order silently interleaves events backwards -- confirmed
-    the hard way while diagnosing a real overnight dropout (docs/pec_theta_space_plan.md): the
+    the hard way while diagnosing a real overnight dropout (docs/study_pec_motor_space_v2.md): the
     file holding the disconnect (...a12.log) chronologically *precedes* the file holding the
     successful reconnect (...a11.log), the opposite of their filename order.
 
@@ -1481,7 +1489,7 @@ def reconstruct_outages(connection_events_df):
     Walk load_connection_events()'s chronological event stream and collapse it into discrete
     outage spans -- a 'disconnect'/'reconnect_error' event through to the next 'init_done' --
     with full context on what happened in between. Exists because a real multi-file overnight
-    outage (docs/pec_theta_space_plan.md) turned out to span two separate driver-restart
+    outage (docs/study_pec_motor_space_v2.md) turned out to span two separate driver-restart
     attempts and a client config change (log_position toggled off, then back on, mid-outage),
     none of which is obvious from any single line. It also matters for a subtler reason: a
     naive KFLOG-gap-based estimate of "how long was the outage" can undershoot badly -- in
@@ -1756,27 +1764,39 @@ def ramp_vs_next_step(comp, sync_times, before_s=(25, 2), after_s=(10, 35)):
     return pd.DataFrame(rows).T
 
 
-def _centred_slope_per_min(t_sec, y, half_window_s):
+def _centred_slope_per_min(t_sec, y, half_window_s, segment=None):
+    """Slope of y (per minute) over +-half_window_s around each row. With `segment` (an id per row, e.g. the PEC run
+    between resets), a window never crosses into another segment: near a boundary it is clipped to its own side, so a
+    step at a reset (worm feed-forward switched off, a goto) doesn't smear into the rates before and after it. A
+    window shorter than half_window_s in all (the very ends) gives NaN."""
+    t_sec = np.asarray(t_sec, float)
+    seg = np.zeros(len(t_sec), int) if segment is None else np.asarray(segment)
     out = np.full(len(t_sec), np.nan)
-    lo = np.searchsorted(t_sec, t_sec - half_window_s, side='left')
-    hi = np.searchsorted(t_sec, t_sec + half_window_s, side='right')
-    for k in range(len(t_sec)):
-        if t_sec[k] - half_window_s < t_sec[0] or t_sec[k] + half_window_s > t_sec[-1] or hi[k] - lo[k] < 3:
-            continue
-        out[k] = np.polyfit(t_sec[lo[k]:hi[k]] - t_sec[k], y[lo[k]:hi[k]], 1)[0] * 60
+    for s_id in np.unique(seg):
+        idx = np.flatnonzero(seg == s_id)
+        ts, ys = t_sec[idx], np.asarray(y, float)[idx]
+        lo = np.searchsorted(ts, ts - half_window_s, side='left')
+        hi = np.searchsorted(ts, ts + half_window_s, side='right')
+        for k in range(len(ts)):
+            span = min(ts[k] + half_window_s, ts[-1]) - max(ts[k] - half_window_s, ts[0])
+            if hi[k] - lo[k] < 3 or span < half_window_s:
+                continue
+            out[idx[k]] = np.polyfit(ts[lo[k]:hi[k]] - ts[k], ys[lo[k]:hi[k]], 1)[0] * 60
     return out
 
 
 def correction_breakdown(df, rate_half_window_s=300.0):
     """
     Who corrected the mount's drift, per axis, from PECLOG (one PEC run or a windowed session):
-      mount_drift  = pulse_guide + sync_guide + pec_applied   running totals in arcsec (driver correction convention),
-                     joined across PEC model resets (total_accum restarts at each reset; these don't)
-      *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min; drift_rate = sum of the others
+      mount_drift  = pulse_guide + sync_guide + pec_applied + worm_ff   running totals in arcsec (driver correction
+                     convention), joined across PEC model resets (total_accum restarts at each reset; these don't)
+      worm_ff      = the worm feed-forward's correction (PECLOG wff, Config.pec_worm_ff) since the first row: on those
+                     nights the guide corrections lack what it corrected, so mount drift adds it back (0 when off)
+      drift_for_pec = mount_drift - worm_ff: the drift PEC drift correction is there to follow (the worm feed-forward
+                     handles the rest)
+      *_rate       = centred slope of each over +-rate_half_window_s, arcsec/min, within each PEC run (a window never
+                     crosses a reset, e.g. the worm feed-forward switched on or off); drift_rate = sum of the others
       pec_model_rate   = the rate the driver's PEC model gave (fit_rate), arcsec/min (= arcmin/hr)
-      pec_steady_term  = its steady-drift (DC) part (ra_model[0] / dec_model[0])
-      pec_harmonic_term = pec_model_rate - pec_steady_term: the signed contribution of the harmonics at that moment
-                          (0 for EMA, which has no harmonics)
       pec_applied_logged_rate = the rate PEC actually applied (0 while inhibited); pec_active = inhibit == VALID
     A sync-guide row carries both axes' residuals, a pulse-guide row only one; pec_accum is counted only on that
     axis's own rows (it is logged on every row but folded into the model only when that axis is ingested).
@@ -1786,7 +1806,7 @@ def correction_breakdown(df, rate_half_window_s=300.0):
     is_sync = d['resid_1'].notna() & d['resid_2'].notna()
     resets = d.loc[np.r_[False, np.diff(d['n'].values) < 0], 'timestamp'].reset_index(drop=True)
     out = {'resets': resets}
-    for ax, i, model_col in (('ra', 1, 'ra_model_1'), ('dec', 2, 'dec_model_1')):
+    for ax, i in (('ra', 1), ('dec', 2)):
         own = d[f'resid_{i}'].notna()
         x = d.loc[own, ['timestamp', 't_sec']].copy()
         resid = d.loc[own, f'resid_{i}'] * 60
@@ -1794,15 +1814,785 @@ def correction_breakdown(df, rate_half_window_s=300.0):
         x['pulse_guide'] = resid.where(~sync, 0.0).cumsum().values
         x['sync_guide'] = resid.where(sync, 0.0).cumsum().values
         x['pec_applied'] = (d.loc[own, f'pec_accum_{i}'].fillna(0) * 60).cumsum().values
-        x['mount_drift'] = x['pulse_guide'] + x['sync_guide'] + x['pec_applied']
+        if f'wff_{i}' in d:
+            w = (pd.to_numeric(d[f'wff_{i}'], errors='coerce').ffill().fillna(0.0) * 60)[own].values  # level, arcsec
+            x['worm_ff'] = w - w[0] if len(w) else w
+        else:
+            x['worm_ff'] = 0.0
+        x['mount_drift'] = x['pulse_guide'] + x['sync_guide'] + x['pec_applied'] + x['worm_ff']
+        x['drift_for_pec'] = x['mount_drift'] - x['worm_ff']
         t = x['t_sec'].values
-        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied'):
+        run = np.searchsorted(resets.values, x['timestamp'].values, side='right')      # PEC run: 0 before the 1st reset
+        for col in ('mount_drift', 'pulse_guide', 'sync_guide', 'pec_applied', 'worm_ff', 'drift_for_pec'):
             name = 'drift_rate' if col == 'mount_drift' else f'{col}_rate'
-            x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s)
+            x[name] = _centred_slope_per_min(t, x[col].values, rate_half_window_s, segment=run)
         x['pec_model_rate'] = d.loc[own, f'fit_rate_{i}'].values if f'fit_rate_{i}' in d else np.nan
-        x['pec_steady_term'] = d.loc[own, model_col].values if model_col in d else x['pec_model_rate']
-        x['pec_harmonic_term'] = x['pec_model_rate'] - x['pec_steady_term']
         x['pec_applied_logged_rate'] = d.loc[own, f'applied_rate_{i}'].values if f'applied_rate_{i}' in d else np.nan
         x['pec_active'] = (d.loc[own, f'inhibit_{i}'] == 'VALID').values if f'inhibit_{i}' in d else True
         out[ax] = x.reset_index(drop=True)
     return out
+
+
+_BLC_RE = re.compile(r'^(?P<ts>\S+) \S+ ->> Polaris: BACKLASH (?P<msg>.*)$')
+_BLC_MOTORS_RE = re.compile(r'M[123]')
+
+
+def load_blc_events(log_filenames, log_dir='.'):
+    """
+    Backlash Compensation's events, from the driver log's '->> Polaris: BACKLASH ...' lines (control_backlash.py):
+      latch      a planned tracking reversal latched ('M3 reversing its tracking direction in 10 s: ...')
+      take_up    a push through a motor's slack ('taking up slack: M3 +288"'), after a goto or through a reversal
+      given_up   compensation stopped for a motor that crossed its slack more than MAX_CROSSINGS times
+    Its per-tick state (adjustment, push, hold) is only in PIDLOG's blc (log_position), so these mark where BLC acted,
+    not how far it moved the sky. Returns DataFrame: timestamp, kind, motors (e.g. 'M1,M3'), detail; empty if none.
+    """
+    rows = []
+    for log_path in resolve_log_files(log_filenames, log_dir=log_dir):
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if 'BACKLASH' not in line:
+                    continue
+                m = _BLC_RE.match(line.rstrip('\n'))
+                if not m:
+                    continue
+                msg = m.group('msg')
+                if msg.startswith('taking up slack:'):
+                    kind, detail = 'take_up', msg.split(':', 1)[1].strip()
+                elif msg.startswith('compensation stopped'):
+                    kind, detail = 'given_up', msg
+                elif 'reversing its tracking direction' in msg:
+                    kind, detail = 'latch', msg
+                else:
+                    continue
+                motors = ','.join(dict.fromkeys(_BLC_MOTORS_RE.findall(msg.split(':')[0] if kind != 'take_up' else detail)))
+                rows.append(dict(timestamp=pd.Timestamp(m.group('ts')), kind=kind, motors=motors, detail=detail))
+    out = pd.DataFrame(rows, columns=['timestamp', 'kind', 'motors', 'detail'])
+    return out.sort_values('timestamp', kind='stable').reset_index(drop=True)
+
+
+SLIP_ARCSEC = 8.0                                     # M2 stepping back more than this against its motion in one step
+SLIP_SPEED_BINS = (0, 2, 5, 8, 11, 15, 25, 60)         # M2 speed bins ("/s) for m2_slip_summary
+
+
+def m2_slips(df, slip_arcsec=SLIP_ARCSEC, max_step_s=3.0, window=61, max_rate=60.0, still_rate=0.3, pose_every=30):
+    """
+    M2 slips while tracking: with a heavy payload M2 can creep ahead and then slip back 10-30" at once, which the
+    guider sees as a kick (seen with a 300 mm f/2.8 while M2 lifted it, 8 Oct 2026). Found in PECLOG's motor angles
+    (theta_raw), ~1 s apart while pulse guiding.
+
+    Per step between consecutive rows (no more than max_step_s apart, M2 under max_rate "/s): M2's local speed (the
+    median over `window` steps), the step's departure from it, and whether it slipped (stepped back more than
+    slip_arcsec against its motion; either way when M2 is still). direction: whether M2's motion lifts or lowers
+    the lens (its altitude), or 'still' (under still_rate "/s), from the pose every `pose_every` steps.
+    Returns DataFrame: timestamp, dt, rate ("/s), resid ("), size (" back), slip, direction.
+    """
+    from kinematics import theta_to_q, q_to_azaltroll
+    cols = ['timestamp', 'dt', 'rate', 'resid', 'size', 'slip', 'direction']
+    d = df.dropna(subset=['theta_raw_2']).sort_values('t_sec').reset_index(drop=True)
+    if len(d) < 3:
+        return pd.DataFrame(columns=cols)
+    t = d['t_sec'].to_numpy(float)
+    th = d[['theta_raw_1', 'theta_raw_2', 'theta_raw_3']].to_numpy(float)
+    dt = np.diff(t)
+    step = np.diff(th[:, 1]) * 3600
+    ok = (dt > 0.2) & (dt <= max_step_s)
+    rate = pd.Series(np.where(ok, step / np.where(dt > 0, dt, 1), np.nan)).rolling(
+        window, center=True, min_periods=window // 3).median().to_numpy()
+    resid = step - rate * dt
+    keep = ok & np.isfinite(rate) & (np.abs(rate) < max_rate)
+    size = np.where(np.abs(rate) > still_rate, -np.sign(rate) * resid, np.abs(resid))
+    # does M2 turning up raise the lens? the altitude's change with M2, at a pose every pose_every steps
+    rows = np.arange(0, len(dt), pose_every)
+    up = []
+    for i in rows:
+        alt = [q_to_azaltroll(theta_to_q(*(th[i] + [0, s, 0])))[1] for s in (-0.01, 0.01)]
+        up.append(np.sign(alt[1] - alt[0]))
+    up = np.asarray(up)[np.minimum(np.round(np.arange(len(dt)) / pose_every).astype(int), len(rows) - 1)]
+    direction = np.where(np.abs(rate) < still_rate, 'still', np.where(up * rate > 0, 'lifting', 'lowering'))
+    out = pd.DataFrame({'timestamp': d['timestamp'].iloc[1:].to_numpy(), 'dt': dt, 'rate': rate, 'resid': resid,
+                        'size': size, 'slip': (size > slip_arcsec) & (np.abs(resid) < 120), 'direction': direction})
+    return out[keep].reset_index(drop=True)
+
+
+def m2_slip_summary(steps, frames=None, speed_bins=SLIP_SPEED_BINS, sky_jump_arcsec=6.0, sky_within_s=4.0):
+    """
+    Slips per hour of tracking by direction (lifting, lowering, still) and M2 speed ("/s), from m2_slips(). With PHD2
+    frames (load_phd2_guidelog), also the share of slips the guider saw: a frame-to-frame jump of the guide star
+    over sky_jump_arcsec within sky_within_s after the slip.
+    """
+    s = steps.copy()
+    labels = [f'{a}-{b}' for a, b in zip(speed_bins[:-1], speed_bins[1:])]
+    s['speed'] = pd.cut(s['rate'].abs(), speed_bins, labels=labels, include_lowest=True)
+    if frames is not None and len(frames):
+        f = frames.sort_values('timestamp')
+        jumps = f.loc[np.hypot(f['ra_arcsec'].diff(), f['dec_arcsec'].diff()) > sky_jump_arcsec, 'timestamp'].to_numpy()
+        ts = s['timestamp'].to_numpy()
+        i = np.searchsorted(jumps, ts)
+        nxt = jumps[np.minimum(i, len(jumps) - 1)] if len(jumps) else np.full(len(ts), np.datetime64('NaT'))
+        s['seen'] = (i < len(jumps)) & ((nxt - ts) <= np.timedelta64(int(sky_within_s * 1000), 'ms'))
+    rows = []
+    for (direction, speed), g in s.groupby(['direction', 'speed'], observed=True):
+        hours = g['dt'].sum() / 3600
+        slips = g[g['slip']]
+        row = {'direction': direction, 'speed': speed, 'hours': round(hours, 2), 'slips': len(slips),
+               'slips per hour': len(slips) / hours if hours else np.nan,
+               'median size "': round(float(slips['size'].median()), 1) if len(slips) else np.nan}
+        if 'seen' in s:
+            row['seen by guider %'] = round(100 * slips['seen'].mean()) if len(slips) else np.nan
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+# ── Goto response (utility/goto_response.py runs, utility/analyse_goto_response.ipynb) ─────────
+# Analysis of utility/goto_response.py runs, from a driver log with log_position on (used by
+# utility/analyse_goto_response.ipynb). Each run is split from the log by its REPLAYLOG 'begin' marker and each
+# leg by its 'start'/'end' markers; PIDLOG (every control tick, ~0.2 s) gives the planned motor angles (θ_sp),
+# the measured ones (θ_pv), the speed commanded to each motor (ω_op) and the PID terms.
+#
+# Per leg and moving motor: the theoretical minimum time of an independent-motor move (each motor accelerating,
+# cruising, decelerating within its limits, the slowest deciding), the arrival (within 1' from then on; tracking:
+# of the tracked setpoint, and also the time to the tracking tolerance pid_Kc/20), the commanded vs measured
+# speed, the response delay, how far the motor fell behind its reference, overshoot and the final error. See
+# docs/study_goto_response.md.
+
+GR_GOTO_RATE_SHARE = 0.8                      # the planner moves at this share of Kv (control.PID_Controller)
+GR_KV_DEFAULT = (8.92, 7.66, 7.99)            # the motors' max speeds, deg/s (the FAST 2500 calibration)
+GR_KA_DEFAULT = 5.0                           # acceleration, deg/s^2 (pid_Ka 0 -> 5)
+GR_KP_DEFAULT = (1.0, 1.0, 1.0)               # config.toml pid_Kp
+GR_KD_DEFAULT = (0.5, 0.5, 0.8)               # config.toml pid_Kd
+GR_ARRIVE_DEG = 1.0 / 60                      # arrival: within 1'
+GR_TIGHT_DEG = 0.75 / 60 / 20                 # the tracking completion tolerance: pid_Kc / 20
+GR_REF_SETTLED_DEG = 0.2                      # tracking: the setpoint has reached the target (sky motion aside)
+GR_SIDEREAL_DEG_S = 0.0042
+GR_MOVING_DEG = 0.2                           # a motor moves in a leg if its target is this far away
+
+def load_goto_response(path):
+    """(pid ticks [(t, θ_sp, θ_pv, ω_op, terms, mode)], goto_response markers [(t, dict)], battery [(t, %, charging)])."""
+    pid, marks, battery = [], [], []
+    for line in open(path, encoding="utf-8", errors="replace"):
+        if " PIDLOG " in line:
+            r = parse_payload_line(line, "PIDLOG")
+            if r is None:
+                continue
+            v = lambda k: np.array([r[f"{k}_{i}"] for i in (1, 2, 3)], dtype=float)
+            pid.append((pd.Timestamp(r["timestamp"]).timestamp(), v("θ_sp"), v("θ_pv"), v("ω_op"),
+                        {k: v(k) for k in ("ω_kp", "ω_ki", "ω_kd", "ω_ff")}, r["mode"]))
+        elif " REPLAYLOG " in line or "BATTERY status changed: 778" in line:
+            ts, _, body = line.partition(" INFO ")
+            t = pd.Timestamp(ts.strip()).timestamp()
+            d = ast.literal_eval(body[body.index("{"):].strip())
+            if "REPLAYLOG" in body:
+                if d.get("test") == "goto_response":
+                    marks.append((t, d))
+            else:
+                battery.append((t, int(d["capacity"]), d["charge"] == "1"))
+    return pid, marks, battery
+
+
+def goto_response_runs(marks):
+    """One run per 'begin' marker: [(t_begin, t_end, tracking, markers)]."""
+    out = []
+    for t, d in marks:
+        if d.get("event") == "begin":
+            out.append([t, None, bool(d.get("tracking")), []])
+        elif out:
+            out[-1][3].append((t, d))
+            if d.get("event") == "finish":
+                out[-1][1] = t
+    return [(a, b if b is not None else (m[-1][0] if m else a), tr, m) for a, b, tr, m in out]
+
+
+def goto_response_legs(run_marks):
+    """[(name, t_start, t_end, target θ, seconds the script waited for completion)]."""
+    out, start = [], {}
+    for t, d in run_marks:
+        if d.get("event") == "start":
+            start[d["leg"]] = (t, np.array(d["target"]))
+        elif d.get("event") == "end" and d["leg"] in start:
+            t0, target = start.pop(d["leg"])
+            out.append((d["leg"], t0, t, target, d["seconds"]))
+    return out
+
+
+def _gr_axis_time(d, v, a):
+    """Minimum time for one motor to move d deg from rest to rest at max speed v and acceleration a."""
+    d = abs(d)
+    return d / v + v / a if d >= v * v / a else 2.0 * math.sqrt(d / a)
+
+
+def _gr_arrival(t, err, ok=None, tol=GR_ARRIVE_DEG):
+    """First time from which every motor stays within tol (and ok holds), or None."""
+    good = np.all(np.abs(err) < tol, axis=1)
+    if ok is not None:
+        good &= ok
+    bad = np.where(~good)[0]
+    if not len(bad):
+        return float(t[0])
+    return float(t[bad[-1] + 1]) if bad[-1] + 1 < len(t) else None
+
+
+def _gr_lag_s(cmd, vel, dt):
+    """Delay (s) of the measured speed behind the commanded, by cross-correlation (0 to 1.5 s)."""
+    best, best_k = -np.inf, 0
+    for k in range(0, int(1.5 / dt) + 1):
+        a, b = cmd[:len(cmd) - k], vel[k:]
+        if len(a) < 5 or np.std(a) < 1e-6 or np.std(b) < 1e-6:
+            continue
+        c = np.corrcoef(a, b)[0, 1]
+        if c > best:
+            best, best_k = c, k
+    return best_k * dt
+
+
+def goto_response_leg_series(pid, t0, t1):
+    """One leg's PIDLOG ticks as a DataFrame (t from the leg's start), per motor: sp, pv, op, measured speed vel,
+    and the PID terms kp/ki/kd/ff."""
+    sel = [p for p in pid if t0 <= p[0] <= t1]
+    if len(sel) < 2:
+        return pd.DataFrame()
+    t = np.array([p[0] for p in sel]) - t0
+    sp, pv, op = (np.array([p[i] for p in sel]) for i in (1, 2, 3))
+    vel = np.gradient(pv, t, axis=0)
+    cols = {"t": t, "mode": [p[5] for p in sel]}
+    for a in range(3):
+        m = f"m{a + 1}"
+        cols.update({f"{m}_sp": sp[:, a], f"{m}_pv": pv[:, a], f"{m}_op": op[:, a], f"{m}_vel": vel[:, a]})
+        for k in ("ω_kp", "ω_ki", "ω_kd", "ω_ff"):
+            cols[f"{m}_{k[2:]}"] = [p[4][k][a] for p in sel]
+    return pd.DataFrame(cols)
+
+
+def goto_response_leg_table(pid, run_marks, track, kv=GR_KV_DEFAULT, ka=GR_KA_DEFAULT):
+    """One row per leg and moving motor."""
+    rate = np.array(kv, dtype=float) * GR_GOTO_RATE_SHARE
+    rows = []
+    for case, (name, t0, t1, target, done) in enumerate(goto_response_legs(run_marks)):
+        s = goto_response_leg_series(pid, t0, t1)
+        if len(s) < 5:
+            continue
+        t = s["t"].to_numpy()
+        sp = s[["m1_sp", "m2_sp", "m3_sp"]].to_numpy()
+        pv = s[["m1_pv", "m2_pv", "m3_pv"]].to_numpy()
+        op = s[["m1_op", "m2_op", "m3_op"]].to_numpy()
+        vel = s[["m1_vel", "m2_vel", "m3_vel"]].to_numpy()
+        delta = target - pv[0]
+        moving = [a for a in range(3) if abs(delta[a]) > GR_MOVING_DEG]
+        if not moving:
+            continue
+        t_min = max(_gr_axis_time(delta[a], rate[a], ka) for a in range(3))
+        dt = float(np.median(np.diff(t)))
+        if track:
+            # tracking: the setpoint steps to the target and then moves on with the sky
+            err = pv - sp
+            ref_done = np.all(np.abs(sp - sp[-1]) < GR_REF_SETTLED_DEG + np.abs(t - t[-1])[:, None] * GR_SIDEREAL_DEG_S, axis=1)
+            t_arr, t_tight = _gr_arrival(t, err, ref_done), _gr_arrival(t, err, ref_done, GR_TIGHT_DEG)
+        else:
+            err, ref_done = pv - target, np.ones(len(t), dtype=bool)
+            t_arr, t_tight = _gr_arrival(t, err), None
+        during = t <= (t_arr if t_arr is not None else t[-1])
+        for a in moving:
+            sgn = np.sign(delta[a])
+            cruise = np.abs(op[:, a]) > 0.5 * np.max(np.abs(op[:, a]))
+            ratio = np.median(np.abs(vel[cruise, a])) / np.median(np.abs(op[cruise, a])) if cruise.sum() >= 3 else np.nan
+            rows.append({
+                "case": case, "leg": name, "motor": f"M{a + 1}", "move_deg": delta[a], "t_min_s": t_min,
+                "t_arrive_s": t_arr, "t_tight_s": t_tight, "done_s": done,
+                "cmd_peak_dps": float(np.max(np.abs(op[:, a]))), "meas_peak_dps": float(np.max(np.abs(vel[:, a]))),
+                "meas_per_cmd": ratio, "lag_s": _gr_lag_s(np.abs(op[:, a]), np.abs(vel[:, a]), dt),
+                "behind_ref_arcmin": float(np.max(np.abs(sp[during, a] - pv[during, a]))) * 60,
+                "overshoot_arcmin": max(0.0, float(np.max(sgn * err[ref_done, a]))) * 60 if ref_done.any() else np.nan,
+                "final_arcmin": float(err[-1, a]) * 60,
+            })
+    df = pd.DataFrame(rows)
+    if len(df):
+        df["late_s"] = df["t_arrive_s"] - df["t_min_s"]
+        df["tight_after_s"] = df["t_tight_s"] - df["t_arrive_s"]
+    return df
+
+
+def goto_response_summary(pid, marks, battery, kv=GR_KV_DEFAULT, ka=GR_KA_DEFAULT, exclude=()):
+    """(runs table, {run: leg table}). exclude: (run, case) pairs to leave out of the summary, e.g. a leg stopped by hand."""
+    out, tables = [], {}
+    for i, (t0, t1, track, run_marks) in enumerate(goto_response_runs(marks), 1):
+        df = goto_response_leg_table(pid, run_marks, track, kv, ka)
+        tables[i] = df
+        bat = [b for b in battery if t0 - 120 <= b[0] <= t1]
+        keep = df[~df["case"].isin([c for r, c in exclude if r == i])] if len(df) else df
+        big = keep[keep["move_deg"].abs() >= 25] if len(keep) else keep
+        row = {"run": i, "start": datetime.datetime.fromtimestamp(t0).strftime("%H:%M"),
+               "tracking": track, "battery": f"{bat[0][1]}->{bat[-1][1]}%" if bat else "not reported",
+               "charging_reports": f"{sum(b[2] for b in bat)}/{len(bat)}" if bat else "",
+               "legs": len(goto_response_legs(run_marks)),
+               "late_median_s": keep["late_s"].median() if len(keep) else np.nan,
+               "overshoot_median_arcmin": keep["overshoot_arcmin"].median() if len(keep) else np.nan,
+               "tight_after_median_s": keep["tight_after_s"].median() if track and len(keep) else np.nan}
+        for m in ("M1", "M2", "M3"):
+            b = big[big["motor"] == m] if len(big) else big
+            row[f"{m}_meas_per_cmd"] = b["meas_per_cmd"].median() if len(b) else np.nan
+            row[f"{m}_peak_dps"] = b["meas_peak_dps"].max() if len(b) else np.nan
+        out.append(row)
+    return pd.DataFrame(out), tables
+
+
+def goto_response_kd_effect(pid, run_marks, legs_axes, kp=GR_KP_DEFAULT, kd=GR_KD_DEFAULT):
+    """The Kd term with coordinated speed control damps the PID's own feedback command toward the feed-forward
+    (ω_kd = -Kd (ω_fb - ω_ff)), so a sustained error e gets ω_fb = Kp e / (1 + Kd): the effective gain is
+    1/(1 + Kd) and the error closes as a first-order decay with time constant (1 + Kd) / Kp, before the
+    response delay and Ke smoothing slow it further. Per (leg, motor): the measured gain ratio and decay time
+    constant against those predictions."""
+    by_name = {name: (t0, t1) for name, t0, t1, _, _ in goto_response_legs(run_marks)}
+    rows = []
+    for name, a in legs_axes:
+        if name not in by_name:
+            continue
+        s = goto_response_leg_series(pid, *by_name[name])
+        m = f"m{a + 1}"
+        t, k_p, op, ff = s["t"].to_numpy(), s[f"{m}_kp"].to_numpy(), s[f"{m}_op"].to_numpy(), s[f"{m}_ff"].to_numpy()
+        e = (s[f"{m}_sp"] - s[f"{m}_pv"]).to_numpy()
+        chase = (np.abs(k_p) > 0.5) & (np.abs(k_p) < 0.9 * np.abs(k_p).max())
+        ratio = float(np.median((op[chase] - ff[chase]) / k_p[chase])) if chase.sum() > 3 else np.nan
+        tail = (np.abs(e) < 3) & (np.abs(e) > 0.05) & (t > t[np.argmax(np.abs(e))])
+        tau = float(-1 / np.polyfit(t[tail], np.log(np.abs(e[tail])), 1)[0]) if tail.sum() > 4 else np.nan
+        rows.append({"leg": name, "motor": f"M{a + 1}", "gain_ratio": ratio, "predicted_ratio": 1 / (1 + kd[a]),
+                     "decay_tau_s": tau, "predicted_tau_s": (1 + kd[a]) / kp[a],
+                     "close_5deg_to_1arcmin_s": tau * math.log(300) if not np.isnan(tau) else np.nan})
+    return pd.DataFrame(rows)
+
+
+# ── Eq mode reachability (utility/analyse_span.ipynb) ──────────────────────────────────────────────────────────
+# Which poses (pointing + position angle) a Polaris on an ideal wedge can reach, what the tripod cone and the rig
+# tilt limit take away, and how a straight motor-angle goto between two reachable poses can pass through the tripod
+# cone. Frames as the driver's: topocentric x East, y North, z Up; camera -z boresight, +x camera-up; PA the angle of
+# camera-up from the direction of the north celestial pole (the driver's delta[2] = roll + parallactic angle,
+# checked by eq_check_against_driver()). Motor reach is the driver's rule: camera-up (the M3 axis) within
+# THETA2_MAX of the M1 axis, which the wedge points at the visible celestial pole (control_eq.wedge_alignQ_B2T). The
+# vector maths is vectorised here for whole-sky grids; eq_check_against_driver() compares it with the driver's own
+# kinematics (reachable_azaltroll, theta_to_q, q_to_theta). See docs/study_goto_response.md (R1).
+
+EQ_THETA2_MAX = 81.5            # kinematics.THETA2_MAX
+EQ_TRIPOD_CONE_DEG = 8.5        # the tripod: pointings within this of the nadir (altitude below -81.5)
+EQ_RIG_TILT_OFF = 180.0         # config.toml eq_rig_tilt_limit default: off
+
+
+def _eq_rot(q):
+    """3x3 rotation matrix of a driver Quaternion (its action on the basis vectors)."""
+    return np.column_stack([q.rotate(np.array(v, dtype=float)) for v in ([1, 0, 0], [0, 1, 0], [0, 0, 1])])
+
+
+def eq_m1_axis(lat_deg):
+    """The M1 axis (topocentric unit vector) of an ideal wedge at this latitude: the visible celestial pole."""
+    from control_eq import celestial_pole_topo
+    return celestial_pole_topo(lat_deg)
+
+
+def eq_azalt_vec(az, alt):
+    """Unit vectors (..., 3) for azimuth (from North through East) and altitude, degrees."""
+    a, e = np.radians(az), np.radians(alt)
+    return np.stack([np.cos(e) * np.sin(a), np.cos(e) * np.cos(a), np.sin(e)], axis=-1)
+
+
+def eq_vec_azalt(v):
+    """Azimuth (0-360) and altitude (deg) of unit vectors (..., 3)."""
+    v = np.asarray(v, dtype=float)
+    return np.degrees(np.arctan2(v[..., 0], v[..., 1])) % 360, np.degrees(np.arcsin(np.clip(v[..., 2], -1, 1)))
+
+
+def eq_hadec_to_azalt(ha, dec, lat_deg):
+    """Hour angle (deg, + west) and declination to azimuth / altitude at this latitude."""
+    h, d, L = np.radians(ha), np.radians(dec), math.radians(lat_deg)
+    alt = np.degrees(np.arcsin(np.clip(np.sin(d) * math.sin(L) + np.cos(d) * math.cos(L) * np.cos(h), -1, 1)))
+    az = np.degrees(np.arctan2(-np.cos(d) * np.sin(h), np.sin(d) * math.cos(L) - np.cos(d) * math.sin(L) * np.cos(h)))
+    return az % 360, alt
+
+
+def eq_pose_vectors(az, alt, pa, lat_deg):
+    """Boresight and camera-up (..., 3) for pointings (az, alt) at position angle pa (deg, all broadcast together)."""
+    L = math.radians(lat_deg)
+    ncp = np.array([0.0, math.cos(L), math.sin(L)])
+    az, alt, pa = np.broadcast_arrays(*(np.asarray(x, dtype=float) for x in (az, alt, pa)))
+    b = eq_azalt_vec(az, alt)
+    n = ncp - np.sum(b * ncp, axis=-1, keepdims=True) * b              # celestial north on the sky at b
+    nn = np.linalg.norm(n, axis=-1, keepdims=True)
+    n = np.where(nn > 1e-9, n / np.maximum(nn, 1e-12), np.array([0.0, 0.0, 1.0]))   # at the poles: any reference
+    e = np.cross(n, b)
+    p = np.radians(pa)[..., None]
+    return b, np.cos(p) * n + np.sin(p) * e
+
+
+def eq_constraints(bore, up, lat_deg, rig_tilt_limit=EQ_RIG_TILT_OFF, tripod_cone_deg=EQ_TRIPOD_CONE_DEG, level=False):
+    """Boolean arrays for poses given by boresight / camera-up vectors: 'motor' (camera-up within THETA2_MAX of the
+    M1 axis: the zenith when level, the pole on the wedge), 'rig' (camera-up within rig_tilt_limit of the zenith),
+    'tripod' (boresight outside the tripod cone round the nadir), 'above' (boresight above the horizon), and
+    'ok' (motor, rig and tripod all allow it)."""
+    m1 = np.array([0.0, 0.0, 1.0]) if level else eq_m1_axis(lat_deg)
+    motor = up @ m1 >= math.cos(math.radians(EQ_THETA2_MAX)) - 1e-12
+    rig = up[..., 2] >= math.cos(math.radians(min(rig_tilt_limit, 180.0))) - 1e-12
+    tripod = bore[..., 2] > -math.cos(math.radians(tripod_cone_deg))
+    return {"motor": motor, "rig": rig, "tripod": tripod, "above": bore[..., 2] > 0, "ok": motor & rig & tripod}
+
+
+def eq_sky_grid(lat_deg, az_step=2.0, alt_step=2.0, pa_step=5.0, rig_tilt_limit=EQ_RIG_TILT_OFF,
+                tripod_cone_deg=EQ_TRIPOD_CONE_DEG, level=False):
+    """Over an Az x Alt grid of pointings, the share (0-1) of position angles each constraint allows:
+    {'az', 'alt', 'motor', 'motor_rig', 'ok', 'tripod' (0/1, the same at every PA), 'rig_tilt_min' (the least
+    rig tilt any motor-reachable PA has: what a rig tilt limit must allow for the pointing to stay reachable)}, and
+    'motor_either', 'motor_rig_either', 'ok_either': the same allowing an upside-down frame (PA or PA + 180).
+    pa_step must divide 180."""
+    az = np.arange(0, 360 + 1e-9, az_step)
+    alt = np.arange(-90, 90 + 1e-9, alt_step)
+    pa = np.arange(-180, 180, pa_step)
+    AZ, ALT = np.meshgrid(az, alt)
+    bore, up = eq_pose_vectors(AZ[..., None], ALT[..., None], pa, lat_deg)
+    c = eq_constraints(bore, up, lat_deg, rig_tilt_limit, tripod_cone_deg, level)
+    tilt = np.degrees(np.arccos(np.clip(up[..., 2], -1, 1)))
+    tilt_min = np.where(c["motor"], tilt, np.nan)
+    with np.errstate(all="ignore"):
+        tilt_min = np.nanmin(np.where(np.isnan(tilt_min), np.inf, tilt_min), axis=-1)
+    tilt_min[np.isinf(tilt_min)] = np.nan
+    half = int(round(180 / pa_step))
+    assert abs(half * pa_step - 180) < 1e-9, "pa_step must divide 180"
+    either = lambda m: (m | np.roll(m, half, axis=-1)).mean(-1)          # PA or PA + 180 (upside down)
+    motor_rig = c["motor"] & c["rig"]
+    return {"az": az, "alt": alt, "pa": pa, "motor": c["motor"].mean(-1), "motor_rig": motor_rig.mean(-1),
+            "ok": c["ok"].mean(-1), "tripod": c["tripod"].all(-1).astype(float), "rig_tilt_min": tilt_min,
+            "motor_either": either(c["motor"]), "motor_rig_either": either(motor_rig), "ok_either": either(c["ok"])}
+
+
+def eq_pa_grid(lat_deg, dec, ha_step=2.0, pa_step=2.0, rig_tilt_limit=EQ_RIG_TILT_OFF, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
+    """For one declination, over hour angle x PA: what limits each pose, as codes 0 reachable, 1 motor reach,
+    2 rig tilt, 3 tripod cone (first that applies, in the order tripod, motor, rig), plus the altitude per HA.
+    'code_flip' is the same for the upside-down frame (PA + 180)."""
+    ha = np.arange(-180, 180 + 1e-9, ha_step)
+    pa = np.arange(-180, 180 + 1e-9, pa_step)
+    az, alt = eq_hadec_to_azalt(ha, np.full_like(ha, dec), lat_deg)
+
+    def codes(pa_):
+        bore, up = eq_pose_vectors(az[:, None], alt[:, None], pa_[None, :], lat_deg)
+        c = eq_constraints(bore, up, lat_deg, rig_tilt_limit, tripod_cone_deg)
+        code = np.zeros(up.shape[:-1], dtype=int)
+        code[~c["rig"]] = 2
+        code[~c["motor"]] = 1
+        code[~c["tripod"]] = 3
+        return code.T                                                   # [pa, ha]
+
+    return {"ha": ha, "pa": pa, "alt": alt, "code": codes(pa), "code_flip": codes(pa + 180.0)}
+
+
+def eq_motor_pa_by_dec(lat_deg, decs, pas):
+    """Motor reach alone over declination x PA (it doesn't depend on hour angle: tracking turns M1 about the pole):
+    codes[dec, pa] 2 reachable, 1 reachable only upside down (PA + 180 is), 0 neither."""
+    decs, pas = np.asarray(decs, float), np.asarray(pas, float)
+    az, alt = eq_hadec_to_azalt(np.zeros_like(decs), decs, lat_deg)
+    reach = [eq_constraints(*eq_pose_vectors(az[:, None], alt[:, None], (pas + k)[None, :], lat_deg), lat_deg)["motor"]
+             for k in (0.0, 180.0)]
+    return np.where(reach[0], 2, np.where(reach[1], 1, 0))
+
+
+def eq_fk_vectors(theta, alignQ_B2T):
+    """Boresight and camera-up (..., 3), topocentric, for motor angles theta (..., 3): the driver's theta_to_q
+    (camera-up = the M3 axis, set by M1/M2; M3 turns the boresight about it) followed by the base->topo rotation."""
+    t1, t2, t3 = (np.radians(np.asarray(theta, float)[..., i]) for i in range(3))
+    up = np.stack([-np.sin(t2) * np.sin(t1), -np.sin(t2) * np.cos(t1), np.cos(t2)], axis=-1)
+    b0 = np.stack([np.cos(t2) * np.sin(t1), np.cos(t2) * np.cos(t1), np.sin(t2)], axis=-1)
+    bore = b0 * np.cos(t3)[..., None] - np.cross(up, b0) * np.sin(t3)[..., None]
+    R = _eq_rot(alignQ_B2T)
+    return bore @ R.T, up @ R.T
+
+
+def eq_check_against_driver(lat_deg, n=2000, seed=0):
+    """Compare this section's vector maths with the driver's kinematics on random poses: PA convention (deg),
+    boresight, motor reach (count of disagreements: poses on the boundary can differ), and FK (deg)."""
+    from kinematics import azaltroll_to_q, calc_parallactic_angle, q_to_azaltroll, reachable_azaltroll, theta_to_q
+    from control_eq import wedge_alignQ_B2T
+    rng = np.random.default_rng(seed)
+    A = wedge_alignQ_B2T(lat_deg)
+    Ai = A.inverse
+    pa_err, bore_err, fk_err, reach_diff = [], [], [], 0
+    for _ in range(n):
+        az, alt, pa = rng.uniform(0, 360), rng.uniform(-85, 85), rng.uniform(-180, 180)
+        q = azaltroll_to_q(az, alt, (pa - calc_parallactic_angle(az, alt, lat_deg) + 180) % 360 - 180)
+        b_d, u_d = np.array(q.rotate([0, 0, -1.0])), np.array(q.rotate([1.0, 0, 0]))
+        b, u = eq_pose_vectors(az, alt, pa, lat_deg)
+        pa_err.append(math.degrees(math.acos(np.clip(u @ u_d, -1, 1))))
+        bore_err.append(math.degrees(math.acos(np.clip(b @ b_d, -1, 1))))
+        mine = bool(eq_constraints(b, u, lat_deg)["motor"])
+        a_B = q_to_azaltroll(Ai * q)
+        r_B = reachable_azaltroll(*a_B)
+        drv = math.degrees(math.acos(np.clip(eq_azalt_vec(r_B[0], r_B[1]) @ eq_azalt_vec(a_B[0], a_B[1]), -1, 1))) < 0.05 \
+            and abs((r_B[2] - a_B[2] + 180) % 360 - 180) < 0.05
+        reach_diff += mine != drv
+        th = rng.uniform([-180, -10, -180], [180, 82, 180])
+        qt = A * theta_to_q(*th)
+        bf, uf = eq_fk_vectors(th, A)
+        fk_err.append(max(math.degrees(math.acos(np.clip(bf @ np.array(qt.rotate([0, 0, -1.0])), -1, 1))),
+                          math.degrees(math.acos(np.clip(uf @ np.array(qt.rotate([1.0, 0, 0])), -1, 1)))))
+    return {"poses": n, "pa_max_err_deg": max(pa_err), "bore_max_err_deg": max(bore_err),
+            "reach_disagreements": reach_diff, "fk_max_err_deg": max(fk_err)}
+
+
+def eq_random_poses(lat_deg, n, rng, min_alt=10.0, rig_tilt_limit=EQ_RIG_TILT_OFF):
+    """n random reachable poses (az, alt, pa) above min_alt, uniform over the sky, PA uniform over the reachable
+    ones (motor reach, and the rig tilt limit if set)."""
+    out = []
+    while len(out) < n:
+        v = rng.normal(size=3)
+        v /= np.linalg.norm(v)
+        if v[2] < math.sin(math.radians(min_alt)):
+            continue
+        az, alt = eq_vec_azalt(v)
+        pa = rng.uniform(-180, 180)
+        b, u = eq_pose_vectors(az, alt, pa, lat_deg)
+        if eq_constraints(b, u, lat_deg, rig_tilt_limit)["ok"]:
+            out.append((float(az), float(alt), float(pa)))
+    return np.array(out)
+
+
+def eq_straight_gotos(lat_deg, n_pairs=1000, samples=61, min_alt=10.0, rig_tilt_limit=EQ_RIG_TILT_OFF,
+                      tripod_cone_deg=EQ_TRIPOD_CONE_DEG, seed=0):
+    """Gotos between random reachable poses above min_alt, moved straight in motor angles (the end angles from the
+    driver's q_to_theta; M1 and M3 the shorter way round): per goto the least boresight nadir distance and the
+    largest rig tilt along the path, and whether it enters the tripod cone / passes the rig tilt limit. Returns
+    (DataFrame, paths) with paths[i] the (samples, 3) motor angles and the path's boresight az/alt."""
+    from kinematics import azaltroll_to_q, calc_parallactic_angle, q_to_theta
+    from control_eq import wedge_alignQ_B2T
+    rng = np.random.default_rng(seed)
+    A = wedge_alignQ_B2T(lat_deg)
+    Ai = A.inverse
+    poses = eq_random_poses(lat_deg, 2 * n_pairs, rng, min_alt, rig_tilt_limit)
+
+    def ik(p):
+        az, alt, pa = p
+        q = azaltroll_to_q(az, alt, (pa - calc_parallactic_angle(az, alt, lat_deg) + 180) % 360 - 180)
+        return np.array(q_to_theta(Ai * q)[:3], dtype=float)
+
+    f = np.linspace(0, 1, samples)[:, None]
+    rows, paths = [], []
+    for i in range(n_pairs):
+        p0, p1 = poses[2 * i], poses[2 * i + 1]
+        t0, t1 = ik(p0), ik(p1)
+        d = t1 - t0
+        d[[0, 2]] = (d[[0, 2]] + 180) % 360 - 180
+        th = t0 + f * d
+        bore, up = eq_fk_vectors(th, A)
+        nadir = 90 + np.degrees(np.arcsin(np.clip(bore[:, 2], -1, 1)))
+        tilt = np.degrees(np.arccos(np.clip(up[:, 2], -1, 1)))
+        az, alt = eq_vec_azalt(bore)
+        rows.append({"az0": p0[0], "alt0": p0[1], "pa0": p0[2], "az1": p1[0], "alt1": p1[1], "pa1": p1[2],
+                     "m1_0": t0[0], "m2_0": t0[1], "m3_0": t0[2], "m1_1": t1[0], "m2_1": t1[1], "m3_1": t1[2],
+                     "min_nadir_deg": nadir.min(), "max_rig_tilt_deg": tilt.max(),
+                     "enters_cone": bool(nadir.min() < tripod_cone_deg), "passes_tilt": bool(tilt.max() > rig_tilt_limit)})
+        paths.append({"theta": th, "az": az, "alt": alt})
+    return pd.DataFrame(rows), paths
+
+
+def eq_cone_motor_map(lat_deg, step=2.5, tripod_cone_deg=EQ_TRIPOD_CONE_DEG):
+    """Motor angles (M1, M3 over -180..180, M2 over -10..82 in step) and the boresight's topocentric altitude at
+    each, to show where in motor space the tripod cone lies. Returns (m1, m2, m3, alt[m2, m3, m1])."""
+    from control_eq import wedge_alignQ_B2T
+    m1 = np.arange(-180, 180 + 1e-9, step)
+    m2 = np.arange(-10, 82 + 1e-9, step)
+    m3 = np.arange(-180, 180 + 1e-9, step)
+    T2, T3, T1 = np.meshgrid(m2, m3, m1, indexing="ij")
+    bore, _ = eq_fk_vectors(np.stack([T1, T2, T3], axis=-1), wedge_alignQ_B2T(lat_deg))
+    return m1, m2, m3, np.degrees(np.arcsin(np.clip(bore[..., 2], -1, 1)))
+
+
+# ── Tripod collision: the M3 disk (utility/analyse_span.ipynb) ──────────────────────────────────────────────────
+# The camera and OTA sit square to the M3 axis, so spinning M3 sweeps the OTA - front and rear - round a disk at
+# right angles to that axis. The disk's orientation is set by M1 and M2 alone (the M3 axis is camera-up, eq_fk_vectors);
+# M3 only moves the OTA round it. The tripod is modelled, as seen from the M3 pivot, as a cone of half-angle
+# tripod_deg round the nadir (the legs, allowing for the OTA's length). The disk reaches within asin(|up_z|) of the
+# nadir: a steep M3 axis keeps it clear, a near-horizontal one sweeps it down into the tripod. On a wedge at M2 = 0
+# the M3 axis is the polar axis (elevation |latitude|); M2 tilts it, and M1 decides which way: down towards the
+# horizon (worst) or sideways, the disk then passing down the side of the tripod.
+
+EQ_TRIPOD_DISK_DEG = 25.0       # the tripod's half-angle round the nadir seen from the M3 pivot (a guess: measure it)
+
+
+def eq_disk_nadir_gap(up):
+    """How close (deg) the M3 disk - the plane square to the M3 axis `up` (..., 3) - comes to the nadir."""
+    return np.degrees(np.arcsin(np.clip(np.abs(np.asarray(up, dtype=float)[..., 2]), 0.0, 1.0)))
+
+
+def eq_ota_nadir_gap(bore):
+    """How close (deg) the OTA comes to the nadir, front or rear: 90 - |boresight altitude| (pointing near the zenith
+    puts the rear end near the nadir)."""
+    return 90.0 - np.degrees(np.arcsin(np.clip(np.abs(np.asarray(bore, dtype=float)[..., 2]), 0.0, 1.0)))
+
+
+def eq_disk_map(lat_deg, step=2.0):
+    """The M3 disk's nadir gap over M1 (-180..180) x M2 (-10..82): (m1, m2, gap[m2, m1]). M3 doesn't change it."""
+    from control_eq import wedge_alignQ_B2T
+    m1 = np.arange(-180, 180 + 1e-9, step)
+    m2 = np.arange(-10, 82 + 1e-9, step)
+    T2, T1 = np.meshgrid(m2, m1, indexing="ij")
+    _, up = eq_fk_vectors(np.stack([T1, T2, np.zeros_like(T1)], axis=-1), wedge_alignQ_B2T(lat_deg))
+    return m1, m2, eq_disk_nadir_gap(up)
+
+
+def eq_disk_critical_m2(m1, m2, gap, tripod_deg=EQ_TRIPOD_DISK_DEG):
+    """For each M1, the least M2 at which the disk reaches into the tripod (NaN: never, within M2's range)."""
+    hit = gap < tripod_deg
+    return np.array([m2[np.argmax(hit[:, j])] if hit[:, j].any() else np.nan for j in range(len(m1))])
+
+
+def eq_ota_m3_map(lat_deg, m1, step=2.0):
+    """At one M1: the OTA's nadir gap (front or rear) over M3 (-180..180) x M2 (-10..82): (m2, m3, gap[m2, m3]) -
+    which M3 angles actually reach the tripod once the disk does."""
+    from control_eq import wedge_alignQ_B2T
+    m2 = np.arange(-10, 82 + 1e-9, step)
+    m3 = np.arange(-180, 180 + 1e-9, step)
+    T2, T3 = np.meshgrid(m2, m3, indexing="ij")
+    bore, _ = eq_fk_vectors(np.stack([np.full_like(T2, float(m1)), T2, T3], axis=-1), wedge_alignQ_B2T(lat_deg))
+    return m2, m3, eq_ota_nadir_gap(bore)
+
+
+def eq_disk_scene(lat_deg, theta, tripod_deg=EQ_TRIPOD_DISK_DEG, n=73):
+    """Geometry for a 3D view, M3 pivot at the origin, topocentric (x East, y North, z Up), unit OTA half-length:
+    'pole' (polar axis), 'up' (M3 axis), 'disk' (n, 3) circle swept by the OTA ends, 'front'/'rear' OTA ends at this
+    M3, 'tripod' (legs: 3 lines down the cone round the nadir), 'cone' (the cone's rim at unit distance), 'gap'."""
+    from control_eq import wedge_alignQ_B2T
+    bore, up = eq_fk_vectors(np.asarray(theta, dtype=float), wedge_alignQ_B2T(lat_deg))
+    a = np.cross(up, [0.0, 0.0, 1.0])
+    a = a / np.linalg.norm(a) if np.linalg.norm(a) > 1e-9 else np.array([1.0, 0.0, 0.0])
+    b = np.cross(up, a)
+    t = np.linspace(0, 2 * np.pi, n)
+    disk = np.outer(np.cos(t), a) + np.outer(np.sin(t), b)
+    r, h = math.sin(math.radians(tripod_deg)), math.cos(math.radians(tripod_deg))
+    legs = [np.array([[0, 0, 0], [r * math.cos(k) * 1.4, r * math.sin(k) * 1.4, -h * 1.4]]) for k in np.radians([90, 210, 330])]
+    cone = np.stack([r * np.cos(t), r * np.sin(t), -h * np.ones_like(t)], axis=-1)
+    return {"pole": eq_m1_axis(lat_deg), "up": up, "disk": disk, "front": bore, "rear": -bore, "tripod": legs,
+            "cone": cone, "gap": float(eq_disk_nadir_gap(up)), "ota_gap": float(eq_ota_nadir_gap(bore))}
+
+
+def eq_segment_distance(p0, p1, q0, q1):
+    """Least distance between the segments p0-p1 and q0-q1 (3-vectors)."""
+    u, v, w = p1 - p0, q1 - q0, p0 - q0
+    a, b, c, d, e = u @ u, u @ v, v @ v, u @ w, v @ w
+    den = a * c - b * b
+    s = np.clip((b * e - c * d) / den, 0.0, 1.0) if den > 1e-12 else 0.0
+    t = np.clip((b * s + e) / c, 0.0, 1.0) if c > 1e-12 else 0.0
+    s = np.clip((b * t - d) / a, 0.0, 1.0) if a > 1e-12 else 0.0       # re-solve s for the clamped t
+    return float(np.linalg.norm((p0 + s * u) - (q0 + t * v)))
+
+
+def eq_tripod_clearance(pts, leg_spread_deg, depth):
+    """Signed distance (units of the OTA's front length) from points (n, 3) to the tripod, modelled as a solid cone:
+    apex at the wedge (origin), axis to the nadir, half-angle the legs' splay, down to `depth` below the apex. The legs
+    stand on its surface and the space between them (spreader, tray, head) counts as tripod. Negative: inside."""
+    p = np.atleast_2d(np.asarray(pts, dtype=float))
+    r = np.linalg.norm(p, axis=1)
+    down = -p[:, 2]                                          # depth below the apex, along the axis
+    radial = np.hypot(p[:, 0], p[:, 1])
+    half = math.radians(leg_spread_deg)
+    # distance to the slanted surface, signed (+ outside): the point's offset across the cone's side
+    side = radial * math.cos(half) - down * math.sin(half)
+    out = np.where(down <= 0.0, r, side)                     # above the apex: its distance to the apex
+    below = down - depth                                     # past the legs' feet: outside by that much
+    return np.where(below > 0.0, np.maximum(out, below), out)
+
+
+def eq_rig_scene(lat_deg, theta, front=1.0, rear=0.5, leg_spread_deg=20.0, leg_len=1.5, ota_r=0.05, leg_r=0.02,
+                 joint=0.1, n=145):
+    """The rig on an ideal wedge for a 3D view and a collision check, topocentric (x East, y North, z Up), units of
+    the OTA's front length: the tripod's legs splay leg_spread_deg from the vertical below the wedge (origin, one leg
+    towards the pole); M1 sits joint above the wedge along the polar axis, M2 joint above M1, M3 joint above M2 along
+    the M3 axis; the OTA runs front ahead of M3 along the boresight and rear behind it. The tripod is the solid cone
+    the legs span (eq_tripod_clearance). Returns the joints, axes, the OTA ends, the legs, the disks the front and
+    rear sweep as M3 turns, and 'clearance' (the OTA's least distance to the tripod less its radius and the legs': < 0
+    is a hit), 'disk_clearance' (the same over every M3 angle: < 0 means some M3 angle hits)."""
+    from control_eq import wedge_alignQ_B2T
+    theta = np.asarray(theta, dtype=float)
+    bore, up = eq_fk_vectors(theta, wedge_alignQ_B2T(lat_deg))
+    t1, t2 = np.radians(theta[0]), np.radians(theta[1])
+    b0 = np.array([np.cos(t2) * np.sin(t1), np.cos(t2) * np.cos(t1), np.sin(t2)])
+    u0 = np.array([-np.sin(t2) * np.sin(t1), -np.sin(t2) * np.cos(t1), np.cos(t2)])
+    m2_axis = _eq_rot(wedge_alignQ_B2T(lat_deg)) @ np.cross(b0, u0)       # M2's axis (base frame -> topocentric)
+    pole = eq_m1_axis(lat_deg)
+    p1 = joint * pole
+    p2 = p1 + joint * pole
+    p3 = p2 + joint * up
+    tip, tail = p3 + front * bore, p3 - rear * bore
+    paz = math.atan2(pole[0], pole[1])
+    sp = math.radians(leg_spread_deg)
+    legs = [np.array([[0.0, 0.0, 0.0], leg_len * np.array([math.sin(sp) * math.sin(paz + k), math.sin(sp) * math.cos(paz + k),
+                                                            -math.cos(sp)])]) for k in np.radians([0.0, 120.0, 240.0])]
+    # the boresight's directions as M3 turns, from a direction fixed by M1/M2 alone: sampled from the current
+    # boresight, the samples moved with M3 and the disk's colour flickered as M3 turned (the disk itself doesn't move)
+    ref = np.cross(up, [0.0, 0.0, 1.0])
+    ref = ref / np.linalg.norm(ref) if np.linalg.norm(ref) > 1e-9 else np.cross(up, [1.0, 0.0, 0.0]) / np.linalg.norm(np.cross(up, [1.0, 0.0, 0.0]))
+    tt = np.linspace(0, 2 * np.pi, n)
+    ring = np.outer(np.cos(tt), ref) + np.outer(np.sin(tt), np.cross(up, ref))
+    disk_front, disk_rear = p3 + front * ring, p3 - rear * ring
+    s_ = np.linspace(-rear, front, 61)
+    depth = leg_len * math.cos(sp)
+    margin = ota_r + leg_r
+    gap = float(eq_tripod_clearance(p3 + np.outer(s_, bore), leg_spread_deg, depth).min()) - margin
+    sweep = p3 + s_[None, :, None] * ring[:, None, :]                    # every OTA point at every M3 angle
+    disk_gap = float(eq_tripod_clearance(sweep.reshape(-1, 3), leg_spread_deg, depth).min()) - margin
+    return {"pole": pole, "up": up, "m2_axis": m2_axis, "bore": bore, "joints": np.array([p1, p2, p3]), "front": tip,
+            "rear": tail, "legs": legs, "disk_front": disk_front, "disk_rear": disk_rear,
+            "clearance": gap, "disk_clearance": disk_gap}
+
+
+def eq_tripod_sky_map(lat_deg, front=1.0, rear=0.5, leg_spread_deg=20.0, leg_len=1.5, ota_r=0.05, leg_r=0.02,
+                      joint=0.1, step=(4.0, 2.0, 4.0), az_step=15.0, alt_step=7.5, roll_step=10.0):
+    """What the tripod takes from the sky, by pointing: every motor pose on a grid (M1, M2, M3 steps `step`; M2 over
+    its reference range) is put through the rig (eq_rig_scene's geometry, the tripod as its legs' solid cone) and
+    binned by the OTA's Az / Alt / roll (roll: camera-up from the vertical plane through the boresight). Returns
+    (az_edges, alt_edges, reach, taken): reach[alt, az] the share of rolls the motors reach there, taken[alt, az] the
+    share of those the tripod blocks (NaN where nothing is reachable)."""
+    from control_eq import wedge_alignQ_B2T
+    t1 = np.arange(0.0, 360.0, step[0])
+    t2 = np.arange(-8.0, EQ_THETA2_MAX + 1e-9, step[1])
+    t3 = np.arange(0.0, 360.0, step[2])
+    th = np.stack(np.meshgrid(t1, t2, t3, indexing="ij"), axis=-1).reshape(-1, 3)
+    bore, up = eq_fk_vectors(th, wedge_alignQ_B2T(lat_deg))
+    p3 = 2 * joint * eq_m1_axis(lat_deg) + joint * up
+    depth = leg_len * math.cos(math.radians(leg_spread_deg))
+    gap = np.full(len(th), np.inf)
+    for s_ in np.linspace(-rear, front, 13):
+        gap = np.minimum(gap, eq_tripod_clearance(p3 + s_ * bore, leg_spread_deg, depth))
+    hit = gap - ota_r - leg_r < 0
+    az, alt = eq_vec_azalt(bore)
+    z = np.array([0.0, 0.0, 1.0])
+    u0 = z - (bore @ z)[:, None] * bore
+    u0 /= np.maximum(np.linalg.norm(u0, axis=1, keepdims=True), 1e-9)
+    roll = np.degrees(np.arctan2(np.einsum("ij,ij->i", np.cross(u0, up), bore), np.einsum("ij,ij->i", u0, up))) % 360
+    az_edges = np.arange(0.0, 360.0 + 1e-9, az_step)
+    alt_edges = np.arange(-90.0, 90.0 + 1e-9, alt_step)
+    nr = int(round(360.0 / roll_step))
+    ia = np.clip(np.digitize(alt, alt_edges) - 1, 0, len(alt_edges) - 2)
+    iz = np.clip(np.digitize(az, az_edges) - 1, 0, len(az_edges) - 2)
+    ir = np.clip((roll // roll_step).astype(int), 0, nr - 1)
+    reach = np.zeros((len(alt_edges) - 1, len(az_edges) - 1, nr), bool)
+    clear = np.zeros_like(reach)
+    np.logical_or.at(reach, (ia, iz, ir), True)
+    np.logical_or.at(clear, (ia, iz, ir), ~hit)
+    n_reach = reach.sum(-1)
+    taken = np.where(n_reach > 0, 1.0 - clear.sum(-1) / np.maximum(n_reach, 1), np.nan)
+    return az_edges, alt_edges, n_reach / nr, taken
+
+
+def eq_latitude_summary(lats, rig_tilt_limits=(EQ_RIG_TILT_OFF, 100.0, EQ_THETA2_MAX), n_pairs=400,
+                        tripod_cone_deg=EQ_TRIPOD_CONE_DEG, seed=0):
+    """Per latitude: the mean share of PA reachable over the sky above the horizon (motor reach alone, and with
+    each rig tilt limit; '_either' also allowing an upside-down frame), the share of that sky not reachable at any PA, and the share of straight motor-angle
+    gotos (between poses above 10 deg) that enter the tripod cone."""
+    rows = []
+    for lat in lats:
+        g = {lim: eq_sky_grid(lat, 4, 4, 10, rig_tilt_limit=lim, tripod_cone_deg=tripod_cone_deg) for lim in rig_tilt_limits}
+        first = g[rig_tilt_limits[0]]
+        above = first["alt"][:, None] > 0
+        w = np.cos(np.radians(first["alt"]))[:, None] * np.ones_like(first["motor"])     # area weights
+        w = np.where(above, w, 0)
+        row = {"lat": lat, "pa_share_motor": float((first["motor"] * w).sum() / w.sum()),
+               "sky_unreachable": float(((first["motor"] == 0) * w).sum() / w.sum())}
+        for lim in rig_tilt_limits:
+            row[f"pa_share_tilt_{lim:g}"] = float((g[lim]["motor_rig"] * w).sum() / w.sum())
+            row[f"pa_share_tilt_{lim:g}_either"] = float((g[lim]["motor_rig_either"] * w).sum() / w.sum())
+        df, _ = eq_straight_gotos(lat, n_pairs, 41, tripod_cone_deg=tripod_cone_deg, seed=seed)
+        row["gotos_enter_cone"] = float(df["enters_cone"].mean())
+        row["gotos_min_nadir_p01"] = float(df["min_nadir_deg"].quantile(0.01))
+        rows.append(row)
+    return pd.DataFrame(rows)

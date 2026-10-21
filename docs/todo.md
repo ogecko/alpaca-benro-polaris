@@ -39,7 +39,8 @@
 
 # Alpaca Driver v2.2 Development Todo List
 - [X] RPi - Update setup.sh for Raspberry Pi to use UV rather than pip and refresh to latset trixy distro
-- [ ] Win - Create setup.bat for Windows and move to UV
+- [X] Win - Create setup.bat for Windows and move to UV
+- [ ] On Screen Keyboard - Using the iPad with Windows App Mobile (formally Remote Desktop). Still having issues with the arrow keys, to centre the Sun or Moon. This occurs if using either the iPad’s own touch screen keyboard that is available via Windows App Mobile and also if using the Windows 11 built in OSK. Interestingly, the dashboard will display ‘slewing’ very briefly, after pressing an arrow and this also shows up on the Alpaca log .. even though nothing actually happens. On other occasions the arrow keys are fine on Az but not Alt, for fa few selections, before it then stops working.The workaround of course, is to simply use the +/- buttons on each of the Radial Dials, which work fine. However, it would be great if the arrow keys could be fixed, though I appreciate that this could be a Windows 11 issue.Incidentally, if I choose to connect to the Mini PC via the MacBook (would be same for a laptop) using Windows App Mobile, the arrows on the physical keyboard work excellent all the time.  
 - [ ] Create youtube videos for v2.2 content
     - [X] Create video on Win11 install and connect
     - [X] Create video on dashboard and motion changes

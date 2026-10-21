@@ -35,7 +35,23 @@
                 Latitude and longitude are essential for accurate tracking. Other settings follow the ASCOM Alpaca standard and are optional.
               </div>
               <div class="col-auto q-gutter-sm flex justify-end items-center">
-                <q-btn outline icon="mdi-crosshairs-gps" color="grey-5" label="Locate"  @click="setFromLocationServices"/>
+                <q-btn-dropdown split outline icon="mdi-crosshairs-gps" color="grey-5" :class="{ 'locate-spin': locating }"
+                       :label="locateLabel" :disable="locating" @click="locateSite">
+                  <q-list>
+                    <q-item clickable v-close-popup :active="cfg.location_source !== 'gps'"
+                            @click="put({ location_source: 'browser' })">
+                      <q-item-section>Use Browser</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup :active="cfg.location_source === 'gps'"
+                            @click="useGpsReceiver">
+                      <q-item-section>Use GPS Receiver</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-btn-dropdown>
+                <!-- persistent: a click elsewhere (e.g. Locate) keeps the edits; OK, Cancel or Locate close it -->
+                <q-menu v-model="gpsSettingsOpen" no-parent-event persistent anchor="bottom right" self="top right">
+                  <GpsSettings v-if="gpsSettingsOpen" ref="gpsPanel" @close="gpsSettingsOpen = false"/>
+                </q-menu>
               </div>
             </div>
             <div class="q-pt-md q-pb-md">
@@ -187,14 +203,22 @@
                 </div>
               </div>
               <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('advanced_pec_drift', 'PEC Drift Correction')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_pec_worm', 'PEC Worm Gear Correction')"/>
+              </div>
+              <div class="row">
+                <q-toggle class='col-6' v-bind="bindField('coordinated_speed_control', 'Coordinated Speed Control')"/>
+                <q-toggle class='col-6' v-bind="bindField('advanced_backlash', 'Backlash Compensation')"/>
+              </div>
+              <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_sync_guiding', 'Sync Guiding (Plate-solve)')"/>
-                <q-toggle class='col-6' v-bind="bindField('advanced_pec', 'Periodic Error Correction (PEC)')"/>
+                <q-toggle v-if="cfg.advanced_eq_mode_visible || cfg.advanced_eq_mode" class='col-6' v-bind="bindField('advanced_eq_mode', 'Equatorial Mode (Wedge)')"/>
               </div>
               <div class="row">
                 <q-toggle class='col-6' v-bind="bindField('advanced_pulse_guiding', 'Pulse Guiding (Guide-camera)')"/>
-                <q-toggle class='col-6' v-bind="bindField('coordinated_speed_control', 'Coordinated Speed Control')"/>
               </div>
-              <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pt-xl q-pl-md q-pr-mdn ">
+              <div class="q-pb-md"></div>
+              <div v-if="cfg.advanced_pulse_guiding" class="row q-col-gutter-lg q-pl-md q-pr-md q-pb-md">
                 <q-select
                   class="col-6 q-pt-none" label="RA Pulse Guide Rate" emit-value map-options
                   v-model="cfg.guide_rate_ra" @update:model-value="v => putdb({ guide_rate_ra: v })"
@@ -206,7 +230,6 @@
                   :options="guideRateOptions"
                 />
               </div>
-              <div class="q-pb-md"></div>
 
 
             </div>
@@ -250,6 +273,7 @@ import { useDeviceStore } from 'src/stores/device';
 import { useStatusStore } from 'src/stores/status';
 import { PollingManager } from 'src/utils/polling';
 import { getLocationServices } from 'src/utils/locationServices';
+import { followedGpsRun, setGpsLocateAppliedHandler, startGpsLocate } from 'src/utils/gpsLocate';
 import { formatDegreesHr } from 'src/utils/scale';
 
 import type { LocationResult } from 'src/utils/locationServices';
@@ -257,6 +281,7 @@ import LocationPicker from 'src/components/LocationPicker.vue';
 import StatusBanners from 'src/components/StatusBanners.vue'
 import MotorLimits from 'src/components/MotorLimits.vue'
 import PanoSettings from 'src/components/PanoSettings.vue';
+import GpsSettings from 'src/components/GpsSettings.vue';
 
 
 const $q = useQuasar()
@@ -264,6 +289,23 @@ const dev = useDeviceStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
 const poll = new PollingManager()
+const isLocating = ref(false)
+// While a GPS Locate runs, the button shows its progress (a receiver searching for satellites takes minutes)
+// A GPS Locate's progress comes from the driver's status, so it shows in every window and after leaving the page
+const locating = computed(() => isLocating.value || followedGpsRun.value !== 0 || p.gpsstate === 'running')
+const locateLabel = computed(() => {
+  if (cfg.location_source !== 'gps') return 'Locate'
+  if (p.gpsstate === 'running') return p.gpsattempts > 0 ? `Locating ${p.gpsattempts}/${cfg.gps_max_attempts}` : 'Locating'
+  return 'Locate (GPS)'
+})
+
+// GPS Receiver settings: a panel below the Locate button (GpsSettings.vue), opened every time Use GPS Receiver is picked
+const gpsSettingsOpen = ref(false)
+const gpsPanel = ref<InstanceType<typeof GpsSettings> | null>(null)
+
+function useGpsReceiver() {
+  gpsSettingsOpen.value = true
+}
 
 const z3curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[2]??0,"deg",1) }));
 const z2curr = computed(() => ({ modelValue: formatDegreesHr(p.zetameas[1]??0,"deg",1) }));
@@ -287,10 +329,12 @@ const scc_options = [
 
 onMounted(() => {
   poll.startPolling(() => { void cfg.configFetch() }, 10, 'configFetch')
+  setGpsLocateAppliedHandler(triggerAnimation)
 })
 
 onUnmounted(() => {
   poll.stopPolling()
+  setGpsLocateAppliedHandler(null)
 })
 
 async function onHome() {
@@ -301,6 +345,46 @@ async function onHome() {
 async function onPark() {
   const result = (p.atpark) ? await dev.alpacaUnPark() : await dev.alpacaPark();  
   console.log(result)
+}
+
+async function locateSite() {
+  // Locate with the GPS panel open counts as its OK: locate with what is shown, not the previous settings
+  if (gpsSettingsOpen.value && gpsPanel.value && !(await gpsPanel.value.save())) {
+    $q.notify({ message: 'Choose the GPS receiver\'s serial port first.', type: 'warning', position: 'top', timeout: 3000 })
+    return
+  }
+  if (cfg.location_source === 'gps') {
+    await startGpsLocate()                      // followed to its result in gpsLocate.ts, wherever Pilot is
+    return
+  }
+  isLocating.value = true
+  try {
+    applyLocation(await getLocationServices())
+  } finally {
+    isLocating.value = false
+  }
+}
+
+function applyLocation(result: LocationResult) {
+  if (result.success) {
+    put(result.data)
+    triggerAnimation(Object.keys(result.data))
+    $q.notify({
+      message: 'Location updated.',
+      type: 'positive',
+      position: 'top',
+      timeout: 3000,
+      actions: [{ icon: 'mdi-close', color: 'white' }],
+    })
+  } else {
+    $q.notify({
+      message: 'Location could not be determined.',
+      type: 'negative',
+      position: 'top',
+      timeout: 3000,
+      actions: [{ icon: 'mdi-close', color: 'white' }],
+    })
+  }
 }
 
 async function onSetPark() {
@@ -327,8 +411,11 @@ function onLocationSelect(name: string | null) {
   triggerAnimation(['site_latitude', 'site_longitude', 'site_elevation', 'site_pressure'])
 }
  
-// User is typing a new name (free-text) → just update location, no action
+// User is typing a new name (free-text) → just update location, no action. The field also reports its text when it
+// is refilled from the store (e.g. the placeholder 'Unknown' while the page loads): only a changed name is sent, or
+// that would overwrite the driver's location name.
 function onLocationTyped(val: string) {
+  if (val === cfg.location) return
   cfg.location = val
   putdb({ location: val })
 }
@@ -405,14 +492,6 @@ function triggerAnimation(keys: string[]) {
   }, 600)
 }
 
-async function setFromLocationServices() {
-  const result = await getLocationServices()
-  if (result.success) {
-    put(result.data)
-    triggerAnimation(Object.keys(result.data))
-  }
-}
-
 function setFromMapClick(result: LocationResult) {
   if (result.success) {
     put(result.data)
@@ -445,6 +524,14 @@ const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put 
 </script>
 
 <style lang="scss">
+.locate-spin .q-icon {
+  animation: locate-rotate 1s linear infinite;
+}
+
+@keyframes locate-rotate {
+  to { transform: rotate(360deg); }
+}
+
 .taflash {
   animation: flash 0.6s;
 }

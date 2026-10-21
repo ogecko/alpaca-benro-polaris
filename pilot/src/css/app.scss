@@ -17,3 +17,8 @@ input:-webkit-autofill:focus {
   -webkit-text-fill-color: #ffffff !important;         
   transition: background-color 5000s ease-in-out 0s;    /* prevent flash */
 }
+
+// A notification with a long message (e.g. why a GPS Locate failed) wraps to a few lines instead of one wide one
+.notify-wrap {
+  max-width: 480px;
+}
