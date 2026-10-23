@@ -5,6 +5,7 @@ __pycache__/
 
 # IDE stuff
 .idea/
+workspace.code-workspace
 
 # C extensions
 *.so
