@@ -643,3 +643,11 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "pulse (PHD2)"
 records = ["kf", "pec", "pid"]
 notes = ""
+
+[sessions."mark_Beta8.0_10_24_Worm"]
+logs = ["alpaca.mark_Beta8.0_10_24_Worm_a*.log"]
+date = "2026-10-23"
+driver = "v2.2.0 Beta 8.0"
+guiding = "none"
+records = []
+notes = ""

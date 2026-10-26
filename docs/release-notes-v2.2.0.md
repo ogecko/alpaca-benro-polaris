@@ -27,152 +27,76 @@
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
-## What's new in v2.2 Beta 8
-- **[GPS Location]** Locate the observing site with a GPS receiver plugged into the Alpaca Driver's computer (thanks to @rbaranga for authorship).
-- **[PEC Drift]** PEC learns the remaining drift as a 7.5 minute moving average, ignoring PHD2/CCDciel calibration pulses, and ignoring backlash correction pulses, so it can always remain enabled.
-- **[PEC Worm Gear]** Corrects each motor's 6° worm gear error with no lag, from a profile measured with the Speed Calibration worm gear test. 
-- **[PEC Settings]** PEC Drift Correction and PEC Worm Gear Correction are switched separately in Pilot's settings; the status panel's PEC button switches both
-- **[MAC and MPA]** Mechanical Alignment Correction is rebuilt, reducing Multi Point Polar Alignment Residuals below 10' (previously up to 120'), leading to reduced drift.
-- **[Backlash Compensation]** Takes up gear backlash after a goto, improving Slew & Center accuracy. 
-- **[Goto Plans]** Gotos are fully planned before they begin, including the path, flips, unwinds, rolls and braking. Typical slews complete around 25% faster.
-- **[Oribital Accuracy]** Improve orbital tracking by advancing the tracking setpoint by 0.3 seconds, enabling Starlink satellites to be tracked at 680 mm focal length.
-- **[Roll Accuracy]** Improved Kalman Filter handling of the Astro Module's slower updates, leading to more accurate pointing during rolls.
-- **[Zero M2 Roll]** Use the **ZM2** preset on the Dashboard's Roll dial to select a roll angle that minimises M2 movement over the next 120 minutes, helping to reduce tracking disturbances.
-- **[Resume Tracking]** Tracking resumes from its previous position after a driver restart, provided the restart occurs within 10 minutes.
-- **[Smooth Charts]** Live charts on the Analysis pages scroll smoothly and use less CPU.
-- **[CCDciel Scripts]** CCDciel scripts for sync guiding, panoramas and slews, with a Windows installer, and an expanded CCDciel guide.
-- **[Guiding Tips]** Add a new section **Improving Guiding Performance**, in the [Guiding guide](./guiding.md#6-improving-guiding-performance) explaining how to recognise and solve common guiding problems.
-- **[PINS and Touch n Stars]** Update the Raspberry Pi documentation with instructions for installing the Alpaca Driver on a PINS Pi and configuring it for use with Touch ’n Stars.
-- **[Network Settings]** Added a configurable update timeout to prevent transient Alpaca Pilot warnings caused by mobile or laptop Wi-Fi power-saving modes.
-- 
-## What's new in v2.2 Beta 7
-- **[Speed Controller v2]** Better tracking at low altitude and zero roll, and a better response to guiding, from a new motor speed controller.
-- **[Motion Planner v2]** Less drift while rolling: motor speed profiles are planned, slowing on tight curves.
-- **[Ramped Jogging]** Less jogging overshoot: jog speed changes are ramped.
-- **[Goto Settle Time]** Gotos settle faster, without Ki windup or completing too early.
-
-## What's new in v2.2 Beta 6
-- **[Windows Install]** Major simplification of Windows installation with setup.bat. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also adds firewall rules, starts the driver at boot via Task Scheduler, and creates a desktop shortcut.
-- **[Raspberry Pi Install]** major refresh of Raspberry Pi installation with setup.sh. The script uses UV to install Python and its libraries into .env, and Git to download or update the driver. It also performs network setup (join Wifi, no driver build, Bluetooth auto-enabled) and setups up auto startup.
-- **[Network check]** The Connect page now indicates whether the Polaris Network has been joined (rather than just BLE)
-- **[Wi-Fi Join]** The Connect Page Wi-Fi button instructs the driver to enable **and join** the Polaris Wi-Fi network. No more manually finding `polaris_xxxxxx` in Windows’ or Raspberry Pi Wi-Fi list.
-- **[Shutdown OS]** Add "Shutdown" button to Pilot Connect page, Stop dialog. Add new device action "Polaris:ShutdownOS" to poweroff the driver and its host OS.
-- **[Linux BLE]** correct for Benro Polaris' invalid BLE advertisements (forces the adapter into LE-only mode, fixing BLE enable-Wifi failures on Raspberry Pi)
-- **[Troublshooting C3-7]**: Added troubleshooting on mesh network Roaming Assistant potentially causing intermittant dropouts.
-- **[Pilot Dependencies]** Refreshed Alpaca Pilot's build tooling to the latest major versions: Quasar v2.25→v2.33, `@quasar/app-vite` v2→v3 (now built on Vite 8/Rolldown), and Vue Router v4→v5, plus other dependency updates. Resolves outstanding Dependabot security advisories.
-
-## What's new in v2.2 Beta 5 
-- **[zeroconf dependancy]** Installation requires `pip install -r platforms/win/requirements.txt` to pickup new zeroconf dependancy
-- **[mDNS Service]** Advertise Alpaca Pilot hostname as `ap.local` (configurable via Network Settings) for easy discovery from iPads and other devices on the local network.
-- **[mDNS Certificate]** Changing mDNS hostname from Network Settings regenerates the HTTPS site certificate to cover the new hostname. The root CA certificate is unaffected and stays trusted — no reinstallation needed.
-- **[Kalman Filter]** Improve KF performance (fixed measurement cadence, use true velocity measurement, robust to protocol backlog draining)
-- **[KF Tuning Page]** Allow page to monitor trending signals during tracking and fix bug where page callup could reset KF Tuning Parameters
-- **[Docker Images]** Documented how to Install, Clone, Build and Run the driver in a docker image using platforms/docker/run.sh 
-- **[Python dependencies]** Add option to install using UV to manage python.exe and package dependancies with uv.lock
-- **[numpy Compatibility]** Pin numpy to `>=2.3.5,<2.4.0` (fix #89). Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs
-- **[Connection Handling]** Faster connection timeouts, duplicate-cycle prevention, and immediate manual reconnects.
-- **[Protocol Handling]** Added reply timeouts, ensuring dropped or lost Polaris responses no longer have potential to block the driver.
-- **[Local Timezone]** Show all log messages with local timestamp (rather than UTC), both in alpaca.log and in Alpaca Pilot
-- **[Log Replay]** New replay.py tool to allow a captured log file to be replayed on another mount for system testing and diagnosis.
-- **[Mobile App]** Support mobile home screen install. On iOS or iPadOS use Safari / Share / Add to Home Screen. On Android use Chrome / Install and create shortcut.
-- **[Pano Motor Position]** Use "Motor Position" as a fixed reference frame for blue-hour lansdcape panels, preserving the anchor through celestrial alignment.
-
-## What's new in v2.2 Beta 4
-- **[Universal Jogging]** Extends jogging to all 9 axes (Az/Alt/Roll, RA/Dec/PA, GLon/GLat/GPA) with improved responsiveness. 
-- **[Non Tracked Jogging]** Fine motion jogging when tracking is enabled or disabled.
-- **[Keyboard Map]** Control the Benro Polaris and Alpaca Pilot directly using the keyboard commands (see pilot.md for keymap)
-- **[Sidereal Tracking]** Smoother Sidereal tracking by changing non-orbital motion to pure RA rotation.
-- **[PID Ki]** Faster PID settling as Ki is inhibited during jogging, sync guiding and pulse guiding. 
-- **[PID Kd]** Improved response to jogging and sync pulses as Kd now damps velocity error and eliminates steady state bias
-- **[Alignment Roll]** Added the Roll angle to the list of Sync Points on the Alpaca Pilot Alignment page
-- **[Chart Scales]** Simplify Y axis chart scales to reduce duplication of co-ordinate precision
-- **[Restart Robustness]** Workaround Win11 path issue when user name has spaces
-- **[Siril Scripts]** Incorporated RC Astro Tools, Veralux Star Composer and Statistical Stretch into scripts.
-- **[Pilot Proxy]** Improved the Alpaca Pilot connection to the Alpaca Driver by using a proxy that no longer requires a hostname or port for the REST API
-
-## What's new in v2.2 Beta 3
-- **[Download Links]** Updated all documentation download links to refer explicitly to v2.2 Beta 3
-- **[Brightest Catalog]** Quickly find alignment targets with a list of the brightest nearby stars, planets, star clusters, and celestial poles.
-- **[Dashboard Status]** Monitor the health and status of the Alignment Model, Sync Guiding, Pulse Guiding, Periodic Error Correction (PEC), and Tracking Performance from the dashboard.
-- **[PEC Performance]** Integrate Periodic Error Correction (PEC) into the PID feed-forward signal to reduce micro "wiggles" in star shapes.
-- **[PEC EMA Model]** Added optional PEC Exponential Moving Average Model (retain default as Recursive Least Squares Model with 2 Harmonics)
-- **[MAC Autotune Docs]** Add documentation on how to use Mechanical Alignment Correction Autotune.
-- **[Scale Warnings]** Adjust scale warning indicators to consider Roll Sync Adjustments.
-- **[CPU Resilience]** Better resilience to CPU-intensive applications (such as Hocus Focus) by collapsing queued message bursts into a single, up-to-date refresh.
-- **[Flat White]** Added support for capturing flat frames from a display screen via the new Flat White menu item.
-- **[Peak Finder]**: Added Sky Conditions link to identify a mountain peak that Polaris is pointing toward and determine its elevation.
-- **[Connect Checklist]** Add Checks for L-Bracket Orientation, Site Location and tracking of Reset All Axes to Connect page. 
-- **[Connect Reliability]** Improve Alpaca Pilot connection setup to the Driver by proxying web sockets via http(s)
-- **[Connect Astro Module]** Connect page highlights missing Astro Module
-- **[Persist Guide State]** Persist Guide State between Driver restarts
-- **[Persist Co-ordinate Frame]** Dashboard co-ordinate frame is persisted across F5 refresh and page changes, while separate for each browser tab.
-- **[Persist Zoom Range]** Each radial dial on the Dashboard retains its zoom range when navigating between pages.
-- **[Persist Filters]** Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
-- **[Siril Scripts]** Add Siril Python Scripts to help automate Galactic Panorama processing
-- **[Lat/Lon Data Entry]** Increased debounce to allow for trailing zeros in lat/lon data entry
-- **[Catalog Updates]** Minor updates to catalog data on some entities brightness and classification
-- **[Panel Spacing Calculator]** Added a 16mm option, updated FOV labels to use the Reference Frame, and added controls to adjust the number of rows and columns directly within the calculator.
-
 ## What's new in v2.2.0
 
-### Refactored Kinematics
-- **[Galactic Coordinates]** Dashboard supports Topocentric, Equatorial and now Galactic Frames for naviagation relative to the milky way galaxy's spine.
-- **[Reachable Targets]**: Resolve Target Orientation to a reachable orientation given Polaris Limits in Alt and Roll
-- **[Improved Accuracy]** Reduce tracking RMS Error by up to 70%, by synchronising 518 and PID calculations.
-- **[Kinematics Status]** A new Kinematics page that provides a comprehensive overview of both Forward and Inverse Kinematics workflows.
-- **[Negative Azimuth]** Goto's now support altitudes down to -79° by flipping the astro axis in the opposite direction. Previously limited to -8°.
-- **[Scale Warnings]** Real-time scale warning markers on Roll, RA, Dec based on Benro Polaris Mechanical Limits.
-- **[Smoother Rolling]** Enhance boresight rotation by limiting specific motor speeds to maintain pointing direction.
-- **[Gimbal Lock]** Improve handling of Gimbal Lock when M2=0, with better solution choosing, hysteresis to reduce uncertainty, and add status icon to Pilot.
-- **[At Home]**: Upgrade to ASCOM ITelescopeV4 FindHome method (non-blocking) and associated AtHome property. Include in Pilot Status indicator.
+### Precision Tracking, PEC and Backlash Compensation
 
-### Goto and Pointing Correction Models
-- **[Goto Completion]** Reduce post-goto star trails by stabilising tracking before marking goto as complete, tightening tollerance x20 when tracking enabled.
-- **[Progress Indicator]** Add a circular progress indicator showing remaining angular distance for Goto, Rotate, Home, and Park operations.
-- **[Slew & Center Correction]** Reduce the number of corrective slews with three alternate algorithms - Zero Last Residual (ZLR), Local Guasssian Adjustment (LGA) and Sync Guiding Adjustment (SGA).
-- **[Mechanical Correction]** Correction models for potentially tilted or misaligned Astro and Altitude motor axes.
-- **[Windup Prevention]** Automatically detects when a move would over-rotate an axis and reroutes 360° in the opposite direction to prevent cable damage
-- **[Zenith/Horizon Crossing]** Handles the physical axis flip needed when pointing through zenith or to negative altitudes, equivalent to a meridian flip
+- **[Improved Tracking Accuracy]** Reduce tracking RMS error through synchronised kinematics, improved motor speed control and PID calculations, and more robust handling of delayed position updates.
+- **[Periodic Error Correction]** Combine drift learning, harmonic error modelling, worm-gear correction, and PID feed-forward to reduce periodic errors, residual drift, and star-shape distortions.
+- **[Backlash Compensation]** Takes up gear backlash after a goto, improving tracking settle time. 
+- **[Sidereal Tracking]** Improve tracking smoothness and stability, including at low altitudes and zero roll.
+- **[Orbital Tracking]** Improve tracking accuracy for satellites and other orbitals through more accurate orbital setpoints.
 
-### Dark Site Operations
-- **[Persist Locations]** Pilot Settings allows multiple Observing Site Locations to be saved, loaded and deleted for offline use.
-- **[Persist Orbitals]** Orbitals fetched successfully are stored in the catalog, allowing offline use and later retrieval, refresh, or deletion. 
-- **[Persist Alignment]** Multi-Point Alignment model is saved to disk and restored automatically on driver restart, allowing imagaging sessions to continue, uninterupted.
-- **[Cleaner Alignment]** The alignment model is based on KF cleaned measurements rather than raw Polaris data. 
+### Pointing, Alignment and Motion Control
 
-### Auto-Guiding Improvements
-- **[Sync Guiding]** Drift correction made simple; no guide camera, no extra PHD2 software, just plate-solving.
-- **[Pulse Guiding]** Refine pulse guiding accuracy by refactoring state management and incorporating PID feed-forward control for pulses.
-- **[Polar Alignment]** Guiding adjustments applied as corrections rather than setpoint changes to maintain polar alignemnt
-- **[Drift and PEC]** Models linear and harmonic drift in RA and Dec to correct alignment and periodic errors, significantly improving sidereal tracking accuracy.
+- **[Advanced Kinematics]** Support Topocentric, Equatorial, and Galactic coordinate frames, reachable target orientations, and improved forward and inverse kinematics.
+- **[Mechanical Alignment Correction]** Improve multi-point alignment, mechanical axis correction, and polar alignment accuracy using cleaner measurements and improved alignment fitting.
+- **[Goto Accuracy]** Improve blind Goto Accuracy and Slew & Center correction cycle time.
+- **[Motion Planning]** Plan complete goto trajectories, including motor speed profiles, braking, flips, unwinds, and rolls, reducing slew times and tracking disturbances.
+- **[Axis Limits and Orientation]** Improve gimbal-lock handling, zenith and horizon crossing, negative-altitude pointing, mechanical limit warnings, and cable-windup prevention.
+- **[Jogging and Manual Control]** Extend responsive jogging to all nine axes, including non-tracking operation, keyboard control, and ramped speed changes.
+- **[Roll Accuracy]** Improve pointing accuracy during rolls and provide a preset to minimise M2 movement over the following 120 minutes.
 
-### Panorama Improvements
-- **[Pano Presets]**  Ability to configure, save and load Panoramas presets
-- **[Pano Recenter]** Add btn on the Dashboard to recenter the PanoGrid to match the mounts current orientation
-- **[Solve and Center]**  Allow Nina Scripting to "Solve and Sync" then use Device Action Polaris:PanoSlew {"panel": -1} to center on current panel
-- **[Pano Swap]**  Add btn to switch between Landscape and Portrait orientation (swapping hstep and vstep values)
-- **[Pano Copy]**  Add btn to copy PanoGrid Parameters for easy pasting into Nina Advanced Sequencer.
-- **[Pano Roll]** The Reference Roll Angle affects the full panorama in Sky-Celestial mode; in other modes, it rotates individual panels.
-- **[Anchor Position]**  Allow Anchor Position to be specified in Topocentric, Equatorial or Galactic coordinates.
-- **[Pano Galactic]**  Add "Sky - Milky Way" panorama that aligns with the milky way spine using Galactic coordinates. 
-- **[Pano Calculator]**  Calculates the full PanoGrid field of view (FOV), (as well as the sensor FOV, hstep, and vstep) 
-- **[Siril Scripts]**  Automate Siril image processing (calibrate, group, stack, composit and stretch) for multi Panel mono images in a Galactic Pano.
+### Guiding and Calibration
 
-## Utilities and Visualisation
-- **[Rename Directories]** Utility script to rename FLAT, LIGHT, BIAS, DARK directories to be Siril compliant (rename_dirs.py). Nina Scheduler compatible.
-- **[FITS Extract]** Utility script to extract meta-data from plate-solved FITS images and calibrate Mechanical Correction Models (fits_extract.py)
-- **[Driver Stop]**: On the Connect page, provide options to restart or stop the Alpaca Driver.
-- **[Driver Instance]**: On the Connect page, display the Alpaca Driver Hostname:Port to clearly identify the current connected instance.
-- **[HTTPS Support]**: Alpaca Pilot now support https, enabling location and clipboard services in the browser.
+- **[Sync Guiding]** Support plate-solving-based sync guiding, without the need for a separate guide camera 
+- **[Pulse Guilding]** More accurate ASCOM pulse guiding by adjusting present value rather than the set point.
+- **[PHD2 Calibration]** Support a single calibration that PHD2 can rotate to different position angles and targets
+- **[PHD2 & CCDceil Calibration]** Ignore calibration pulses when learning periodic error drift
+- **[Backlash Compensation]** Ignore backlash pushthrough when learning periodic drift
+- **[Guiding Documentation]** Improve guidance for diagnosing common guiding and alignment problems.
 
-### Diagnostics and System
-- **[Heartbeat Diagnostics]**: Introduce a heartbeat monitor and additional telemetry statistics to assist in diagnosing late position updates.
-- **[Smoother Control]** Improve PID robustness to irregular 518 messages from CPU hogs (drop stale 518 msgs and guard against backlog flushing that may cause spikes in control)
-- **[Auto Reload]**: Alpaca Pilot will automatically reload when it detects it is on a different version or protocol than the Driver
-- **[IPv6 Discovery]**: Revamped IPv6 Alpaca Discovery for support on MacOS, Linux and Windows.
-- **[Chart Axes]** Show angles in Degrees, Arc-minutes, and Arc-seconds on all charts (instead of decimal degrees).
-- **[Chart RMSError projection]** Apply cos(Dec) and cos(Alt) scaling to RA/Az RMS error to correct for polar projection effects.
-- **[Deviation Charts]** Add ΔTopographic and ΔMotor charts to PID Tuning page to remove underlying sidereal trends and show SP deviation only.
+### Panorama Planning and Imaging Automation
+
+- **[Flexible Panorama Planning]** Configure, save, and load panorama presets, calculate sensor and grid fields of view, adjust panel spacing, and switch between landscape and portrait layouts.
+- **[Panorama Positioning]** Recenter panorama grids, configure reference roll and anchor positions, and support Topocentric, Equatorial, and Galactic reference frames.
+- **[Galactic Panoramas]** Align panorama grids with the Milky Way using Galactic coordinates.
+- **[Automated Imaging Workflows]** Expand Nina and CCDciel scripting for slews, sync guiding, panoramas, solve-and-center operations, and panel navigation.
+- **[Siril Processing]** Automate calibration, grouping, stacking, compositing, and stretching for multi-panel and Galactic panorama images.
+
+### Installation, Connectivity and Reliability
+
+- **[Simplified Installation]** Automate Windows and Raspberry Pi installation, Python environment setup, dependency management, driver updates, firewall configuration, and automatic startup.
+- **[Network Connectivity]** Improve Wi-Fi setup, network discovery, IPv6 support, mDNS hostname configuration, HTTPS certificates, and Raspberry Pi Bluetooth compatibility.
+- **[Connection Reliability]** Improve connection timeouts, reconnect handling, protocol response timeouts, WebSocket proxying, and recovery from transient network failures.
+- **[Control-Loop Resilience]** Improve PID stability under irregular position updates, prevent stale message backlogs, and reduce the impact of CPU-intensive applications.
+- **[Recovery and State Persistence]** Save and restore multi-point alignment and tracking state across driver restarts
+- **[Device Management]** Add driver restart, stop, and host operating-system shutdown controls, plus connected-instance identification.
+
+### Dashboard, Diagnostics and Observing Tools
+
+- **[GPS Location]** Locate the observing site with a GPS receiver plugged into the Alpaca Driver's computer (thanks to @rbaranga for authorship).
+- **[Operational Status]** Display alignment, guiding, PEC, tracking performance, device connectivity, and system status.
+- **[Motion Feedback]** Show progress for goto, rotate, home, and park operations.
+- **[Tracking Analysis]** Improve live chart performance, angular scales, RMS-error projections, and PID deviation charts.
+- **[Persistent Interface State]** Retain coordinate frames, dial zoom ranges, and catalog filters across supported navigation workflows.
+- **[Observing Tools]** Add bright-object discovery, mountain-peak identification and elevation information, and improved site and equipment setup checks.
+- **[Offline Operation]** Persist observing locations, orbital data, and alignment models for use without continuous network access.
+
+### Application Integration and Automation
+
+- **[ASCOM Alpaca Integration]** Improve driver discovery, connection stability, telescope-control compatibility, and browser-based communication.
+- **[Nina Device Actions]** Add absolute and relative multi-axis slews, abort-slew controls, and expanded panorama actions for Advanced Sequencer workflows.
+- **[Stellarium Integration]** Improve desktop telescope support, selection, stability, and configuration guidance.
+- **[CCDciel and PHD2 Integration]** Expand scripting, guiding workflows, and supporting documentation.
+
+### Utilities, Compatibility and Documentation
+
+- **[Imaging Utilities]** Add FITS metadata extraction, mechanical correction calibration support, flat-frame capture, and Siril-compatible directory renaming.
+- **[Installation and Troubleshooting Guides]** Expand documentation for Windows, Raspberry Pi, Docker, network connectivity, guiding, alignment, kinematics, panorama workflows, and common errors.
+- **[Software Compatibility]** Refresh Python and application dependencies, address security advisories, and document supported operating systems, hardware, and astronomy applications.
+- **[Maintenance and Bug Fixes]** Improve driver connection management, dashboard interaction, alignment-state handling, and overall runtime robustness.
+
 
 ### New Features (enabled by Nina)
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
