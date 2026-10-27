@@ -118,7 +118,7 @@ The remainder of this secion will focus on the second solution, using **PHD2**.
 To perform auto-guiding you will need some additional equipment, including the following. See [Hardware Pulse-Guiding Equipment](./hardware.md#guiding-scope-and-camera-optional) for more details.
 * A **Guide scope** (eg SVBony SV106 Guide Scope), or an off-axis guider (OAG)
 * A **Guide camera** (e.g. ToupTek GPM462M, ZWO ASI120MM, ZWO ASI220MM, etc.)
-* Suitable **Mounting equipment** 
+* Suitable **Mounting equipment** (e.g. iShoot 220mm Quick Release Plate, with 3 x QR 50B Quick Release Clamps for a. MiniPC/Focuser, b. Main Lens/Camera, c. Guide Scope)
 
 
 You will also need to download and install the following software onto the Mini-PC.
