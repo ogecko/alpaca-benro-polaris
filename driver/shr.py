@@ -703,6 +703,22 @@ def system_vitals_init(lifecycle):
     _system_cpu_lifecycle = lifecycle
 
 
+def system_raise_priority(logger):
+    """Raise driver process priority so heavy apps (e.g. NINA decoding 45MP raw frames) don't starve the event loop.
+    Uses HIGH rather than REALTIME on Windows, as REALTIME can starve OS input, disk and USB threads."""
+    try:
+        p = psutil.Process()
+        if sys.platform == 'win32':
+            p.nice(psutil.HIGH_PRIORITY_CLASS)
+        else:
+            p.nice(-10)     # needs CAP_SYS_NICE / root, otherwise raises AccessDenied
+        logger.info(f'==STARTUP== Process priority raised to {p.nice()}')
+    except (psutil.AccessDenied, PermissionError) as e:
+        logger.info(f'==STARTUP== Process priority unchanged, insufficient privilege: {e}')
+    except Exception as e:
+        logger.warning(f'==STARTUP== Process priority unchanged: {e}')
+
+
 def system_vitals():
     """Returns a string with %CPU, %Mem, #Threads"""
     cpu = psutil.cpu_percent(interval=None)

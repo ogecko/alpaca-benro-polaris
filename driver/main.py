@@ -178,6 +178,7 @@ async def run_all(logger, lifecycle: shr.LifecycleController):
     # Start heartbeat event loop watchdog thread and asyncio exception handler
     _start_eventloop_watchdog(lifecycle, logger)
     shr.system_vitals_init(lifecycle)
+    shr.system_raise_priority(logger)
     install_asyncio_exception_handler(lifecycle, logger)
 
     # Attach socket publishers BEFORE creating Polaris so no early log lines are missed
