@@ -76,7 +76,12 @@ Yes, significantly. Alpaca V2.0 introduces major improvements to tracking precis
 - **Orbital Tracking:** The Driver can track over 32,000 satellites, planets, and moons using real-time TLE data, updating mount setpoints every 200 ms for accurate tracking of fast-moving or dynamic targets.
 
 ### B5 - What is the heaviest load the Polaris can handle?
-The Benro USA Site claims the Astro version of the Polaris can handle a load of 7 kg (15.4 lbs). Pretty impressive for such a small mount, without a counterweight. 
+The Benro USA website claims that the Astro version of the Polaris can support a **payload of 7 kg** (15.4 lb). An impressive capacity for such a compact mount, especially without a counterweight. Benro’s Polaris marketing brochure also specifies a torsional capacity of 70 kgf·cm. This is a measure of torque, equivalent to the following loads at different distances from the axis of rotation:
+- **70 kgf at 1 cm**
+- **7 kgf at 10 cm**
+- **1.75 kgf at 40 cm**
+
+These figures illustrate how the same torque can be produced by different loads acting at different distances.
 
 I have tested the performance of the Polaris with my rig up to around 4.4kg (Canon R5, RF 800mm lens, Dew Heater, Mini-PC, Gemini Focuser, ArcaSwiss Mounting Bar, Svbony 50mm Guide Scope, Touptek GPM462M Guide Camera). The Polaris seems to easily handle this load and performs sidereal tracking well. 
 
