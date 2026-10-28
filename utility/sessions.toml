@@ -651,3 +651,12 @@ driver = "v2.2.0 Beta 8.0"
 guiding = "none"
 records = []
 notes = ""
+
+[sessions."dmich39_Beta9.0_10_25"]
+logs = ["alpaca.dmich39_Beta9.0_10_25_a*.log"]
+phd2 = "alpaca.dmich39_Beta9.0_10_25_a1_PHD2_GuideLog_2026-10-25_204922.txt"
+date = "2026-10-25"
+driver = "v2.2.0"
+guiding = "pulse (PHD2)"
+records = []
+notes = ""
