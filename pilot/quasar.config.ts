@@ -123,6 +123,7 @@ export default defineConfig((ctx) => {
       // https: true,
       historyApiFallback: true,
       open: false, // opens browser window automatically
+      allowedHosts: ['nina01', '.local', '.ts.net'],  // Vite 6+ blocks other host names (403): IP addresses and localhost always pass
       proxy: {
         '/proxy': {
           target: apiTarget,                         // Let Falcon web server proxy it to REST API port

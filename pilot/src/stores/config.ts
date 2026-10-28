@@ -94,6 +94,7 @@ export const useConfigStore = defineStore('config', {
     advanced_eq_mode: false,
     advanced_eq_mode_visible: false,
     advanced_orbitals: false,
+    orbital_lead_sec: 0.3,
     advanced_pec_drift: false,
     advanced_pec_worm: false,
     coordinated_speed_control: false,
