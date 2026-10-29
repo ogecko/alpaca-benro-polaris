@@ -316,7 +316,7 @@ import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
 import type { SyncMessage }from 'src/stores/stream'
-import { formatAngle } from 'src/utils/scale'
+import { formatAngle, formatDegreesHr } from 'src/utils/scale'
 import { deg2dms, dms2deg } from 'src/utils/angles'
 import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
@@ -383,8 +383,9 @@ function formatSyncData(data:SyncMessage):TableRow {
   const time = new Date(data.timestamp).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true}) ?? ''
   const a_az = data.a_az != null ? formatAngle(data.a_az, 'deg', 1) : ''
   const a_alt = data.a_alt != null  ? formatAngle(data.a_alt, 'deg', 1) : ''
-  const a_roll = data.a_roll != null ? formatAngle(data.a_roll, 'deg', 1) : ''
-  const p_roll = data.p_roll != null ? formatAngle(data.p_roll, 'deg', 1) : ''
+  // a roll is always shown in degrees: formatAngle's arcsec for a roll near 0 (-60.0″) read as -60 deg
+  const a_roll = data.a_roll != null ? formatDegreesHr(data.a_roll, 'deg', 1) : ''
+  const p_roll = data.p_roll != null ? formatDegreesHr(data.p_roll, 'deg', 1) : ''
   const residual = data.residual_magnitude ? data.residual_magnitude : 0
   const resmag = data.residual_magnitude ? formatAngle(data.residual_magnitude, 'deg', 1) : ''
   const resvec = data.residual_vector ?? [0,0]
