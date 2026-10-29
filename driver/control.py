@@ -1617,6 +1617,34 @@ class PID_Controller():
             motorQ_ref = (q_jog * motorQ_ref).normalised
 
         self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
+        if self._has_active_jog() and is_flip(self.theta_pv, self.theta_ref):
+            self._stop_jog_at_edge()
+
+    def _stop_jog_at_edge(self):
+        """A jog whose reference went onto the other IK branch -- past the M2 overlap below the horizon, or over the
+        top -- would swing M1/M3 ~180 deg (a FLIP, which UNWIND then turned into a 540 deg M1 turn: field 2026-10-29,
+        an Alt jog to -8). Stop the jog where the mount is instead; a goto still flips when asked for the other side."""
+        self.logger.warning(f'JOG stopped: going on needs M1/M3 to swing round to the other side '
+                            f'(M2 {float(self.theta_pv[1]):+.1f})')
+        self.reset_offsets()                              # clears the jog
+        self.axis_v_act = {k: 0.0 for k in AXIS_MAP}
+        self.alpha_v_sp = np.zeros(3, dtype=float)
+        self.delta_v_sp = np.zeros(3, dtype=float)
+        # hold (or track from) where the mount is, with M2 a little inside its range: on the edge itself the held
+        # pose resolved onto the other branch the next tick and flipped anyway
+        theta_hold = np.array(self.theta_pv, dtype=float)
+        theta_hold[1] = float(np.clip(theta_hold[1], THETA2_MIN + self.JOG_EDGE_MARGIN_DEG, THETA2_MAX - self.JOG_EDGE_MARGIN_DEG))
+        alpha_hold = np.array(q_to_azaltroll(self.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta_hold))), dtype=float)
+        self.alpha2body(alpha_hold)
+        self.delta_ref = self.body2delta()
+        self.delta_sp = self.delta_ref
+        self.alpha_ref = alpha_hold.copy()
+        self.alpha_sp = alpha_hold.copy()
+        self.theta_ref = theta_hold
+        self.ff_inhibit_ticks = 2
+        self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)
+
+    JOG_EDGE_MARGIN_DEG = 0.5                        # a jog stopped at the M2 edge holds this far inside it
 
     JOG_LOCK_DEG = 6.0                               # |theta2| below this: Az/Alt/Roll jogs walk in motor angles
     JOG_LOCK_RCOND = 0.1                             # ... dropping pointing motion the motors can hardly make there
@@ -2100,32 +2128,36 @@ class PID_Controller():
         if self.goto_traj is not None and self.goto_traj.space == 'THETA':
             return                                        # a straight motor-angle move is already under way
         zeta = np.array(self.zeta_meas)
-        if Config.advanced_eq_mode:
-            # on a wedge M1/M3 are not the azimuth/roll axes: a change in sky Az/Roll says nothing of their travel
-            # (near the zenith Az swings ~90 deg for a few deg of M1), so go by the target's motor angles
-            theta_goal = self._alpha_to_theta(self.alpha_ref, self.theta_pv)
-            d1 = angular_difference(self.theta_pv[0], theta_goal[0])
-            d3 = angular_difference(self.theta_pv[2], theta_goal[2])
-        else:
-            d1 = max(angular_difference(self.alpha_pv[0],self.alpha_ref[0]), angular_difference(self.theta_pv[0],self.theta_ref[0]), key=abs)
-            d3 = max(angular_difference(self.alpha_pv[2],self.alpha_ref[2]), angular_difference(self.theta_pv[2],self.theta_ref[2]), key=abs)
-        z1_implied = zeta[0] + d1
-        z3_implied = zeta[2] + d3
         safety = Config.zeta_safety_margin
-        t1_fix = 360 if z1_implied < Config.z1_min_limit+safety else -360 if z1_implied > Config.z1_max_limit-safety else 0
-        t3_fix = 360 if z3_implied < Config.z3_min_limit+safety else -360 if z3_implied > Config.z3_max_limit-safety else 0
-        if t1_fix != 0 or t3_fix != 0:
-            # UNWIND: if we need to unwind then adjust target and cahce
-            motorQ_final = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*self.alpha_ref))
-            theta_final = np.array(q_to_theta(motorQ_final, self._lp))
-            theta_final[0] += t1_fix
-            theta_final[2] += t3_fix
-            cause = 'UNWIND'
-            msg = f'{cause} Transition'
-            if t1_fix!=0: msg+= f' | Implied z1 {z1_implied:+.1f} Remap t1 {theta_final[0]-t1_fix:+.1f} to {theta_final[0]:+.1f}'
-            if t3_fix!=0: msg+= f' | Implied z3 {z3_implied:+.1f} Remap t3 {theta_final[2]-t3_fix:+.1f} to {theta_final[2]:+.1f}'
-            self.logger.info(msg)
-            self.set_theta_ref_cache(cause, theta_final)
+        # UNWIND only for a goto or while tracking a target: not on its own while holding, after an abort or during a
+        # jog, where it turned M1 a whole turn unasked (field 2026-10-28 20:42-20:43, 2026-10-29 13:58)
+        may_unwind = self.move_pending() or (self.mode == 'TRACK' and not self._has_active_jog())
+        # Where the target leaves M1/M3: its motor angles on the branch nearest the mount, as the change they really
+        # are -- not a +-180 wrapped one, whose sign is a coin toss for a flip (~180 deg): a +179 deg flip read as
+        # -181, past z1's limit, and UNWIND sent M1 to +637 (zeta +457, past the other limit) instead
+        theta_goal = self._alpha_to_theta(self.alpha_ref, self.theta_pv) if may_unwind else None
+        if theta_goal is not None:
+            z_implied = zeta + (theta_goal - np.array(self.theta_pv, dtype=float))
+            lo = np.array([Config.z1_min_limit, Config.z3_min_limit]) + safety
+            hi = np.array([Config.z1_max_limit, Config.z3_max_limit]) - safety
+            past_limit = bool(np.any(z_implied[[0, 2]] < lo) or np.any(z_implied[[0, 2]] > hi))
+        else:
+            past_limit = False
+        if past_limit:
+            # UNWIND: the same pointing a turn round on M1/M3, the one within both limits with the least travel
+            theta_final = self._flip_motor_angles(theta_goal, zeta, safety)
+            z_final = zeta + (theta_final - np.array(self.theta_pv, dtype=float))
+            if np.allclose(theta_final, theta_goal) or np.any(z_final[[0, 2]] < lo) or np.any(z_final[[0, 2]] > hi):
+                if not getattr(self, '_unwind_warned', False):
+                    self.logger.warning(f'UNWIND: no turn of M1/M3 reaches the target within the motor limits '
+                                        f'(implied z1 {z_implied[0]:+.1f} z3 {z_implied[2]:+.1f}): left to LIMIT')
+                    self._unwind_warned = True
+                return
+            self._unwind_warned = False
+            self.logger.info(f'UNWIND Transition | Implied z1 {z_implied[0]:+.1f} z3 {z_implied[2]:+.1f} | to motor angles '
+                             f'{theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f} '
+                             f'(z1 {z_final[0]:+.1f} z3 {z_final[2]:+.1f})')
+            self.set_theta_ref_cache('UNWIND', theta_final)
         elif Config.advanced_eq_mode and self.move_pending() and not self.room_checked \
                 and (theta_room := self._eq_theta_with_room(zeta, safety)) is not None:
             # eq mode, at the start of the goto: M1 turned a whole turn so tracking has room before its limit, rather
