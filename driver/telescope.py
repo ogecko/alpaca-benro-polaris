@@ -1907,6 +1907,12 @@ class action:
         elif actionName == "Polaris:GetCatalog":
             logger.info("Polaris:GetCatalog requested")
             export_data = loadCustomCatalogDataFromFile()
+            # Motor Position entries (raw M1/M2/M3): the Az/Alt/Roll they point at now, for the catalog's position filters
+            for item in export_data:
+                motor = [item.get(k) for k in ('M1_deg', 'M2_deg', 'M3_deg')]
+                if polaris._zeta_theta_offset is not None and all(isinstance(v, (int, float)) for v in motor):
+                    az, alt, roll = polaris.motor_position_to_azaltroll(*motor)
+                    item.update({'Az_deg': float(az), 'Alt_deg': float(alt), 'Roll_deg': float(roll)})
             resp.content_type = "application/json"
             resp.text = json.dumps(export_data, indent=2)
             return

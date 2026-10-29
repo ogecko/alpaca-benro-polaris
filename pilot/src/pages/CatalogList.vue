@@ -128,6 +128,8 @@
                   RA: {{ deg2fulldms(dso.RA_hr,1,'hr') }} <VBar /> Dec: {{ deg2fulldms(dso.Dec_deg) }}
                   <span v-if="dso.Az_deg"> <VBar /> Az: {{ formatAngle(dso.Az_deg,'deg',0) }}</span>
                   <span v-if="dso.Alt_deg"> <VBar /> Altitude: {{ formatAngle(dso.Alt_deg,'deg',0) }}</span>
+                  <span v-if="dso.Roll_deg !== undefined"> <VBar /> Roll: {{ formatAngle(dso.Roll_deg,'deg',0) }}</span>
+                  <span v-if="isMotorPosition(dso)"> <VBar /> M1: {{ formatAngle(dso.M1_deg??0,'deg',1) }} M2: {{ formatAngle(dso.M2_deg??0,'deg',1) }} M3: {{ formatAngle(dso.M3_deg??0,'deg',1) }}</span>
                   <span v-if="isProxSort"> <VBar /> Proximity: {{ formatAngle(dso.Proximity??0,'deg',1) }}</span>
                 </q-item-label>
               </q-item-section>
@@ -174,7 +176,7 @@ import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router'
 import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, DsoRating, DsoSize, DsoBrightness } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
-import { useCatalogStore, typeLookupIcon, typeLookup } from 'src/stores/catalog'
+import { useCatalogStore, typeLookupIcon, typeLookup, isMotorPosition } from 'src/stores/catalog'
 import { useConfigStore } from 'src/stores/config'
 import { useUIStore } from 'src/stores/ui'
 import VBar from 'src/components/VBar.vue'
@@ -475,8 +477,14 @@ async function onClickGoto(dso: CatalogItem) {
   if (dso.Cn==84) {
     await dev.alpacaTrackOrbital(dso.MainID, dso.C1)
   }
+  else if (isMotorPosition(dso)) {
+    await dev.alpacaSlewAbsolute({ m1: dso.M1_deg ?? 0, m2: dso.M2_deg ?? 0, m3: dso.M3_deg ?? 0 })
+  }
+  else if (dso.C1==9 && dso.Roll_deg !== undefined) {
+    await dev.alpacaSlewAbsolute({ az: dso.Az_deg ?? 180, alt: dso.Alt_deg ?? 45, roll: dso.Roll_deg })
+  }
   else if (dso.C1==9) {
-    await dev.alpacaSlewToAltAz(dso.Alt_deg ?? 180, dso.Az_deg ?? 45)
+    await dev.alpacaSlewToAltAz(dso.Alt_deg ?? 45, dso.Az_deg ?? 180)
   }
   else {
     await dev.alpacaJ2000Goto(dso.MainID, dso.RA_hr, dso.Dec_deg)

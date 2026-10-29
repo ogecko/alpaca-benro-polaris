@@ -355,6 +355,10 @@ export interface CatalogItem {
   SearchText?: string;
   Alt_deg?: number;
   Az_deg?: number;
+  Roll_deg?: number;    // Landmark roll (optional)
+  M1_deg?: number;      // Motor Position: raw motor angles (zeta, as StatusMotors shows them)
+  M2_deg?: number;
+  M3_deg?: number;
   Az?: DsoAzimuth; 
   Alt?: DsoAltitude; 
   Position?: string;
@@ -386,6 +390,11 @@ function enumAlt(altDeg: number) {
   return altEnum
 }
 
+// A Motor Position entry: raw M1/M2/M3 motor angles (the driver adds the Az/Alt/Roll they point at)
+export function isMotorPosition(dso: CatalogItem) {
+  return dso.M1_deg !== undefined && dso.M2_deg !== undefined && dso.M3_deg !== undefined
+}
+
 function getRaDec(dso: CatalogItem, orbs: OrbitalExport, latDeg: number, lonDeg: number) {
   let ra = dso.RA_hr
   let dec = dso.Dec_deg
@@ -397,8 +406,8 @@ function getRaDec(dso: CatalogItem, orbs: OrbitalExport, latDeg: number, lonDeg:
       dec = orb.DEC_deg ?? dec;
     }
   }
-  // if Landmark
-  if (dso.C1==9) {
+  // if Landmark or Motor Position
+  if (dso.C1==9 || isMotorPosition(dso)) {
     const az = dso.Az_deg ?? 180;
     const alt = dso.Alt_deg ?? 45;
     ({ ra, dec } = AzAlt2RaDec(az, alt, latDeg, lonDeg))
