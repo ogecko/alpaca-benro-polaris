@@ -216,7 +216,68 @@ For information on how to use the Advanced Sequence for Panorama Workflows, plea
 - **Wait for Time** - Wait until a specific time. Can also wait for sunset, civil, nautical and astronomical dusk or dawn.
 - **Message Box** - Opens up a message box with the defined text, waiting for confirmation from the user.
 - **Device Action** - The Alpaca Driver exposes several Device Actions for functions that are not part of the ASCOM Alpaca standard, but used by Alpaca Pilot. Nina can also make use of these extensions via the Device Action instruction.  
-- **Device Action > Polaris:TrackOrbital**  
+- **Polaris:PanoGrid**  
+Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot. Any of these settings can be given, the rest keep their current values: `cols`, `rows` (the grid size), `hstep`, `vstep` (degrees between panel centres), `first` (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), `order` (0 Row-Major, 1 Column-Major, 2 Serpentine), `track` (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), `anchor` (what sits at the reference position: 0 the whole mosaic's centre, n panel n), `ref` (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and `r1`, `r2`, `r3` (the reference position in that frame, RA in hours). Use **Polaris:ConfigSave** to keep them for the next session.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:PanoGrid` |  `{"cols": 5, "rows": 3, "hstep": 2.0, "vstep": 1.4, "first": 0, "order": 2, "track": 2}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:PanoGrid` |  `{"anchor": 0, "ref": 1, "r1": 5.59, "r2": -5.39, "r3": 0}` |
+
+- **Polaris:PanoSlew**  
+Slew to a panel of the grid set by **Polaris:PanoGrid**, rolling and tracking as its `track` setting says. `panel` is the panel number (1 to cols x rows); leave it out to go to the next panel (after the last it wraps round to panel 1), or use -1 to return to the current one. It waits for the slew to finish unless `"isasync": true` is given. In an advanced sequence a loop of **Polaris:PanoSlew** `{}` followed by your exposures captures the whole grid.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:PanoSlew` |  `{"panel": 1}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:PanoSlew` |  `{}` |
+
+- **Polaris:SlewAbsolute**  
+Slew to a position given in any one co-ordinate system, including Roll and Position Angle, which the standard ASCOM slews can't set: `az`, `alt`, `roll` (topocentric), `ra` (hours), `dec`, `pa` (equatorial), `l`, `b`, `gpa` (galactic), or `m1`, `m2`, `m3` (motor angles). Values are decimal degrees, or strings such as `"-05:23:28"`. Axes left out keep their current value. Motor angles are the M1/M2/M3 shown in Alpaca Pilot's Motor Speed & Position panel; the motors are driven straight to them, so M1 and M3 always end the same way round, and the cables in the same state. They must be within the motor limits and can't be mixed with the other keys. It waits for the slew to finish unless `"isasync": true` is given. Needs Advanced Goto enabled.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:SlewAbsolute` |  `{"az": 180, "alt": 81, "roll": 0}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:SlewAbsolute` |  `{"pa": 90}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:SlewAbsolute` |  `{"m1": 0, "m2": -30, "m3": 0}` |
+
+- **Polaris:SlewRelative**  
+As **Polaris:SlewAbsolute**, but each value is added to the current position: for example to step the framing, or turn the camera. Motor angles add to the current motor angles.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:SlewRelative` |  `{"ra": 0.1, "dec": -1.5}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:SlewRelative` |  `{"roll": 90}` |
+
+- **Polaris:AbortSlew**  
+Stop any goto, slew or axis movement and stop tracking, the same as the Stop button in Alpaca Pilot.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:AbortSlew` |  `{}` |
+
+- **Polaris:MoveAxis**  
+Move continuously along one axis at `rate` degrees per second (negative for the other direction) until it is called again with `"rate": 0`. `axis` is 0 Azimuth, 1 Altitude, 2 Roll, 3 RA, 4 Dec, 5 Position Angle, 6 Galactic longitude, 7 Galactic latitude, 8 Galactic PA. The mount combines the motors to move along that axis only, as the Alpaca Pilot joysticks do. Needs Advanced Slewing enabled.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:MoveAxis` |  `{"axis": 2, "rate": 3}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:MoveAxis` |  `{"axis": 2, "rate": 0}` |
+
+- **Polaris:MoveMotor**  
+Run one motor directly at `rate` degrees per second (between -9 and +9), with no co-ordination or pointing control, until it is called again with `"rate": 0`. `axis` is 0 M1, 1 M2, 2 M3. Meant for testing and for unwinding cables: the motor keeps running until stopped, or until it reaches its motor limit, where the driver stops all motors.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:MoveMotor` |  `{"axis": 0, "rate": -5}` |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:MoveMotor` |  `{"axis": 0, "rate": 0}` |
+
+- **Polaris:ResetAxes**  
+Command the Polaris to reset all three axes, which drives each motor to its zero. This replicates the double-tap gesture on each joystick in the Benro Polaris App. After the Polaris is switched on, the first reset also re-takes each motor's zero from its position sensor, which only knows the angle within one turn. If the head was more than half a turn from its home position when the Polaris was switched on (for example cables wound by a long satellite pass), unwind it by hand first: otherwise the reset can turn it a further turn the same way and the zero ends a whole turn out.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ResetAxes` |  `{}` |
+
+- **Polaris:ReplayMark**  
+Write a marker line (`REPLAYLOG`) with the given parameters into the Alpaca Driver's log, whatever the log settings. Useful to mark where something happened in a sequence (a new target, a filter change, the start of a test) so it can be found later in the log, on the same timeline as the driver's own records.
+    | **Instruction** | **Device** | Action | Parameters |
+    | --- | --- | --- | --- |
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ReplayMark` |  `{"note": "NGC 104 start"}` |
+
+- **Polaris:TrackOrbital**  
 Fetch the orbital parameters of an object, slew to its co-ordinates and start non-sidereal tracking. This Device Action can be used to slew to the Moon, Sun, Satellites, Comets etc. The Parameters field should be in JSON format defining "name" and "category" of the object, where category 3: 'Star', 4: 'Planet', 5: 'Moon', 6: 'Satellite', 7: 'Commet', 8: 'Asteroid', 9: 'Landmark', 10: 'Custom'. For example to track a Solar Eclipse, Lunar Eclipse or the International Space Station use the following settings.
     | **Instruction** | **Device** | Action | Parameters |
     | --- | --- | --- | --- |
@@ -244,12 +305,4 @@ Save any modified Alpaca Driver settings to the file `config.pilot.json` in the 
 Restore all Alpaca Driver settings back to the defaults from `config.toml`.
     | **Instruction** | **Device** | Action | Parameters |
     | --- | --- | --- | --- |
-    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigRestore` |  `{}` |- 
-
-- **Polaris:ResetAxes**  
-    Command the Polaris to reset all three axes. This replicates the double-tap gesture on each joystick in the Benro Polaris App. 
-    | **Instruction** | **Device** | Action | Parameters |
-    | --- | --- | --- | --- |
-    | **Utility > Device Action** | `Telescope` |  `Polaris:ResetAxes` |  `{}` |
-
-
+    | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigRestore` |  `{}` |
