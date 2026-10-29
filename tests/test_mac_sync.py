@@ -291,3 +291,12 @@ def test_with_roll_adj_the_pointing_is_unchanged_and_the_inverse_round_trips(cfg
         or angular_difference(q_to_azaltroll(cam)[2], q_to_azaltroll(cam0)[2]) == pytest.approx(12.0, abs=1e-6)
     back = sm.topoQ_to_baseQ(cam)                                   # the PID's corrected motor pose
     assert abs(abs(float(np.dot(back.q, mpv.q))) - 1.0) < 1e-12
+
+
+def test_deleting_every_sync_point_resets_the_offsets(cfg):
+    p = Polaris(); sm = SyncManager(logging.getLogger('test'), p)
+    sync_all(sm, p)
+    assert sm.mac_d2 != 0 and sm.mac_d3 != 0
+    for e in list(sm.sync_history):
+        sm.sync_remove(e['timestamp'])
+    assert sm.mac_d2 == 0 and sm.mac_d3 == 0

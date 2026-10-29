@@ -3136,6 +3136,8 @@ class SyncManager(PecMixin, WormMixin):
 
 
         self.aligned_count = len(pairs)
+        if not pairs:
+            self.mac_d2 = self.mac_d3 = 0.0       # no points left to hold them for (deleted one by one)
         fit = None
         if Config.advanced_align_mac and len(mac_points) >= 2:
             # MAC: QUEST's rotation fitted together with the M2/M3 offsets, unweighted (kinematics_mac.py).
