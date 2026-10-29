@@ -90,6 +90,12 @@ def orb_result(logger, name, msg):
     return name, msg
 
 
+def _exc_str(e):
+    """An exception as 'Type: text' -- a timeout's text is empty, so its type is what says what happened."""
+    text = str(e).strip()
+    return f'{type(e).__name__}: {text}' if text else type(e).__name__
+
+
 
 # ── Orbital Parameter Web Query Methods ─────────────────────────────────────────────────────────────
 
@@ -132,10 +138,10 @@ async def _fetch_tle_from_celestrak(logger, norad_id):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=10) as response:
                 if response.status != 200:
-                    return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data, response 200.')
+                    return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data for {query}, HTTP status {response.status}.')
                 text = await response.text()
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data.')
+        return orb_result(logger, None, f'Celestrak: Failed to fetch TLE data for {query}: {_exc_str(e)}.')
 
     # ---------------- Try and parse the Celestrak Response
     try:
@@ -144,14 +150,14 @@ async def _fetch_tle_from_celestrak(logger, norad_id):
             logger.info(f'{text.strip()}')
 
         if re.search(r"\bNo GP data found\b", text, re.IGNORECASE):
-            return orb_result(logger, None, f'Celestrak: No match found.')
+            return orb_result(logger, None, f'Celestrak: No match found for {query}.')
 
         lines = text.strip().splitlines()
         if len(lines) < 3:
-            return orb_result(logger, None, f'Celestrak: Incomplete TLE data.')
+            return orb_result(logger, None, f'Celestrak: Incomplete TLE data for {query}.')
 
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Failed to parse orbital data.')
+        return orb_result(logger, None, f'Celestrak: Failed to parse orbital data for {query}: {_exc_str(e)}.')
     
     # ---------------- Try and create the Orbital Body
     try:
@@ -164,7 +170,7 @@ async def _fetch_tle_from_celestrak(logger, norad_id):
             logger.info(f'Celestrak: Body Orbital Parameters: {body.writedb()}')
 
     except Exception as e:
-        return orb_result(logger, None, f'Celestrak: Failed to create TLE body.')
+        return orb_result(logger, None, f'Celestrak: Failed to create TLE body for {query}: {_exc_str(e)}.')
 
     orbital_data[name] = {
         'body':     body,
@@ -240,12 +246,11 @@ async def _fetch_xephem_from_jpl(logger, name_or_designation: str):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, params=params, ssl=ssl_context, timeout=15) as response:
                 if response.status != 200:
-                    return orb_result(logger, None, f'JPL: Failed to fetch ephem data, response 200.')
+                    return orb_result(logger, None, f'JPL: Failed to fetch ephem data for {query}, HTTP status {response.status}.')
                 data = await response.json()
     except Exception as e:
-        msg = f'JPL: Failed to decode JSON, exception: {e}, params: {params}'
-        logger.error(msg)
-        return orb_result(logger, None, f'JPL: Failed to fetch ephem data.')
+        logger.error(f'JPL: Failed to fetch or decode JSON, exception: {_exc_str(e)}, params: {params}')
+        return orb_result(logger, None, f'JPL: Failed to fetch ephem data for {query}: {_exc_str(e)}.')
 
     # ---------------- Try and parse the JPL Horizon API Response
     try:
@@ -307,7 +312,7 @@ async def _fetch_xephem_from_jpl(logger, name_or_designation: str):
             db_string = f"{name},e,{i},{O},{o},{a},{n},{e},{M},{epoch_date},{D},,,"
 
     except Exception as e:
-        return orb_result(logger, None, f'JPL: Failed to parse orbital data.')
+        return orb_result(logger, None, f'JPL: Failed to parse orbital data for {query}: {_exc_str(e)}.')
 
     # ---------------- Try and create the Orbital Body
     try:
@@ -316,7 +321,7 @@ async def _fetch_xephem_from_jpl(logger, name_or_designation: str):
             logger.info(f'JPL: Body Orbital Parameters: {body.writedb()}')
 
     except Exception as e:
-        return orb_result(logger, None, f'JPL: Failed to create orbital body.')
+        return orb_result(logger, None, f'JPL: Failed to create orbital body for {query}: {_exc_str(e)}.')
 
     c1, c2 = _c1_c2_for_source('jpl', query)
     orbital_data[name] = {
