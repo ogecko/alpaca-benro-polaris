@@ -2757,11 +2757,12 @@ class Polaris:
         Alpha keys (az, alt, roll) are applied via set_alpha_target.
         Delta keys (ra, dec, pa)   are applied via set_delta_target, ra in hours.
         Gamma keys (l, b, gpa)     are converted to delta then applied via set_delta_target.
-        Motor keys (m1, m2, m3)    are motor angles in the PID's base frame (theta, as shown by
-                                   θ_sp/θ_pv): unspecified motors keep the current theta_ref, and the
-                                   resulting pose is converted to Az/Alt/Roll for set_alpha_target.
+        Motor keys (m1, m2, m3)    are raw motor angles (zeta, as the 517 reports and StatusMotors, the motor
+                                   limits, Park and the pano Motor Position anchor use): unspecified motors keep
+                                   their current zeta, relative values add to it. The motors are driven straight to
+                                   those angles (set_theta_target), M1/M3 ending the way round the numbers say.
                                    They can't be combined with the other keys in one request.
-        For relative moves, each value is added to the current PID setpoint.
+        For relative moves, each other value is added to the current PID setpoint.
         """
         if (not coords) or (not Config.advanced_goto):
             self.logger.warning('slew_axis: invalid request, ignoring.')
@@ -2792,13 +2793,21 @@ class Polaris:
             return
         self._sm.invalidate_sync_guiding()
 
+        theta_goal = None
         if theta_updates:
-            theta = np.array(self._pid.theta_ref, dtype=float)
+            if self._zeta_meas is None or self._zeta_theta_offset is None:
+                self.logger.warning("slew_axis: m1/m2/m3 need the motor angles ('517') and a position update first, ignoring request.")
+                return
+            zeta = np.array(self._zeta_meas, dtype=float)
             for k, v in theta_updates.items():
                 idx = AXES[k][1]
-                theta[idx] = theta[idx] + v if relative else v
-            az, alt, roll = self.theta_to_alpha(theta)
-            self._pid.set_alpha_target({'az': az, 'alt': alt, 'roll': roll})
+                zeta[idx] = zeta[idx] + v if relative else v
+            lo = [Config.z1_min_limit, Config.z2_min_limit, Config.z3_min_limit]
+            hi = [Config.z1_max_limit, Config.z2_max_limit, Config.z3_max_limit]
+            if any(not (l <= z <= h) for z, l, h in zip(zeta, lo, hi)):
+                self.logger.warning(f'slew_axis: M1 {zeta[0]:+.1f} M2 {zeta[1]:+.1f} M3 {zeta[2]:+.1f} is outside the motor limits, ignoring request.')
+                return
+            theta_goal = zeta + np.array(self._zeta_theta_offset, dtype=float)
 
         if alpha_updates:
             if relative:
@@ -2828,14 +2837,9 @@ class Polaris:
         if alpha_updates or delta_updates or gamma_updates or theta_updates:
             self.markGotoAsUnderway()
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
+        if theta_goal is not None:
+            self._pid.set_theta_target(theta_goal)        # after the callback: it sets this goto's plan and timeout
 
-
-    def theta_to_alpha(self, theta) -> tuple:
-        """The PID's motor angles (theta_ref / theta_pv, deg) -> topocentric Az/Alt/Roll. They are already corrected
-        (worm, MAC, sync and pulse guiding), so only QUEST, SCC and roll_adj remain: the inverse of how
-        topoQ_to_baseQ makes theta_ref."""
-        cameraQ = self._sm.pvQ_to_topoQ(theta_to_q(*theta))
-        return q_to_azaltroll(cameraQ)
 
     def parse_slew_parameters(self, parameters: dict) -> dict:
         """
@@ -2919,6 +2923,11 @@ class Polaris:
             self.markRotateAsComplete()
             self._pid.set_pid_mode('HOMING')
             self._pid.set_homing_complete_callback(self.markHomingAsComplete)
+
+    def motor_position_to_azaltroll(self, m1, m2, m3):
+        """Az/Alt/Roll that a raw motor position (zeta) points at under the current alignment (motor_to_azaltroll)."""
+        corrQ_LGA = self._sm.corrQ_LGA if (Config.advanced_scc_enabled and Config.advanced_scc_choice == 1) else None
+        return motor_to_azaltroll(m1, m2, m3, self._zeta_theta_offset, self._sm.alignQ_B2T, corrQ_LGA, self._sm.roll_adj)
 
     async def setPark(self):
         if Config.advanced_control:
@@ -3050,14 +3059,7 @@ class Polaris:
         ref_z = getattr(Config, "r3", 0.0)  # degrees
         # Motor Position: resolve stored M1/M2/M3 to their current-best equivalent Az/Alt/Roll
         if Config.ref == 3:
-            corrQ_LGA = self._sm.corrQ_LGA if (Config.advanced_scc_enabled and Config.advanced_scc_choice == 1) else None
-            ref_x, ref_y, ref_z = motor_to_azaltroll(
-                ref_x, ref_y, ref_z,
-                self._zeta_theta_offset,
-                self._sm.alignQ_B2T,
-                corrQ_LGA,
-                self._sm.roll_adj,
-            )
+            ref_x, ref_y, ref_z = self.motor_position_to_azaltroll(ref_x, ref_y, ref_z)
         # if "Sky - Milky Way" Convert to Galactic co-ordinates (l, b, gpa)
         if Config.track == 3:
             if (Config.ref == 0 or Config.ref == 3):    # Topo (or resolved Motor Position) to Galactic

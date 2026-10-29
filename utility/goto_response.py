@@ -1,5 +1,5 @@
 """
-Goto response test: a fixed sequence of motor-angle gotos (Polaris:SlewAbsolute m1/m2/m3) to measure how the
+Goto response test: a fixed sequence of motor-angle gotos (Polaris:SlewAbsolute m1/m2/m3, raw zeta) to measure how the
 whole system - planner, PID, speed controller, MCU and battery - follows a goto: commanded vs actual speed
 per motor, overshoot, settle time, and whether moving all three motors at once slows each of them.
 
@@ -91,7 +91,9 @@ class AlpacaMount:
         self.hw.action("Polaris:ReplayMark", {"test": "goto_response", **info})
 
     def slew(self, theta):
-        self.hw.action("Polaris:SlewAbsolute", {"m1": float(theta[0]), "m2": float(theta[1]), "m3": float(theta[2]),
+        s = self.status()                                 # SlewAbsolute's m1/m2/m3 are zeta: theta less the live offset
+        zeta = np.asarray(theta, dtype=float) - (s["tpv"] - s["zeta"])
+        self.hw.action("Polaris:SlewAbsolute", {"m1": float(zeta[0]), "m2": float(zeta[1]), "m3": float(zeta[2]),
                                                 "isasync": True})
 
     def abort(self):
@@ -105,7 +107,7 @@ class AlpacaMount:
 
 
 class TwinMount:
-    """The digital twin, driven the way Polaris.slew_axis drives the PID for m1/m2/m3 (as an Az/Alt/Roll goto)."""
+    """The digital twin, driven the way Polaris.slew_axis drives the PID for m1/m2/m3 (set_theta_target)."""
 
     def __init__(self, eq=False):
         import pytest
@@ -151,9 +153,9 @@ class TwinMount:
         self.marks.append((self.now(), info))
 
     def slew(self, theta):
-        from kinematics import theta_to_q, q_to_azaltroll
-        az, alt, roll = q_to_azaltroll(self.tw.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta)))
-        self.tw.goto_altaz(az, alt, roll)
+        self.tw.polaris.goto_complete_at = None
+        self.tw.pid.set_goto_complete_callback(self.tw.polaris.markGotoAsComplete)
+        self.tw.pid.set_theta_target(np.asarray(theta, dtype=float))
         self.pending = True
 
     def abort(self):

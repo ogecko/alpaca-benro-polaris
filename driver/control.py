@@ -1291,6 +1291,22 @@ class PID_Controller():
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
+    def set_theta_target(self, theta):
+        """Goto motor angles theta (the PID's Base frame) exactly: straight there in motor angles, so M1/M3 end the way
+        round the numbers say (an Az/Alt/Roll target takes the nearest IK branch), then held -- or tracked -- at the
+        pose they point at. Call after set_goto_complete_callback, which resets the goto's plan and timeout."""
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
+            return
+        theta = np.asarray(theta, dtype=float)
+        alpha = np.array(q_to_azaltroll(self.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta))), dtype=float)
+        self.set_alpha_target({'az': alpha[0], 'alt': alpha[1], 'roll': alpha[2]})
+        self._move_in_motor_angles('MOTOR', 'motor angle goto', theta)
+        self.room_checked = self.lock_checked = True      # the motor angles are the end solution: no EQ ROOM/LOCK/FLIP
+        if self.goto_traj is not None:
+            self.goto_traj.alpha_goal = alpha             # held there (plan_goto re-targets a move whose goal moves)
+            if self.time_goto:                            # the goto timeout allows for the planned move
+                self.time_goto += self.goto_traj.duration / (24 * 3600)
+
     def set_alpha_axis_velocity(self, axis, sp=0.0):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
@@ -1345,19 +1361,19 @@ class PID_Controller():
         if self.mode=="IDLE":
             self.set_pid_mode("AUTO")
 
-    def set_zeta_ref_to_home(self):
+    def set_zeta_ref(self, zeta):
+        """Target raw motor angles (zeta, as the 517 reports them): driven straight there in HOMING/PARKING mode."""
         if self.mode in ['PRESETUP']:
             return
         self.reset_offsets()
         self.target_type = "ZETA"
-        self.zeta_ref = np.zeros(3, dtype=float)
+        self.zeta_ref = np.array(zeta, dtype=float)
+
+    def set_zeta_ref_to_home(self):
+        self.set_zeta_ref([0.0, 0.0, 0.0])
 
     def set_zeta_ref_to_park(self):
-        if self.mode in ['PRESETUP']:
-            return
-        self.reset_offsets()
-        self.target_type = "ZETA"
-        self.zeta_ref = np.array([Config.m1_park, Config.m2_park, Config.m3_park], dtype=float)
+        self.set_zeta_ref([Config.m1_park, Config.m2_park, Config.m3_park])
 
     async def set_tle_orbital_target(self, name):
         self.reset_offsets()
