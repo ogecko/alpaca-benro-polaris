@@ -24,12 +24,14 @@
     "nanoid": ">=5.1.11",
     "immutable": ">=5.1.8",
     "postcss": ">=8.5.23",
-    "linkify-it": ">=5.0.2"
+    "linkify-it": ">=5.0.2",
+    "minimatch": ">=11.0.1",
+    "vite": ">=8.3.5"
   },
   "dependencies": {
     "@quasar/extras": "^2.1.0",
     "@vueuse/core": "^14.4.0",
-    "axios": ">=1.18.0",
+    "axios": ">=1.20.0",
     "d3": "^7.9.0",
     "leaflet": "^1.9.4",
     "pinia": "^3.0.3",
@@ -53,7 +55,7 @@
     "prettier": "^3.3.3",
     "typescript": "^5.9.3",
     "vite-plugin-checker": "^0.14.5",
-    "vue-tsc": "^2.0.29"
+    "vue-tsc": "3.3.13"
   },
   "engines": {
     "node": "^28 || ^26 || ^24 || ^22 || ^20 || ^18",
