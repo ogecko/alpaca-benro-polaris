@@ -394,3 +394,214 @@ Package as a systemd service alongside `polaris-driver.service`, and write INDI/
 
 ### Phase 5 — Compliance Validation
 Validate against INDI's own driver compliance/test tooling (the INDI analogue of ConformU) and add to the release checklist.
+
+
+
+# Win11 Install edits
+
+1. Delete branch selection 00:29:15
+   
+  "make sure that you're getting the right version, you need to change the branch that you're actually looking at in the repository. And you can do that by clicking on this dropdown here.
+
+  And we're going to actually search for 2_2, and that will list all the releases that are available. The one you'll want to pick is releases slash 2-2, but we're currently in beta testing at the moment. So I'm going to be using either the beta 1 or the dev 2-2. In fact, I think I'm going to choose this particular branch here, because it's just the latest one that we're working on at the moment. So when you choose that, the repository will switch to all of the source code for that particular version."
+
+  can check that you got the right one by making sure that the readme has alpaca
+
+  version 2.2 Benro Polaris in its graphic.
+
+2. Replace install Python 01:03:16 - 1:11:52
+
+  Now, moving on to the installation.
+
+  You want to be logged onto Windows with an Administrator account as it will use this account to setup an automatic startup task.
+  
+  First up, press Windows + R to open the run dialog, then enter cmd and press Enter to open a Command Window.
+
+  From the installation instructions copy the command to download the setup script, and paste that into the Command Window.
+
+  Then run the setup sscript by typing setup.bat and pressing Enter.
+
+
+3. Use ap.local 1:11:52
+
+
+So with the driver running in the background, we should be able to fire up the Packer pilot application. We will open a new tab. And what you want to do is enter the name 'ap.local' into the address bar here. You can also enter the hostname or IP address of the driver as well.
+
+
+4. 1:12.52
+
+
+   1. HTTPS
+
+   2. lat/lon - Enter decimal lat/lon, Click on Map, Use browser/phone GPS, Use a GPS Dongle.
+
+   3. Connect Polaris, Join Network
+
+
+one of the first things you want to do once you've got it running is you want to set the observing site latitude and logitude, because the driver uses that to calculate the pointing coordinates, as well as how to work out the superior tracking.
+
+pretty important to get it relatively accurate where you are located.
+
+Now, in version 2.2,
+
+
+
+it's fairly easy to store different coordinates(...) for different observing sites and recall them quickly. I'll just show you how to do that. Typically, you(...) can use the scroll wheel or your pinch to zoom in and out of the map, and you can drag the map and you can just tap on a particular spot. If you've got internet access, it will pull up the latitude, longitude, elevation and pressure, and even the name of that location. And if you click this new button here, it will save that into a JSON file for later access. So I'm just going to put in a couple of different locations here. Save a couple. Save one in Mossman as well.
+
+(...)
+
+And let's say I had(...) one down in a dark site,
+
+(...)
+
+down in the national park here.
+
+(...)
+
+Let's just call it park.
+
+(...)
+
+You can see we've got the
+
+different sites, and when I don't have
+
+internet access, I can quickly click on it and I'll set the longitude and latitude and elevation, and everything for that particular location that I chose beforehand.
+
+(...)
+
+Now,(...) you can also click locate, and that will use the GPS location
+
+or the location services of the browser. So if you're running it on a phone, it will use your GPS. If you're running it while you're connected to(...) internet, it will use location services from the internet as well. But for this to have access to the feature of the browser, you need to be running the alpaca client as HTTPS, not the unsecured HTTP.(...) And the way to do that is there's a new feature where under network services, you can actually swap the web server
+
+that the alpaca pilot uses to be HTTPS-based that allows access to that location services.
+
+(...)
+
+Now, to do that, you need to download a certificate, alpaca pilot certificate authority certificate, and install that as a trusted certificate
+
+for you to be able to use that.
+
+(...)
+
+It's pretty easy to do. I'll show you how to do that. You click on this link. It will download the certificate. You can open the file.(...) It shows the certificate it's downloaded. You will want to install the certificate on any client device that's going to be calling up the alpaca pilot application. We'll install it here. You want to install it on the local machine.
+
+(...)
+
+Keep it permission. And you want to place the certificate in a particular certificate store. Easiest is if you just click browse,
+
+and it's going to be in your trusted root certificate authorities.
+
+Click OK. Next.
+
+Finish.
+
+(...)
+
+And it says it's imported that certificate successfully.
+
+installed the alpaca pilot certificate authority certificate, and now I can change this to HTTPS(...) and click save.(...) And it will restart the web server in the background, the alpaca pilot web server, and it should automatically detect it and reconnect. And there we go. I did. See, it's got HTTPS.(...) So by using, we recommend using HTTPS. It will get rid of that warning that you get when you first call it up. And it will give you access to the ability
+
+to use the location services of your phone or the browser.
+
+So I can click locate now
+
+and I get a very accurate position of where I'm located. I'm going to save that into my list so that I've got my home location also.
+
+(...)
+
+I recorded as an observing site that I use.
+
+(...)
+
+Another thing that is a feature that won't work unless you're using HTTPS is the copy. So access to the clipboard by the alpaca pilot application is restricted unless you're using HTTPS as well. So that's something you want to be setting up.
+
+OK, so we've set up the mainly PC. We've installed Python. We've installed the driver and we've set our observing site location. So the next thing we probably want to do is connect to the Benro Polaris. So I'm just going to turn it on.
+
+(...)
+
+And on the merely PC I mentioned before that we have two network adapters, two Wi-Fi adapters.(...) We have the standard one, which is Wi-Fi one. I use that to connect to my home network. And Wi-Fi two, I've got it set up so that it will connect to the Polaris. And in this case(...)
+
+it should connect automatically. But I'm going to force it to connect here.
+
+(...)
+
+It'll get up and running. We want to switch to the
+
+connect page
+
+of the client app. Let's just see if we've got the connection yet.
+
+(...)
+
+It's forming the connection.
+
+And once the Wi-Fi adapter is connected to the Polaris,
+
+the driver should automatically connect it and attempt to connect. We'll just let it run for a bit.
+
+There we go.
+
+(...)
+
+And you can see that
+
+it's
+
+discovered the device via Bluetooth. And it's selected that device to connect to. It's loaded up the hardware version and the firmware version. And it's also identified
+
+that there's an Astro module connected to the Benro Polaris.
+
+We've changed the banners to be a bit more meaningful and clear about what is the next step that needs to be done for connection. And you can see here currently we're not in Astro mode. We're in Photo mode. We need to change to Astro mode to be able to use it with the Apaca driver.
+
+(...) And the next step is to reset all of the axes so that it's pointing in the right direction.
+
+And waiting for that to stop.
+
+And then we can skip the compass align.
+
+(...)
+
+We're going to assume that it's pointing in the southerly direction at azimuth of 180.(...) And we can also skip the star align because we know the right next step
+
+is going to be a plate solve.
+
+And it's going to be much more accurate than trying to do a single star align with the Polaris.
+
+But by default it's assuming that it's pointing at
+
+south and at 45 degrees. We're just going to click skip for that.(...)
+
+Once those two proceed, we should be fully connected. And we'll go on ahead and
+
+do a(...) multipoint alignment using plate solving with Nina.
+
+(...)
+
+One other thing before we finish is another change that you'll notice here is we've added this line which shows
+
+this application is connected to the Elpaca driver. It tells you which Elpaca driver we're connected to. It's connected to the one running on Nina 01 at port 5555.
+
+(...)
+
+And while you're connected, you can choose to restart the driver.(...) So if you make a change to the driver, change to a different version, you can restart
+
+Or you can stop the driver
+
+So we're up and running and we should be able to(...) control the mount. Yep, there we go.(...) Able to change its orientation through these radial dials here.
+
+(...)
+
+I'll start covering some of the other new features that are in 2.2 in an upcoming video. But that's all I really wanted to cover today is how to get up and running with new version 2.2 and show you some of the changes
+
+for installation and setup that we recommend.
+
+(...)
+
+if you got any questions, please feel free to join the Discord server. And there's a great community there that can help you get up if you hear any problems. But I hope you won't hear any problems and you get imaging soon.
+
+(...)
+
+I'll see you in the next video. Bye.
+
+
