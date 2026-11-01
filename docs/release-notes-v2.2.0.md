@@ -35,7 +35,7 @@
 - **[Periodic Error Correction]** Combine drift learning, harmonic error modelling, worm-gear correction, and PID feed-forward to reduce periodic errors, residual drift, and star-shape distortions.
 - **[Backlash Compensation]** Takes up gear backlash after a goto, improving tracking settle time. 
 - **[Sidereal Tracking]** Improve tracking smoothness and stability, including at low altitudes and zero roll.
-- **[Orbital Tracking]** Improve tracking accuracy for satellites and other orbitals through more accurate orbital setpoints.
+- **[Orbital Tracking]** Improve satellite tracking accuracy and allow live tuning of tracking, up to 5 seconds ahead of or behind orbital position.
 
 ### Pointing, Alignment and Motion Control
 
