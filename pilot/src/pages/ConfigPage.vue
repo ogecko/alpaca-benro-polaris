@@ -235,30 +235,6 @@
             </div>
           </q-card>
         </div>
-        <!-- Standard Control Features -->
-        <div v-if="false" class="col-12 col-md-6 col-lg-4 flex">
-          <q-card flat bordered class="q-pa-md full-width">
-            <div class="text-h6">Standard Control Features</div>
-            <div class="row">
-              <div class="col-12 text-caption text-grey-6 q-pb-md">
-                Aiming Adjustment improves the standard Benro Polaris Goto performance, by correcting any aiming bias, and by forward calculating co-ordinates into the future.
-              </div>
-            </div>
-            <div class="q-gutter-y-sm" >
-              <div class="row">
-                <q-toggle v-model="p.polarislbracket" label="Enable L-Bracket Camera Orientation" @update:modelValue="onLBracket"/>
-              </div>
-              <div class="row">
-                <q-toggle v-bind="bindField('aiming_adjustment_enabled', 'Enable Aiming Adjustment')"/>
-              </div>
-              <div class="row q-pt-md q-pl-md q-col-gutter-lg">
-                <q-input v-if="cfg.aiming_adjustment_enabled" class='col-4' v-bind="bindField('aim_max_error_correction', 'Max Bias Correction', '°')" type="number" input-class="text-right"/>
-                <q-input v-if="cfg.aiming_adjustment_enabled" class='col-4' v-bind="bindField('aiming_adjustment_time', 'Future offset Time', 's')" type="number" input-class="text-right"/>
-                <q-input class='col-4' v-bind="bindField('tracking_settle_time', 'Tracking Settle Time', 's')" type="number" input-class="text-right"/>
-              </div>
-            </div>
-          </q-card>
-        </div>
       </div>
     </div>
 </q-page>
@@ -509,11 +485,6 @@ async function restore() {
   const ok = await cfg.configRestore()
   $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
     position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
-}
-
-async function onLBracket(value: boolean) {
-  console.log("L-Bracket set to ", value)
-  await dev.setPolarisLBracket(value)
 }
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 

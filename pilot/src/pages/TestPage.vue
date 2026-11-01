@@ -68,8 +68,8 @@
         </div>
       </div>
     </div>
-    <DirectControl \>
-</DirectControl>  </q-page>
+    <DirectControl />
+  </q-page>
 </template>
 
 <script setup lang="ts">
