@@ -427,24 +427,30 @@ class GcPauseLogger:
     """Logs every garbage collection that pauses the process for at least min_s (gc.callbacks): a full collection of a
     large heap stops every thread, the event loop included, so its SLOW speed switching too. Suspected 2026-10-09: the
     event loop stalled 0.6-1.3 s every ~10 min at normal CPU, each followed by a 12-38" kick on all three motors.
-    Installed with log_heartbeat (main.py); costs two clock reads per collection."""
+    The logs since showed two kinds: a real full collection (once per session, CPU time ~ wall time, now mostly
+    avoided by freeze_startup_heap), and a small collection stretched by the OS starving the whole process at 100%
+    system CPU (CPU time << wall time), which is flagged as an OS stall rather than blamed on the collector.
+    Installed with log_heartbeat (main.py); costs four clock reads per collection."""
 
-    def __init__(self, logger, min_s=GC_LOG_MIN_S, clock=time.perf_counter):
-        self._logger, self.min_s, self._clock = logger, min_s, clock
-        self._start = None
+    def __init__(self, logger, min_s=GC_LOG_MIN_S, clock=time.perf_counter, cpu_clock=time.thread_time):
+        self._logger, self.min_s, self._clock, self._cpu_clock = logger, min_s, clock, cpu_clock
+        self._start = self._cpu_start = None
 
     def __call__(self, phase, info):
         if phase == 'start':
-            self._start = self._clock()
+            self._start, self._cpu_start = self._clock(), self._cpu_clock()
             return
         if self._start is None:
             return
         dt, self._start = self._clock() - self._start, None
+        cpu = self._cpu_clock() - self._cpu_start      # the collecting thread's CPU time (~16 ms resolution on Windows)
         if dt >= self.min_s:
             stats = gc.get_stats()
+            starved = ': OS stall, the process was starved of CPU' if cpu < dt / 2 else ''
             self._logger.warning(f"->> GC pause: {dt:.3f}s, generation {info.get('generation')}, collected "
                                  f"{info.get('collected')}, uncollectable {info.get('uncollectable')}, counts "
-                                 f"{gc.get_count()}, collections so far {[g.get('collections') for g in stats]}")
+                                 f"{gc.get_count()}, collections so far {[g.get('collections') for g in stats]}, "
+                                 f"CPU {cpu:.3f}s{starved}")
 
     def install(self):
         if self not in gc.callbacks:
@@ -454,6 +460,28 @@ class GcPauseLogger:
     def remove(self):
         if self in gc.callbacks:
             gc.callbacks.remove(self)
+
+
+def freeze_startup_heap(logger):
+    """Moves every object alive at startup (modules, classes, functions, config, the Polaris object graph) into the
+    permanent generation, so the full collection that otherwise comes once per session, 40-400 min in, scans only
+    objects made since: it paused every thread 0.13-0.54 s on nina01 (Celeron N5105), mid-tracking. Call before the
+    tasks start, while nothing moves. Unfreezes first so a RESTART's collection can free the previous run's objects
+    (frozen objects in a reference cycle are never freed), and collects before freezing so no garbage is frozen."""
+    pause_loggers = [cb for cb in gc.callbacks if isinstance(cb, GcPauseLogger)]
+    for cb in pause_loggers:        # this collection is deliberate, at a safe moment: not a pause to report
+        cb.remove()
+    try:
+        start = time.perf_counter()
+        gc.unfreeze()
+        collected = gc.collect()
+        gc.freeze()
+        dt = time.perf_counter() - start
+    finally:
+        for cb in pause_loggers:
+            cb.install()
+    logger.info(f'==STARTUP== Froze {gc.get_freeze_count()} startup objects out of garbage collection '
+                f'(collected {collected}, {dt * 1000:.0f} ms).')
 
 from enum import Enum, auto
 
