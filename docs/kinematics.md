@@ -368,9 +368,16 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 
 2. Point the mount at a patch of sky **30-45° above the horizon** in the **eastern or western sky: Azimuth roughly 45-135° (east) or 225-315° (west)**, as shown in Pilot. Avoid due north or south and the area around the celestial pole. Choose a field with plenty of stars and about ±9° of clear sky around it (no trees or buildings), as the test moves the mount up to 7.5° each way.
 
-3. In NINA (or similar), create a looping sequence of around 60 iterations. Within the loop
-   * Run a repeating **Solve and Sync** using short exposures. 
-   * Add a **Wait for Time Span** of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.
+3. In NINA (or similar), create a looping sequence of around 60 iterations. 
+   * On the equipment tab, connect the Camera, then connect the Mount to the Alpaca Driver
+   * On the options/plate-solve tab, set your plate-solve exposure time to 1s
+   * Using the Advanced Sequencer create a Squential Instruction Set
+   * Set the Loop condition to "Loop for Iterations", 60 times
+   * Within the loop add instructions
+     * Run a repeating **Solve and Sync** using the short exposures. 
+     * Add a **Wait for Time Span** of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.
+     * 
+    ![Worm Gear Corrections](images/abp-nina-worm-profile.png)
 
 4. Start the sequence of solve and syncs, and keep the sequence running until the test finishes.
 
