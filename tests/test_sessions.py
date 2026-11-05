@@ -128,3 +128,82 @@ def test_site_latitude_comes_from_the_session_log_or_the_default(archive):
     assert site_latitude('jdm_Beta7.1_09_29_pulseguide', registry=reg) == pytest.approx(43.6163888888889)
     assert site_latitude('alpaca.jdm_Beta7.1_09_29_pulseguide', registry=reg) == pytest.approx(43.6163888888889)
     assert site_latitude('rpi_Beta5.0_09_13_kfpidlog', registry=reg, default=-33.65) == -33.65
+
+
+@pytest.fixture
+def multi_night(tmp_path):
+    """One driver run left up over three nights (the host slept in between, logged on waking), the middle one idle,
+    with a PHD2 guide log per guided night and two N.I.N.A. logs on the last."""
+    logs = tmp_path / 'logs'
+    logs.mkdir()
+    write(logs / 'alpaca.steve_Beta8.0_11_03_a1_alpaca.log', [
+        "2026-10-22T21:00:00.000 INFO ==STARTUP== ALPACA BENRO POLARIS DRIVER v2.2.0 Beta 8.0 =========== ",
+        "2026-10-22T21:05:00.000 INFO PECLOG {'n': 1, 'resid': [0.1, 0.2]}",
+        "2026-10-23T00:57:00.000 INFO PECLOG {'n': 2, 'resid': [0.1, 0.2]}",
+        "2026-10-27T17:34:49.000 WARNING ->> Heartbeat lag detected:   pulse 409055.865s (expected 0.100s)",
+        "2026-10-27T17:34:49.100 WARNING ->> Event loop lag detected:  slept 409055.865s (expected 0.500s)",
+        "2026-10-27T23:17:00.000 INFO <<- Polaris: BATTERY status changed",
+        "2026-11-02T19:26:22.622 WARNING ->> Heartbeat lag detected:   pulse 414464.887s (expected 0.100s)",
+        "2026-11-02T19:26:22.700 WARNING ->> Event loop lag detected:  slept 414465.303s (expected 0.500s)",
+        "2026-11-02T19:30:00.000 INFO PECLOG {'n': 3, 'resid': [0.1, None]}",
+        "2026-11-03T00:02:00.000 INFO PECLOG {'n': 4, 'resid': [0.1, 0.2]}",
+        "2026-11-03T19:39:31.632 WARNING ->> Heartbeat lag detected:   pulse 70624.294s (expected 0.100s)",
+        "2026-11-03T19:39:31.670 WARNING ->> Event loop lag detected:  slept 70624.559s (expected 0.500s)",
+        "2026-11-03T19:45:00.000 INFO ->> Polaris: SYNC GUIDING    Ra +000d00'01.18\", Dec +000d00'21.65\" Residuals",
+        "2026-11-03T22:36:00.000 INFO PECLOG {'n': 5, 'resid': [0.1, 0.2]}",
+    ])
+    write(logs / 'alpaca.steve_Beta8.0_11_03_a1_PHD2_GuideLog_2026-11-02_193340.txt', ["PHD2 version 2.6.14"])
+    write(logs / 'alpaca.steve_Beta8.0_11_03_a1_PHD2_GuideLog_2026-11-03_194900.txt', ["PHD2 version 2.6.14"])
+    nina_header = ["-" * 70, "--------------N.I.N.A. - Nighttime Imaging 'N' Astronomy--------------"]
+    write(logs / 'alpaca.steve_Beta8.0_11_03_a2_Nina_20261103-194809.log',
+          nina_header + ["2026-11-03T19:48:09.1234|INFO|App.cs|Start|1|started"])
+    write(logs / 'alpaca.steve_Beta8.0_11_03_a3_Nina_20261103-233901.log',
+          nina_header + ["2026-11-03T23:39:01.1234|INFO|App.cs|Start|1|started"])
+    write(logs / 'alpaca.other_Beta8.0_11_03_a1_PHD2_GuideLog_2026-11-03_194900.txt', ["PHD2 version 2.6.14"])
+    reg = tmp_path / 'sessions.toml'
+    reg.write_text('[defaults]\nlog_dir = "logs"\n', encoding='utf-8')
+    return tmp_path, reg
+
+
+def test_a_log_over_several_nights_is_split_into_windowed_sessions_with_their_companion_logs(multi_night):
+    _, reg = multi_night
+    new = scan_new(registry=reg)
+    assert list(new) == ['steve_Beta8.0_10_22', 'steve_Beta8.0_11_02', 'steve_Beta8.0_11_03']   # the idle 10-27 left out
+    a, b, c = new.values()
+    assert all(e['logs'] == ['alpaca.steve_Beta8.0_11_03_a1_alpaca.log'] for e in (a, b, c))
+    assert (a['t_from'], a['t_to'], a['date']) == ('2026-10-22 21:00', '2026-10-23 00:57', '2026-10-22')
+    assert (b['t_from'], b['t_to']) == ('2026-11-02 19:26', '2026-11-03 00:02')   # the wake-up heartbeat is the 11-03 night's
+    assert (c['t_from'], c['t_to']) == ('2026-11-03 19:39', '2026-11-03 22:36')
+    assert all(e['driver'] == 'v2.2.0 Beta 8.0' for e in (a, b, c))               # carried across the sleeps
+    assert 'phd2' not in a and 'nina' not in a and a['guiding'] == 'none'
+    assert b['phd2'] == 'alpaca.steve_Beta8.0_11_03_a1_PHD2_GuideLog_2026-11-02_193340.txt' and 'nina' not in b
+    assert c['phd2'] == 'alpaca.steve_Beta8.0_11_03_a1_PHD2_GuideLog_2026-11-03_194900.txt'   # not other's same night
+    assert c['nina'] == ['alpaca.steve_Beta8.0_11_03_a2_Nina_20261103-194809.log',
+                         'alpaca.steve_Beta8.0_11_03_a3_Nina_20261103-233901.log']
+    assert c['records'] == ['pec', 'sync'] and c['guiding'] == 'pulse (PHD2) + sync'
+
+
+def test_nina_logs_are_never_taken_for_driver_sessions(multi_night):
+    from sessions import driver_logs, is_nina_log
+    root, reg = multi_night
+    assert [os.path.basename(p) for p in driver_logs(str(root / 'logs'))] == ['alpaca.steve_Beta8.0_11_03_a1_alpaca.log']
+    unnamed = root / 'logs' / 'alpaca.x_a1.log'
+    write(unnamed, ["-" * 70, "--------------N.I.N.A. - Nighttime Imaging 'N' Astronomy--------------"])
+    assert is_nina_log(str(unnamed))                                              # by its header, whatever its name
+
+
+def test_multi_night_sessions_round_trip_and_catalog_maps_pick_by_time(multi_night):
+    from sessions import catalog_notes, catalog_phd2, value_at
+    _, reg = multi_night
+    add_new(registry=reg, notes={'steve_Beta8.0_11_02': 'night two', 'steve_Beta8.0_11_03': 'night three'})
+    assert scan_new(registry=reg) == {}                                           # everything covered now
+    s = get_session('steve_Beta8.0_11_03', registry=reg)
+    assert (s.t_from, s.t_to) == ('2026-11-03 19:39', '2026-11-03 22:36') and len(s.nina) == 2
+    assert all(os.path.isabs(n) and os.path.exists(n) for n in s.nina)
+    assert list_sessions(registry=reg).loc['steve_Beta8.0_11_03', 'nina'] == 2
+    notes = catalog_notes(registry=reg)['alpaca.steve_Beta8.0_11_03_a1_alpaca']
+    assert value_at(notes, '2026-11-02 21:00') == 'night two' and value_at(notes, '2026-11-03 20:00') == 'night three'
+    assert value_at(notes, '2026-10-27 18:00') is None                             # the idle night between
+    phd2 = catalog_phd2(registry=reg)['alpaca.steve_Beta8.0_11_03_a1_alpaca']
+    assert value_at(phd2, '2026-11-03 20:00').endswith('_2026-11-03_194900.txt')
+    assert value_at(phd2, '2026-10-22 22:00') is None

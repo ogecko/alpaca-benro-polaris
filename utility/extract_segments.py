@@ -14,7 +14,6 @@ holds roll + parallactic angle), interpolated onto the drift samples.
 
     uv run python utility/extract_segments.py      # all usable segments -> logs/archive/segments/
 """
-import glob
 import math
 import os
 import sys
@@ -26,6 +25,7 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'driver')))
 from catalog_logs import _read_session, _payload, session_key                     # noqa: E402
+from sessions import driver_logs, value_at                                         # noqa: E402
 from kinematics import azaltroll_to_theta_ik                                       # noqa: E402
 from pe_analysis import remove_corrections                                         # noqa: E402
 
@@ -224,16 +224,16 @@ def extract_all(catalog_csv, log_dir, out_dir, phd2=None):
     site_latitude = _site_latitude()
     from analyse_helpers import load_phd2_guidelog
     cat = pd.read_csv(catalog_csv, parse_dates=['start', 'end'])
-    files = [p for p in glob.glob(os.path.join(log_dir, 'alpaca.*.log')) if os.path.basename(p) != 'alpaca.log']
     by_session = {}
-    for p in sorted(files):
+    for p in driver_logs(log_dir):
         by_session.setdefault(session_key(p), []).append(p)
     os.makedirs(out_dir, exist_ok=True)
     index = []
     for _, seg in cat[cat['usable']].iterrows():
         frames = None
-        if phd2 and seg['session'] in phd2:
-            frames, _ = load_phd2_guidelog(phd2[seg['session']])
+        guide_log = value_at(phd2.get(seg['session']), seg['start']) if phd2 else None   # per night in a multi-night log
+        if guide_log:
+            frames, _ = load_phd2_guidelog(guide_log)
         lat = site_latitude(seg['session'], default=DEFAULT_SITE[0]) if site_latitude else DEFAULT_SITE[0]
         d = extract_segment(by_session[seg['session']], seg, phd2_frames=frames, site=(lat, DEFAULT_SITE[1]))
         if d.empty:

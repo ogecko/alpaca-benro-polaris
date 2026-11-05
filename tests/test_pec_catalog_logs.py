@@ -178,3 +178,21 @@ def test_a_worm_gear_test_is_left_out_of_the_segments(tmp_path):
     t0 = pd.Timestamp('2026-10-04T20:00:00')
     for s in segs:                                              # nothing overlaps the test
         assert s['end'] <= t0 + pd.Timedelta(seconds=test_start) or s['start'] >= t0 + pd.Timedelta(seconds=test_end)
+
+
+def test_a_host_sleep_ends_the_segment_where_the_data_stopped_and_tracking_resumes_on_waking(tmp_path):
+    """The host slept with the driver running (logged on waking as an event loop lag of the sleep's length): a
+    segment must not run through the days asleep, as if one target had been tracked all along."""
+    t0 = pd.Timestamp('2026-10-22T21:00:00')
+    L = [f"{ts(t0, 0)} INFO Advanced Control: START tracking\n"]
+    L += [peclog(ts(t0, 60 + k), 150.0 + k / 600, 40.0, 10.0) for k in range(0, 60 * 60, 30)]
+    asleep = 4 * 86400.0
+    wake = 60 + 60 * 60 + asleep
+    L.append(f"{ts(t0, wake)} WARNING ->> Event loop lag detected:  slept {asleep:.3f}s (expected 0.500s)\n")
+    L += [peclog(ts(t0, wake + 60 + k), 160.0 + k / 600, 42.0, 10.0) for k in range(0, 60 * 60, 30)]
+    p = tmp_path / 'alpaca.steve_Beta8.0_11_03_a1.log'
+    p.write_text(''.join(L), encoding='utf-8')
+    segs = catalog_session([str(p)])
+    assert [(s['start_reason'], s['end_reason']) for s in segs] == [('tracking_on', 'host_sleep'), ('host_wake', 'log_end')]
+    assert all(s['duration_min'] < 65 for s in segs)
+    assert segs[1]['start'] > t0 + pd.Timedelta(days=4)

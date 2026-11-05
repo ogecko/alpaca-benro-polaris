@@ -19,7 +19,6 @@ left out.
 """
 import argparse
 import ast
-import glob
 import os
 import re
 import sys
@@ -31,6 +30,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 from kinematics import azaltroll_to_theta_ik                                          # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from analyse_helpers import parse_peclog_legacy                                       # noqa: E402
+from sessions import HOST_SLEEP_S, driver_logs, value_at                              # noqa: E402
 
 MIN_SEGMENT_MIN = 45.0          # shorter segments can't show several cycles of a ~30-60 min signal
 SETTLE_S = 60.0                 # skipped after the event that starts a segment
@@ -67,8 +67,14 @@ def _config_pec_state(payload):
     return None
 
 
+_SLEPT_RE = re.compile(r"Event loop lag detected: +slept ([\d.]+)s")
+
+
 def _classify(line):
     """(kind, payload) for the lines that matter, else None."""
+    m = _SLEPT_RE.search(line)
+    if m and float(m[1]) >= HOST_SLEEP_S:             # the host slept with the driver running: a gap in the data
+        return 'host_sleep', float(m[1])
     if 'PECLOG {' in line:
         return 'peclog', line.split(' PECLOG ', 1)[1]
     if ' PECLOG ' in line:
@@ -235,7 +241,7 @@ def catalog_session(paths, notes=None):
             rec[f'm{i+1}_dps_hr'] = rates[i]
             rec[f'm{i+1}_travel_deg'] = travel[i]
         rec['usable'] = bool(dur >= MIN_SEGMENT_MIN and src != 'none')
-        rec['notes'] = (notes or {}).get(key, '')
+        rec['notes'] = value_at((notes or {}).get(key, ''), cur['start']) or ''     # per night in a multi-night log
         segs.append(rec)
         seg_idx += 1
 
@@ -251,6 +257,9 @@ def catalog_session(paths, notes=None):
         elif kind == 'battery':
             if cur is not None:
                 cur['battery'].append(payload)
+        elif kind == 'host_sleep':                      # logged on waking: the data stopped `payload` s ago
+            close_seg(t - pd.Timedelta(seconds=payload), 'host_sleep')
+            cur = open_seg(t, 'host_wake') if state['tracking'] and not state['worm_test'] else None
         elif kind == 'goto':
             state['target'] = payload
             state['last_move'] = (t, 'goto')
@@ -308,9 +317,8 @@ def catalog_session(paths, notes=None):
 
 def catalog(log_dir, notes=None):
     """Every session in log_dir split into segments. notes: {session: text}, e.g. sessions.catalog_notes()."""
-    files = [p for p in glob.glob(os.path.join(log_dir, 'alpaca.*.log')) if os.path.basename(p) != 'alpaca.log']
     by_session = {}
-    for p in sorted(files):
+    for p in driver_logs(log_dir):
         by_session.setdefault(session_key(p), []).append(p)
     notes = notes or {}
     rows = []

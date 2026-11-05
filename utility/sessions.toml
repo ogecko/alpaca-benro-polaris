@@ -5,7 +5,9 @@
 # without touching existing entries), and edit the notes. List them:  uv run python utility/sessions.py --list
 #
 # Fields: logs (names/globs in log_dir; rotated parts as "alpaca.x_a*.log"), phd2 (PHD2 guide log, optional),
-# t_from / t_to (default analysis window, local time as in the log), date, driver, guiding, records
+# nina (N.I.N.A. logs of the night, optional), t_from / t_to (default analysis window, local time as in the log; a log
+# over several nights -- the host slept with the driver running -- gives one windowed session per night), date,
+# driver, guiding, records
 # (pec = PECLOG, sg = SGLOG, kf = KFLOG, pid = PIDLOG, sync = sync-guide residuals), notes.
 
 [defaults]
@@ -659,4 +661,38 @@ date = "2026-10-25"
 driver = "v2.2.0"
 guiding = "pulse (PHD2)"
 records = []
+notes = ""
+
+[sessions."lanzasteve_Beta8.0_10_22"]
+logs = ["alpaca.lanzasteve_Beta8.0_11_03_a1_alpaca.log"]
+t_from = "2026-10-22 21:01"
+t_to = "2026-10-23 00:58"
+date = "2026-10-22"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = ""
+
+[sessions."lanzasteve_Beta8.0_11_02"]
+logs = ["alpaca.lanzasteve_Beta8.0_11_03_a1_alpaca.log"]
+phd2 = "alpaca.lanzasteve_Beta8.0_11_03_a1_PHD2_GuideLog_2026-11-02_193340.txt"
+nina = ["alpaca.lanzasteve_Beta8.0_11_03_a1_Nina_420261102-193249-3.2.0.9001.7828-202611.log"]
+t_from = "2026-11-02 19:26"
+t_to = "2026-11-03 00:03"
+date = "2026-11-02"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
+notes = ""
+
+[sessions."lanzasteve_Beta8.0_11_03"]
+logs = ["alpaca.lanzasteve_Beta8.0_11_03_a1_alpaca.log"]
+phd2 = "alpaca.lanzasteve_Beta8.0_11_03_a1_PHD2_GuideLog_2026-11-03_194900.txt"
+nina = ["alpaca.lanzasteve_Beta8.0_11_03_a2_Nina_20261103-194809-3.2.0.9001.15008-202611.log", "alpaca.lanzasteve_Beta8.0_11_03_a3_Nina_20261103-233901-3.2.0.9001.13032-202611.log"]
+t_from = "2026-11-03 19:39"
+t_to = "2026-11-03 22:37"
+date = "2026-11-03"
+driver = "v2.2.0 Beta 8.0"
+guiding = "pulse (PHD2)"
+records = ["pec"]
 notes = ""
