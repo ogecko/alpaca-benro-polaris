@@ -195,6 +195,9 @@ async def run_all(logger, lifecycle: shr.LifecycleController):
     telescope.start_telescope(polaris, lifecycle)
     rotator.start_rotator(polaris, lifecycle)
 
+    # Keep the long-lived startup heap out of the once-per-session full collection (it paused the control loop)
+    shr.freeze_startup_heap(logger)
+
     tasks = [
         lifecycle.create_task(polaris.client(logger), name='Polaris'),
         lifecycle.create_task(app_api.alpaca_rest_httpd(logger, lifecycle), name='RestAPI'),
