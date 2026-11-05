@@ -376,7 +376,7 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
    * Within the loop add instructions
      * Run a repeating **Solve and Sync** using the short exposures. 
      * Add a **Wait for Time Span** of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.
-     * 
+      
     ![Worm Gear Corrections](images/abp-nina-worm-profile.png)
 
 4. Start the sequence of solve and syncs, and keep the sequence running until the test finishes.
