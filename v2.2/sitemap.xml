@@ -10,9 +10,6 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/alpaca-api/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/beginners/</loc>
-      </url>
-      <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/benro/</loc>
       </url>
       <url>
@@ -47,6 +44,9 @@
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/faq/</loc>
+      </url>
+      <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/getting-started/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding/</loc>
