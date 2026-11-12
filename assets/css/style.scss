@@ -9,3 +9,45 @@
 section {
   max-width: 1100px;
 }
+
+// Copy button added to code blocks by _includes/head-custom.html
+.has-copy-btn {
+  position: relative;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 5px 6px;
+  line-height: 0;
+  color: #aaa;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.has-copy-btn:hover .copy-btn,
+.copy-btn:focus,
+.copy-btn.copied {
+  opacity: 1;
+}
+
+.copy-btn:hover {
+  color: #fff;
+  border-color: #666;
+}
+
+.copy-btn.copied {
+  color: #3fb950;
+}
+
+// Touch screens have no hover, so always show the button
+@media (hover: none) {
+  .copy-btn {
+    opacity: 1;
+  }
+}
