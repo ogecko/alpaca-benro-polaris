@@ -24,11 +24,12 @@ nav = [
     { "Docker Installation" = "docker.md" },
   ] },
   { "Using the Driver" = [
-    "pilot.md",
-    "stellarium.md",
-    "nina.md",
-    "ccdciel.md",
-    "guiding.md",
+    { "Alpaca Pilot App" = "pilot.md" },
+    { "Creating Panoramas" = "panoramas.md" },
+    { "Using Stellarium" = "stellarium.md" },
+    { "Using Nina" = "nina.md" },
+    { "Using CCDciel" = "ccdciel.md" },
+    { "Using Guiding" = "guiding.md" },
   ] },
   { "Help" = [
     "troubleshooting.md",

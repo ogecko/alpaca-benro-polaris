@@ -129,7 +129,7 @@ The Alpaca Driver treats a plate-solve **sync without a slew** as a guiding corr
 * Don't combine sync guiding with pulse guiding: the guider pulls each sync correction straight back to its lock position.
 
 ### Panoramas
-Use the Alpaca Driver's [Panorama Grid](./pilot.md#capturing-panoramas-with-the-alpaca-driver) for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the `PolarisPanoSlew` script to move the mount between its panels.
+Use the Alpaca Driver's [Panorama Grid](./panoramas.md) for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the `PolarisPanoSlew` script to move the mount between its panels.
 
 In CCDciel, add a `PolarisPanoSlew` step before each panel's light frames. With no argument, the script slews to the next panel, wrapping back to panel 1 after the last panel. You can also specify a panel number to slew directly to that panel. The step completes once the slew is finished.
 
