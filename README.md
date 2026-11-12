@@ -31,7 +31,7 @@ The driver transforms the Polaris from a simple panorama platform into a capable
     <td align="center" width="25%">
       <img src="docs/images/icons/plate-solving.svg" width="64" alt=""><br>
       <b>Plate Solving</b><br>
-      <sub>Solve, Sync and Center on targets accurately and quickly,</sub>
+      <sub>Solve, Sync and Center on targets accurately and quickly</sub>
     </td>
     <td align="center" width="25%">
       <img src="docs/images/icons/autofocus.svg" width="64" alt=""><br>
