@@ -1,0 +1,2881 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/raspberrypi/">
+      
+      
+      
+        <link rel="prev" href="../installation_macos/">
+      
+      
+        <link rel="next" href="../docker/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Raspberry Pi Setup Guide - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Raspberry Pi Setup Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../control/" class="md-tabs__link">
+          
+  
+  Technical
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  A Beginner's Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recommended Hardware Platform
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (Windows)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (macOS)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Setup Guide
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Setup Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Overview
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#which-pi-should-i-buy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Which Pi should I buy?
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-the-raspberry-pi-os-lite-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install the Raspberry Pi OS Lite Image
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-the-pi-n-stars-os-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install the Pi n Stars OS Image
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-pre-requisites-and-the-alpaca-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install Pre-Requisites and the Alpaca Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-gps-receiver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional GPS Receiver
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional GPS Receiver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connecting-the-receiver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Connecting the receiver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usb--serial-nmea-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        USB / Serial (NMEA) (recommended)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gps-daemon-gpsd-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        GPS Daemon (GPSD) (optional)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setupsh-command-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Setup.sh Command Reference
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-and-diagnostic-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Monitoring and Diagnostic commands
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-the-raspberry-pi" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Troubleshooting the Raspberry Pi
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting the Raspberry Pi">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#p1---diagnosing-wifi-and-bluetooth-network-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P1 - Diagnosing Wifi and Bluetooth Network Issues
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p2---diagnosing-wifi-connections" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P2 - Diagnosing Wifi Connections
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p3---adding-an-additional-homesite-wifi-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P3 - Adding an additional home/site Wifi network
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p4---raspberry-pi-station-mode-connection-keeps-dropping" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P4 - Raspberry Pi Station Mode connection keeps dropping
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium and Sky Safari Pro
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guiding Users Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Benro Polaris Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quest_paper/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Overview
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#which-pi-should-i-buy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Which Pi should I buy?
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-the-raspberry-pi-os-lite-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install the Raspberry Pi OS Lite Image
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-the-pi-n-stars-os-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install the Pi n Stars OS Image
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-pre-requisites-and-the-alpaca-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install Pre-Requisites and the Alpaca Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optional-gps-receiver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional GPS Receiver
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Optional GPS Receiver">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connecting-the-receiver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Connecting the receiver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usb--serial-nmea-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        USB / Serial (NMEA) (recommended)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gps-daemon-gpsd-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        GPS Daemon (GPSD) (optional)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setupsh-command-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Setup.sh Command Reference
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-and-diagnostic-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Monitoring and Diagnostic commands
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-the-raspberry-pi" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Troubleshooting the Raspberry Pi
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting the Raspberry Pi">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#p1---diagnosing-wifi-and-bluetooth-network-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P1 - Diagnosing Wifi and Bluetooth Network Issues
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p2---diagnosing-wifi-connections" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P2 - Diagnosing Wifi Connections
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p3---adding-an-additional-homesite-wifi-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P3 - Adding an additional home/site Wifi network
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#p4---raspberry-pi-station-mode-connection-keeps-dropping" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        P4 - Raspberry Pi Station Mode connection keeps dropping
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../beginners/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="raspberry-pi-setup-guide">Raspberry Pi Setup Guide<a class="headerlink" href="#raspberry-pi-setup-guide" title="Permanent link">&para;</a></h1>
+<p><a href="#which-pi-should-i-buy">Versions</a> | 
+<a href="#install-the-raspberry-pi-os-lite-image">Image Creation</a> | 
+<a href="#install-pre-requisites-and-the-alpaca-driver">Alpaca Installation</a> | 
+<a href="#optional-gps-receiver">Optional GPS</a> |
+<a href="#setupsh-command-reference">Setup.sh Reference</a> | 
+<a href="#troubleshooting-the-raspberry-pi">Troubleshooting</a></p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p><img alt="Pi" src="../images/abp-hardware-pi.png" /></p>
+<p>Raspberry Pi are small, low-cost computers that can run the Alpaca Driver without needing a full Windows or Mac laptop attached to your telescope setup. They can be a great solution for a low-powered, light-weight, and portable Alpaca Driver with the Benro Polaris.</p>
+<p>You don't need any programming experience to follow this guide. Everything is done by copying pre-written commands into a terminal window and pressing Enter. Just follow the steps in order. Where a step is optional or only needed if something goes wrong, that's called out clearly.</p>
+<h2 id="which-pi-should-i-buy">Which Pi should I buy?<a class="headerlink" href="#which-pi-should-i-buy" title="Permanent link">&para;</a></h2>
+<p>Most Raspberry Pi models with networking support will work. Avoid Pico boards and the original Raspberry Pi Zero.
+The Alpaca Driver has been validated on the following platforms:</p>
+<ul>
+<li><strong>Raspberry Pi Zero 2 W / WH</strong> running Raspbian Pi OS Lite (64-bit) - Debian Trixie</li>
+<li><strong>Raspberry Pi 4 (8 GB)</strong> running Raspberry Pi OS (64-bit) - Debian Trixie</li>
+</ul>
+<p>For reference, when running advanced motion control algorithms and tracking a sidereal target, the Alpaca Driver uses roughly 22% of the CPU and 26% of the available memory on a <strong>Raspberry Pi Zero 2 W</strong>. This is comfortably within what even the cheapest Pi model can handle. The technical output below is just supporting evidence for that claim; you don't need to understand it.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>(.venv) pi@alpaca:~/alpaca-benro-polaris $ top
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>top - 22:38:21 up  8:03,  2 users,  load average: 0.42, 0.46, 0.46
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Tasks: 150 total,   2 running, 148 sleeping,   0 stopped,   0 zombie
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>%Cpu(s): 5.2 us,  0.6 sy,  0.0 ni, 95.6 id,  0.0 wa,  0.0 hi,  0.1 si,  0.0 st
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>MiB Mem :    416.1 total,     94.8 free,    204.8 used,    170.8 buff/cache
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>   1942 root      20   0  608352 113132  41640 R  22.4  26.5   8:33.13 python3
+</span></code></pre></div></p>
+<h2 id="install-the-raspberry-pi-os-lite-image">Install the Raspberry Pi OS Lite Image<a class="headerlink" href="#install-the-raspberry-pi-os-lite-image" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Download the Raspberry Pi Imager from the <a href="https://www.raspberrypi.com/software/">official website</a></li>
+<li>Open the downloaded exe file to install the Imaging program on your PC, following it's installation instructions. Choose to run the program at the end of installation.</li>
+<li>Using the Imaging program<ol>
+<li>Select your Raspberry Pi Device eg Raspberry Pi Zero 2 W, then click <strong>NEXT</strong></li>
+<li>Choose your Operating System as <strong>Raspberry Pi OS (64-bit)</strong>, then click <strong>NEXT</strong>. If you are using a Raspberry Pi Zero 2 W, then choose a "Lite OS" (you control it remotely rather than needing a mouse and Desktop). Select <strong>Raspberry Pi OS (other)</strong>, then choose <strong>Raspberry Pi OS Lite (64-bit)</strong>, then click <strong>NEXT</strong></li>
+<li>Select your Storage Device that will hold the OS, then click <strong>NEXT</strong>
+    &gt; Do not format the SD card with FAT32, as Windows may automatically mount and lock it, preventing the imaging program from writing to the card. Instead, use Disk Management to carefully delete any existing partitions on the SD card before proceeding.</li>
+<li>Enter the device hostname eg <strong>alpaca</strong>, then click <strong>NEXT</strong></li>
+<li>Choose your localisation settings, then click <strong>NEXT</strong></li>
+<li>Choose your user name eg <strong>pi</strong> and a password, then click <strong>NEXT</strong>. Remember this for step 6 below.</li>
+<li>Choose your local wifi network you want the Raspberry Pi to connect to, then click <strong>NEXT</strong></li>
+<li>Enable SSH. Use default password authtication, then click <strong>NEXT</strong></li>
+<li>Use default disabled Raspberry Pi Connect, then click <strong>NEXT</strong></li>
+<li>Write the image to the SD Card, click <strong>WRITE</strong></li>
+</ol>
+</li>
+<li>Remove the SD Card storage device and insert it into your Raspberry Pi</li>
+</ol>
+<h2 id="install-the-pi-n-stars-os-image">Install the Pi n Stars OS Image<a class="headerlink" href="#install-the-pi-n-stars-os-image" title="Permanent link">&para;</a></h2>
+<p>PINS is a Linux-focused fork of N.I.N.A. aimed at image acquisition on compact systems, including Raspberry Pi. 
+PINS is for users who want to experiment with a more portable, lower-power field computer.</p>
+<ol>
+<li>Download the Raspberry Pi Imager from the <a href="https://www.raspberrypi.com/software/">official website</a></li>
+<li>Download the PINS OS Image from the <a href="https://touch-n-stars.eu/">Touch-N-Stars website</a> by clicking the `<strong>Download PINS</strong> button.</li>
+<li>Using the Imaging program<ol>
+<li>Select your Raspberry Pi Device eg Raspberry Pi 4, then click <strong>NEXT</strong></li>
+<li>Choose your Operating System as <strong>Custom</strong>, then click <strong>NEXT</strong>. </li>
+<li>Select the PINS OS Image you downloaded above, then click <strong>NEXT</strong></li>
+<li>Select your Storage Device that will hold the OS, then click <strong>NEXT</strong>
+    &gt; Do not format the SD card with FAT32, as Windows may automatically mount and lock it, preventing the imaging program from writing to the card. Instead, use Disk Management to carefully delete any existing partitions on the SD card before proceeding.</li>
+<li>Write the image to the SD Card, click <strong>WRITE</strong></li>
+</ol>
+</li>
+<li>Remove the SD Card storage device and insert it into your Raspberry Pi</li>
+<li>Power on the Raspberry Pi and let it powerup and advertise its network</li>
+<li>Join the <code>pins-xxxxx</code> network, by clicking Connect, then choose 'Connect using a password instead', then enter <code>touchnstars</code> </li>
+<li>
+<p>On your PC, open a <strong>Command Prompt</strong> or <strong>Powershell Window</strong> and connect to the Raspberry Pi with the following command. Replacing <code>pins-xxxxx</code> with the network name. The default pi user password is <strong>pins</strong>.
+     <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ssh pi@pins-xxxxx
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Add your home network to PINS. Enter the following command replacing YourSSID and YourPassword with your home network settings.
+     <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo nmcli con add type wifi ifname wlan0 con-name home ssid "YourSSID" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "YourPassword"
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Switch PINS to your home network.
+     <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo nmcli con up home
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Reconnect to PINS via your home network.
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ssh pi@pins-xxxxx
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Continue with steps 3-7 below to <strong>Install Pre-Requisites and the Alpaca Driver</strong> onto the PINS Pi</p>
+</li>
+<li>Install Touch n Stars on your mobile device. </li>
+<li>Connect Thouch n Stars to your PINS Pi and follow its setup steps.<ol>
+<li>You may need to rebook PINS after you change country and local.</li>
+<li>Change Max Slew Speed to 9 °/s</li>
+<li>On the Equipment tab<ol>
+<li>Refresh the Mounts then select the Alapca Driver from the dropdown</li>
+<li>Refresh the Rotators then select the Alpaca Driver from the dropdown</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<h2 id="install-pre-requisites-and-the-alpaca-driver">Install Pre-Requisites and the Alpaca Driver<a class="headerlink" href="#install-pre-requisites-and-the-alpaca-driver" title="Permanent link">&para;</a></h2>
+<p>These instructions assume a fresh install of Raspberry Pi OS Lite, written using the <a href="https://www.raspberrypi.com/software/">Raspberry Pi Imager</a>. </p>
+<ol>
+<li>
+<p>Prepare the Raspberry Pi Zero 2W hardware. Connect the middle MicroUSB Port to a TPLink USB Wifi Adapter using a Micro-USB to USB-A (female) cable. Connect the outer MicroUSB port to a power source, using a Micro-USB to USB-C cable, and wait for it to power up.</p>
+</li>
+<li>
+<p>On your PC, open a <strong>Command Prompt</strong> or <strong>Powershell Window</strong> and connect to the Raspberry Pi with the following command. If you used your own <code>username</code> and <code>hostname</code> in the image above then replace <code>pi@alpaca</code> with your <code>username@hostname</code>. Enter your username's <code>password</code> when prompted. Once <code>ssh</code> connects, any commands you enter will run on the Raspberry Pi. 
+     <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ssh pi@alpaca
+</span></code></pre></div></p>
+</li>
+<li>
+<p>On the Raspberry Pi, download the Alpaca Driver setup.sh script. This is a program that automatically installs everything the Alpaca Driver needs, so you don't have to do it by hand.
+     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>wget<span class="w"> </span>https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/main/platforms/raspberry_pi/setup.sh<span class="w"> </span>-O<span class="w"> </span>setup.sh
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Make the script runnable, then run it.
+     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>./setup.sh
+</span></code></pre></div>
+     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>./setup.sh
+</span></code></pre></div>
+     Note that if you want to install a specific version of the Alpaca Driver, you can pass the Git-Hub Branch name as the first argument to setup.sh. For example, the following command will fetch the <strong>dev2_2</strong> branch.
+     <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./setup.sh dev2_2
+</span></code></pre></div></p>
+</li>
+<li>
+<p>The setup script will download and install all the software needed for the Alpaca Driver, setting it up to automatically start whenever the Raspberry Pi is powered on. It will also setup the Bluetooth and Wifi network of the Raspberry Pi. </p>
+<table>
+<thead>
+<tr>
+<th>Wifi Mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alpaca Station Mode (wlan0, STA)</td>
+<td>By default the Raspberry Pi will attempt to join to an existing wireless network or router. This may be your home network or a travel router.</td>
+</tr>
+<tr>
+<td>Alpaca Hotspot Mode (wlan0, AP)</td>
+<td>As a fallback, if it cannot join in Station Mode, the Raspberry Pi will act as its own hotspot with an SSID called <code>alpaca-hotspot</code> and subnet <code>10.42.0.x</code> by default. This allows other devices to join to it directly to access Alpaca Pilot and the Alpaca Rest API. This is useful at a dark site where you may not have any internet connection.</td>
+</tr>
+<tr>
+<td>Polaris Hotspot (wlan1)</td>
+<td>The Raspberry Pi will attempt to use the TPLink USB Wifi Adapter (wlan1) to join the Polaris Hotspot with SSID <code>polaris_xxxxxx</code>. This is used by the driver to communicate with the Polaris.</td>
+</tr>
+</tbody>
+</table>
+<p>The setup script will first ask you to set a password for the fallback Alpaca Hotspot — press <strong>Enter</strong> to accept the suggested default, or type your own (must be at least 8 characters). The script then works through a series of setup tasks automatically, each printed as a line starting with <code>==SETUP==</code>. This can take a few minutes, especially the first time. When it's done, you'll see a box confirming the setup is complete.</p>
+<p>The Alpaca Driver should now be installed and running.</p>
+</li>
+<li>
+<p>Start Alpaca Pilot</p>
+<p>To open Alpaca Pilot, open a web browser on any device connected to the same Wi-Fi network as the Raspberry Pi, and go to:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>http://ap.local:8080
+</span></code></pre></div></p>
+<blockquote>
+<p>The <code>:8080</code> part is required. Leaving it off will fail to load the page, even though other things (like <code>ping</code>) might still work. For security reasons, Linux restricts the standard web address ports (80 and 443) to programs with administrator privileges. Since the Alpaca Driver deliberately doesn't run with those extra privileges, it needs to use different port numbers instead. That's why you always go to <code>http://ap.local:8080</code> rather than plain <code>http://ap.local</code>.</p>
+</blockquote>
+</li>
+<li>
+<p>Join the Polaris network</p>
+<p>To request the Alpaca Driver to join the Polaris network</p>
+<ul>
+<li>Using Alpaca Pilot, navigate to the <strong>Connect</strong> page.</li>
+<li>Power on the Polaris and Wait for it to appear in the device list (found automatically over Bluetooth).</li>
+<li>Click the <strong>Wi-Fi</strong> button to request the Raspberry Pi to join the Polaris' own Wi-Fi network.</li>
+<li>Follow the remaining setps on the <strong>Connect</strong> page.</li>
+</ul>
+<p>Once you have completed compass and single star alignment, the Polaris should be ready to use.</p>
+</li>
+</ol>
+<h2 id="optional-gps-receiver">Optional GPS Receiver<a class="headerlink" href="#optional-gps-receiver" title="Permanent link">&para;</a></h2>
+<p>Alpaca Pilot's <strong>Locate</strong> button uses the browser's location by default, which needs internet and is often only approximate. At a dark site, a USB GPS receiver plugged into the Pi gives the observing site's latitude, longitude and elevation instead, with no internet needed. How to use it in Pilot is described in <a href=".././pilot/#e-setup-the-polaris-for-astro-mode">Set Observing Site Location</a>; the notes below are specific to the Pi.</p>
+<h3 id="connecting-the-receiver">Connecting the receiver<a class="headerlink" href="#connecting-the-receiver" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pi Zero 2 W:</strong> plug the receiver into the micro-USB port marked <strong>USB</strong> with an OTG adapter (not the <strong>PWR</strong> port). Other Pis: any USB port.</li>
+<li><strong>Plug it directly into the Pi.</strong> A cheap USB hub, and cameras or USB 3 cables close by, can block the GPS signal completely. In testing, a receiver that got a fix plugged directly into the computer never got one through a hub shared with a guide camera.</li>
+<li>u-blox receivers appear as <code>/dev/ttyACM0</code>, and receivers using a CH340 USB-serial chip as <code>/dev/ttyUSB0</code>. To check, run <code>ls /dev/ttyACM* /dev/ttyUSB*</code>.</li>
+<li>The Pi user running the driver must be in the <code>dialout</code> group to read the receiver. The default <code>pi</code> user already is. To check, run <code>groups</code>.</li>
+</ul>
+<h3 id="usb--serial-nmea-recommended">USB / Serial (NMEA) (recommended)<a class="headerlink" href="#usb--serial-nmea-recommended" title="Permanent link">&para;</a></h3>
+<p>The driver reads the receiver directly. Nothing extra needs to be installed.</p>
+<ol>
+<li>In Pilot <strong>Settings</strong>, click the arrow beside <strong>Locate</strong> and choose <strong>Use GPS Receiver</strong>.</li>
+<li>Leave <strong>Connection to GPS Receiver</strong> as <strong>USB / Serial (NMEA)</strong>, and choose the <strong>Serial Port</strong>. GPS receivers are marked in the list, and if only one is plugged in it is chosen for you.</li>
+<li>Leave <strong>Baud Rate</strong> at <code>9600</code> unless your receiver's documentation says otherwise. u-blox receivers ignore it.</li>
+<li>Click <strong>OK</strong>, then <strong>Locate (GPS)</strong>.</li>
+</ol>
+<h3 id="gps-daemon-gpsd-optional">GPS Daemon (GPSD) (optional)<a class="headerlink" href="#gps-daemon-gpsd-optional" title="Permanent link">&para;</a></h3>
+<p>GPSD is a Linux service that shares a GPS receiver between programs, for example with KStars/Ekos, or to keep the Pi's clock on GPS time. Use it only if you need that: while GPSD is running it holds the receiver, so choose <strong>GPS Daemon (GPSD)</strong> in Pilot rather than USB / Serial.</p>
+<ol>
+<li>
+<p>Install gpsd and its status client:
+     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>./setup.sh<span class="w"> </span>-g
+</span></code></pre></div>
+     The <code>-g</code> option adds the gpsd packages to setup's package installation; it does not select GPSD in Alpaca Pilot.</p>
+</li>
+<li>
+<p>Configure gpsd to use the receiver. Find its stable USB path with <code>ls -l /dev/serial/by-id/</code>, then set it in <code>/etc/default/gpsd</code>, for example:
+     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">DEVICES</span><span class="o">=</span><span class="s2">"/dev/serial/by-id/usb-your-receiver"</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">USBAUTO</span><span class="o">=</span><span class="s2">"false"</span>
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Start gpsd and confirm the receiver has a fix:
+     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>gpsd.socket
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>gpsd
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>cgps<span class="w"> </span>-s
+</span></code></pre></div>
+     Exit <code>cgps</code> with <strong>Ctrl+C</strong> after confirming it reports a fix.</p>
+</li>
+<li>
+<p>In Pilot <strong>Settings</strong>, click the arrow beside <strong>Locate</strong>, choose <strong>Use GPS Receiver</strong>, and set <strong>Connection to GPS Receiver</strong> to <strong>GPS Daemon (GPSD)</strong>. The defaults (host <code>127.0.0.1</code>, port <code>2947</code>) are correct when gpsd runs on the Pi itself. Click <strong>OK</strong>, then <strong>Locate (GPS)</strong>.</p>
+</li>
+</ol>
+<h2 id="setupsh-command-reference">Setup.sh Command Reference<a class="headerlink" href="#setupsh-command-reference" title="Permanent link">&para;</a></h2>
+<p>You won't normally need any of these options — running <code>./setup.sh</code> on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running <code>./setup.sh -h</code> on your own Pi always shows the same thing, straight from the script itself:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Usage: setup.sh [-n sta_ssid] [-w sta_password] [-a ap_ssid] [-p ap_password] [-g] [-h] [branch]
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>Options:
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    -n &lt;ssid&gt;      Defines the network SSID for the Alpaca Station Mode Wifi connection. 
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>                   Normally only needed to add *additional* known networks to automatically join.
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>                   (default:the network SSID defined in the freshly-imaged Pi). 
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    -w &lt;password&gt;  Password for the network named by -n (only used when creating it).
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    -a &lt;ssid&gt;      Defines the network SSID for the Alpaca Hotspot Fallback connection on wlan0. 
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>                   Only used when no known STA network is in range, e.g. at a dark site.
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>                   (default: keep the existing fallback name on a re-run, otherwise ${AP_SSID})
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>    -p &lt;password&gt;  Password for the network named by -a, min 8 chars for WPA2.
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>                   (default: keep the existing password on a re-run, otherwise prompted interactively,
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>                   or '${DEFAULT_AP_PASSWORD}' if not running in a terminal)
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>
+</span><span id="__span-14-16"><a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    -g             Install gpsd and gpsd-clients for optional GPS receivers.
+</span><span id="__span-14-17"><a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>
+</span><span id="__span-14-18"><a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>    -h             Print this help and exit.
+</span><span id="__span-14-19"><a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>
+</span><span id="__span-14-20"><a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>    branch         Git branch to install, as a plain trailing argument.
+</span><span id="__span-14-21"><a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a>                   (default: stay on the branch of an existing install, otherwise ${BRANCH})
+</span></code></pre></div>
+Options can be combined, and it's always safe to re-run <code>./setup.sh</code> on a Pi that's already set up — it won't undo anything, it just re-applies (or updates) whatever you tell it. For example, to add a second Wi-Fi network <em>and</em> change the dark-site hotspot's name and password in one go:
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>./setup.sh<span class="w"> </span>-n<span class="w"> </span><span class="s2">"OfficeWifi"</span><span class="w"> </span>-w<span class="w"> </span><span class="s2">"OfficePassword"</span><span class="w"> </span>-a<span class="w"> </span><span class="s2">"my-scope"</span><span class="w"> </span>-p<span class="w"> </span><span class="s2">"differentpass"</span>
+</span></code></pre></div></p>
+<h2 id="monitoring-and-diagnostic-commands">Monitoring and Diagnostic commands<a class="headerlink" href="#monitoring-and-diagnostic-commands" title="Permanent link">&para;</a></h2>
+<p>The Alpaca Driver runs automatically in the background (even after a reboot) as what Linux calls a "service" — you don't need to start it by hand. The commands below let you check on it or restart it if needed.</p>
+<p><strong>To check on or control the Alpaca Driver:</strong></p>
+<div class="language-text highlight"><pre><span></span><code>```Bash
+sudo systemctl status polaris-driver       # Check whether it's running
+sudo systemctl stop polaris-driver         # Stop it
+sudo systemctl start polaris-driver        # Start it again
+journalctl -u polaris-driver -f            # Watch its log messages live (Ctrl+C to stop watching)
+```
+</code></pre></div>
+<h2 id="troubleshooting-the-raspberry-pi">Troubleshooting the Raspberry Pi<a class="headerlink" href="#troubleshooting-the-raspberry-pi" title="Permanent link">&para;</a></h2>
+<p>The sections below (labelled P1, P2, etc.) cover specific problems people have run into. You shouldn't need any of them for a normal install — skip straight past this section unless something's actually gone wrong, and jump to whichever entry best matches what you're seeing.</p>
+<h3 id="p1---diagnosing-wifi-and-bluetooth-network-issues">P1 - Diagnosing Wifi and Bluetooth Network Issues<a class="headerlink" href="#p1---diagnosing-wifi-and-bluetooth-network-issues" title="Permanent link">&para;</a></h3>
+<p>Normally, connecting to the Polaris is fully automatic (see step 9 above): Bluetooth is used briefly just to find the Polaris and turn on its Wi-Fi, then the Pi joins that Wi-Fi network by itself. This section is for when that doesn't work.</p>
+<p><strong>If Bluetooth won't turn on at all</strong> (you'll see a message like <code>Bluetooth unavailable</code> in the Driver's logs):
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>rfkill<span class="w">      </span><span class="c1"># a small tool for checking wireless on/off switches, if not already installed</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>rfkill<span class="w"> </span>list<span class="w">                  </span><span class="c1"># shows if Bluetooth or Wifi is switched off in software</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>sudo<span class="w"> </span>rfkill<span class="w"> </span>unblock<span class="w"> </span>bluetooth
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>sudo<span class="w"> </span>hciconfig<span class="w"> </span>hci0<span class="w"> </span>up
+</span></code></pre></div></p>
+<p><strong>If the Pi can't see or join the Polaris' Wi-Fi network at all:</strong> the Raspberry Pi's own built-in Wi-Fi often can't connect to the kind of Wi-Fi network the Polaris creates. A small USB Wi-Fi adapter plugged into the Pi (we've tested the TP-Link Archer T2U PLUS) fixes this. Plug it into the port labelled <code>USB</code> — not <code>PWR IN</code>, which is power-only and won't work. It should be recognised automatically with no extra setup. To check:
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>lsusb<span class="w">                        </span><span class="c1"># confirm the adapter shows up in this list at all</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>ip<span class="w"> </span>link<span class="w"> </span>show<span class="w">                 </span><span class="c1"># look for a new network interface, e.g. wlan1, alongside the existing wlan0</span>
+</span></code></pre></div>
+If <code>lsusb</code> shows the adapter but no new network interface (like <code>wlan1</code>) appears, your Pi's software is too old to recognise it automatically. Building the missing piece yourself is possible but technical — see <a href="https://github.com/aircrack-ng/rtl8812au">aircrack-ng/rtl8812au</a> if you want to attempt it, or ask for help.</p>
+<p><strong>To check whether the Polaris' Wi-Fi network is currently visible:</strong>
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>iw<span class="w">          </span><span class="c1"># a small Wifi tool, if not already installed</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>sudo<span class="w"> </span>iw<span class="w"> </span>wlan1<span class="w"> </span>scan<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>SSID<span class="w">    </span><span class="c1"># look for a name starting with "polaris_"</span>
+</span></code></pre></div>
+(Use whichever interface name showed up for your USB adapter above instead of <code>wlan1</code> if it's different.)</p>
+<p><strong>To manually join the Polaris' network</strong> — this is the exact same thing the <strong>Wi-Fi</strong> button in Alpaca Pilot does; running it yourself here just shows you more detail if something's going wrong. It's safe to run more than once.
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nb">cd</span><span class="w"> </span>~/alpaca-benro-polaris
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>.venv/bin/python3<span class="w"> </span>driver/join_wifi.py<span class="w"> </span>polaris_b83c06<span class="w">                </span><span class="c1"># replace with your Polaris' actual name, found by scanning above</span>
+</span></code></pre></div>
+<strong>To list the configured network connections:</strong>
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>nmcli<span class="w"> </span>connection<span class="w">                                                    </span><span class="c1"># should show alpaca-station-xxxx and alpaca-hotspot-fallback</span>
+</span></code></pre></div>
+<strong>To request the alpaca-hotspot-fallback to be used:</strong>
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>sudo<span class="w"> </span>nmcli<span class="w"> </span>connection<span class="w"> </span>up<span class="w"> </span>alpaca-hotspot-fallback<span class="w"> </span>ifname<span class="w"> </span>wlan0<span class="w">       </span><span class="c1"># forces wlan0 into the fallback hotspot manually</span>
+</span></code></pre></div></p>
+<p><strong>To check the current connection status:</strong>
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>nmcli<span class="w"> </span>-t<span class="w"> </span>-f<span class="w"> </span>DEVICE,STATE,CONNECTION<span class="w"> </span>device<span class="w"> </span>status<span class="w">                   </span><span class="c1"># is wlan1 connected to something starting with "polaris"?</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>ip<span class="w"> </span>addr<span class="w"> </span>show<span class="w"> </span>wlan1<span class="w">                                                  </span><span class="c1"># confirm it has an address (192.168.0.100 by default)</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>ping<span class="w"> </span><span class="m">192</span>.168.0.1<span class="w">                                                    </span><span class="c1"># confirm the Pi can actually reach the Polaris</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>journalctl<span class="w"> </span>-u<span class="w"> </span>NetworkManager<span class="w"> </span>-f<span class="w">                                     </span><span class="c1"># NetworkManager logs</span>
+</span></code></pre></div></p>
+<h3 id="p2---diagnosing-wifi-connections">P2 - Diagnosing Wifi Connections<a class="headerlink" href="#p2---diagnosing-wifi-connections" title="Permanent link">&para;</a></h3>
+<p>These commands show more detail about the Pi's network connections generally, useful if P1 above didn't solve things. <code>ip a</code> lists every network connection the Pi has and the address each one was given — look for <code>wlan0</code> (built-in Wifi, should show your home network's address) and <code>wlan1</code> (the USB adapter, should show <code>192.168.0.100</code> when connected to the Polaris):
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>$ ip a
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>    inet 127.0.0.1/8 scope host lo
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>       valid_lft forever preferred_lft forever
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>    inet6 ::1/128 scope host noprefixroute
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>       valid_lft forever preferred_lft forever
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>2: wlan0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP group default qlen 1000
+</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>    link/ether aa:bb:cc:11:22:33 brd ff:ff:ff:ff:ff:ff
+</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>    inet 192.168.50.160/24 brd 192.168.50.255 scope global dynamic noprefixroute wlan0
+</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>       valid_lft 49228sec preferred_lft 49228sec
+</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>    inet6 fe80::a8bb:ccff:fe11:2233/64 scope link proto kernel_ll
+</span><span id="__span-24-13"><a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a>       valid_lft forever preferred_lft forever
+</span><span id="__span-24-14"><a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a>3: wlan1: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 2312 qdisc mq state UP group default qlen 1000
+</span><span id="__span-24-15"><a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a>    link/ether aa:bb:cc:44:55:66 brd ff:ff:ff:ff:ff:ff
+</span><span id="__span-24-16"><a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a>    inet 192.168.0.100/24 scope global wlan1
+</span><span id="__span-24-17"><a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a>       valid_lft forever preferred_lft forever
+</span></code></pre></div>
+To check if the Raspberry Pi is connected to your network router and what routes are configured:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>$ iw dev wlan0 link
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>        SSID: YourHomeNetwork
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>        freq: 2432.0
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>        RX: 52687490 bytes (340502 packets)
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>        TX: 55221927 bytes (349678 packets)
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>        signal: -28 dBm
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>        rx bitrate: 72.2 MBit/s
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>        tx bitrate: 72.2 MBit/s
+</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>        bss flags: short-slot-time
+</span><span id="__span-25-10"><a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>        dtim period: 1
+</span><span id="__span-25-11"><a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>        beacon int: 100
+</span><span id="__span-25-12"><a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a>
+</span><span id="__span-25-13"><a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>$ iw dev wlan1 link
+</span><span id="__span-25-14"><a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a>Connected to aa:bb:cc:77:88:99 (on wlan1)
+</span><span id="__span-25-15"><a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a>        SSID: polaris_b83c06
+</span><span id="__span-25-16"><a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a>        freq: 2452.0
+</span><span id="__span-25-17"><a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>        signal: -24 dBm
+</span><span id="__span-25-18"><a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a>        tx bitrate: 72.2 MBit/s
+</span><span id="__span-25-19"><a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a>        bss flags: short-slot-time
+</span><span id="__span-25-20"><a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a>        dtim period: 0
+</span><span id="__span-25-21"><a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a>        beacon int: 15
+</span><span id="__span-25-22"><a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a>
+</span><span id="__span-25-23"><a id="__codelineno-25-23" name="__codelineno-25-23" href="#__codelineno-25-23"></a>$ ip route
+</span><span id="__span-25-24"><a id="__codelineno-25-24" name="__codelineno-25-24" href="#__codelineno-25-24"></a>default via 192.168.50.1 dev wlan0 proto dhcp src 192.168.50.160 metric 600
+</span><span id="__span-25-25"><a id="__codelineno-25-25" name="__codelineno-25-25" href="#__codelineno-25-25"></a>192.168.0.0/24 dev wlan1 proto kernel scope link src 192.168.0.100
+</span><span id="__span-25-26"><a id="__codelineno-25-26" name="__codelineno-25-26" href="#__codelineno-25-26"></a>192.168.50.0/24 dev wlan0 proto kernel scope link src 192.168.50.160 metric 600
+</span></code></pre></div>
+To scan the wlan1 wifi interface for active SSIDs:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>$ sudo iw wlan1 scan | grep SSID
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>        SSID: polaris_b83c06
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>        SSID: YourHomeNetwork
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>        SSID: YourHomeNetwork
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>        SSID: NeighboursNetwork_5GHz
+</span></code></pre></div></p>
+<h3 id="p3---adding-an-additional-homesite-wifi-network">P3 - Adding an additional home/site Wifi network<a class="headerlink" href="#p3---adding-an-additional-homesite-wifi-network" title="Permanent link">&para;</a></h3>
+<p>By default, the Pi remembers one Wi-Fi network (whatever you set up in the Raspberry Pi Imager) and falls back to its own hotspot when that's not in range (see step 9 above). If you'd like it to also recognise a <strong>second</strong> network — for example, a different location you regularly visit that does have Wi-Fi — re-run the setup script and tell it about the new network:
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nb">cd</span><span class="w"> </span>~/alpaca-benro-polaris/platforms/raspberry_pi
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>./setup.sh<span class="w"> </span>-n<span class="w"> </span><span class="s2">"OtherNetworkName"</span><span class="w"> </span>-w<span class="w"> </span><span class="s2">"OtherNetworkPassword"</span>
+</span></code></pre></div>
+This is safe to run again on an already-set-up Pi — it won't undo anything, it just adds the new network to the list the Pi already knows about. You can repeat this for as many extra networks as you like.</p>
+<p>If you'd rather do this by hand instead of re-running the script, here's the equivalent directly:
+<div class="language-Bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>sudo<span class="w"> </span>nmcli<span class="w"> </span>connection<span class="w"> </span>add<span class="w"> </span><span class="nb">type</span><span class="w"> </span>wifi<span class="w"> </span>ifname<span class="w"> </span>wlan0<span class="w"> </span>con-name<span class="w"> </span><span class="s2">"OtherNetworkName"</span><span class="w"> </span>ssid<span class="w"> </span><span class="s2">"OtherNetworkName"</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>sudo<span class="w"> </span>nmcli<span class="w"> </span>connection<span class="w"> </span>modify<span class="w"> </span><span class="s2">"OtherNetworkName"</span><span class="w"> </span>wifi-sec.key-mgmt<span class="w"> </span>wpa-psk<span class="w"> </span>wifi-sec.psk<span class="w"> </span><span class="s2">"OtherNetworkPassword"</span>
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>sudo<span class="w"> </span>nmcli<span class="w"> </span>connection<span class="w"> </span>modify<span class="w"> </span><span class="s2">"OtherNetworkName"</span><span class="w"> </span>connection.interface-name<span class="w"> </span>wlan0<span class="w"> </span>connection.autoconnect-priority<span class="w"> </span><span class="m">10</span>
+</span></code></pre></div></p>
+<h3 id="p4---raspberry-pi-station-mode-connection-keeps-dropping">P4 - Raspberry Pi Station Mode connection keeps dropping<a class="headerlink" href="#p4---raspberry-pi-station-mode-connection-keeps-dropping" title="Permanent link">&para;</a></h3>
+<p>The Raspberry Pi Zero 2 W has been known to have problems with some <strong>home mesh Wi-Fi systems</strong> (multiple access points sharing one network name). Some routers include a feature often called "Roaming Assistant," "Smart Connect," or "Band Steering." This disconnects a device it judges to have a weak signal, hoping it reconnects to a closer access point. The Raspberry Pi may not handle this well and get bumped repeatedly, even when their signal is actually strong.</p>
+<p>To resolve this issue:</p>
+<ul>
+<li>This is a router-side setting. No change is needed on the Raspberry Pi itself.</li>
+<li>In your router/mesh app's Wi-Fi settings, find "Roaming Assistant" / "Smart Connect" / "Band Steering" and disable it. </li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../installation_macos/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation (macOS)">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Installation (macOS)
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../docker/" class="md-footer__link md-footer__link--next" aria-label="Next: Docker Installation Guide">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Docker Installation Guide
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

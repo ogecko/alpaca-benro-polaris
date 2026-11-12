@@ -1,0 +1,3351 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding/">
+      
+      
+      
+        <link rel="prev" href="../ccdciel/">
+      
+      
+        <link rel="next" href="../troubleshooting/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Guiding Users Guide - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Guiding Users Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../control/" class="md-tabs__link">
+          
+  
+  Technical
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  A Beginner's Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recommended Hardware Platform
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (Windows)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (macOS)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Setup Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium and Sky Safari Pro
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guiding Users Guide
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guiding Users Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alternate-auto-guiding-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alternate Auto-Guiding Approaches
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alternate Auto-Guiding Approaches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#approach-1-plate-solvesync-guiding-hardware-free" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Approach 1: Plate-Solve/Sync Guiding (Hardware-Free)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approach-2-pulse-guiding-hardware-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Approach 2: Pulse Guiding (Hardware-Based)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proactive-auto-guiding-refinement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Proactive Auto-Guiding Refinement
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-pulse-guiding-introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. Pulse Guiding Introduction
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Pulse Guiding Introduction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-use-pulse-guiding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why Use Pulse-Guiding?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-does-pulse-guiding-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How does Pulse-guiding work?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-guiding-applications-are-supported" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What Guiding Applications are supported?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-phd2-guiding-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. PHD2 Guiding Prerequisites
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. PHD2 Guiding Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-hardware-purchases-and-software-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.1 Hardware Purchases and Software Installation
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-ascom-telescope-and-rotator-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.2 ASCOM Telescope and Rotator Setup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-phd2-equipment-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. PHD2 Equipment Setup
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. PHD2 Equipment Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-phd2-connecting-equipment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.1 PHD2 Connecting Equipment
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-guide-scope-and-camera-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.2 Guide Scope and Camera setup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-configuring-phd2-recommended-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.3 Configuring PHD2 Recommended Settings
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-configuring-alpaca-driver-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.4 Configuring Alpaca Driver settings
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-phd2-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. PHD2 Calibration
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. PHD2 Calibration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-calibration-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.1 Calibration Process
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-calibration-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.2 Calibration Errors
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-re-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.3 Re-Calibration
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-pulse-guiding-with-phd2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        5. Pulse-Guiding with PHD2
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-improving-guiding-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6. Improving Guiding Performance
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Improving Guiding Performance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-slow-drift-pec-drift-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.1 Slow Drift: PEC Drift Correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-worm-gear-wobble-pec-worm-gear-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.2 Worm Gear Wobble: PEC Worm Gear Correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-payload-slip-on-m2-zero-m2-roll-zm2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.3 Payload Slip on M2: Zero M2 Roll (ZM2)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-gear-backlash-a-motor-reversing-or-barely-moving" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.4 Gear Backlash: a Motor Reversing or Barely Moving
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-computer-stalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.5 Computer Stalls
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#66-quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.6 Quick Reference
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-final-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        7. Final Notes
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Benro Polaris Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quest_paper/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alternate-auto-guiding-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alternate Auto-Guiding Approaches
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alternate Auto-Guiding Approaches">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#approach-1-plate-solvesync-guiding-hardware-free" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Approach 1: Plate-Solve/Sync Guiding (Hardware-Free)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approach-2-pulse-guiding-hardware-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Approach 2: Pulse Guiding (Hardware-Based)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proactive-auto-guiding-refinement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Proactive Auto-Guiding Refinement
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-pulse-guiding-introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. Pulse Guiding Introduction
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Pulse Guiding Introduction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-use-pulse-guiding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why Use Pulse-Guiding?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-does-pulse-guiding-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How does Pulse-guiding work?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-guiding-applications-are-supported" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What Guiding Applications are supported?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-phd2-guiding-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. PHD2 Guiding Prerequisites
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. PHD2 Guiding Prerequisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-hardware-purchases-and-software-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.1 Hardware Purchases and Software Installation
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-ascom-telescope-and-rotator-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.2 ASCOM Telescope and Rotator Setup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-phd2-equipment-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. PHD2 Equipment Setup
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. PHD2 Equipment Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-phd2-connecting-equipment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.1 PHD2 Connecting Equipment
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-guide-scope-and-camera-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.2 Guide Scope and Camera setup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-configuring-phd2-recommended-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.3 Configuring PHD2 Recommended Settings
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-configuring-alpaca-driver-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.4 Configuring Alpaca Driver settings
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-phd2-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. PHD2 Calibration
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. PHD2 Calibration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-calibration-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.1 Calibration Process
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-calibration-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.2 Calibration Errors
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-re-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.3 Re-Calibration
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-pulse-guiding-with-phd2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        5. Pulse-Guiding with PHD2
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-improving-guiding-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6. Improving Guiding Performance
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Improving Guiding Performance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-slow-drift-pec-drift-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.1 Slow Drift: PEC Drift Correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-worm-gear-wobble-pec-worm-gear-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.2 Worm Gear Wobble: PEC Worm Gear Correction
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-payload-slip-on-m2-zero-m2-roll-zm2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.3 Payload Slip on M2: Zero M2 Roll (ZM2)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-gear-backlash-a-motor-reversing-or-barely-moving" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.4 Gear Backlash: a Motor Reversing or Barely Moving
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#65-computer-stalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.5 Computer Stalls
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#66-quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        6.6 Quick Reference
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-final-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        7. Final Notes
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../pilot/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Using the Driver
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="guiding-users-guide">Guiding Users Guide<a class="headerlink" href="#guiding-users-guide" title="Permanent link">&para;</a></h1>
+<p><a href="#approach-1-plate-solvesync-guiding-hardware-free">Sync-Guiding</a> | 
+<a href="#approach-2-pulse-guiding-hardware-based">Pulse-Guiding</a> | 
+<a href="#proactive-auto-guiding-refinement">Periodic Error Correction</a>  |
+<a href="#2-phd2-guiding-prerequisites">PHD2: Pre-requisites</a> | 
+<a href="#3-phd2-equipment-setup">Equipment Setup</a> | 
+<a href="#4-phd2-calibration">Calibration</a> | 
+<a href="#5-pulse-guiding-with-phd2">Workflow</a> |
+<a href="#6-improving-guiding-performance">Improving Guiding</a> |</p>
+<p>Guiding is a general concept that refers to any method used to correct tracking errors. It includes manual-guiding, auto-guiding, encoder-assisted guiding, and software based corrections. </p>
+<h2 id="alternate-auto-guiding-approaches">Alternate Auto-Guiding Approaches<a class="headerlink" href="#alternate-auto-guiding-approaches" title="Permanent link">&para;</a></h2>
+<p><strong>Auto-Guiding</strong> is a broad term for any method used to automatically correct for tracking errors. While the Alpaca Driver’s Multi-Point-Alignment model (QUEST) provides an excellent foundation for tracking, physical factors like <strong>periodic error</strong>, <strong>mechanical error</strong>, and <strong>polar mis-alignment</strong>, can still cause star trailing and drift. </p>
+<p>The Benro Polaris has a <strong>periodic error</strong> measured at <strong>over 14 arc minutes</strong>, with a repeating <strong>35-minute</strong> cycle. To achieve improved results, the driver supports two distinct auto-guiding approaches:</p>
+<ol>
+<li><strong>Sync Guiding:</strong> A hardware-free, software-based approach using your main imaging camera.</li>
+<li><strong>Pulse Guiding:</strong> A traditional hardware-based approach using a dedicated guide scope and camera.</li>
+</ol>
+<p><img alt="PHD2 Advanced Settings" src="../images/phd2-choice.png" /></p>
+<h4 id="approach-1-plate-solvesync-guiding-hardware-free"><strong>Approach 1: Plate-Solve/Sync Guiding (Hardware-Free)</strong><a class="headerlink" href="#approach-1-plate-solvesync-guiding-hardware-free" title="Permanent link">&para;</a></h4>
+<p>This innovative approach finally solves the drift problem without requiring a separate guide scope or camera. By using the main imaging camera to periodically "re-anchor" the alignment model, the driver can effectively correct for tracking drift.</p>
+<ul>
+<li><strong>How it Works:</strong> When you perform a <strong>plate-solve sync without slewing</strong>, the driver no longer treats it as a simple Multi-Point-Alignment update. Instead, it interprets the residual error as a <strong>guiding correction</strong>. </li>
+<li><strong>The Recommended Workflow:</strong><ol>
+<li><strong>Initialise:</strong> Perform your standard Multi-Point Alignment (MPA) and slew to your target.</li>
+<li><strong>Automate:</strong> Configure your capture software (like NINA) to perform a <strong>"Solve and Sync" every 1 to 3 minutes</strong> as part of your imaging sequence.</li>
+<li><strong>Result:</strong> The driver will automatically refine the alignment and PEC model with every sync, keeping the target perfectly centered.</li>
+</ol>
+</li>
+<li><strong>Primary Benefits:</strong><ul>
+<li><strong>No Extra Hardware:</strong> Eliminates the cost, weight, and cable management of a guide scope and camera.</li>
+<li><strong>Superior Accuracy:</strong> Full-frame plate-solves provide much higher resolution and more reliable data than traditional single-star guiding.</li>
+<li><strong>Faster Operation:</strong> Guiding happens "in-place" during your normal sequence; no more repetitive slew-and-center cycles.</li>
+</ul>
+</li>
+</ul>
+<h4 id="approach-2-pulse-guiding-hardware-based"><strong>Approach 2: Pulse Guiding (Hardware-Based)</strong><a class="headerlink" href="#approach-2-pulse-guiding-hardware-based" title="Permanent link">&para;</a></h4>
+<p>Pulse Guiding is a high-speed feedback mechanism that uses a dedicated camera to monitor a guide star's position. This remains the gold standard for correcting high-frequency errors <strong>within a single exposure</strong>.</p>
+<ul>
+<li><strong>How it Works:</strong> An external application (such as <strong>PHD2</strong>) monitors a guide star and sends "pulse corrections" to the driver. The driver interprets these as temporary velocity changes, nudging the mount back into alignment without interrupting the underlying sidereal motion.</li>
+<li><strong>Primary Benefits:</strong><ul>
+<li><strong>Sub-Exposure Correction:</strong> Corrects tracking errors immediately as they happen, preventing stars from turning into "footballs" during a long frame.</li>
+<li><strong>Long Exposures:</strong> Ideal for very deep-sky imaging where exposures may exceed 2 or 5 minutes.</li>
+<li><strong>Improved Control:</strong> Version 2.2 incorporates improvements to the accuracy of *<em>Pulse Guiding</em>, improving the reliability of calibration and corections.</li>
+</ul>
+</li>
+<li><strong>Don't Combine the Two Approaches:</strong> Running Sync Guiding alongside Pulse Guiding makes them fight: the guider pulls each sync correction straight back to its lock position. To keep the target centered during a long Pulse Guided session, use Nina's <strong>Center After Drift</strong> trigger instead (see the note in section 2.4 of <code>kinematics.md</code>).</li>
+</ul>
+<h2 id="proactive-auto-guiding-refinement">Proactive Auto-Guiding Refinement<a class="headerlink" href="#proactive-auto-guiding-refinement" title="Permanent link">&para;</a></h2>
+<p>Version 2.2 incoporates a significant step forward in tracking accuracy when you use either approach to auto-guiding. <strong>Periodic Error Correction (PEC)</strong> is a specialized, proactive layer that sits <strong>below either auto-guiding approach</strong>. It does not replace guiding; rather, it uses the data provided by either Sync or Pulse guiding to build a superior tracking model.</p>
+<ul>
+<li><strong>Proactive Modeling:</strong> While guiding is reactive (fixing errors after they happen), PEC learns the mount's current drift rate from the guide corrections, smoothed over about 7.5 minutes (an exponential moving average, <code>pec_tau_sec</code>). This allows the driver to <strong>anticipate</strong> the drift and apply fine-grained corrections every <strong>200ms</strong>, leaving the guider only what is left.</li>
+<li><strong>Dual Support:</strong> PEC learns from whichever guiding data is available. It monitors the "pulses" from PHD2 or the "residuals" from Plate-Solve Syncs.</li>
+<li><strong>Convergence:</strong> The PEC model only begins applying proactive corrections once it meets statistical criteria: enough observations, a low <strong>rmse</strong>, and an <strong>R² value</strong> indicating good fit.</li>
+<li><strong>Worm Gear Correction:</strong> Each motor's 6° worm gear error is corrected separately, from a profile measured with the Speed Calibration worm profile test. It applies when <strong>PEC Worm Gear Correction</strong> is on (approving a profile chooses the profile; the switch is separate), with or without guiding, and PEC Drift Correction then learns whatever drift is left. Each has its own switch in Pilot's settings.</li>
+<li><strong>Integration:</strong> This implementation is fully integrated into the <strong>PID control loop</strong>, enabling the Benro Polaris to maintain pinpoint stars even during long exposures by effectively "killing" the periodic error before it manifests.</li>
+</ul>
+<p><br>
+<br>
+<br></p>
+<hr />
+<p>This remainder of this document introduces how to use <strong>PHD2</strong> and pulse-guiding with the <strong>Alpaca Benro Polaris Driver</strong> on a <strong>Benro Polaris mount</strong>. It is intended for users who are new to pulse-guiding, as well as those transitioning from unguided imaging.</p>
+<h2 id="1-pulse-guiding-introduction">1. Pulse Guiding Introduction<a class="headerlink" href="#1-pulse-guiding-introduction" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>VIDEO DEMO: <a href="https://youtu.be/dn1nLxT5eWw">27 - Guiding the Alpaca Benro Polaris</a></p>
+</blockquote>
+<h3 id="why-use-pulse-guiding">Why Use Pulse-Guiding?<a class="headerlink" href="#why-use-pulse-guiding" title="Permanent link">&para;</a></h3>
+<p>Pulse-guiding is used to correct <strong>small tracking errors and drift</strong> that occur during long-exposure or long-session astrophotography. Even with good multi-point alignment and careful setup, small mechanical imperfections, AHRS drift, atmospheric effects, and tracking rate errors may cause stars to slowly trail or drift over time. Pulse-guiding helps correct many of these issues.</p>
+<p><img alt="PHD2 Main screen" src=".././images/phd2-main1.png" /></p>
+<p>For the Benro Polaris, the <strong>primary benefit of pulse-guiding is eliminating drift</strong>, enabling longer more consistent imaging sessions. It’s important to set realistic expectations. Pulse-guiding cannot fix:</p>
+<ul>
+<li>Poor focus, optical issues, or unfavourable seeing conditions</li>
+<li>Vibrations caused by tripod flexure, ground instability, or wind</li>
+<li>Mechanical binding, balance problems, cable drag or obstructions</li>
+<li>The inherent mechanical in-precision of the Polaris</li>
+</ul>
+<blockquote>
+<p>Note: Pulse-guiding is totally optional. You can still obtain excellent DSO images without the use of pulse-guiding. Pulse-guiding is not a replacement for good setup, it is a <strong>fine correction tool</strong>, not a cure-all.</p>
+</blockquote>
+<h3 id="how-does-pulse-guiding-work">How does Pulse-guiding work?<a class="headerlink" href="#how-does-pulse-guiding-work" title="Permanent link">&para;</a></h3>
+<p>Pulse-guiding is controlled by a separate guiding application that connects to the guiding camera as well as the Alpaca Driver. The guiding application operates by:</p>
+<ul>
+<li>Continuously monitoring a selected guide star (or stars) from the guide camera</li>
+<li>Measuring small deviations from the star’s expected position</li>
+<li>Sending <strong>pulse-guiding correction commands</strong> to the Alpaca Driver</li>
+</ul>
+<p>The Alpaca Driver then:</p>
+<ul>
+<li>Refines the target's equatorial setpoints</li>
+<li>Translates these corrections into motor-level adjustments</li>
+<li>Sends the updated motion commands to the Benro Polaris mount</li>
+</ul>
+<h3 id="what-guiding-applications-are-supported">What Guiding Applications are supported?<a class="headerlink" href="#what-guiding-applications-are-supported" title="Permanent link">&para;</a></h3>
+<p>The Alpaca Driver exposes pulse-guiding commands through the <strong>ASCOM Alpaca ITelescopeV3 Interface</strong>. Any guiding application that supports this pulse-guiding interface can work with the Alpaca Driver.
+The following guiding solutions have been tested with v2.0:</p>
+<ul>
+<li><strong>CCDciel’s Pulseguider</strong> — provides integrated guiding, including star selection, calibration, and corrections. Ideal for macOS and non-NINA platforms.</li>
+<li><strong>PHD2</strong> (used alongside <strong>NINA</strong>) — PHD2 handles guiding, while NINA manages imaging and dithering (via PHD2)</li>
+<li><strong>NINA Direct Guider</strong> — enables dithering without a guide scope. Not recommended as we have not seen significant improvements with this solution.</li>
+</ul>
+<p>The remainder of this secion will focus on the second solution, using <strong>PHD2</strong>.</p>
+<h2 id="2-phd2-guiding-prerequisites">2. PHD2 Guiding Prerequisites<a class="headerlink" href="#2-phd2-guiding-prerequisites" title="Permanent link">&para;</a></h2>
+<h3 id="21-hardware-purchases-and-software-installation">2.1 Hardware Purchases and Software Installation<a class="headerlink" href="#21-hardware-purchases-and-software-installation" title="Permanent link">&para;</a></h3>
+<p>To perform auto-guiding you will need some additional equipment, including the following. See <a href=".././hardware/#guiding-scope-and-camera-optional">Hardware Pulse-Guiding Equipment</a> for more details.</p>
+<ul>
+<li>A <strong>Guide scope</strong> (eg SVBony SV106 Guide Scope), or an off-axis guider (OAG)</li>
+<li>A <strong>Guide camera</strong> (e.g. ToupTek GPM462M, ZWO ASI120MM, ZWO ASI220MM, etc.)</li>
+<li>Suitable <strong>Mounting equipment</strong> (e.g. iShoot 220mm Quick Release Plate, with 3 x QR 50B Quick Release Clamps for a. MiniPC/Focuser, b. Main Lens/Camera, c. Guide Scope)</li>
+</ul>
+<p>You will also need to download and install the following software onto the Mini-PC.</p>
+<ul>
+<li><strong>ASCOM Platform</strong> - Download latest ASCOM Platform from the <a href="https://ascom-standards.org/index.htm">ASCOM Home page</a></li>
+<li><strong>PHD2 Guiding Application</strong> - Download free PHD2 application from the <a href="https://openphdguiding.org/downloads/">PHD2 Download page</a></li>
+</ul>
+<h3 id="22-ascom-telescope-and-rotator-setup">2.2 ASCOM Telescope and Rotator Setup<a class="headerlink" href="#22-ascom-telescope-and-rotator-setup" title="Permanent link">&para;</a></h3>
+<p>Once the ASCOM Platform is been installed, you need to use the <strong>ASCOM Diagnostics App</strong> to create a dynamic driver link to the Alpaca Driver's Telescope and Rotator. This step makes the Alpaca Driver's Telescope and Rotator available to all ASCOM-compatible applications, including PHD2, and only needs to be done once.</p>
+<blockquote>
+<p>Note: Nina does not require the ASCOM dynamic driver link to communicate with the Alpaca Driver, as it connects directly via the Alpaca protocol. Unforuntely, PHD2 on Windows only supports ASCOM, so this setup is necessary.</p>
+</blockquote>
+<ol>
+<li>Launch <strong>ASCOM Diagnostics App</strong></li>
+<li>Select <strong>Choose and Connect to Device</strong> from <strong>Choose Device</strong> menu</li>
+<li>Select <strong>Telescope</strong> from the dropdown, then click <strong>Choose</strong><ul>
+<li>On the <strong>ASCOM Telescope Chooser</strong> dialog, click <strong>Alpaca</strong> from the menubar</li>
+<li>Click <strong>Discovery Enabled</strong> until it is green</li>
+<li>Click <strong>Discover Now</strong></li>
+<li>Using the dropdown, choose each <strong>NEW ALPACA DEVICE</strong>, Clicking <strong>Ok</strong> twice on each one, until no more new alpaca devices are present in the dropdown.</li>
+<li>On the <strong>ASCOM Telescope Chooser</strong> dialog, click <strong>Alpaca</strong> again</li>
+<li>Click <strong>Manage Devices</strong> to list all the new alpaca devices you added.</li>
+<li>Review the <strong>IP Address</strong> of each Telescope driver listed, and remove all unwanted drivers.</li>
+<li>Aim to leave only one Telescope driver so it is easier to choose the correct one from PHD2. </li>
+<li>Click <strong>Close</strong> when complete.</li>
+<li>Using the dropdown, choose the <strong>Alpaca Benro Polaris Telescope</strong> you kept</li>
+<li>Click <strong>Ok</strong></li>
+<li>Click <strong>Connect</strong> to confirm the Alpaca Driver Telescope is setup. </li>
+</ul>
+</li>
+<li>Select <strong>Rotator</strong> from the dropdown, then click <strong>Choose</strong><ul>
+<li>On the <strong>ASCOM Rotator Chooser</strong> dialog, click <strong>Alpaca</strong> from the menubar</li>
+<li>Click <strong>Discovery Enabled</strong> until it is green</li>
+<li>Click <strong>Discover Now</strong></li>
+<li>Using the dropdown, choose each <strong>NEW ALPACA DEVICE</strong>, Clicking <strong>Ok</strong> twice on each one, until no more new alpaca devices are present in the dropdown.</li>
+<li>On the <strong>ASCOM Rotator Chooser</strong> dialog, click <strong>Alpaca</strong> again</li>
+<li>Click <strong>Manage Devices</strong> to list all the new alpaca devices you added.</li>
+<li>Review the <strong>IP Address</strong> of each Rotator driver listed, and remove all unwanted drivers.</li>
+<li>Aim to leave only one Rotator driver AND one Telescope so it is easier to choose the correct one from PHD2. </li>
+<li>Click <strong>Close</strong> when complete.</li>
+<li>Using the dropdown, choose the <strong>Alpaca Benro Polaris Rotator</strong> you kept</li>
+<li>Click <strong>Ok</strong></li>
+<li>Click <strong>Connect</strong> to confirm the Alpaca Driver Rotator is setup. </li>
+</ul>
+</li>
+<li>Close the <strong>Device Connection Tester</strong> dialog box</li>
+<li>Close the <strong>ASCOM Diagnostics App</strong></li>
+</ol>
+<h2 id="3-phd2-equipment-setup">3. PHD2 Equipment Setup<a class="headerlink" href="#3-phd2-equipment-setup" title="Permanent link">&para;</a></h2>
+<p>Once PHD2 has been installed, you need to perform some initial setup. This includes connecting, focusing and configuring the equipment.</p>
+<h3 id="31-phd2-connecting-equipment">3.1 PHD2 Connecting Equipment<a class="headerlink" href="#31-phd2-connecting-equipment" title="Permanent link">&para;</a></h3>
+<p>Connecting PHD2 to the guide camera and Alpaca Driver (one time setup)</p>
+<ol>
+<li>Ensure your <strong>guide camera</strong> is physically connected and power it on.</li>
+<li>Ensure the <strong>Alpaca Driver</strong> is running and connected to the Polaris.</li>
+<li>Launch <strong>PHD2</strong></li>
+<li>Select <strong>Guide</strong> from the <strong>PHD2</strong> menubar, then <strong>Connect Equipment</strong></li>
+<li>Choose <strong>New Using Wizard</strong>, from the <strong>Manage Profiles</strong> dropdown.<ul>
+<li>Camera: select your <strong>guide camera</strong> from the dropdown list</li>
+<li>Scope: set your <strong>Guide scope focal length</strong> eg 190mm for SV106. Click <strong>Next</strong>.</li>
+<li>Mount: select <strong>Alpaca Benro Polaris Telescope (ASCOM)</strong> from the dropdown list. Click <strong>Next</strong>.</li>
+<li>Leave Adaptive Optices as None (not required), then click <strong>Next</strong>.</li>
+<li>Rotator: select <strong>Alpaca Benro Polaris Rotator (ASCOM)</strong> from the dropdown list. Click <strong>Next</strong>.</li>
+<li>Finish the wizard and save the profile.</li>
+</ul>
+</li>
+<li>On the <strong>Connect Equipment</strong> diaglog, click the <strong>Camera Setup</strong> button<ul>
+<li>You will find <strong>Camera Setup</strong> next to the Camera <strong>Connect</strong> button</li>
+<li>Change the Camera Mode to <strong>16 bit</strong>. Click <strong>Ok</strong>.</li>
+<li>Click <strong>Connect All</strong>, or <strong>Connect</strong> each device individually.</li>
+</ul>
+</li>
+<li>Select <strong>Guide</strong> from the <strong>PHD2</strong> menubar, then <strong>Advanced Settings</strong>.<ul>
+<li>Change to the <strong>Camera</strong> tab.</li>
+<li>Change the <strong>Saturation by Max-ADU Value</strong> to 65535.</li>
+<li>Click <strong>Ok</strong></li>
+</ul>
+</li>
+</ol>
+<h3 id="32-guide-scope-and-camera-setup">3.2 Guide Scope and Camera setup<a class="headerlink" href="#32-guide-scope-and-camera-setup" title="Permanent link">&para;</a></h3>
+<p>Focusing, Rotating and Aligning the guide camera (one time setup)</p>
+<ol>
+<li>Ensure your <strong>main camera</strong> is centered on a recognisable landmark, like a powerline tower, tall building, or tall fixed object, as far away as possible. This can be done during twilight hours or even during daytime.</li>
+<li>Ensure you have a laptop, tablet or phone, near the guide camera. This will allow you to remote into the Mini-PC running PHD2, make guide camera focus and alignment adjustments, and see the effect immediately.</li>
+<li>Using <strong>PHD2</strong>, connect to all equipment</li>
+<li>On the bottom left toolbar of the main PHD2 window  <ul>
+<li>Click <strong>Loop Exposures</strong>. Also available from the <strong>Guide</strong> menubar item.</li>
+<li>Set an appropriate <strong>Exposure Duration</strong> from the dropdown eg 0.01 s</li>
+<li>Adjust the <strong>Gamma Adjustment Slider</strong> to see the landmark image </li>
+</ul>
+</li>
+<li>Focus the <strong>guide camera</strong>. eg for an SV106 guide scope<ul>
+<li>Set the helical focuser to half way</li>
+<li>Slide the lipstick <strong>guide camera</strong> in/out to roughtly focus</li>
+<li>You may need an extension tube attached to the camera to reach rough focus</li>
+<li>Fine tune the focus with the helical focuser  </li>
+</ul>
+</li>
+<li>Rotate the <strong>guide camera</strong> to orient the landmark so it points upwards correctly.</li>
+<li>Align the <strong>guide camera</strong> with the <strong>main camera</strong>. eg for an SV106 guide scope<ul>
+<li>Loosen the guide scope <strong>mounting screws</strong></li>
+<li>Adjust the mounting screws to point the <strong>guide camera</strong> to the exact same position as seen by the <strong>main camera</strong></li>
+</ul>
+</li>
+<li>Instead of using <strong>PHD2</strong> to focus and align the guide camera you may consider using <strong>Nina</strong>. It provides an excellent <strong>cross-hairs overlay</strong> that can assist with alignment. <ul>
+<li>Using PHD2, disconnect all equipment</li>
+<li>Using Nina, open the <strong>Image tab</strong> and enable <strong>cross-hair overlay</strong></li>
+<li>Connect to the <strong>main camera</strong> and point mount at the landmark</li>
+<li>Connect to the <strong>guide camera</strong>, then physically focus, rotate and align.</li>
+<li>Connect back to the <strong>main camera</strong></li>
+</ul>
+</li>
+</ol>
+<h3 id="33-configuring-phd2-recommended-settings">3.3 Configuring PHD2 Recommended Settings<a class="headerlink" href="#33-configuring-phd2-recommended-settings" title="Permanent link">&para;</a></h3>
+<p>Using PHD2, configure the following settings for use with the Alpaca Driver.</p>
+<ul>
+<li>Check <strong>Enable Server</strong> from the Tools menu, to allow Nina to work with PHD2</li>
+<li>Set <strong>Exposure Duration</strong> to 0.5 s as a starting point..</li>
+<li>Adjust <strong>Gamma Adjustment Slider</strong> to make stars visible in PHD2.</li>
+<li>Click the <strong>Brain Button</strong> or choose <strong>Advanced Settings</strong> from the <strong>Guide</strong> menu<ul>
+<li>Select the <strong>Guiding</strong> tab of <strong>Advanced Settings</strong></li>
+<li>Enable <strong>Use Multiple Stars</strong> to improve guide star stability and robustness, particularly in poorer seeing or when individual stars fluctuate in brightness.</li>
+<li>Enable <strong>Assume Dec orthogonal to RA</strong> to help PHD2 achieve a successful calibration.  Geometrically, Right Ascension and Declination are always perpendicular. However, guiding software works in camera pixel space, not celestial coordinates. Factors such as targets near the celestial poles, guide camera rotation, small mechanical tolerances, differential flexure, and polar misalignment can cause RA and Dec to appear non-orthogonal to the guider. With the Alpaca Driver’s multi-point alignment, you should have very good polar alignment. With a stable setup and non-polar targets, it’s generally safe to let PHD2 assume Dec is orthogonal to RA. This can help improve the chances of a good calibration.</li>
+<li>Ensure <strong>Focal Length</strong> and <strong>Pixel size</strong> is set correctly for your guide scope and guide camera</li>
+<li>Leave all remaining settings at default to start with
+<img alt="PHD2 Advanced Settings" src="../images/phd2-settings1.png" /></li>
+</ul>
+</li>
+</ul>
+<h3 id="34-configuring-alpaca-driver-settings">3.4 Configuring Alpaca Driver settings<a class="headerlink" href="#34-configuring-alpaca-driver-settings" title="Permanent link">&para;</a></h3>
+<p>Using Alpaca Pilot, configure the following Alpaca Driver guiding settings.</p>
+<ul>
+<li>
+<p><strong>Guide Rate</strong> - I typically use <strong>0.75× Sidereal</strong>, but the default <strong>1.0×</strong> also works well in most cases. If you feel the guiding application is pushing the mount around too much, causing it to oscillate, you can reduce the <strong>Guide Rate</strong>. Typically the RA and Dec guide rates are matching. This can be adjusted on the Alpaca Pilot <em>Settings</em> page.</p>
+</li>
+<li>
+<p><strong>Sidereal Tracking</strong> - For guiding to work, sidereal tracking <strong>must be enabled</strong> in the driver. The tracking rate must be set to <strong>Sidereal</strong> and auto-guiding is not suitable for Lunar, Solar, or Custom Orbital tracking.</p>
+</li>
+<li>
+<p><strong>PID Tuning</strong> - When autoguiding is active, you can monitor the pulse guide commands and shifts in Right Ascension and Declination Setpoints from the PID Tuning page.</p>
+</li>
+<li>
+<p>The <strong>EQ vs Az/Alt Mode</strong> in the Alpaca Dashboard does <strong>not</strong> affect guiding. It only changes which coordinate system is displayed on the radial dials.</p>
+</li>
+</ul>
+<p><br></p>
+<h2 id="4-phd2-calibration">4. PHD2 Calibration<a class="headerlink" href="#4-phd2-calibration" title="Permanent link">&para;</a></h2>
+<p>Calibration determines how your mount responds to guide pulses in Right Ascension (RA) and Declination (Dec). During this process, <strong>PHD2</strong> measures how far and in what direction a guide star moves in response to controlled pulse commands. It then builds a model that allows it to calculate the precise pulse corrections required to counteract tracking drift.</p>
+<p>For best results, calibration should be performed under the following conditions:</p>
+<ul>
+<li>
+<p><strong>CRITICAL: Disable PEC Drift Correction if you are using Dithering</strong> - 
+We recommend not using Dithering with the Alpaca Benro Polaris as we have not seen any significant improvement in guiding or hot pixel reduction. If you decide to use Dithering, then you should switch off PEC Drift Correction. Unlike calibration, dither steps aren't recognised, and you don't want PEC to learn them as drift. PEC Worm Gear Correction can stay on.</p>
+</li>
+<li>
+<p><strong>PEC can stay on during calibration</strong> - 
+We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. The Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC with an autoguider:</p>
+<ul>
+<li>Leave PEC on while you calibrate. The driver recognises PHD2's (and CCDciel's) calibration pulses, and PEC Drift Correction ignores them, rolling back anything it learnt during the calibration (<code>pec_ignore_guider_calibration</code>, on by default).</li>
+<li>PEC Worm Gear Correction doesn't learn from guiding, so it can stay on too; calibrating with it on means PHD2 measures a mount with its worm gear error already removed.</li>
+<li>Avoid switching PEC Drift Correction off and on around calibration: switching it restarts the drift model, which then has to learn the drift again.</li>
+</ul>
+</li>
+<li>
+<p><strong>Connect the Rotator so one calibration lasts the night</strong> - 
+On the Benro Polaris the Position Angle (PA) changes from target to target, and PHD2's calibration is only valid at the PA it was made at. If PHD2 is connected to the <strong>Alpaca Benro Polaris Rotator</strong> with <strong>Reverse the sign of Angle</strong> enabled (see <a href="#43-re-calibration">4.3 Re-Calibration</a>), PHD2 adjusts its calibration to each new PA itself, so you can calibrate once and slew to other targets. Without the Rotator, calibrate at your imaging target so the PA is the same for calibration and imaging: slew to the target, ignore PHD2's calibration location warning, and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration.</p>
+</li>
+<li>
+<p><strong>Close to the intended imaging target</strong> - 
+    RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. </p>
+</li>
+<li>
+<p><strong>Within ±20° of the celestial equator (Dec ≈ 0°)</strong> - 
+    Near the celestial equator, guide pulses produce the largest and most measurable star movement, resulting in more accurate calibration data.</p>
+</li>
+<li>
+<p><strong>Within one hour of the celestial meridian</strong> - 
+    Calibrating near the meridian minimizes atmospheric refraction and mechanical flexure effects, providing a more stable and representative measurement of mount behavior.</p>
+</li>
+</ul>
+<p>Following these guidelines ensures calibration is accurate, reliable, and representative of actual guiding conditions.</p>
+<h3 id="41-calibration-process">4.1 Calibration Process<a class="headerlink" href="#41-calibration-process" title="Permanent link">&para;</a></h3>
+<p>To Calibrate <strong>PHD2</strong>, use the Calibration Assistant:</p>
+<ol>
+<li>Following the guidelines above, slew the Polaris close to your intended imaging target using NINA, Stellarium, or Alpaca Pilot.</li>
+<li>Enable <strong>Sidereal Tracking</strong>.</li>
+<li>In <strong>PHD2</strong>, connect to all required equipment.</li>
+<li>From the <strong>Tools</strong> menu, select <strong>Calibration Assistant</strong>.</li>
+<li>We no longer recommend clicking <strong>Slew</strong> or manually entering a <strong>Calibration Location</strong>. Instead, calibrate using your current telescope pointing.</li>
+<li>Click <strong>Calibrate</strong> to begin the calibration process.</li>
+</ol>
+<p>PHD2 will perform a small slew to remove backlash, then start sending a sequence of pulse guide commands, monitoring how the mount moves in response to the commands. It will walk out the Right Ascension axis and back, then do the same for the Declination axis. You can monitor its progress with Alpaca Pilot. The process typically takes 1-3 minutes.</p>
+<p>Once the calibration process is complete, PHD2 will sumamrise the results in a popup window. You can then decide whether to <strong>Accept calibration</strong> or <strong>Discard calibration</strong>. You can also review the most recent calibration data by choosing <strong>Review Calibration Data</strong> from the <strong>Tools</strong> menu item.</p>
+<p>A good calibration looks like the following image. Red dots indicate measured position for declination change. Blue does indicate measured position for RA change. White dots indicate reverse measurements.
+<img alt="PHD2 Calibration Results" src="../images/phd2-calibration1.png" /></p>
+<h3 id="42-calibration-errors">4.2 Calibration Errors<a class="headerlink" href="#42-calibration-errors" title="Permanent link">&para;</a></h3>
+<p>As the Alpaca Driver needs to convert RA and Dec pulses into suttle changes in M1-M3 motion speeds there can be some cross-coupling between axes, unlike an equatorial mount. This can mean that the Polaris can be slower to respond to guide pulses, or deviate slightly from expected motion, so calibration may occasionally report warnings or errors. For example:</p>
+<ul>
+<li>
+<p><strong>Calibration failed – star did not move enough</strong>  <br />
+      Usually due to the <strong>Guide Rate</strong> being too low (increase on Alpaca Pilot Settings)  <br />
+      Or the <strong>Calibration Step size</strong> too small (increase in PHD2, Advanced Settings, Guiding ).<br />
+      Monitor the RA and Dec movement from Alpaca Pilot, PID Tuning page, to diagnose further.</p>
+</li>
+<li>
+<p><strong>Calibration failed – RA or Dec did not reverse</strong>  <br />
+      PHD2 did not detect movement when reversing RA or Dec direction.<br />
+      Usually due to excessive backlash or mechanical slack or sticktion<br />
+      Try increasing <strong>Guide Rate</strong> or <strong>Calibration Step size</strong>.</p>
+</li>
+<li>
+<p><strong>The RA and Declination angles computed in the calibration are questionable</strong><br />
+      Check that you enabled <strong>Assume Dec orthogonal to RA</strong>, as this will force the orthogonality error to zero.</p>
+</li>
+</ul>
+<h3 id="43-re-calibration">4.3 Re-Calibration<a class="headerlink" href="#43-re-calibration" title="Permanent link">&para;</a></h3>
+<p>PHD2 assumes that the relationship between RA/Dec guide pulses and pixel motion on the guide camera remains fixed, as it would on a conventional equatorial mount. You normally need to repeat calibration only when this relationship changes, for example when:</p>
+<ul>
+<li>You physically rotate the guide camera relative to the mounts RA or Dec axis.</li>
+<li>You slew to a new DSO with a different Position Angle (PA). This is not necessary when using the Rotator setting described below.</li>
+<li>You change the camera's roll angle for framing, thereby changing the PA. This is also not necessary when using the Rotator setting described below.</li>
+<li>You change equipment or optical parameters that affect the calibration, such as the guide scope, main camera or lens focal length.</li>
+</ul>
+<p><strong>One calibration per night with the Rotator</strong>
+When PHD2 is connected to the <strong>Alpaca Benro Polaris Rotator</strong>, it can automatically adjust its calibration as the Position Angle changes. This means you do not need to recalibrate after slewing to a new target or changing the roll angle, provided the rotator is configured correctly.</p>
+<p>To enable this, change the following PHD2 setting:</p>
+<ol>
+<li>Click the <strong>Brain Button</strong> or choose <strong>Advanced Settings</strong> from the <strong>Guide</strong> menu</li>
+<li>Select the <strong>Other Devices</strong> tab</li>
+<li>Under <strong>Rotator Settings</strong>, enable <strong>Reverse the sign of Angle</strong></li>
+<li>Click <strong>Ok</strong></li>
+</ol>
+<p>With this option enabled, PHD2 uses the rotator's roll angle with the correct sign to adjust its calibration when the mount slews to a target at a different Position Angle. You should therefore need to perform only one PHD2 calibration per night, provided the guide-camera geometry and other calibration-dependent settings remain unchanged.</p>
+<p>Note: If you use a separate ZWO rotator that rotates only the main imaging camera, while the guide camera remains fixed relative to the mount, changes in the ZWO rotator's angle do not require recalibration.</p>
+<h2 id="5-pulse-guiding-with-phd2">5. Pulse-Guiding with PHD2<a class="headerlink" href="#5-pulse-guiding-with-phd2" title="Permanent link">&para;</a></h2>
+<p>Once you have calibrated PHD2, auto-guiding with PHD2 is relatively simple. If you have configured Nina to use PHD2, it will automatically run through steps 1 through 4 for you. </p>
+<ol>
+<li>Start <strong>PHD2</strong> and <strong>Connect All Equipment</strong></li>
+<li>Click <strong>Begin Looping Exposures</strong> to start the guide camera</li>
+<li>Click <strong>Auto-Select Star</strong> to select a guide star</li>
+<li>Click <strong>Begin Guiding</strong> to start the auto-guiding process</li>
+</ol>
+<p>To monitor the guiding performance, use the <strong>View</strong> menu in PHD2</p>
+<ol>
+<li>Click <strong>Display Graph</strong> to show the auto-guiding history.</li>
+<li>Click <strong>Display Target</strong> to show spread of motion of the guide star.</li>
+<li>Click <strong>Display Star Profile</strong> to show the expanded guide star pixel profile.</li>
+<li>Click <strong>Display Stats</strong> to summarise the guiding performance.</li>
+</ol>
+<p><br></p>
+<p>Below is a typical Graph and Statistics of an auto-guiding session.</p>
+<p><img alt="PHD2 Graph" src=".././images/phd2-graph1.png" /></p>
+<ul>
+<li>The Polaris has been tested to be capable of RMS Error of around 1.5 to 3.0 arc-seconds.</li>
+<li>Small oscillations are normal</li>
+<li>Large or runaway corrections indicate setup issues</li>
+<li>Initial results may not be perfect. Allow guiding to settle for a few minutes.</li>
+</ul>
+<h2 id="6-improving-guiding-performance">6. Improving Guiding Performance<a class="headerlink" href="#6-improving-guiding-performance" title="Permanent link">&para;</a></h2>
+<p>Guiding corrects whatever the mount gets wrong, but the less there is to correct, the better the guiding. This section describes the tracking errors that limit guiding on the Benro Polaris, how to recognise each one, and what the driver offers to reduce it. A quick reference table is at the end.</p>
+<h3 id="61-slow-drift-pec-drift-correction">6.1 Slow Drift: PEC Drift Correction<a class="headerlink" href="#61-slow-drift-pec-drift-correction" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>What you see:</strong> The guide star drifts steadily in one direction, mostly in RA and Dec, and the guider keeps pushing it back with corrections that are mostly one-sided. Without guiding, the target slowly wanders out of frame over tens of minutes.</li>
+<li><strong>Cause:</strong> The alignment model (QUEST) is never perfect, so the mount's idea of the sky is slightly off. The resulting drift rate changes slowly as the mount moves across the sky and as the night progresses.</li>
+<li><strong>Solution:</strong> Switch on <strong>PEC Drift Correction</strong> in Pilot's settings. The driver learns the drift rate from the guide corrections (Pulse Guiding or Sync Guiding), averaged over about 7.5 minutes, and applies it every 200 ms, leaving the guider only what remains. It starts once it has enough corrections to be confident (see <a href=".././kinematics/#26-periodic-error-correction-pec">Kinematics 2.6</a>).</li>
+<li><strong>Tips:</strong><ul>
+<li>It ignores PHD2 and CCDciel guider calibration pulses, so it can stay on while calibrating.</li>
+<li>It pauses learning while a motor reverses its tracking direction, for example M2 as a target passes its highest point. The motor first turns through its gear backlash before the lens follows, so the star drifts for several minutes and the guider pulls it back. PEC keeps applying the rate it had learned, but doesn't learn that drift, so it doesn't keep correcting it after the gear has caught up. The driver log shows when learning pauses and resumes.</li>
+<li>It stops applying the rate if the guide corrections stop, for example clouds pass preventing plate solving: after about 5 minutes, or three times the usual time between corrections if that is longer. It carries on from the next correction.</li>
+<li>A single correction far larger than usual, such as a bad plate solve or the mount slipping, is treated as a one-off jump rather than drift, so it doesn't throw the rate off. Several large corrections in a row are taken as a real change in drift and learned.</li>
+<li>Switch it <strong>off</strong> if you dither: dither steps look like drift, and PEC would learn them.</li>
+<li>A good Multi-Point Alignment (and Mechanical Alignment Correction) reduces the drift in the first place.</li>
+</ul>
+</li>
+</ul>
+<h3 id="62-worm-gear-wobble-pec-worm-gear-correction">6.2 Worm Gear Wobble: PEC Worm Gear Correction<a class="headerlink" href="#62-worm-gear-wobble-pec-worm-gear-correction" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>What you see:</strong> A slow, smooth wave in the guide graph, with a period of a few minutes to an hour or more. In the PHD2 Log Viewer's frequency analysis it shows as a peak, often around 30-40 minutes, but it varies with where the mount is pointing.</li>
+<li><strong>Cause:</strong> Each motor drives its axis through a worm gear (6°, 60 teeth). Small irregularities in the gear make each axis wobble by about 30-150 arc seconds, repeating every 6° of that motor's rotation. Because the wobble is tied to the motor angles, it repeats in the same way night after night.</li>
+<li><strong>Solution:</strong> Measure each motor's worm once with the <strong>M1-M2-M3-WORM-PROFILE</strong> test on Pilot's Speed Calibration page (about 20 minutes, using plate solves), approve the result, then switch on <strong>PEC Worm Gear Correction</strong>. The driver then removes the wobble before it happens, with or without guiding. See <a href=".././kinematics/#v-worm-gear-correction---profile-calibration">Kinematics 2.6 V</a> for the test.</li>
+<li><strong>Tips:</strong><ul>
+<li>PEC Drift Correction and PEC Worm Gear Correction work together: the worm correction removes the wave, and the drift correction learns what is left. The PEC button on Pilot's status panel switches both.</li>
+<li>The PEC switches are live settings. Press <strong>Save</strong> on the Config page to keep them after the driver restarts.</li>
+</ul>
+</li>
+</ul>
+<h3 id="63-payload-slip-on-m2-zero-m2-roll-zm2">6.3 Payload Slip on M2: Zero M2 Roll (ZM2)<a class="headerlink" href="#63-payload-slip-on-m2-zero-m2-roll-zm2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>What you see:</strong> Regular sharp kicks in the guide graph, every 10-40 seconds, in RA and Dec at the same time: the star jumps 10-20 arc seconds, then the guider brings it back over several frames. PHD2's RA Osc stays low (the guider isn't over-correcting) and lowering the aggressiveness only slows the recovery. It is most likely with a heavy lens.</li>
+<li><strong>Cause:</strong> M2 carries the camera, the lens and the M3 Astro Module off its axis, and this is hard to balance (a guide camera crossbar adds more). When M2 has to lift a heavy payload slowly while tracking, it creeps ahead and then slips back about 20 arc seconds, over and over. With a 300 mm f/2.8 (2.4 kg) this gave 8" RMS guiding; the same target at a different roll gave 2.4".</li>
+<li><strong>Solution:</strong> On the Dashboard's <strong>Roll</strong> dial, open the presets and choose <strong>ZM2</strong>. The driver rotates the camera to the roll that keeps M2 almost still while tracking the target for the next 2 hours, within the mount's roll limits. Ensure you have the rotator connected to PHD2 (otherwise you will need to recalibrate the guider after changing the roll angle). The framing rotates, but the target stays centred.</li>
+<li><strong>Tips:</strong><ul>
+<li>Balance what you can: slide the lens back in its clamp so its balance point is as close as possible to the tilt pivot.</li>
+<li>M1 is never affected (its axis is vertical, so the payload's weight can't turn it).</li>
+<li>If the kicks come back later in the night (the roll drifts as the target crosses the sky), choose ZM2 again.</li>
+</ul>
+</li>
+</ul>
+<h3 id="64-gear-backlash-a-motor-reversing-or-barely-moving">6.4 Gear Backlash: a Motor Reversing or Barely Moving<a class="headerlink" href="#64-gear-backlash-a-motor-reversing-or-barely-moving" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>What you see:</strong> Two distinct patterns, occurring at particular points in the sky rather than throughout the night:</p>
+<ul>
+<li><strong>Increased drift lasting several minutes:</strong> The star suddenly requires much larger guiding corrections, sometimes reaching PHD2's maximum pulse duration. After 5–15 minutes, guiding settles again.</li>
+<li><strong>A steady back-and-forth every 8-10 seconds,</strong> The star moves back and forth, usually in Dec, with a noticeable increase in guiding RMS Error.</li>
+</ul>
+</li>
+<li>
+<p><strong>Cause:</strong> Each motor drives its axis through gears with some mechanical slack, known as backlash. On the Polaris, this can amount to 150–620 arcseconds. While a motor takes up this slack, the motor turns but the axis doesn't move as expected, even though the driver assumes it does.</p>
+<ul>
+<li><strong>When a motor reverses:</strong> During tracking, a motor sometimes needs to change direction. For example, M2 as a target passes its highest point, or M1 as a target near the pole changes direction. The motor must first take up the gear slack before the axis responds, allowing the star to drift by as much as the backlash. </li>
+<li><strong>When a motor barely moves:</strong> At very low tracking speeds (below approximately 4" per second), guiding corrections can repeatedly push the motor back and forth through the gear slack. Each correction takes effect late, causing overshoot and a repeating 8–10-second oscillation in the guiding loop.</li>
+</ul>
+</li>
+<li>
+<p><strong>What the driver does and what you can do:</strong></p>
+<ul>
+<li><strong>PEC pauses learning during backlash:</strong> PEC Drift Correction automatically pauses learning around a motor reversal. This prevents it from learning the temporary corrections needed to compensate for backlash and then mistakenly applying them as ongoing drift corrections after the gears re-engage.</li>
+<li>
+<p><strong>Recognise an approaching reversal</strong> The driver logs each tracking-direction reversal several minutes in advance, whether guiding is enabled or not. For example:</p>
+<p><code>-&gt;&gt; Polaris: M2 reverses its tracking direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min</code></p>
+</li>
+<li>
+<p><strong>Watch for oscillation with ZM2:</strong> The ZM2 roll strategy (6.3) keeps M2 nearly stationary, which can help with a heavy payload but may leave the motor operating at very low speeds. If you see 8–10 second oscillations after selecting ZM2, try reducing RA and/or Dec aggressiveness.</p>
+</li>
+<li><strong>Distinguish guiding errors from goto errors:</strong> Backlash can also leave Slew &amp; Center corrections a few arcminutes short or past the target, requiring another iteration. This is a separate effect from the guiding symptoms described above.</li>
+<li><strong>Backlash Compensation (needs Coordinated Speed Control):</strong> When enabled, the driver compensates for each motor's gear slack at the end of every goto, helping Slew &amp; Center corrections reach the target more accurately on the first attempt. Backlash compensation does not attempt to correct slack due to motor reversals during guiding. At the very low motor speeds involved, guide corrections can repeatedly reverse direction without fully taking up the gear slack, leaving the guider to compensate. You may still see the motor oscillate over an 8–10 second cycle; reducing guiding aggressiveness can help.</li>
+</ul>
+</li>
+</ul>
+<h3 id="65-computer-stalls">6.5 Computer Stalls<a class="headerlink" href="#65-computer-stalls" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>What you see:</strong> An occasional single large disturbance, not regular, often when the computer is busy (saving images, a virus scan or Windows update starting).</li>
+<li><strong>Cause:</strong> The driver's control loop runs on the guiding computer. If the computer stalls for a second or more, the motors keep their last speed for that time, and the guider then sees a jump. The driver log shows warnings such as <code>Event loop lag detected</code> and <code>HIGH CPU LOAD breakdown</code> at that time.</li>
+<li><strong>Solution:</strong> Keep the guiding computer free of heavy background work during imaging: exclude the driver, log and image folders from Windows Defender scans, pause Windows Update, and close programs you don't need.</li>
+</ul>
+<h3 id="66-quick-reference">6.6 Quick Reference<a class="headerlink" href="#66-quick-reference" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>What you see in the guide graph</th>
+<th>Likely cause</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Steady drift, mostly one-sided corrections</td>
+<td>Imperfect alignment model</td>
+<td>PEC Drift Correction (6.1); refresh Multi-Point Alignment</td>
+</tr>
+<tr>
+<td>Slow wave, minutes to an hour</td>
+<td>Worm gear wobble</td>
+<td>Worm profile test and PEC Worm Gear Correction (6.2)</td>
+</tr>
+<tr>
+<td>Regular sharp kicks every 10-40 s, heavy lens</td>
+<td>M2 payload slip</td>
+<td>ZM2 roll preset, better balance (6.3)</td>
+</tr>
+<tr>
+<td>A drift bump for 5-15 minutes, at the same point in the sky</td>
+<td>A motor reversing through its gear backlash</td>
+<td>Check the log for "reverses its tracking direction"; PEC pauses learning; Backlash Compensation (6.4)</td>
+</tr>
+<tr>
+<td>Slew &amp; Center needs extra iterations, a few arcminutes short or past</td>
+<td>A goto ending with a motor's gear slack open</td>
+<td>Backlash Compensation (6.4)</td>
+</tr>
+<tr>
+<td>Back-and-forth every 8-10 s, calmer with lower aggressiveness</td>
+<td>A slow motor going back and forth through its backlash</td>
+<td>Lower the aggressiveness on that axis; longer guide exposures (6.4)</td>
+</tr>
+<tr>
+<td>A single large jump at random</td>
+<td>Computer stall</td>
+<td>Check the log for lag warnings; reduce background load (6.5)</td>
+</tr>
+<tr>
+<td>Rapid back-and-forth, high RA Osc</td>
+<td>Guider over-correcting</td>
+<td>Lower PHD2 aggressiveness or the Guide Rate (3.4)</td>
+</tr>
+<tr>
+<td>Drift after a dither</td>
+<td>PEC learning the dither</td>
+<td>Switch off PEC Drift Correction when dithering (6.1)</td>
+</tr>
+</tbody>
+</table>
+<p><br></p>
+<h2 id="7-final-notes">7. Final Notes<a class="headerlink" href="#7-final-notes" title="Permanent link">&para;</a></h2>
+<p>Guiding with PHD2 and N.I.N.A. can feel <strong>finicky at first</strong>, especially at longer focal lengths. Once dialed in, it dramatically reduces drift and enables longer, cleaner exposures.</p>
+<p>Focus on star quality rather than graph perfection, make one change at a time, and keep notes of what works.</p>
+<p><br>
+<br></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../ccdciel/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Using CCDciel with Benro Polaris">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Using CCDciel with Benro Polaris
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../troubleshooting/" class="md-footer__link md-footer__link--next" aria-label="Next: Troubleshooting">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Troubleshooting
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

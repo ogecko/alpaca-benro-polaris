@@ -1,0 +1,4045 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/study_pec_motor_space_v2/">
+      
+      
+      
+        <link rel="prev" href="../study_pec_drift/">
+      
+      
+        <link rel="next" href="../beta_results_v2.2/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>PEC in Motor (Theta) Space — Validation & Implementation Plan - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../control/" class="md-tabs__link">
+          
+  
+  Technical
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  A Beginner's Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recommended Hardware Platform
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (Windows)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (macOS)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Setup Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium and Sky Safari Pro
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guiding Users Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Benro Polaris Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quest_paper/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Background
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-and-findings-2026-10-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Status and findings (2026-10-10)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status and findings (2026-10-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What is built
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-0-outcome-the-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 0 outcome (the gate)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sky-measurements-from-the-profile-tests-2026-10-06--10-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Sky measurements from the profile tests (2026-10-06 … 10-09)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#revised-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Revised plan
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-questions-current" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Open questions (current)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-0--offline-validation-against-existing-log-data-no-driver-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 0 — Offline validation against existing log data (no driver changes)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 0 — Offline validation against existing log data (no driver changes)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#00-log-inventory-done--findings-below-re-run-after-any-new-capture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.0 Log inventory (done — findings below; re-run after any new capture)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#01-derive-per-motor-observed-theta-ground-truth-from-existing-peclog-data--done" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.1 Derive per-motor "observed theta" ground truth from existing PECLOG data ✅ Done
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#02-angle-domain-vs-time-domain-periodogram-per-motor-per-session---in-progress-promising-but-not-conclusive-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.2 Angle-domain vs time-domain periodogram, per motor, per session — 🟡 In progress, promising but not conclusive yet
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-correction-the-above-used-the-wrong-signal--resid-is-pec-contaminated" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ⚠️ Correction: the above used the wrong signal — resid is PEC-contaminated
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#03-fit-quality--generalization-comparison-per-motor-vs-radec" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.3 Fit quality / generalization comparison: per-motor vs RA/Dec
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#04-decision-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.4 Decision point
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1--driver-design-theta-space-pec-model--pvff-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 1 — Driver design (theta-space PEC model + PV/FF integration)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1 — Driver design (theta-space PEC model + PV&#x2f;FF integration)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-model-math" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.1 Model math
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-ground-truth-signal-live-in-the-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.2 Ground-truth signal, live in the driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-pvff-hookup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.3 PV/FF hookup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-feature-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.4 Feature flag
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-logging-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.5 Logging compatibility
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2--unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 2 — Unit tests
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-3--desk-testing-via-replaypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 3 — Desk testing via <code>replay.py</code>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3 — Desk testing via replay.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-whats-testable-with-existing-replaypy-no-new-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.1 What's testable with existing <code>replay.py</code>, no new tooling
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-open-question-controlled-known-ground-truth-per-motor-pe-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.2 Open question: controlled, known-ground-truth per-motor PE injection
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4--quantitative-acceptance-criteria-fix-these-before-running-phase-⅗-not-after" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 4 — Quantitative acceptance criteria (fix these before running Phase &#8535;, not after)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-5--live-field-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 5 — Live field validation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions-to-resolve-early-dont-let-these-surface-mid-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Open questions to resolve early (don't let these surface mid-implementation)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log-inventory-update-logs2-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Log inventory update (logs2 import)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-target-for-tonights-confirmation-capture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Recommended target for tonight's confirmation capture
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#historical-rlsema-context-from-the-user-confirms-the-code-level-analysis-above" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Historical RLS/EMA context (from the user, confirms the code-level analysis above)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-data-point-alpacapec_rls_alpha_06_03_pulseguide_peclog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Additional data point: <code>alpaca.pec_rls_Alpha_06_03_pulseguide_pec.log</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dedicated-pec-off-sync-guide-on-capture-logsarchivealpacasoak_nopec_beta43_08_31alog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Dedicated PEC-off, sync-guide-on capture: <code>logs/archive/alpaca.soak_nopec_Beta4.3_08_31a*.log</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-driver-feature-sglog--self-sufficient-sync-guide-telemetry-without-log_position" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New driver feature: <code>SGLOG</code> — self-sufficient sync-guide telemetry without <code>log_position</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-notebook-utilityanalyse_commsipynb--commsdropoutrestart-diagnosis" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New notebook: <code>utility/analyse_comms.ipynb</code> — comms/dropout/restart diagnosis
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#background" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Background
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-and-findings-2026-10-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Status and findings (2026-10-10)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Status and findings (2026-10-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What is built
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-0-outcome-the-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 0 outcome (the gate)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sky-measurements-from-the-profile-tests-2026-10-06--10-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Sky measurements from the profile tests (2026-10-06 … 10-09)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#revised-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Revised plan
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-questions-current" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Open questions (current)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-0--offline-validation-against-existing-log-data-no-driver-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 0 — Offline validation against existing log data (no driver changes)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 0 — Offline validation against existing log data (no driver changes)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#00-log-inventory-done--findings-below-re-run-after-any-new-capture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.0 Log inventory (done — findings below; re-run after any new capture)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#01-derive-per-motor-observed-theta-ground-truth-from-existing-peclog-data--done" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.1 Derive per-motor "observed theta" ground truth from existing PECLOG data ✅ Done
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#02-angle-domain-vs-time-domain-periodogram-per-motor-per-session---in-progress-promising-but-not-conclusive-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.2 Angle-domain vs time-domain periodogram, per motor, per session — 🟡 In progress, promising but not conclusive yet
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-correction-the-above-used-the-wrong-signal--resid-is-pec-contaminated" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ⚠️ Correction: the above used the wrong signal — resid is PEC-contaminated
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#03-fit-quality--generalization-comparison-per-motor-vs-radec" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.3 Fit quality / generalization comparison: per-motor vs RA/Dec
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#04-decision-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        0.4 Decision point
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1--driver-design-theta-space-pec-model--pvff-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 1 — Driver design (theta-space PEC model + PV/FF integration)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1 — Driver design (theta-space PEC model + PV&#x2f;FF integration)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-model-math" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.1 Model math
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-ground-truth-signal-live-in-the-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.2 Ground-truth signal, live in the driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-pvff-hookup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.3 PV/FF hookup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-feature-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.4 Feature flag
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-logging-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.5 Logging compatibility
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2--unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 2 — Unit tests
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-3--desk-testing-via-replaypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 3 — Desk testing via <code>replay.py</code>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3 — Desk testing via replay.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-whats-testable-with-existing-replaypy-no-new-tooling" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.1 What's testable with existing <code>replay.py</code>, no new tooling
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-open-question-controlled-known-ground-truth-per-motor-pe-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.2 Open question: controlled, known-ground-truth per-motor PE injection
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4--quantitative-acceptance-criteria-fix-these-before-running-phase-⅗-not-after" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 4 — Quantitative acceptance criteria (fix these before running Phase &#8535;, not after)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-5--live-field-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Phase 5 — Live field validation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions-to-resolve-early-dont-let-these-surface-mid-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Open questions to resolve early (don't let these surface mid-implementation)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log-inventory-update-logs2-import" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Log inventory update (logs2 import)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-target-for-tonights-confirmation-capture" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Recommended target for tonight's confirmation capture
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#historical-rlsema-context-from-the-user-confirms-the-code-level-analysis-above" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Historical RLS/EMA context (from the user, confirms the code-level analysis above)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-data-point-alpacapec_rls_alpha_06_03_pulseguide_peclog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Additional data point: <code>alpaca.pec_rls_Alpha_06_03_pulseguide_pec.log</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dedicated-pec-off-sync-guide-on-capture-logsarchivealpacasoak_nopec_beta43_08_31alog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Dedicated PEC-off, sync-guide-on capture: <code>logs/archive/alpaca.soak_nopec_Beta4.3_08_31a*.log</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-driver-feature-sglog--self-sufficient-sync-guide-telemetry-without-log_position" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New driver feature: <code>SGLOG</code> — self-sufficient sync-guide telemetry without <code>log_position</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-notebook-utilityanalyse_commsipynb--commsdropoutrestart-diagnosis" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New notebook: <code>utility/analyse_comms.ipynb</code> — comms/dropout/restart diagnosis
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../control/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Technical
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="pec-in-motor-theta-space--validation--implementation-plan">PEC in Motor (Theta) Space — Validation &amp; Implementation Plan<a class="headerlink" href="#pec-in-motor-theta-space--validation--implementation-plan" title="Permanent link">&para;</a></h1>
+<p>Branches: <code>feature/pec_in_theta_space</code> (Phase 0 analysis, Aug–Sep 2026), then <code>feature/pec_theta_v2</code> (worm
+feed-forward and the worm profile test, Oct 2026).</p>
+<p><strong>Read <a href="#status-and-findings-2026-10-10">Status and findings (2026-10-10)</a> first.</strong> It records what was built, what
+the sky measurements showed and the plan from here. The sections after it are the investigation log, kept for the
+reasoning and evidence; where they describe the RA/Dec RLS model as "current" or plan work that has since been done
+differently, the status section is what holds.</p>
+<h2 id="background">Background<a class="headerlink" href="#background" title="Permanent link">&para;</a></h2>
+<p><em>(Written in August 2026. The RA/Dec RLS harmonic model and <code>pec_T_sec</code> described here have since been removed: PEC
+Drift Correction is now an EMA of the drift rate, <code>pec_tau_sec</code> 450 s, and the periodic error is corrected per motor
+in motor space by the worm feed-forward — see the status section.)</em></p>
+<p>The PEC model at the time fitted a periodic drift signal in equatorial space (RA/Dec), against a
+fixed time period <code>pec_T_sec</code> (default 2040s/34min). That's the right frame for a classical
+equatorial mount, where one worm gear drives RA at a constant ~15°/hr and periodic error is
+naturally RA-only and time-periodic.</p>
+<p>This driver runs an alt-az mount (Benro Polaris) with three motors (M1/M2/M3) whose individual
+rotation rates vary continuously with orientation — there is no axis running at a constant rate
+the way an equatorial RA axis does. RA/Dec tracking rate is a Jacobian-weighted blend of all
+three motors, and that blend changes as the mount slews across the sky. Two things follow from
+this, both backed by log evidence gathered during the investigation that produced this plan
+(see <code>utility/analyse_pec.ipynb</code>'s "PEC Outcome Overview" and "Base vs Corrected Frame Shift"
+sections):</p>
+<ol>
+<li><strong>A model fitted in RA/Dec space is fitting an orientation-dependent re-mixing of whatever
+    the real per-motor PE is</strong>, not a fixed signal — so it has no reason to generalize from one
+    orientation/session to the next, even if the underlying mechanical error is completely
+    static. This plausibly explains the repeated "model regresses then recovers" pattern seen
+    in multiple sessions' <code>resid</code>/<code>r2</code> traces.</li>
+<li><strong>If M1/M2/M3 share the same motor/gearbox</strong> (suspected, not yet confirmed), each axis's
+    mechanical PE should be periodic in <em>accumulated motor rotation angle</em>, not in time — a
+    time-based period is only a valid proxy for that when the axis's own rotation rate is
+    constant, which it isn't here.</li>
+</ol>
+<p>The KFLOG "Base vs Corrected Frame Shift" diagnostic (<code>θ_meas_raw − θ_ref_raw</code> per axis) also
+showed M1/M3 with a clear sawtooth/sine signature and M2 essentially flat — consistent with
+M1/M3 carrying real periodic mechanical error and M2 not (or much less).</p>
+<p><strong>Hypothesis under test:</strong> fitting a periodic model per motor axis, in the motor's own
+angle-domain, will (a) converge to a <em>consistent</em> period across axes and sessions where
+RA/Dec-space fitting does not, and (b) produce lower steady-state guiding residual than the
+current RA/Dec model, without regressing sessions where the current model already does well.</p>
+<p><strong>Ground rule for this whole plan:</strong> PEC corrections are small enough that visual inspection of
+a chart is not sufficient evidence of anything. Every phase below ends in a specific number or
+a pass/fail against a threshold, not "looks better."</p>
+<hr />
+<h2 id="status-and-findings-2026-10-10">Status and findings (2026-10-10)<a class="headerlink" href="#status-and-findings-2026-10-10" title="Permanent link">&para;</a></h2>
+<h3 id="what-is-built">What is built<a class="headerlink" href="#what-is-built" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>PEC Drift Correction</strong> (<code>advanced_pec_drift</code>, <code>driver/control_pec.py</code> <code>PecAxis</code>): an EMA of the guide-correction
+    drift rate per RA/Dec axis, <code>pec_tau_sec</code> = 450 s. Chosen from the archive benchmark (<code>analyse_sessions.ipynb</code>,
+    <code>pe_analysis.benchmark_segments</code>): the old RLS + 2 harmonics with a 21 min period scored about the same as no PEC;
+    an EMA with a 5–10 min time constant was best (no forecastable cycle in RA/Dec — the hypothesis of the Background
+    held: the periodic part lives in the motors, not the sky axes).</li>
+<li><strong>PEC Worm Gear Correction</strong> (<code>advanced_pec_worm</code>, <code>driver/control_worm.py</code>): a per-motor feed-forward on each motor's
+    <strong>MCU angle</strong> (<code>zeta</code>, from 517; <code>theta_raw - zeta_offset</code> at the 518 rate), applied as a correction rotation in the
+    forward kinematics (<code>corrQ_WFF</code>). Profile: 1<sup>st</sup> + 2<sup>nd</sup> harmonic per motor of a <strong>6.0° worm</strong> (60-tooth worm wheel:
+    the MCU's 960:1 = 16 × 60), in arcsec of motor angle, from <code>data/worm_profile.json</code>.</li>
+<li><strong>Worm profile test</strong> (<code>WormProfileTest</code>, Speed Calibration page): steps all three motors through their own
+    schedules (51 positions, ~±7.5°, ~2.5 worm turns each, approached in the tracking direction to take up backlash)
+    while tracking holds the sky, one plate-solve sync per position (recorded, not applied); <code>fit_worm_profile</code> fits
+    all motors jointly with per-test nuisance terms (offset, drift, linear pointing trend, backlash). Approve applies
+    the profile pooled over the last 5 completed tests. Since 2026-10-09 (<code>7fac1b95</code>): each motor's sweep is fitted
+    inside the range it can reach (pointing envelope, zeta limits, tracking travel), a position not settled in 90 s
+    ends the test, and the file keeps 50 tests with their samples.</li>
+<li><strong>Logging</strong>: PECLOG carries <code>theta_raw</code>, <code>zeta_offset</code> and the logged feed-forward <code>wff</code>; analysis in
+    <code>utility/analyse_worm_profile.ipynb</code> (per test, across tests, against gear angle and pose) and
+    <code>utility/analyse_tracking.ipynb</code> (sections 1, 3 and 7: motor angles, who corrected the drift, the worm terms left).</li>
+</ul>
+<h3 id="phase-0-outcome-the-gate">Phase 0 outcome (the gate)<a class="headerlink" href="#phase-0-outcome-the-gate" title="Permanent link">&para;</a></h3>
+<p>Passed for the period, in a different form than planned: not from periodograms of guide drift (0.2's data stayed too
+short and too drift-dominated), but from fits in motor space (<code>utility/pe_analysis.py</code>, <code>analyse_pec_theta.ipynb</code>,
+2026-10-02) and then from the profile tests, which measure the worm directly.</p>
+<ul>
+<li>The worm period is <strong>6.0° of motor angle</strong> for every motor; cross-validated angle scans dip only at 6.0° (and its
+    2<sup>nd</sup> harmonic); the 54-tooth / 6.67° candidate shows nothing. A free period scan on the 10-08 Block E tracking data
+    is also lowest at 6.0°.</li>
+<li>Phase 0.3's "fit one session, predict another" turned out to be the wrong test for a slow drift plus a short
+    periodic term; the worm is now measured by the profile test and checked on tracking data afterwards
+    (<code>analyse_tracking</code> section 7).</li>
+</ul>
+<h3 id="sky-measurements-from-the-profile-tests-2026-10-06--10-09">Sky measurements from the profile tests (2026-10-06 … 10-09)<a class="headerlink" href="#sky-measurements-from-the-profile-tests-2026-10-06--10-09" title="Permanent link">&para;</a></h3>
+<p>17 tests (tests 0–4 on 10-06 used the old 33-position schedule and are POOR FIT). Amplitudes are arcsec of motor angle;
+"peak" is the worm phase (0–360° over one 6° turn of MCU angle) where the 1<sup>st</sup> harmonic peaks.</p>
+<table>
+<thead>
+<tr>
+<th>Night</th>
+<th>Payload</th>
+<th>Tests</th>
+<th>M1</th>
+<th>M2</th>
+<th>M3 peak</th>
+<th>M3 amplitude</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10-06</td>
+<td>EF 200 mm f/2.8 (755 g)</td>
+<td>0–4 (old schedule)</td>
+<td>18–87"</td>
+<td>41–130"</td>
+<td>194–237 (best test 227)</td>
+<td>88–124"</td>
+</tr>
+<tr>
+<td>10-08</td>
+<td>300 mm f/2.8 (2.4 kg)</td>
+<td>5–7</td>
+<td>9–21"</td>
+<td>63–90"</td>
+<td><strong>187–196</strong></td>
+<td>101–131"</td>
+</tr>
+<tr>
+<td>10-09</td>
+<td>EF 200 mm f/2.8</td>
+<td>8, 10–16 (9 POOR FIT)</td>
+<td>18–36"</td>
+<td>17–91"</td>
+<td><strong>234–248</strong></td>
+<td>71–119"</td>
+</tr>
+</tbody>
+</table>
+<p>Findings:</p>
+<ol>
+<li><strong>The phase does not depend on the gear angle.</strong> On 10-09 M3's peak stayed at 234–248 from M3 at −43° to +46°
+    (8 tests, roll ±25 … ±60 at several azimuths). The angle-dependence suggested by 10-08 Block E is not there.</li>
+<li><strong>A power-up does not move it.</strong> Tests 15–16 ran after a Polaris power reset (the zeta offsets changed: M1 −1.9°,
+    M2 +0.57°): peaks 246 and 235, as before. A profile survives restarts.</li>
+<li><strong>Per motor, 10-09 (spread between tests over the per-test SE; 1 = noise only):</strong> M1 28" mean, spread/SE 1.2 —
+    consistent; M3 91" mean, 3.1 — phase steady, amplitude varies 71–119"; M2 38" mean, 4.2 — inconsistent
+    (amplitude 17–91", peak 125–213): one sine per motor fits M2 poorly.</li>
+<li><strong>The phase differs between nights, and not because of the pose.</strong> Test 11 (10-09: θ2 53°, θ3 +25°) and tests &#8538;
+    (10-08: θ2 45°, θ3 +35°) are close in pose and gravity load but peak at 246 vs 187–193. The two 200 mm nights
+    differ too (best 10-06 tests 206–227 vs 241). Candidates: payload, how the head and payload were mounted, or
+    something else that settles per session; temperature is unlikely (no drift over 3.5 h on 10-09).</li>
+<li><strong>Pose affects amplitude, a little.</strong> On 10-09 M3's amplitude follows the sign of the gravity torque on M3 (proxy
+    <code>a·(b × down)</code>): one side 101–131", the other 71–86", with two exceptions (tests 13, 15). M2's angle explains
+    nothing within one night (an apparent trend came from mixing nights). Too few tests to model.</li>
+<li><strong>A profile from one setup is wrong on another.</strong> The pooled 10-08 (300 mm) profile, applied to 10-09's mean worm,
+    would leave 75% of M1, 66% of M3 and 116% of M2 (worse than none).</li>
+<li><strong>Best pose for a test:</strong> alt 35–45° with |roll| 45–60° (tests 13, 16: the lowest SE for all motors). Above alt
+    ~55° M1 moves the view little and is poorly measured (test 9: M1 ±16.8").</li>
+<li><strong>Same night, same profile: it works at one pose and fails at the opposite one (10-08, tracking).</strong> The driver
+    applies the profile exactly (the feed-forward recomputed from PECLOG's motor angles matches the logged <code>wff</code> to
+    1.4"/0.8" on 76"/44" rms). Scored as the worm rate left for the guider with the same night's tests 5–7 (roll −31,
+    M3 +15…+37°): Tuc47 blocks A/B (roll −13/−31, M3 +6…+29°) leave 55–58% (RA) and 25–30% (Dec), correlation
+    0.84–0.97; Block E (roll +56, M3 −36…−11°, gravity on M3 reversed) leaves 183%/116% — the correction ~1.8× too
+    big and ~4–5 min (~55° of worm phase) late, so it added error. The worm error itself was smaller there (8 vs
+    15–26"/min). Consistent in direction with finding 5 (amplitude lower with the torque on that side) but larger
+    than the step tests show between sides (~8° of phase), so the load side and stepping-vs-tracking may both matter.</li>
+</ol>
+<h3 id="revised-plan">Revised plan<a class="headerlink" href="#revised-plan" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Approve a profile per setup.</strong> For the 200 mm, the pool of 10-09's tests 12–16. Leave M2 out of the applied
+    profile unless it repeats.</li>
+<li><strong>Validation night (200 mm), both gravity sides:</strong> at roll <strong>+60 and −60</strong> (alt ~40°), a profile test, then 30–45 min
+    of guided tracking with the worm FF off, at the same pose. Does each step test predict its own pose's tracking
+    error (finding 8)? Does the M3 peak repeat (~241)? Then an A/B with the FF on at the pose that matched. Judge on
+    PHD2 RMS and the drift left for the guider (<code>analyse_tracking</code> 3 and 7). This is Phase 5's field gate.</li>
+<li><strong>Then:</strong> if each side's step test matches its own tracking but the sides differ, a profile per gravity side
+    (chosen by the sign of the torque on M3); if the phase repeats per setup, per-payload profiles in the driver (save/load a named profile set); if
+    it drifts between nights, a short test at the start of each session (a reduced schedule, ~5–8 min; the sweep fit
+    makes it safe unattended).</li>
+<li><strong>Parked</strong> until the A/B shows the leftover worm matters: modelling M3's amplitude (and M2) against gravity load,
+    which needs tests at low arm angles (alt 25–35° with small roll) and the same torque sign at different M2 angles.</li>
+<li><strong>Small driver follow-ups:</strong> ✅ the test now always runs at Roll ±45° (the side it is on), not ±25° only near Roll 0;
+    still to do: warn when a test starts above alt ~55°.</li>
+</ol>
+<h3 id="open-questions-current">Open questions (current)<a class="headerlink" href="#open-questions-current" title="Permanent link">&para;</a></h3>
+<ol>
+<li>What sets the worm phase between nights — payload, mounting, or a per-session MCU/mechanical state? (Next test: a
+    repeat on a 200 mm night; a 300 mm repeat if convenient later.)</li>
+<li>Does a profile measured by stepping (the test) match the error while tracking — and is the mismatch at Block E's
+    pose (finding 8) the gravity side, stepping vs tracking, or both?</li>
+<li>M2: is its worm pose/load dependent, or are the tests just poorly conditioned for it?</li>
+<li>Resolved: M1/M2/M3 share the 6.0° worm (960 = 16 × 60); RA/Dec-space periodic fitting is replaced; the PV/FF
+    injection point is <code>corrQ_WFF</code> in the forward kinematics; shadow dual-model logging was not needed (PECLOG logs
+    <code>wff</code> alongside the guide corrections, so every night shows both).</li>
+</ol>
+<hr />
+<h2 id="phase-0--offline-validation-against-existing-log-data-no-driver-changes">Phase 0 — Offline validation against existing log data (no driver changes)<a class="headerlink" href="#phase-0--offline-validation-against-existing-log-data-no-driver-changes" title="Permanent link">&para;</a></h2>
+<p>Goal: decide, before writing any driver code, whether the hypothesis actually holds up
+quantitatively against real logs. This is a hard gate — if Phase 0 doesn't show a real signal,
+stop and reconsider before investing in Phase 1+.</p>
+<h3 id="00-log-inventory-done--findings-below-re-run-after-any-new-capture">0.0 Log inventory (done — findings below; re-run after any new capture)<a class="headerlink" href="#00-log-inventory-done--findings-below-re-run-after-any-new-capture" title="Permanent link">&para;</a></h3>
+<p>Scanned all 69 <code>alpaca*.log*</code> files under <code>logs/</code> and <code>logs/logs/</code>. Findings:</p>
+<ul>
+<li><strong>Every log ≥9h duration uses the old, pre-dict <code>PECLOG</code> format</strong> (<code>n,2,TOO_FEW_OBS,...</code>,
+    comma-separated) — <code>analyse_helpers.parse_payload_line</code>/<code>load_pec</code> only handle the current
+    <code>PECLOG {...}</code> dict format and silently find nothing in these. <strong>A legacy-format PECLOG
+    parser is a hard prerequisite</strong> before any of the long sessions (which is most of the useful
+    duration we have) can be used for Phase 0.1–0.3.</li>
+<li><strong>No log has "sync-guiding active, PEC completely off."</strong> Searched all 69 files for
+    <code>SYNC GUIDING</code> present with zero <code>PECLOG</code> lines of either format — none found. Every capture
+    with sync-guiding on also had <code>advanced_pec</code> on. Two ways to get an uncontaminated-by-PEC
+    signal without a fresh capture: use the pre-convergence portion of existing sessions
+    (<code>inhibit != VALID</code> / <code>pec_active: False</code> rows — <code>apply_pec_drift_correction()</code> returns
+    immediately while <code>_pec_active</code> is false, so these cycles have zero PEC feed-forward applied,
+    genuinely uncorrected), or capture a new log with <code>advanced_pec</code> explicitly off. Prefer doing
+    both — the pre-convergence data is free and available now, but is only ever a few minutes per
+    session, so it won't carry the angle-domain periodogram (0.2) on its own.</li>
+<li>
+<p><strong>Long files are not clean single-target sessions</strong> — most have real gotos/tracking toggles
+    scattered through them (checked against the actual REST calls: <code>slewtocoordinatesasync</code>,
+    <code>slewtoaltazasync</code>, <code>tracking</code>, <code>findhome</code>, etc., not just PECLOG content). They do contain
+    long clean (no-slew) stretches worth extracting:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Raw span</th>
+<th>Longest clean (no-slew) stretch</th>
+<th>Actual continuous PECLOG activity span</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alpaca.jdm_Beta3.1_08_02.log</code></td>
+<td>15.11h</td>
+<td>~6.6h (12:43→19:20)</td>
+<td><strong>11.19h</strong> (08:09→19:21), one 44min gap, 878 entries, ~40s cadence</td>
+</tr>
+<tr>
+<td><code>alpaca.jdm_Beta3.1_08_03.log</code></td>
+<td>13.54h</td>
+<td>—</td>
+<td>9.76h (09:34→19:20), one 136min gap, 693 entries</td>
+</tr>
+<tr>
+<td><code>alpaca.pec_rls_Beta2.0_07_25_tarantula1.log</code> / <code>1b.log</code></td>
+<td>10.50h</td>
+<td>two ~2.5–2.75h chunks</td>
+<td>6.50h (12:55→19:25), 361 entries</td>
+</tr>
+<tr>
+<td><code>alpaca.pec_rls_Beta2.0_07_20_master.log</code> / <code>_h2.log</code></td>
+<td>12.31h</td>
+<td>~5.0h (11:49→16:50)</td>
+<td>4.64h / 5.47h — the two files end at the identical timestamp (16:28:40.972), confirming they're the same underlying capture exported/filtered two ways</td>
+</tr>
+<tr>
+<td><code>alpaca.pec_rls_Beta3,9_07_29_7hrs.log</code></td>
+<td>13.54h</td>
+<td>—</td>
+<td>only 3.39h despite the filename</td>
+</tr>
+<tr>
+<td><del><code>alpaca.pec_rls_Beta2.0_07_22_syncguide2.log</code></del></td>
+<td><del>9.29h</del></td>
+<td><del>8.3h</del></td>
+<td><strong>Ruled out</strong> — checking actual PECLOG timestamps (not just REST-command gaps) shows all 187 entries land in a 2-minute window (06:54:17→06:56:09), <code>n</code> racing 2→23, one <code>Guide,+nan</code> value in there — a rapid-fire test burst, not a real session. The rest of the file's 9.29h span has no PEC/sync-guide activity at all.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>alpaca.jdm_Beta3.1_08_02.log</code> is now the strong candidate for the "~11 hour" session</strong> —
+11.19 continuous hours of real PECLOG activity, essentially uninterrupted (one 44-minute gap),
+matching the recollection closely. Worth confirming against notes, but proceeding on this one
+unless something rules it out.</p>
+</li>
+<li>
+<p><strong>Action items before 0.1 can proceed on the long logs:</strong></p>
+<ul>
+<li>(a) ✅ <strong>Done.</strong> <code>analyse_helpers.py</code> now has <code>parse_peclog_legacy()</code> (comma-format PECLOG,
+    consistent field layout confirmed across every old-format log in this project) and
+    <code>parse_sync_guiding_residual_line()</code> (recovers <code>resid</code> — absent from the legacy PECLOG
+    payload itself — from the always-present <code>SYNC GUIDING ... Residuals</code> line via the DMS
+    inverse of <code>shr.py</code>'s <code>deg2dms()</code>). <code>load_pec()</code> auto-detects format per line and backfills
+    <code>resid_1</code>/<code>resid_2</code> for legacy rows by nearest-timestamp merge (2s tolerance), so it now
+    handles a session that mixes both formats too. Validated against real logs, not just
+    compiled: <code>chicken.log</code> (131/131 rows, resid cross-checked against the driver's own
+    independently-logged <code>pec_accum</code> for a fresh/unsmoothed cycle — matched to 3 decimal
+    places) and <code>alpaca.jdm_Beta3.1_08_02.log</code> (878/878 rows, 0 NaN resid, zero regression on
+    the existing dict-format path or the rest of <code>analyse_pec.ipynb</code>'s Outcome Overview cell,
+    which ran unchanged against the legacy file end-to-end).</li>
+<li>(b) <strong>Leading candidate for the ~11h session confirmed as <code>alpaca.jdm_Beta3.1_08_02.log</code></strong>
+    (11.19h continuous PECLOG activity, one 44min gap) — still worth a sanity check against
+    notes, but nothing found to rule it out.</li>
+<li>&copy; ✅ <strong>Done.</strong> <code>find_tracking_segments()</code> in <code>analyse_helpers.py</code> — splits a log into
+    continuous-tracking segments at any slew/goto/tracking-toggle/park/findhome/abortslew REST
+    call, returns <code>(start_ts, end_ts, duration_min)</code> for segments over a minimum length.
+    Validated against the manually-checked segments above (reproduces them exactly, e.g.
+    <code>08_02.log</code>'s 6.62h segment). <strong>Caveat found while validating</strong>: this only looks at REST
+    boundaries, not whether PECLOG/tracking was actually active throughout — e.g. <code>08_02.log</code>'s
+    trailing 3.62h segment is almost certainly idle/parked time (its start lines up with
+    PECLOG's very last entry). Segments must be intersected with actual PECLOG timestamp
+    coverage before use in 0.1/0.2, not taken at face value. For the leading candidate this
+    already looks fine — its best segment (12:43→19:20, 6.62h) sits entirely inside its
+    continuous 08:09→19:21 PECLOG-activity window — but this intersection should be made
+    explicit in code (not just eyeballed per-file) before it's relied on generally.</li>
+</ul>
+</li>
+</ul>
+<h3 id="01-derive-per-motor-observed-theta-ground-truth-from-existing-peclog-data--done">0.1 Derive per-motor "observed theta" ground truth from existing PECLOG data ✅ Done<a class="headerlink" href="#01-derive-per-motor-observed-theta-ground-truth-from-existing-peclog-data--done" title="Permanent link">&para;</a></h3>
+<p><strong>Revised from the original plan</strong>: doesn't depend on KFLOG (<code>θ_meas_raw</code>) at all, which turned
+out to matter — neither <code>08_02.log</code> nor <code>syncguide1.log</code> has any KFLOG data, and long real
+imaging sessions with <code>Config.log_position</code> on appear to be the exception, not the rule, in
+this project's logs. Instead, <code>derive_theta_ground_truth(df, lat_deg, lon_deg)</code> in
+<code>analyse_helpers.py</code> works entirely from PECLOG's own fields plus site location:</p>
+<ol>
+<li><code>predicted_ra/dec</code> = this row's <code>az</code>/<code>alt</code>/<code>roll</code> (the PID's PV) → ra/dec, via
+    <code>kinematics.azalt_to_radec()</code> (exact <code>ephem</code>-based conversion, the same the driver itself
+    uses — better than the parallactic-angle small-rotation approximation originally
+    considered, and avoids needing <code>alignQ_B2T</code>, which isn't recoverable from the logs at all).</li>
+<li><code>observed_ra/dec</code> = <code>predicted_ra/dec</code> + <code>resid</code> (confirmed: <code>resid_1</code>/<code>resid_2</code> are exactly
+    <code>process_guide_sync()</code>'s <code>ra_resid</code>/<code>dec_resid</code>, in arcmin of degrees — <code>/60</code> recovers
+    degrees directly, no unit surprises).</li>
+<li><code>observed_az/alt</code> = <code>observed_ra/dec</code> → az/alt, via <code>kinematics.radec_to_altaz()</code>.</li>
+<li><code>theta_pred</code>/<code>theta_obs</code> = <code>azaltroll_to_theta(az, alt, roll)</code> for each pose (roll held
+    fixed — a small RA/Dec offset doesn't meaningfully change field rotation).</li>
+</ol>
+<p>Also needed <strong>site latitude/longitude</strong>, which isn't computable from anything in the plan —
+resolved by finding it's actually logged, just not where first searched: a startup
+<code>Site lat = ... | lon = ...</code> line, present in 31/69 of this project's logs (including both
+files used to validate this). <code>find_site_location()</code> recovers it per-file (so a different
+site/user is handled automatically, not a global constant).</p>
+<p><strong>Two real bugs found and fixed while validating against <code>08_02.log</code> and <code>syncguide1.log</code>, not
+just by reading the kinematics code:</strong></p>
+<ul>
+<li><code>kinematics.azaltroll_to_theta()</code> called without an explicit <code>lastPos</code> silently returns
+    <code>(None, None, None)</code> for <em>every</em> row — its own default argument passes a literal <code>None</code>
+    through to <code>q_to_theta()</code>, which then fails internally and gets swallowed by the wrapper's
+    <code>except Exception</code>. Fixed by carrying one <code>LastPosition</code> across all rows (mirroring the
+    driver's own persistent <code>self._pid._lp</code>), advanced by <code>theta_pred</code> only after both
+    <code>theta_pred</code>/<code>theta_obs</code> are computed against it each row.</li>
+<li>Near <code>kinematics.py</code>'s own <code>THETA2_MAX = 81.5</code> mechanical near-singularity, the IK's branch
+    selection can differ between the predicted and observed pose even though the true
+    positional difference is tiny — produced outliers up to ~345° before this was caught.
+    <code>derive_theta_ground_truth()</code> now excludes rows with <code>theta_pred_2</code>/<code>theta_obs_2</code> above 80°
+    (default, overridable), confirmed against both files: every extreme outlier found while
+    debugging clustered at <code>theta_pred_2</code> ≈ 81.49–81.52°, none survived the exclusion, and the
+    remaining largest residuals (a few hundred arcsec) show no such clustering — they range
+    across alt 34–77°, look like genuine amplified signal rather than a numerical artifact.</li>
+</ul>
+<p>Also fixed in passing: <code>load_pec</code>/<code>load_kf_pid</code>/<code>find_tracking_segments</code>/<code>find_site_location</code>
+now open files with <code>errors="replace"</code>, not just <code>encoding="utf-8"</code> — <code>syncguide1.log</code> has a
+genuinely non-UTF-8 byte in it (a <code>°</code> written as Latin-1 somewhere), which previously aborted
+parsing the whole file.</p>
+<p>Not yet done: cross-checking <code>theta_resid_i</code> against an independent source for a handful of
+points (KFLOG isn't available on these two files to do this the original way) — worth a
+lighter sanity pass (e.g. first-sync-of-session values should be small) before leaning on this
+heavily in 0.2.</p>
+<h3 id="02-angle-domain-vs-time-domain-periodogram-per-motor-per-session---in-progress-promising-but-not-conclusive-yet">0.2 Angle-domain vs time-domain periodogram, per motor, per session — 🟡 In progress, promising but not conclusive yet<a class="headerlink" href="#02-angle-domain-vs-time-domain-periodogram-per-motor-per-session---in-progress-promising-but-not-conclusive-yet" title="Permanent link">&para;</a></h3>
+<p><strong>Revised from the original plan</strong>: runs on <code>theta_resid_i</code> from 0.1's PECLOG-only derivation
+(no KFLOG needed, since neither of our two files has any), using <code>lombscargle_periodogram()</code>
+(new, in <code>analyse_helpers.py</code>) rather than <code>scipy.signal.periodogram</code> — PECLOG's guide-sync
+cadence is irregular, which a standard FFT-based periodogram assumes away.</p>
+<p><strong>Two real methodological bugs found and fixed by testing against real data before trusting
+any result, not by inspecting the numbers once and moving on:</strong></p>
+<ul>
+<li><strong>No detrending, at first.</strong> The very first real-data run showed power rising monotonically
+    all the way to <code>max_period</code> (the search cap, <code>span/2</code>) with no local peak at all, for every
+    motor/segment tried — a textbook slow-trend signature. Confirmed synthetically: adding a
+    linear trend to a clean known-period test signal reproduced the exact same failure (spurious
+    peak at the range edge, weak power) until <code>lombscargle_periodogram()</code> was given a
+    <code>detrend=True</code> default (matching <code>analyse_pec.ipynb</code>'s own existing periodogram cells).</li>
+<li><strong>Raw peak power isn't comparable across different sample sizes.</strong> Even after detrending,
+    results kept landing near suspiciously round cycle-counts across unrelated
+    motors/segments — a known small-sample periodogram bias (a long period has more freedom to
+    fit noise relative to how few independent cycles are actually observed). Fixed by adding
+    <code>periodogram_false_alarm_probability()</code> — a permutation test (shuffle <code>y</code>, x held fixed,
+    see how often noise alone beats the real peak) — validated against synthetic clean-signal
+    (FAP=0.000) and pure-noise (FAP=0.520, i.e. "not significant," exactly as it should be)
+    cases before trusting it on real data.</li>
+</ul>
+<p><strong>Results so far, with FAP (lower = more trustworthy):</strong></p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Segment</th>
+<th>n</th>
+<th>Motor</th>
+<th>Peak period</th>
+<th>Power</th>
+<th>FAP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>08_02.log</code></td>
+<td>12:43→19:20 (6.62h)</td>
+<td>567</td>
+<td>M1</td>
+<td>45.55°</td>
+<td>0.083</td>
+<td><strong>0.000</strong></td>
+</tr>
+<tr>
+<td><code>08_02.log</code></td>
+<td>12:43→19:20 (6.62h)</td>
+<td>567</td>
+<td>M2</td>
+<td>13.47°</td>
+<td>0.206</td>
+<td><strong>0.000</strong></td>
+</tr>
+<tr>
+<td><code>08_02.log</code></td>
+<td>12:43→19:20 (6.62h)</td>
+<td>567</td>
+<td>M3</td>
+<td>34.63°</td>
+<td>0.150</td>
+<td><strong>0.000</strong></td>
+</tr>
+<tr>
+<td><code>08_02.log</code></td>
+<td>09:29→12:32 (3.03h)</td>
+<td>84</td>
+<td>M1/M2/M3</td>
+<td>—</td>
+<td>—</td>
+<td>0.29–0.83 (not significant — too few points)</td>
+</tr>
+<tr>
+<td><code>syncguide1.log</code></td>
+<td>08:09→09:10 (1.0h)</td>
+<td>45</td>
+<td>M1</td>
+<td>6.66°</td>
+<td>0.496</td>
+<td><strong>0.000</strong></td>
+</tr>
+<tr>
+<td><code>syncguide1.log</code></td>
+<td>08:09→09:10 (1.0h)</td>
+<td>45</td>
+<td>M3</td>
+<td>7.16°</td>
+<td>0.411</td>
+<td><strong>0.000</strong></td>
+</tr>
+<tr>
+<td><code>syncguide1.log</code></td>
+<td>08:09→09:10 (1.0h)</td>
+<td>45</td>
+<td>M2</td>
+<td>0.57°</td>
+<td>0.301</td>
+<td>0.005 (borderline)</td>
+</tr>
+<tr>
+<td><code>syncguide1.log</code></td>
+<td>09:25→11:43 (2.3h)</td>
+<td>51</td>
+<td>all</td>
+<td>—</td>
+<td>—</td>
+<td>0.04–0.96 (not significant)</td>
+</tr>
+</tbody>
+</table>
+<p><code>08_02.log</code>'s best segment gives a statistically significant angle-domain period for <strong>all
+three motors</strong> — a real finding worth having, on its own. <code>syncguide1.log</code>'s 1-hour segment
+also finds a significant (M1/M3) short-period signal, but <strong>this is not a genuine
+cross-session disagreement</strong>: that segment's angular span is only 15.9°/14.3° (M1/M3), capping
+its searchable period range at 7.95°/7.16° — it is <em>structurally incapable</em> of finding <code>08_02</code>'s
+45.5°/34.6° periods at all, so the two results aren't comparable and this pairing can't confirm
+or refute cross-session consistency either way. Checked this explicitly before writing it up as
+a finding, rather than reporting the raw numbers as a disagreement.</p>
+<p><strong>Update: ran the same analysis across 4 more sessions/nights (<code>tarantula1</code>, <code>07_20</code>
+[<code>master.log</code>/<code>h2.log</code> confirmed identical — same underlying capture], <code>08_03</code>), filtered to
+only compare findings whose testable range (<code>span/2</code>) actually covers the peak being compared
+against (avoids the exact <code>syncguide1</code>-vs-<code>08_02</code> mistake above). Sorting all FAP&lt;0.05 results
+by peak period reveals a real cross-session pattern:</strong></p>
+<ul>
+<li><strong>M1</strong>: three <em>independent, mutually-testable</em> sessions across two different nights (July 22
+    <code>syncguide1</code>, July 25 <code>tarantula1</code>'s two segments) all land at <strong>6.44°–7.40°</strong> — a tight
+    cluster given these are independent noisy estimates, and none of them are anywhere near
+    their own testable-range ceiling (7.95°/18.26°/30.61° vs peaks of 6.66°/7.40°/6.44° — not an
+    edge artifact this time). <code>08_02</code>'s headline 45.55° doesn't match this directly, <strong>but its
+    own periodogram's second-strongest local peak, checked explicitly, is at 7.130°</strong> (power
+    0.064, vs 0.083 for the 45.55° global max) — the ~7° signal is present in that session too,
+    just outcompeted by something stronger, not absent.</li>
+<li><strong>M3</strong>: four sessions cluster at <strong>4.99°–7.16°</strong> (<code>08_03</code>, <code>07_20</code>, <code>tarantula1</code>, and
+    <code>syncguide1</code> again, the last right at its own testable ceiling so weaker evidence on its
+    own). <code>08_02</code>'s M3 periodogram, checked the same way as M1's, does <strong>not</strong> show a
+    corresponding secondary peak near 5–7° (its top three local peaks are 34.63°/23.65°/10.28°)
+    — a genuine gap in the corroboration, not glossed over.</li>
+<li><strong>M2</strong> stays scattered (0.57°, 0.78°, 5.94°, 13.47° — no cluster), consistent with the
+    earlier KFLOG shift finding that M2 looks mechanically different from M1/M3.</li>
+</ul>
+<p><strong>Read on this at the time:</strong> M1 and M3 both show a period in roughly the same 5–7.5° range,
+found independently across four sessions spanning three different nights, with testable ranges
+that genuinely cover it. Ratio check on <code>08_02</code>'s two dominant (not the ~6-7°) peaks: M1=45.55°
+vs M3=34.63° are 27.2% apart, not a close match, and not a clean small-integer ratio either
+(nearest 4/3, 1.3% off — too loose to read into).</p>
+<h3 id="-correction-the-above-used-the-wrong-signal--resid-is-pec-contaminated">⚠️ Correction: the above used the wrong signal — resid is PEC-contaminated<a class="headerlink" href="#-correction-the-above-used-the-wrong-signal--resid-is-pec-contaminated" title="Permanent link">&para;</a></h3>
+<p>Caught by a direct question ("did you remove any effect of PEC from the logs?") that turned
+out to matter a lot. Checked: <code>inhibit_1</code> was <code>VALID</code> (PEC actively correcting, real per-cycle
+corrections up to 7.2 arcmin) for 542/567 rows (95.6%) of <code>08_02</code>'s segment. <code>theta_pred</code>/
+<code>theta_resid</code> above are built from PECLOG's <code>az</code>/<code>alt</code>/<code>roll</code>, which is the PID's <em>already
+PEC-corrected</em> present value (it flows through <code>q_syncguide_B</code>) — so <code>theta_resid</code> measures
+whatever error is left over <strong>after</strong> PEC's current RA/Dec-space correction, not the raw
+mechanical periodic error. Everything in the table above is potentially contaminated by
+however well or badly the <em>current, RA/Dec-space</em> model happens to be doing.</p>
+<p><strong>Fix</strong>: <code>total_accum</code> is the field the driver's own code deliberately keeps free of this
+("the fit's training signal; deliberately doesn't shrink as PEC improves" — <code>_pec_log()</code>'s own
+docstring) — it's also exactly what <code>analyse_pec.ipynb</code>'s existing "Right Ascension/Declination
+Period" cells already periodogram, for the same reason, just in RA/Dec instead of theta-space.
+Added <code>derive_theta_from_total_accum()</code>, reconstructing a PEC-independent theta trajectory by
+anchoring each PEC-model segment's start position and adding <code>total_accum</code>'s RA/Dec drift onto
+it, run through the same kinematics chain.</p>
+<p><strong>Re-ran everything with the corrected signal — and it exposed a second, more fundamental
+problem, not just a domain question.</strong> Pairing <code>theta_pred</code> (x) against the new <code>theta_true</code>
+(y) directly doesn't work: they correlate at 1.0000 (PEC's correction is tiny — arcmin-scale —
+against ~100° of real tracking motion), so <code>lombscargle_periodogram</code>'s internal linear detrend
+strips out nearly everything, and the tiny leftover reproduced the exact edge-of-range bias
+already fixed once before. Fixed properly by detrending <code>theta_true</code> against <strong>time</strong> first
+(matching the existing RA/Dec cells' own convention) before pairing with <code>theta_pred</code> — this
+dropped their correlation to ~0.07–0.09 for M1/M3 (0.76 for M2, still elevated).</p>
+<p>That fix did <em>not</em> recover a clean result, though — quite the opposite. Recomputing peak/
+testable_max ratios across every session/motor: <strong>old (resid-based) mean ratio 0.58, spread
+0.20–1.00</strong> (genuinely varied, several well clear of the edge) vs <strong>new (total_accum-based,
+time-detrended) mean ratio 0.90</strong>, almost every single result between 0.67–1.00. Tried
+higher-order (quadratic, cubic, quintic) detrending against time to see if it was just
+under-fit curvature — made it <em>worse</em>: peaks stayed pinned near the edge while <code>wobble_std</code>
+collapsed from 7555→169 arcsec (degree 5), a clear overfitting signature, not a fix.</p>
+<p><strong>Conclusion: <code>total_accum</code>'s residual, even properly detrended, is dominated by non-periodic
+structure — real secular drift curvature and/or one-off disturbances (the kind found earlier
+in this investigation, e.g. the RA-specific dip in <code>08_29m.log</code>) — that overwhelms any genuine
+short-period signal at these segment durations.</strong> This is not a time-vs-angle domain question
+any more; it's a data-sufficiency problem that affects both domains equally. The earlier ~6-7°
+cross-session cluster should be treated as a weaker, not-yet-validated hint rather than the
+promising finding it was reported as — it came from the contaminated signal, and the properly
+corrected one isn't yet clean enough at these durations to confirm or refute it either way.</p>
+<p><strong>This raises the bar for Phase 0.2, and for tonight's planned capture</strong> (see below): what's
+needed isn't just "comparable angular coverage to <code>08_02</code>," it's enough continuous duration for
+<code>total_accum</code>'s non-periodic secular component to be small relative to many repeats of
+whatever the true periodic component is — likely several times longer than anything captured
+so far, on a single uninterrupted target.</p>
+<p><strong>Pass criterion for the hypothesis (unchanged):</strong> the angle-domain period for a given motor
+should be consistent (within some tolerance, e.g. ±10%) across sessions/orientations with
+<em>comparable angular coverage</em> where the <em>time</em> period is not, and — if the shared-motor
+suspicion is right — M1 and M3 should converge to a similar angular period as each other.
+<strong>Provisionally met for the ~6-7° signal</strong> (M1 cluster tight and clean; M3 cluster present but
+<code>08_02</code> doesn't corroborate it internally) — promising enough to justify continuing, not yet
+strong enough to call confirmed. Next useful step: find or capture a session with <code>08_02</code>-scale
+angular coverage (several hours, ~100°) on a <em>different</em> night, to see whether a long session
+can be found where ~6-7° is the dominant peak rather than 08_02's odd-one-out ~35-45° result,
+which would settle whether that's session-specific noise or a second real component.</p>
+<h3 id="03-fit-quality--generalization-comparison-per-motor-vs-radec">0.3 Fit quality / generalization comparison: per-motor vs RA/Dec<a class="headerlink" href="#03-fit-quality--generalization-comparison-per-motor-vs-radec" title="Permanent link">&para;</a></h3>
+<p>Using the same log set:</p>
+<ul>
+<li>Fit a candidate per-motor angle-domain model (constant + harmonics, same RLS/EMA machinery
+    conceptually) on one session, and check its <strong>predictive</strong> residual on a <em>different</em> session
+    (different orientation/target). Do the same for the existing RA/Dec model as the baseline.</li>
+<li><strong>Pass criterion:</strong> per-motor model's held-out residual RMS should be lower than the RA/Dec
+    model's held-out residual RMS, on a majority of held-out session pairs tried — the RA/Dec
+    model is expected to generalize poorly across orientation by the hypothesis above, so this is
+    the head-to-head test of whether that's actually true.</li>
+</ul>
+<h3 id="04-decision-point">0.4 Decision point<a class="headerlink" href="#04-decision-point" title="Permanent link">&para;</a></h3>
+<p>Write up Phase 0's numeric results (angular-period consistency, cross-session generalization
+comparison) before moving to Phase 1. This is a go/no-go gate, not a formality — if the
+angle-domain period isn't consistent across sessions/axes, the core hypothesis is wrong or
+needs revising before any driver work starts.</p>
+<hr />
+<h2 id="phase-1--driver-design-theta-space-pec-model--pvff-integration">Phase 1 — Driver design (theta-space PEC model + PV/FF integration)<a class="headerlink" href="#phase-1--driver-design-theta-space-pec-model--pvff-integration" title="Permanent link">&para;</a></h2>
+<p><em>(Historical: built differently — a fixed per-motor worm profile on MCU angles measured by the worm profile test, not a model learnt live from guide corrections; see the status section.)</em></p>
+<p>Only start once Phase 0 passes.</p>
+<h3 id="11-model-math">1.1 Model math<a class="headerlink" href="#11-model-math" title="Permanent link">&para;</a></h3>
+<p>Re-derive (or extend) the <code>PecAxis</code>-equivalent to fit against θᵢ mod Θᵢ instead of t mod T.
+Feed-forward needs a <em>time-domain rate</em>, so the conversion is the chain rule:
+<code>rate_correction(t) = f'(θᵢ) · ωᵢ(t)</code>, where <code>ωᵢ(t)</code> is the motor's current angular velocity
+(already available). Confirm this doesn't reintroduce instability at low/zero <code>ωᵢ</code> (e.g. mount
+briefly stationary) — <code>f'(θᵢ) · ωᵢ</code> correctly goes to zero there, but worth an explicit unit
+test (see Phase 2).</p>
+<h3 id="12-ground-truth-signal-live-in-the-driver">1.2 Ground-truth signal, live in the driver<a class="headerlink" href="#12-ground-truth-signal-live-in-the-driver" title="Permanent link">&para;</a></h3>
+<p>Reuse <code>process_guide_sync()</code>'s existing <code>ra_resid</code>/<code>dec_resid</code> computation, and add the
+theta-space conversion (same forward-kinematics chain as Phase 0.1) computed live, keyed to
+the raw <code>θ_meas</code> at that same instant. Log it (new fields, e.g. <code>PECLOG</code>'s existing per-axis
+convention extended to 3 motors, or a new tag) so the <em>same</em> notebook tooling built in Phase 0
+can analyze live driver output without rework.</p>
+<h3 id="13-pvff-hookup">1.3 PV/FF hookup<a class="headerlink" href="#13-pvff-hookup" title="Permanent link">&para;</a></h3>
+<p>From the earlier investigation:</p>
+<ul>
+<li><strong>FF</strong> is simpler with a per-motor model: <code>omega_pec_B = [d_theta1, d_theta2, d_theta3] / dt</code>
+    directly — no <code>equatorial_axes_B</code> projection needed at all.</li>
+<li><strong>PV</strong>: inject the per-motor correction <em>before</em> <code>motorQ_state = theta_to_q(*self._theta_state)</code>
+    in <code>polaris.py</code>, not as a patch to <code>theta_pv</code> after the fact — so <code>cameraQ_pv</code> and everything
+    downstream of it (Az/Alt/RA/Dec reporting, UI) stay consistent with what the PID's error
+    signal sees. Confirm nothing else reads <code>self._theta_state</code> between the KF and that point
+    expecting the uncorrected physical estimate, before finalizing this injection point.</li>
+</ul>
+<h3 id="14-feature-flag">1.4 Feature flag<a class="headerlink" href="#14-feature-flag" title="Permanent link">&para;</a></h3>
+<p>New theta-space model sits behind a config flag (e.g. <code>Config.pec_theta_space</code>), default off.
+The existing RA/Dec-space path stays completely untouched and remains the default — this is
+what makes "no regression" checkable at all: anyone not opting in sees zero behavior change.</p>
+<h3 id="15-logging-compatibility">1.5 Logging compatibility<a class="headerlink" href="#15-logging-compatibility" title="Permanent link">&para;</a></h3>
+<p>Confirm new log fields don't break existing notebook parsing — <code>parse_payload_line</code>'s
+list-flattening is generic, so this should be forward-compatible automatically, but verify by
+running the existing <code>analyse_pec.ipynb</code>/<code>analyse_kf_pid.ipynb</code> against a log produced with the
+new fields present.</p>
+<hr />
+<h2 id="phase-2--unit-tests">Phase 2 — Unit tests<a class="headerlink" href="#phase-2--unit-tests" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Angle-domain model fitting: synthetic θᵢ(t) with a known injected periodic signal (including
+    a case where <code>ωᵢ(t)</code> varies over the test, unlike a constant-rate equatorial test would need)
+    — verify the fit recovers the known period/amplitude/phase, and that the FF rate conversion
+    (<code>f'(θᵢ)·ωᵢ</code>) matches a numerically-differentiated reference.</li>
+<li>Theta-space ground-truth derivation (Phase 1.2): unit test against known az/alt/roll + residual
+    inputs with a hand-computed expected <code>theta_observed</code>.</li>
+<li>PV/FF injection: verify the new theta-space path, with the feature flag off, produces
+    byte-for-byte identical <code>theta_pv</code>/<code>omega_pec_B</code> behavior to the current code — this is the
+    regression-safety test for anyone not opting in.</li>
+<li>Edge cases: zero/near-zero <code>ωᵢ</code>, PEC model reset mid-session, axis with no detectable
+    periodicity (should behave gracefully, not force-fit noise).</li>
+</ul>
+<hr />
+<h2 id="phase-3--desk-testing-via-replaypy">Phase 3 — Desk testing via <code>replay.py</code><a class="headerlink" href="#phase-3--desk-testing-via-replaypy" title="Permanent link">&para;</a></h2>
+<p><em>(Historical: superseded by the digital twin (<code>tests/twin.py</code>, <code>tests/sim_digital_twin.py</code> with worms the driver can't see) and by measuring the worm directly with the profile test.)</em></p>
+<p><strong>Important scoping correction from the initial read of <code>replay.py</code>/its README:</strong> it does not
+simulate motor-level telemetry. <code>SYNCGUIDE_PE</code>/<code>PULSEGUIDE_PE</code> only fake the <em>guide correction
+input</em> (a synthetic RA/Dec offset sent via <code>synctocoordinates</code>/<code>pulseguide</code>) against a real,
+physically-tracking bench mount — the mount's actual motors and their actual mechanical PE (if
+any) are real, not simulated. So:</p>
+<h3 id="31-whats-testable-with-existing-replaypy-no-new-tooling">3.1 What's testable with existing <code>replay.py</code>, no new tooling<a class="headerlink" href="#31-whats-testable-with-existing-replaypy-no-new-tooling" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Run the existing <code>SYNCGUIDE_PE</code>/<code>PULSEGUIDE_PE</code> test files against a bench-connected mount
+    with the new theta-space model active (flag on) vs the current default (flag off), same
+    target, back-to-back or alternating runs. This validates the <em>control loop</em> end-to-end (PV/FF
+    hookup, logging, no crashes/instability) and gives a real — if not perfectly known-ground-truth
+    — A/B comparison, since the bench mount's own real per-motor PE (whatever it is) is being
+    fitted in both cases.</li>
+<li>Compare resulting <code>resid</code>/theta-space-resid RMS trend between the two runs using the Phase 0
+    analysis tooling, extended to read the new log fields.</li>
+</ul>
+<h3 id="32-open-question-controlled-known-ground-truth-per-motor-pe-injection">3.2 Open question: controlled, known-ground-truth per-motor PE injection<a class="headerlink" href="#32-open-question-controlled-known-ground-truth-per-motor-pe-injection" title="Permanent link">&para;</a></h3>
+<p>To get the stronger guarantee ("does the model recover the <em>exact</em> true PE") would need
+injecting a known synthetic disturbance at the raw-telemetry level, below the ASCOM API
+<code>replay.py</code> currently operates at. This is a real gap, not yet resolved — options to evaluate:
+a lower-level simulator/mock Polaris connection (if one exists or is worth building), or
+accepting 3.1's real-bench-mount comparison as sufficient for this change and deferring a full
+telemetry-level simulator as separate future work. Decide this explicitly before Phase 3 starts,
+rather than discovering it mid-implementation.</p>
+<hr />
+<h2 id="phase-4--quantitative-acceptance-criteria-fix-these-before-running-phase-⅗-not-after">Phase 4 — Quantitative acceptance criteria (fix these before running Phase &#8535;, not after)<a class="headerlink" href="#phase-4--quantitative-acceptance-criteria-fix-these-before-running-phase-⅗-not-after" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Phase 0 gate:</strong> angular period consistency across sessions/axes (0.2) and better held-out
+    generalization than RA/Dec (0.3), both demonstrated with numbers, before Phase 1 starts.</li>
+<li><strong>Phase 3 (bench) gate:</strong> theta-space model's resid RMS (first-fifth vs last-fifth of run, same
+    metric already used in <code>analyse_pec.ipynb</code>'s Outcome Overview) must not be worse than the
+    current model's on the same bench mount/target, and should show measurable improvement on
+    repeated runs (not a single lucky run).</li>
+<li><strong>No-regression gate:</strong> with the feature flag off, unit tests (2) must show byte-identical
+    behavior to current code.</li>
+<li><strong>Field gate (Phase 5):</strong> resid RMS trend and KFLOG base-vs-corrected shift amplitude (per
+    motor) should be comparable-or-better than historical RA/Dec-mode sessions on similar
+    targets — ideally an explicit same-night or same-target A/B, given night-to-night seeing/wind
+    variability makes single-session comparisons noisy on their own.</li>
+</ul>
+<hr />
+<h2 id="phase-5--live-field-validation">Phase 5 — Live field validation<a class="headerlink" href="#phase-5--live-field-validation" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A/B protocol: same night (or closely matched nights/targets) run old mode then new mode (or
+    alternate), via the <code>Config</code> flag, both <code>log_pec</code> and <code>log_position</code> on for full telemetry.</li>
+<li><strong>Strongly consider logging both models' residuals simultaneously</strong> even when only one mode's
+    correction is actually applied — i.e. keep a "shadow" RA/Dec model fitting (not driving
+    anything) running alongside the live theta-space model, and vice versa on old-mode nights.
+    This turns every single session into its own A/B comparison instead of needing two separate
+    nights with matched conditions, which removes most of the night-to-night noise problem from
+    Phase 4's field gate. Worth deciding whether this is in scope for Phase 1 or deferred.</li>
+<li>Repeat over multiple nights/targets before drawing a conclusion — a single night, however
+    good, isn't statistically conclusive given natural seeing/wind variability.</li>
+<li>Reuse the exact same notebook metrics from Phase 0 throughout, so every phase of this project
+    is judged by the same yardstick.</li>
+</ul>
+<hr />
+<h2 id="open-questions-to-resolve-early-dont-let-these-surface-mid-implementation">Open questions to resolve early (don't let these surface mid-implementation)<a class="headerlink" href="#open-questions-to-resolve-early-dont-let-these-surface-mid-implementation" title="Permanent link">&para;</a></h2>
+<p><em>(Historical — see Open questions (current) in the status section.)</em></p>
+<ol>
+<li>Confirm/refute "M1/M3 same motor+gearbox, M2 different" — Phase 0.2 answers this directly.</li>
+<li>Decide the Phase 3.2 ground-truth-injection gap before committing to a bench-test-only
+    validation story.</li>
+<li>Decide whether "shadow" dual-model logging (Phase 5) is worth the extra complexity in Phase 1,
+    given how much it strengthens field validation.</li>
+<li>Confirm the exact safe injection point for the PV correction (Phase 1.3) by tracing all
+    readers of <code>self._theta_state</code> between the KF and <code>theta_to_q(*self._theta_state)</code>.</li>
+</ol>
+<hr />
+<h2 id="log-inventory-update-logs2-import">Log inventory update (logs2 import)<a class="headerlink" href="#log-inventory-update-logs2-import" title="Permanent link">&para;</a></h2>
+<p>Scanned a new <code>logs/logs2</code> drop (81 files across a top level plus 4 subdirectories with
+generic <code>alpaca.log.N</code> names). Most duplicated existing content exactly (same basename, same
+byte size — confirmed via full comparison, not assumed). Moved only the genuinely new,
+PECLOG-qualifying files/directories into <code>logs/logs</code> (not copied — originals no longer in
+logs2): <code>alpaca.greg_Beta3_08_02.log</code>, <code>alpaca.log.1/.2/.3</code> (no collision with anything
+existing under those names), and whole subdirectories <code>vlogs/</code>, <code>Logs AutotuneMAC/</code>,
+<code>Logs10-Jun-2026_PEC/</code>, plus <code>logs/</code> renamed to <code>logs2_logs/</code> to avoid a confusing
+<code>logs/logs/logs/</code> nesting. Notable find: <code>vlogs/alpaca.log.4</code>, 3246 legacy-format PECLOG
+entries — but only 2.13h span / 1.16h continuous segment, and <strong>from a different site</strong>
+(43.75°N, 6.92°E — northern hemisphere, matching the earlier "first time on a northern target"
+context) — <code>find_site_location()</code> picked this up correctly per-file, no manual handling
+needed. Re-scanned the full expanded set for continuous PECLOG duration: <code>08_02.log</code>'s 11.19h
+remains the longest available by a wide margin; nothing in the new import beats it.</p>
+<h2 id="recommended-target-for-tonights-confirmation-capture">Recommended target for tonight's confirmation capture<a class="headerlink" href="#recommended-target-for-tonights-confirmation-capture" title="Permanent link">&para;</a></h2>
+<p><em>(Historical, 2026-08-31.)</em></p>
+<p>Simulated candidate starting Az/Alt across a grid, holding RA/Dec fixed (pure sidereal
+tracking, no PEC) and running the real kinematics chain (<code>azalt_to_radec</code> → track forward →
+<code>radec_to_altaz</code> → <code>calc_parallactic_angle</code> for roll → <code>azaltroll_to_theta</code>) forward several
+hours, maximizing M1+M3 total angular travel subject to keeping <code>theta_pred_2</code> (M2) below 79°
+(clear of the confirmed <code>THETA2_MAX=81.5</code> near-singularity) and altitude above 10°.</p>
+<p><strong>Best found: start at Az=176°, Alt=35°</strong> (a target deep in the south circumpolar region for
+this site, ~Dec=-86.6° at the reference time used — in practice just slew to this Az/Alt at
+tonight's actual start time, no need to match a specific star or date). Mechanism: this close
+to the pole, Az/Alt barely change over the session, but <strong>roll has to sweep hard</strong> (+69° to
+-85° over the simulated 9h) to compensate for the fast-changing parallactic angle near a pole —
+and that roll sweep, not Az/Alt translation, is what drives large M1/M3 motion, so alt (and
+hence M2) stays comfortably moderate (~35-74°) for most of the session instead of climbing
+toward the ceiling the way a more conventional near-zenith target would.</p>
+<p>Simulated over a 9-hour window from this start: <strong>M1 travels 147.9° (vs 101° in <code>08_02.log</code>'s
+real 6.62h segment), M3 travels 106.5° (vs 83.8°)</strong>, both comfortably better than anything
+captured so far, with M2 staying in [37.2°, 73.9°] throughout — safely clear of the boundary.
+At 9.5h, M2 reaches 79.97° (borderline); at 10h, 83° (past the safe margin) — so <strong>~9 hours
+continuous is the recommended session length</strong> from this start.</p>
+<p>Caveats: roll sign/convention here uses <code>-calc_parallactic_angle()</code>, matching the convention
+used elsewhere in this investigation but not independently re-verified against the driver's
+own live roll-tracking code path; mechanical corrections (MAC) and QUEST alignment aren't
+included (both are normally small perturbations, shouldn't change the big picture, but haven't
+been checked). Keep sidereal tracking + field derotation on throughout, avoid any
+goto/jog/tracking-toggle for the full session (see <code>find_tracking_segments()</code> — a single
+interruption would split this into separate, shorter segments for analysis purposes).</p>
+<p><strong>Confirmed for tonight</strong>: starting at Az=176°, Alt=35°, Roll=+60° (close to the simulated
+t=0 roll of ~69° — small offset shouldn't matter, roll evolves via normal field-derotation
+tracking from there, not fixed).</p>
+<p><strong>Superseded</strong> — Dec=-86.6° (the original recommendation above) is only ~3.4° from the SCP,
+correctly flagged as unrealistic (essentially no real targets there, unusual mechanically).
+Redone anchored on 47 Tucanae (NGC 104, RA=00h24m05.67s, Dec=-72°04'52.6" — still circumpolar
+from this site, circumpolar limit is Dec ≤ -56.3° at lat=-33.655°), searching over start
+time/hour-angle instead of free Dec:</p>
+<p><strong>Start when 47 Tuc is at Az≈159°, Alt≈41°, Roll≈+73°</strong> — ~4h before it transits due south
+(transit: Az=180°, Alt=51.7°, the session's highest point). Since the simulation's reference
+date (2026-08-31) is today, this converts directly to a real clock time: ≈9:40 PM AEST
+tonight (Sydney, UTC+10, no DST until October) — not independently verified beyond the
+<code>ephem</code> calculation itself, worth a sanity check against a planetarium app before committing.
+Track 8 hours through transit and beyond, naturally symmetric around it.</p>
+<p>Simulated: <strong>M1 travels 115.4°, M3 travels 95.5°</strong> (both better than <code>08_02.log</code>'s real
+101°/83.8°), M2 in [51.7°, 77.9°] — but M2 starts at 77.4° already close to the 81.5°
+boundary and climbs back to 76.9° by hour 8, so <em>both</em> ends of the session are somewhat close
+to the ceiling, not just one — starting a bit later (closer to transit) trades span for more
+margin if wanted.</p>
+<hr />
+<h2 id="historical-rlsema-context-from-the-user-confirms-the-code-level-analysis-above">Historical RLS/EMA context (from the user, confirms the code-level analysis above)<a class="headerlink" href="#historical-rlsema-context-from-the-user-confirms-the-code-level-analysis-above" title="Permanent link">&para;</a></h2>
+<p>"RLS with no harmonics" (<code>n_harmonics=0</code>, pure <code>a*t</code> linear fit) is "our old non-harmonic
+correction" — confirmed: it didn't handle the trend flattening, exactly as the code structure
+predicts (a single constant-rate parameter can't represent a rate that changes shape over
+time). RLS with 2 harmonics (current default) wasn't satisfying either. EMA was tried and
+gave "quite poor" results in practice, abandoned — "maybe prematurely." This matches the
+mechanism found by reading <code>_update_ema()</code>: EMA smooths the <em>raw combined</em> observed rate with
+no periodic/secular separation at all, so it's structurally unable to tell a genuine secular
+stop from the periodic component's own rate crossing zero — a real, expected failure mode, not
+just a tuning problem. This is independent supporting evidence for the decoupled-adaptation-
+rate design direction proposed above (give the secular/trend term its own process-noise rate,
+separate from the harmonics, rather than either a single shared RLS λ or EMA's total
+conflation) — EMA's failure doesn't rule out a Kalman-style local-linear-trend + harmonics
+model; it's closer to a data point for <em>why</em> that decoupling matters.</p>
+<h2 id="additional-data-point-alpacapec_rls_alpha_06_03_pulseguide_peclog">Additional data point: <code>alpaca.pec_rls_Alpha_06_03_pulseguide_pec.log</code><a class="headerlink" href="#additional-data-point-alpacapec_rls_alpha_06_03_pulseguide_peclog" title="Permanent link">&para;</a></h2>
+<p>User-flagged: multiple PEC restarts (11 <code>n</code>-resets found), and "very clear periodic
+behaviour." Investigated the largest clean segment (rows 249:8727, n=8478, 98.5min,
+~0.7s cadence — over 10x denser than any sync-guide session analyzed so far). Confirmed
+directly from the raw data: Dec's <code>total_accum</code> climbs almost monotonically (0→70.7 arcmin
+over 98.5min, ~43 arcmin/hr) — a strong secular drift, visually obvious even without a
+periodogram. RA's <code>total_accum</code> shows genuine wave-like oscillation on top. Both signatures
+the user described, in the same dataset.</p>
+<p>Time-domain periodogram of raw <code>total_accum</code> (matching the notebook's existing RA/Dec period
+cells) gives, for the first time in this investigation, a <strong>clean, single, dominant,
+highly-significant peak with no competing secondary peaks</strong>: RA period=31.47min (power=0.758,
+FAP=0.000), Dec period=44.61min (power=0.660, FAP=0.000) — RA's is close to the driver's
+configured 34min worm period. Far cleaner than anything from the sparser sync-guide sessions,
+attributable to the much higher sample density.</p>
+<p>Angle-domain (properly corrected: <code>total_accum</code>→theta, time-detrended, x-axis computed
+directly from az/alt/roll with no <code>resid</code> dependency — pulse-guide mode logs mostly
+no-fresh-observation status lines, <code>resid</code> is NaN on 8408/8478 rows even though
+<code>total_accum</code> isn't, so the x-axis must not require <code>resid</code> or it throws away 99% of the
+data for no reason): <strong>M1 peak=7.96° (power 0.145), M3 peak=7.50° (power 0.188)</strong> — close to
+each other (~6% apart) and in a similar range to the earlier (now-downgraded) cross-session
+~6-7° cluster. Peak/testable_max ratios are 0.82-0.88 — better than the worst edge-biased
+results seen earlier, but not as clean as the time-domain result above, so treat as a
+tentative further data point for the ~6-7° hypothesis, not confirmation on its own.</p>
+<hr />
+<h2 id="dedicated-pec-off-sync-guide-on-capture-logsarchivealpacasoak_nopec_beta43_08_31alog">Dedicated PEC-off, sync-guide-on capture: <code>logs/archive/alpaca.soak_nopec_Beta4.3_08_31a*.log</code><a class="headerlink" href="#dedicated-pec-off-sync-guide-on-capture-logsarchivealpacasoak_nopec_beta43_08_31alog" title="Permanent link">&para;</a></h2>
+<p>Exactly the missing dataset from 0.0's log inventory — Config.advanced_pec off,
+advanced_sync_guiding on, log_position on (KFLOG available). 20 rotated files, 366MB,
+232416 KFLOG rows, 2026-08-31 19:08:52 → 2026-09-01 08:41:33 (~13.5h nominal span). Site:
+same as before (-33.655°, 151.122°, Sydney).</p>
+<p><strong>Real interruption found and precisely bounded — corrected.</strong> Originally reported (from raw
+KFLOG/PIDLOG timestamp gaps directly, not <code>find_tracking_segments()</code>'s REST-command
+boundaries, which found a different, spurious split) as a 15.5min driver telemetry gap
+2026-09-01 00:41:42.411 → 00:57:12.591. <strong>That gap boundary is real but was the wrong signal
+to trust for the outage's true extent</strong> — found while building <code>utility/analyse_comms.ipynb</code>
+(new notebook; see the section below) and its <code>load_connection_events()</code>/
+<code>reconstruct_outages()</code> helpers, which parse the driver's own connection-lifecycle log lines
+(<code>==DISCONNECT==</code>, <code>Connect timed out</code>, <code>==STARTUP==</code>, <code>Polaris communication init... done</code>,
+client REST actions) across all rotated files, sorted by each line's own embedded timestamp
+rather than file order (rotated files are numbered newest-to-oldest here, so naively
+concatenating by filename silently interleaves events backwards).</p>
+<p>The reconstructed outage is <strong>2026-09-01 00:21:52.445 → 00:51:43.158 (~29.8min)</strong> — starting
+~20 minutes earlier than previously documented, and ending ~5.5 minutes earlier too:</p>
+<ol>
+<li><code>HIGH CPU LOAD breakdown</code> at 00:21:59 shows NINA.exe (38.5%) + the driver's own python.exe
+    (23.4%) pushing the host CPU near 100%, corroborated by escalating <code>Heartbeat lag
+    detected</code>/<code>Event loop lag detected</code> vitals warnings in the preceding ~10s (pulse lag
+    0.447s → 5.955s; event-loop sleep overrun up to 3.237s against a 500ms budget).</li>
+<li>That starved the driver's asyncio event loop long enough that at 00:21:52.445,
+    <code>==DISCONNECT== Polaris socket error: [WinError 10054] An existing connection was forcibly
+    closed by the remote host</code> — the remote side (or the OS/network stack under load) reset the
+    connection. <strong>Not</strong> the driver's own 5s-no-518-telemetry watchdog (<code>age_518</code> was only
+    ~1.1s at the last position-update-lag warning immediately before this) — a harder failure
+    preempted it.</li>
+<li>110 <code>Connect timed out</code> reconnect attempts followed, all failing, for ~25 minutes.</li>
+<li>A WiFi rejoin was attempted via <code>Polaris:bleEnableWifi</code>/<code>Polaris:ConnectPolaris</code> REST
+    actions at 00:41:12–00:41:29 and failed (<code>Failed to join WiFi network 'polaris_b83c06':
+    netsh wlan connect failed: ... error 0x57</code>). The client also toggled <code>log_position</code> off at
+    00:41:43.836 mid-outage — <strong>this, not the connection recovering, is what actually stopped
+    KFLOG/PIDLOG at 00:41:42</strong> (the KF/PID control loop had kept ticking and being logged on
+    dead-reckoned predictions for the ~20 minutes since the real disconnect, past the point the
+    connection had already died).</li>
+<li>A fresh driver process started at 00:47:07 (<code>==STARTUP==</code> — the miniPC/driver restart) but
+    still couldn't connect for another ~4.5 minutes.</li>
+<li><code>Polaris:ConnectPolaris</code> at 00:51:42 finally succeeded; <code>Polaris communication init...
+    done</code> at 00:51:43.158 closes the outage. <code>log_position</code> wasn't turned back on until
+    00:57:12.543 — five and a half minutes <em>after</em> the connection was already back up — which
+    is what actually produced the 00:57:12 boundary in the original KFLOG-gap-based finding.</li>
+</ol>
+<p><strong>Net effect: the previously-reported 00:41:42→00:57:12 "gap" was never the outage's true
+start/end — it was a <code>log_position</code> logging toggle that happened to span part of a longer
+outage that had already started 20 minutes earlier and (partially) resolved 5.5 minutes
+earlier.</strong> Segment 1/Segment 2 below were split at the old (wrong) boundary; a re-split at the
+corrected 00:21:52/00:51:43 boundary hasn't been redone here — <code>analyse_pec_theta.ipynb</code>'s own
+<code>find_tracking_segments()</code>-based split (00:21:34→00:57:39) already lands close to the
+corrected reality independently, which is reassuring, but the periodogram results in this
+section below still reflect the original (slightly wrong) segment boundaries and haven't been
+rerun against the correction.</p>
+<p>A second disruption follows at 03:30:24: <code>synctocoordinates</code> to RA=0.394h/Dec=-71.75°
+(essentially 47 Tuc) immediately followed by <code>findhome</code> + <code>"Advanced Control: STOP tracking"</code>
+— see below, this is the deliberate session stop, unrelated to the outage above.</p>
+<p><strong>Tracking stopping at 03:30:24 is expected, not a bug — user stopped the session there
+deliberately (3:30 AM).</strong> <code>θ_ref_raw</code> (only populated "while actively tracking") has exactly
+5 non-NaN rows in all 93231 KFLOG rows of the 03:30→08:41 window — all in the last second
+before the stop took effect — and no "START tracking" appears anywhere afterward, confirming
+tracking genuinely didn't resume, but that's simply because the session ended there.
+<strong>The 03:30→08:41 log content is not usable for tracking/PE analysis</strong> (nothing to analyze,
+not "went wrong") — user is removing these later log files from the archive.</p>
+<p><strong>Also found: sync-guiding stopped at the same point, for the same reason.</strong> Cross-checked via
+<code>load_sync_guiding_residuals()</code> (430 total corrections across the whole file set) — the very
+last one is at 03:30:21.876, matching the reconnection's <code>synctocoordinates</code> to the
+millisecond. Zero corrections after that, simply because the session ended there (not a
+re-arming failure — originally misread as one before the user clarified).</p>
+<p><strong>Net usable data: two segments</strong>, not one continuous ~13.5h run:</p>
+<ul>
+<li><strong>Segment 1</strong>: 19:08:52 → 00:41:42 (~5.5h), 295 sync-guide residual events, 93756 KFLOG rows.</li>
+<li><strong>Segment 2</strong>: 00:57:12 → 03:30:21 (~2.5h), 135 residual events (87 usable after the theta2
+    guard — this window overlaps the earlier-noted noisier PID-error stretch), ~45418 KFLOG rows.</li>
+<li>Segment 3 (03:30→08:41): KFLOG exists but is not usable (no tracking, see above).</li>
+</ul>
+<p><strong>Methodological correction needed before analyzing Segments &frac12;, found by reasoning through
+what a <em>long</em>, actively-guided session actually means for the KFLOG-based ground truth</strong>:
+<code>θ_meas_raw − θ_ref_raw</code> (the original Phase 0.1 plan, and what <code>analyse_pec.ipynb</code>'s
+existing "Base vs Corrected Frame Shift" section uses) is <em>not</em> clean here the way it looked
+in earlier, shorter investigations. Traced why: <code>topoQ_to_baseQ()</code> (which builds <code>theta_ref</code>)
+explicitly does not undo Sync Guiding Corrections (SGC) — confirmed from its own docstring
+("no undo Sync Guiding Corrections (SGC)") — but <code>θ_meas_raw</code> <em>does</em> physically reflect every
+sync-guide correction ever applied (they cause real motor motion, as established earlier in
+this investigation). Over a session with hundreds of real corrections, this means
+<code>θ_meas_raw − θ_ref_raw</code> isn't "raw uncorrected PE" — it's raw PE <em>plus the ever-growing
+cumulative effect of every correction ever applied</em>, since <code>θ_ref_raw</code> never learns about
+them. Confirmed empirically before trusting it: Segment 1's raw shift reaches tens of
+thousands of arcsec (multiple degrees) with a smooth, U-shaped/reversing trajectory — real
+secular drift, not noise, but the wrong signal for isolating PE, for the same structural
+reason <code>resid</code> was the wrong signal before PEC's contamination was found (same shape of bug,
+different mechanism: SGC this time, not PEC's feed-forward).</p>
+<p><strong>Fix, mirroring the <code>total_accum</code> fix</strong>: since there's no PECLOG here (no <code>total_accum</code>
+either), added <code>load_sync_guiding_residuals()</code> (parses <code>SYNC GUIDING ... Residuals</code> lines
+directly — works with zero PECLOG, since <code>process_guide_sync()</code> logs this line
+unconditionally) and <code>derive_theta_from_sync_residuals()</code> (anchors each session/segment's
+first usable event, reconstructs <code>true_ra/dec(t) = anchor + cumsum(resid)(t)/60</code>, converts to
+theta via the same kinematics chain — position source is <code>θ_meas_raw</code>, converted to az/alt/roll
+via <code>kinematics.theta_to_azaltroll()</code>, since there's no PECLOG <code>az</code>/<code>alt</code>/<code>roll</code> to use here).
+No separate "add back PEC's correction" term needed — with PEC off, <code>resid</code> alone is already
+the complete uncorrected-drift signal, an even more direct case than <code>total_accum</code>'s.</p>
+<p><strong>Results</strong> (<code>periodogram_false_alarm_probability</code>, <code>n_shuffles=200</code>, linear-detrended before
+the call since the periodogram function's own detrend is against x, not t):</p>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Motor</th>
+<th>n</th>
+<th>x span</th>
+<th>TIME peak</th>
+<th>TIME power/FAP</th>
+<th>ANGLE peak</th>
+<th>ANGLE power/FAP</th>
+<th>testable_max</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 (5.5h)</td>
+<td>M1</td>
+<td>295</td>
+<td>97.3°</td>
+<td>132.44min</td>
+<td>0.124 / 0.000</td>
+<td>42.75°</td>
+<td>0.280 / 0.000</td>
+<td>48.63°</td>
+</tr>
+<tr>
+<td>1</td>
+<td>M2</td>
+<td>295</td>
+<td>23.7°</td>
+<td>134.50min</td>
+<td>0.164 / 0.000</td>
+<td>11.84°</td>
+<td>0.250 / 0.000</td>
+<td>11.84° (edge)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>M3</td>
+<td>295</td>
+<td>79.1°</td>
+<td>132.36min</td>
+<td>0.124 / 0.000</td>
+<td>35.08°</td>
+<td>0.317 / 0.000</td>
+<td>39.57°</td>
+</tr>
+<tr>
+<td>2 (2.5h)</td>
+<td>M1</td>
+<td>87</td>
+<td>19.2°</td>
+<td>46.22min</td>
+<td>0.571 / 0.000</td>
+<td>8.83°</td>
+<td>0.664 / 0.000</td>
+<td>9.62°</td>
+</tr>
+<tr>
+<td>2</td>
+<td>M2</td>
+<td>87</td>
+<td>20.0°</td>
+<td>29.16min</td>
+<td>0.114 / 0.290 (n.s.)</td>
+<td>8.66°</td>
+<td>0.115 / 0.300 (n.s.)</td>
+<td>10.01°</td>
+</tr>
+<tr>
+<td>2</td>
+<td>M3</td>
+<td>87</td>
+<td>11.4°</td>
+<td>43.76min</td>
+<td>0.276 / 0.000</td>
+<td>5.05°</td>
+<td>0.353 / 0.000</td>
+<td>5.71°</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read on this</strong>: M1≈M3 (not M2) holds up again, in both segments, on a fifth and sixth
+independent measurement (now across five different nights total counting the earlier ones) —
+Segment 1: 132.44 vs 132.36min (essentially identical). Segment 2: 46.22 vs 43.76min (also
+close to each other). That cross-motor consistency-within-a-segment is the most repeatable
+signal in this whole investigation so far. What is <em>not</em> yet resolved: Segment 2's time-domain
+period is roughly &#8531; of Segment 1's (44-46min vs 132min) — could be genuine harmonic
+aliasing (a shorter segment latching onto a higher harmonic of the same true period a longer
+one resolves as fundamental) or could be two genuinely different measurements not yet
+reconciled; not distinguished yet. Angle-domain peaks remain closer to their testable_max
+ceilings than ideal (88-100%), so the <em>absolute</em> angular period numbers from this data still
+carry the same caveat as before — the cross-motor pattern is the reliable part, not yet the
+specific degree value.</p>
+<h2 id="new-driver-feature-sglog--self-sufficient-sync-guide-telemetry-without-log_position">New driver feature: <code>SGLOG</code> — self-sufficient sync-guide telemetry without <code>log_position</code><a class="headerlink" href="#new-driver-feature-sglog--self-sufficient-sync-guide-telemetry-without-log_position" title="Permanent link">&para;</a></h2>
+<p>Motivated directly by the previous section: the 08_31 capture needed <code>log_position</code> (KFLOG)
+on just to recover motor position for <code>derive_theta_from_sync_residuals()</code>, which is what
+produced 20 rotated 20MB files for a single overnight run. That's avoidable — <code>process_guide_sync()</code>
+already computes everything needed at the moment of each sync-guide correction, it just wasn't
+being logged in structured form.</p>
+<p><strong><code>driver/control.py</code> changes</strong> (<code>process_guide_sync()</code>):</p>
+<ul>
+<li>A new <code>SGLOG {dict}</code> line, logged unconditionally right after the existing plain-text
+    <code>"SYNC GUIDING ... Residuals"</code> line (same as PECLOG's own logging — independent of
+    <code>Config.log_pec</code>/<code>Config.log_position</code>, so it's available even with both off). Fields:
+    <code>resid</code> (this correction, arcmin, same convention as PECLOG's <code>resid</code>), <code>total_accum</code>
+    (cumsum since reset, arcmin), <code>theta_raw</code> ([M1,M2,M3] degrees, straight from
+    <code>self.polaris._theta_raw</code> — no more need to nearest-match against KFLOG to get a position),
+    <code>az</code>/<code>alt</code>/<code>roll</code> (topocentric PV, same convention as PECLOG), <code>interval_sec</code> (smoothed EMA
+    time between syncs), and <code>age_518</code> (telemetry staleness, same diagnostic PECLOG carries).</li>
+<li><strong><code>total_accum</code> reuses the existing <code>self.delta_guide_accum[0]</code>/<code>[1]</code> state, not a new
+    counter.</strong> First cut of this added a dedicated <code>sg_accum_ra</code>/<code>sg_accum_dec</code> pair — caught in
+    review as redundant: <code>accumulate_sync_guiding_residuals()</code> (called right before the SGLOG
+    block, same as before) already does <code>delta_guide_accum[0] += ra_resid</code> /
+    <code>[1] += dec_resid</code>, the identical cumulative sum, just in degrees rather than arcmin
+    (scaled ×60 when logged). Tracing the reset call sites showed <code>delta_guide_accum</code>'s
+    semantics are actually <em>more</em> correct for this than a dedicated counter would have been: it
+    resets in <code>clear_sync_guiding()</code> (same as a dedicated counter would), but <em>also</em> in
+    <code>clear_guide_pulses()</code> — called from <code>optimize_alignQ_B2T()</code> whenever the QUEST <code>alignQ_B2T</code>
+    model is recomputed (only happens on the non-sync-guiding path through <code>sync_az_alt()</code>,
+    i.e. rare during steady guiding) — exactly the moment a stale cumulative total would
+    otherwise silently mean something different against the new alignment model. A separate
+    counter reset only by <code>clear_sync_guiding()</code> would have kept summing straight through an
+    alignment change. Removed the dedicated state entirely; SGLOG now just reads
+    <code>delta_guide_accum</code> after <code>accumulate_sync_guiding_residuals()</code> has updated it.</li>
+<li>Verified with <code>compile()</code>; not yet exercised against a live driver run (no capture has used
+    it yet — it's brand new).</li>
+</ul>
+<p><strong><code>utility/analyse_helpers.py</code></strong>: added <code>load_sglog(log_filenames, log_dir='.')</code>, parsing
+<code>SGLOG {dict}</code> lines into a DataFrame with <code>resid_1/2</code>/<code>az</code>/<code>alt</code>/<code>roll</code>/<code>total_accum_1/2</code>/
+<code>theta_raw_1/2/3</code>. <strong>Not</strong> a drop-in for <code>derive_theta_from_total_accum()</code> — caught in review:
+that function splits internally on PECLOG's <code>n</code> reset counter, which SGLOG has no equivalent
+of (there's no PEC model resetting here). Added a dedicated <code>derive_theta_from_sglog()</code>
+instead — same open-loop reconstruction math as <code>derive_theta_from_total_accum()</code> (anchor
+ra0/dec0, <code>true_ra/dec(t) = anchor + total_accum(t)/60</code>, convert to theta via the kinematics
+chain), but simpler than <code>derive_theta_from_sync_residuals()</code>'s KFLOG-matching path: SGLOG
+already carries <code>theta_raw_1/2/3</code> (the real motor position) on every row, so <code>theta_meas_i =
+theta_raw_i</code> directly, no nearest-sample matching needed. Doesn't split internally at all —
+caller pre-splits by tracking segment (e.g. one <code>find_tracking_segments()</code> window at a time),
+same convention <code>derive_theta_from_sync_residuals()</code> already documents. For a
+PEC-off/log_position-off session, SGLOG + <code>derive_theta_from_sglog()</code> is now sufficient for
+the theta-space pipeline — no KFLOG needed (<code>load_sync_guiding_residuals()</code> +
+<code>derive_theta_from_sync_residuals()</code> remain the fallback for logs captured before SGLOG
+existed).</p>
+<p><strong>New notebook: <code>utility/analyse_pec_theta.ipynb</code>.</strong> Split the theta-space harmonic analysis
+out of ad-hoc in-conversation scripts (it was never actually saved into any notebook before
+this) into its own dedicated one, separate from <code>analyse_kf_pid.ipynb</code>/<code>analyse_pec.ipynb</code>'s
+own KFLOG/PIDLOG/PECLOG-plotting cells. Auto-detects and falls through PECLOG →
+SGLOG → sync-residual+KFLOG in preference order — <strong>falls through on a source producing zero
+usable segments, not just on a load error</strong>, found necessary by testing against real data: the
+08_31 PEC-off capture actually has 2 stray PECLOG rows (from just before PEC was disabled that
+session), so an exception-only fallback silently picked the PECLOG path and produced nothing
+useful instead of falling through to the sync-residual+KFLOG path that actually has the data.
+Runs the angle-domain periodogram as <code>x = theta_true_i</code> (raw), <code>y = theta_true_i</code> pre-detrended
+against <strong>time</strong> first (not against <code>x</code> — self-pairing <code>x</code>/<code>y</code> from the same array and letting
+<code>lombscargle_periodogram()</code>'s own linear detrend run against <code>x</code> is the exact degenerate case
+found and fixed earlier in this investigation, since <code>y ≈ x</code> almost perfectly and detrending
+zeroes out the whole signal). Verified end-to-end against real data (no notebook-execution
+tooling available in this environment, so verified by concatenating the notebook's own code
+cells into a script and running it): the sync-residual+KFLOG path against the 08_31 capture
+reproduces the M1≈M3-vs-scattered-M2 pattern already established above (FAP=0.000 for M1/M3 in
+both segments, M2 non-significant in segment 2), and the PECLOG path runs cleanly against the
+<code>08_29n</code> session too.</p>
+<p><strong>Not yet done</strong>: no real SGLOG data exists to validate against (next capture will be the
+first — the new notebook's SGLOG branch itself is therefore untested against real data, only
+compile-checked and reasoned through). Once one exists, worth a quick sanity check that
+<code>load_sglog()</code>'s <code>total_accum</code> column reproduces <code>cumsum(resid)</code> to rounding precision, the
+same check already done for PECLOG's <code>total_accum</code> against <code>08_29</code> data.</p>
+<h2 id="new-notebook-utilityanalyse_commsipynb--commsdropoutrestart-diagnosis">New notebook: <code>utility/analyse_comms.ipynb</code> — comms/dropout/restart diagnosis<a class="headerlink" href="#new-notebook-utilityanalyse_commsipynb--commsdropoutrestart-diagnosis" title="Permanent link">&para;</a></h2>
+<p>Split out of <code>analyse_kf_pid.ipynb</code>'s "Driver vitals events" and "Comms Anomaly" sections
+(removed from there; <code>analyse_kf_pid.ipynb</code> keeps its own "Telemetry gaps"/"Gap masking"
+cells, since those are still needed there purely as plot-masking infrastructure, not as
+diagnosis). Motivated directly by needing to actually answer "why did the 08_31 capture drop
+out at 2026-09-01T00:21:52" with evidence, not a guess — see the correction above, which this
+notebook's tooling produced.</p>
+<p><strong>New parsers in <code>utility/analyse_helpers.py</code>:</strong></p>
+<ul>
+<li><code>load_vitals()</code> — moved from an inline notebook function, and extended to also catch <code>Event
+    loop lag detected</code> (polaris.py's own watchdog-cycle sleep-overrun check) alongside the
+    existing <code>Polaris position update</code>/<code>Heartbeat lag detected</code> kinds — a real gap in the
+    original inline version, which only matched two of the three <code>shr.system_vitals()</code> call
+    sites and so silently missed a warning kind that turned out to be directly relevant to the
+    08_31 incident.</li>
+<li><code>load_high_cpu_events()</code> — new. Parses <code>HIGH CPU LOAD breakdown: &lt;Name X.X%, ...&gt;</code> lines
+    (<code>shr.system_cpu()</code>, a one-shot top-5-process probe the driver triggers whenever it sees
+    CPU &gt; 95%) into a long-form per-process DataFrame. This was the single most direct clue in
+    the 08_31 incident (NINA.exe + the driver's own python.exe near 100% CPU) and wasn't parsed
+    anywhere before.</li>
+<li><code>load_connection_events()</code> — new. Parses the full connection-lifecycle event stream
+    (<code>==STARTUP==</code>, <code>==DISCONNECT==</code>, both flavors of connect failure — <code>connect_attempt_failed</code>
+    vs <code>reconnect_error</code>, see the function's own docstring for the distinction and how each maps
+    to <code>_format_connection_error()</code> in <code>driver/polaris.py</code> — <code>Polaris communication init...
+    done</code>, WiFi interface/join events, and interesting client REST actions including
+    <code>Polaris:ConfigUpdate</code>, flattened to <code>param_*</code> columns) into one DataFrame, chronologically
+    sorted by each line's own embedded timestamp. <strong>Sorting by embedded timestamp rather than
+    file order is not optional</strong> — confirmed the hard way building this: this project's rotated
+    log naming runs newest-to-oldest (<code>..._aNN.log</code>, and default <code>alpaca.log</code>/<code>.1</code>/<code>.2</code>/...
+    rotation too), so the file holding the 08_31 disconnect (<code>...a12.log</code>) chronologically
+    <em>precedes</em> the file holding its resolution (<code>...a11.log</code>) — the opposite of filename order.</li>
+<li><code>reconstruct_outages()</code> — new. Collapses the connection-event stream into discrete outage
+    spans with full context (trigger, failed-retry count, whether a driver restart happened
+    mid-outage, WiFi rejoin failures, config changes mid-outage). Exists because neither a
+    single log line nor a raw KFLOG-gap estimate told the true story for 08_31: the KF/PID
+    control loop kept ticking and being logged on dead-reckoned predictions for ~20 minutes
+    <em>after</em> the real connection died, only actually stopping when a client happened to also
+    toggle <code>Config.log_position</code> off mid-outage — so trusting the KFLOG-visible gap alone
+    produced a materially wrong outage boundary (see the correction above). All four new
+    functions validated end-to-end against the real 08_31 capture (13 rotated files, ~500min),
+    including one bug caught by that testing: <code>high_cpu_df.rank</code> silently collided with
+    pandas' own <code>DataFrame.rank()</code> method in the first draft (same class of gotcha already
+    documented elsewhere in this codebase for <code>ev.axes</code> vs <code>Series.axes</code>) — fixed to bracket
+    access (<code>high_cpu_df['rank']</code>).</li>
+</ul>
+<p><strong><code>utility/analyse_comms.ipynb</code></strong> covers: Driver vitals events, HIGH CPU LOAD breakdown
+(new), Telemetry gaps, Connection lifecycle events (new), Outage reconstruction (new, the key
+diagnostic — cross-references its own outage spans against the Telemetry-gaps table and notes
+when they diverge and why, rather than assuming one is simply wrong), and the Comms Anomaly
+interactive hunter (ported from <code>analyse_kf_pid.ipynb</code>, self-contained). Ends with the 08_31
+incident as a worked-example writeup. Verified end-to-end against the real 08_31 capture.</p>
+<p><strong><code>analyse_kf_pid.ipynb</code> changes</strong>: removed "Driver vitals events" and "Comms Anomaly"
+(detection + hunter) sections entirely; the Spike/Oscillation hunters' own optional vitals
+overlay already guarded on <code>"vitals_df" in globals()</code>, so they degrade gracefully now that
+vitals aren't loaded there. Re-verified end-to-end against the same 08_31 capture after the
+trim — no errors, 1758 Spike + 1364 Oscillation events still flagged as before.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../study_pec_drift/" class="md-footer__link md-footer__link--prev" aria-label="Previous: PEC Drift — When to Learn, When to Apply">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                PEC Drift — When to Learn, When to Apply
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../beta_results_v2.2/" class="md-footer__link md-footer__link--next" aria-label="Next: Beta Results v2.2">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Beta Results v2.2
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

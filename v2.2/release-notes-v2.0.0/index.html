@@ -1,0 +1,2802 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/release-notes-v2.0.0/">
+      
+      
+      
+        <link rel="prev" href="../release-notes-v2.1.0/">
+      
+      
+        <link rel="next" href="../release-notes-v1.0.1/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>v2.0.0 - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              v2.0.0
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../control/" class="md-tabs__link">
+          
+  
+  Technical
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  A Beginner's Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recommended Hardware Platform
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (Windows)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (macOS)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Setup Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium and Sky Safari Pro
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guiding Users Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alpaca-benro-polaris-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alpaca Benro Polaris Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demonstration-videos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Demonstration Videos
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#win11-upgrade-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Win11 Upgrade Instructions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-v200-over-rc1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in v2.0.0 (over RC1)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-rc1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in RC1
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-beta4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in beta4
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-beta3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in beta3
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-beta2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What’s new in beta2
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-alpaca-pilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (Alpaca Pilot)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-alpaca-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (Alpaca Driver)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-ascom-alpaca-rotator-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (ASCOM Alpaca Rotator support)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-ascom-alpaca-findhome-setpark-park-unpark-support-using-telescope-v4-standard" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (ASCOM Alpaca FindHome, SetPark, Park, UnPark support, using Telescope v4 standard)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-advanced-position-control-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (Advanced Position Control Algorithm)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Benro Polaris Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quest_paper/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alpaca-benro-polaris-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alpaca Benro Polaris Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demonstration-videos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Demonstration Videos
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#win11-upgrade-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Win11 Upgrade Instructions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-v200-over-rc1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in v2.0.0 (over RC1)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-rc1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in RC1
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-beta4" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in beta4
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-beta3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What's new in beta3
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-new-in-beta2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What’s new in beta2
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-alpaca-pilot" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (Alpaca Pilot)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-alpaca-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (Alpaca Driver)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-ascom-alpaca-rotator-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (ASCOM Alpaca Rotator support)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-ascom-alpaca-findhome-setpark-park-unpark-support-using-telescope-v4-standard" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (ASCOM Alpaca FindHome, SetPark, Park, UnPark support, using Telescope v4 standard)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-features-advanced-position-control-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        New Features (Advanced Position Control Algorithm)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../release-notes-v2.2.0/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Release Notes
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="release-notes">Release Notes<a class="headerlink" href="#release-notes" title="Permanent link">&para;</a></h1>
+<h2 id="alpaca-benro-polaris-driver">Alpaca Benro Polaris Driver<a class="headerlink" href="#alpaca-benro-polaris-driver" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Version:</strong> 2.0.0</li>
+<li><strong>Release Date:</strong> 11-Dec-2025   </li>
+<li><strong>Availability:</strong> Download from <a href="https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.0.0.zip">Alpaca Driver v2.0.0 Download ZIP</a></li>
+<li><strong>License:</strong> Distributed exclusively for backers of the <a href="https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v">Kickstarter Project</a></li>
+<li><strong>Current Branch:</strong> releases/2_0_0</li>
+</ul>
+<h2 id="demonstration-videos">Demonstration Videos<a class="headerlink" href="#demonstration-videos" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>20 - Podcast Video:</strong> Podcast Video at <a href="https://youtu.be/KUBCTnEsnlE">https://youtu.be/KUBCTnEsnlE</a></li>
+<li><strong>21 - Preview Demo:</strong> Demonstration Video at <a href="https://youtu.be/0QSKD1GCzOc">https://youtu.be/0QSKD1GCzOc</a></li>
+<li><strong>22 - Starting and Using:</strong> Demonstration Video at <a href="https://youtu.be/Wv_ZvBtZZ4Q">https://youtu.be/Wv_ZvBtZZ4Q</a></li>
+<li><strong>23 - Rotator Framing:</strong> Demonstration Video at <a href="https://youtu.be/_Swd-jIyQis">https://youtu.be/_Swd-jIyQis</a></li>
+<li><strong>24 - Multi Point Alignment:</strong> Demonstration Video at <a href="https://youtu.be/4CMO0R_yphw">https://youtu.be/4CMO0R_yphw</a></li>
+<li><strong>25 - Equipment Safety:</strong> Demonstration Video at <a href="https://youtu.be/45EP-DExSOQ">https://youtu.be/45EP-DExSOQ</a></li>
+<li><strong>26 - Tracking Orbitals:</strong> Demonstration Video at <a href="https://youtu.be/no47ZNagEDk">https://youtu.be/no47ZNagEDk</a></li>
+<li><strong>31 - Kalman Filter:</strong> Demonstration Video at <a href="https://youtu.be/aDFKAWBNQHU">https://youtu.be/aDFKAWBNQHU</a></li>
+<li><strong>32 - Speed Calibration:</strong> Demonstration Video at <a href="https://youtu.be/U_0-mBDuTjE">https://youtu.be/U_0-mBDuTjE</a></li>
+<li><strong>33 - PID Tuning:</strong> Demonstration Video at <a href="https://youtu.be/6vJbSb0gl3M">https://youtu.be/6vJbSb0gl3M</a></li>
+</ul>
+<h2 id="win11-upgrade-instructions">Win11 Upgrade Instructions<a class="headerlink" href="#win11-upgrade-instructions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Uninstall Python 3.12.7</li>
+<li>Remove old <code>C:\Users\Nina\Documents\alpaca-benro-polaris-main&gt;</code> directory.</li>
+<li>Follow the standard <a href=".././installation/">Installation Guide</a> to install the new version of Python, the Alpaca Driver and its requirements.txt</li>
+<li>WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.0<ul>
+<li>Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0</li>
+<li>Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0</li>
+<li>Nina does not need to change, as it reads the correct settings from the Alpaca Driver</li>
+</ul>
+</li>
+</ul>
+<h2 id="whats-new-in-v200-over-rc1">What's new in v2.0.0 (over RC1)<a class="headerlink" href="#whats-new-in-v200-over-rc1" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Installation Docs]</strong> Refresh for V2.0 to include steps to start Alpaca Driver and Alpaca Pilot, referring to Pilot Users Guide for details</li>
+<li><strong>[python compatibility]</strong> Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.</li>
+<li><strong>[Raspberry Pi]</strong> Add support for Raspberry Pi Zero 2, Pi 3, Pi 4 and Pi 5</li>
+<li><strong>[Catalog Customisation]</strong> Added support for user-defined entries in the Alpaca Pilot Catalog</li>
+<li><strong>[Catalog Landmarks]</strong> Added support for fixed-position Catalog entries defined by Azimuth/Altitude</li>
+<li><strong>[Autologin and Hybernation]</strong> Added hardware setup instructions for Win11 autologin and hybernation disable</li>
+<li><strong>[Reset Alignment Procedure]</strong> Document how to reset alignment to a known state</li>
+<li><strong>[Troubleshooting A3]</strong> How to resolve ModuleNotFoundError</li>
+<li><strong>[Troubleshooting C1b]</strong> Add note to check for network conflict of home router on <code>192.168.0.1</code></li>
+<li><strong>[fix #58]</strong> Improved handling of BLE discovery exceptions and added discovery safeguards.</li>
+<li><strong>[Fix #28]</strong> Documented manual installation of Alpaca Driver on Raspberry Pi</li>
+</ul>
+<h2 id="whats-new-in-rc1">What's new in RC1<a class="headerlink" href="#whats-new-in-rc1" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[pip requirements]</strong> Please ensure you do a <code>pip install -r requirements.txt</code> to ensure aiohttp=3.13.2 is installed with beta5</li>
+<li><strong>[Planets and Moons]</strong> Add solar system orbitals to the catalog, including Sun, Moon, Planets and Planetary Moons. </li>
+<li><strong>[Artificial Satellites]</strong> Search for over 35k objects to track, including Space Stations, Sattelites, Rocket Bodies and Space Debris. </li>
+<li><strong>[Asteriods and Comets]</strong> Search for over 1 million Near Earth Objects to track, sourced from the NASA JPL Horizons database. </li>
+<li><strong>[Resource Links]</strong> Provide external site links to find names of satellites, comets, asteroids and Near Earth Objects to search for.</li>
+<li><strong>[Orbital Tracking]</strong> Add Solar, Lunar and Other tracking rates for all cataloged orbitals.</li>
+<li><strong>[Orbital Monitoring]</strong> Preload an orbital target and monitor its position, enabling automatic slewing and tracking once it rises above 10°.</li>
+<li><strong>[Orbital Documentation]</strong> Update Pilot documentation on Orbitals.</li>
+<li><strong>[Tracking Chip]</strong> Update tracking status chip to indicate tracking rate ie Sidereal, Lunar, Solar, or Custom (orbital's name).</li>
+<li><strong>[Solar Warning]</strong> Confirm before enabling Solar Tracking Rate.</li>
+<li><strong>[Motion Warning]</strong> Monitor mount motion and warn user to "Wait till motion stops" before skipping Compass, Single Star Align</li>
+<li><strong>[PID Monitor]</strong> Add a Performance Tuning page to monitor all PID axes at once</li>
+<li><strong>[Zero Residual]</strong> Add an option to force the residual of the last sync point to be zero (for Multi-Point Alignment)</li>
+<li><strong>[FAQ Documentation]</strong> Update FAQ to improve questions on mobile and refresh for V2.0.</li>
+<li><strong>[Hardware Docs]</strong> Refresh for V2.0 and include hardware required for guiding</li>
+<li><strong>[Installation Docs]</strong> Refresh for V2.0 and include detailed process workflow for a typical imaging session</li>
+<li><strong>[Readme Docs]</strong> Refresh for V2.0</li>
+</ul>
+<h2 id="whats-new-in-beta4">What's new in beta4<a class="headerlink" href="#whats-new-in-beta4" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Documentation Menu]</strong> Add Documentation menu for Pilot, Control, Troubleshooting, Videos, FAQ and About</li>
+<li><strong>[Documentation Contents]</strong> Add Documentation content Pilot User Guide and Control User Guide</li>
+<li><strong>[Video Demos]</strong> Add links to Video Demonstrations throughout documentation topics and Playlist to side-menu</li>
+<li><strong>[Nearby Catalog]</strong> Add a Nearby menu item to show catalog targets, sorted by angular proximity to current RA and Dec</li>
+<li><strong>[Search Resume]</strong> Resume a catalog search by focusing the search box when a previous query is still present</li>
+<li><strong>[Kinematics Diagram]</strong> Add a Kinematics "Data Flow Diagram" to explain primary data flows and co-ordinate conversions</li>
+<li><strong>[Alignment Default]</strong> Changed Alignment default to Single Star Alignment, easier out of box use, without Pilot</li>
+<li><strong>[Sync Duplicates]</strong> Remove any sync points within ±2.5° of the most recent sync, before adding the new point</li>
+<li><strong>[Residual Alerts]</strong> Flag Multi-Point Alignment sync entries with elevated residuals. Show a warning above 5°, and a critical alert above 10°.</li>
+<li><strong>[Guide Default]</strong> Changed default RA and Dec Pulse Guide Rates to 1.0x Sidereal </li>
+<li><strong>[Guide Rates]</strong> Expanded allowable Pulse Guide rate settings to 0.25×, 0.50×, 0.75×, 1.00×, 1.25×, 1.50×, 2.00× Sidereal </li>
+<li><strong>[Tuning Parameters]</strong> Hide KF, PID and PWM tuning parameters behind expansion/collapsable sections</li>
+<li><strong>[Delta Angles]</strong> Relative angles can be entered using a 'd' prefix. eg entering 'd2' in the RA axis setpoint will increase the current value by 2 hours</li>
+<li><strong>[Partial Angles]</strong> Partial angles can be entered using a ':' separator. eg entering ':2' means 2 arcmin, entering '::10' means 10 arcsec</li>
+<li><strong>[L Bracket]</strong> Change L-Bracket Camera Orientation from Alpaca Pilot Settings (no longer need BP App)</li>
+<li><strong>[Astro Module Warning]</strong> Notify user when no Astro Module is detected, add Astro Module Version to connect page</li>
+<li><strong>[Astro Mode Warning]</strong> Notify user to switch to Astro Mode before performing Compass, Single Star or Multi-Point Alignment</li>
+<li><strong>[Update Warning]</strong> Track the update rate of Polaris orientation telemetry; alert the user if updates are missed (detects Polaris power down or non-Astro mode)</li>
+<li><strong>[BLE disabled]</strong> Improve handling of devices without BLE, with BLE disabled, with BLE not working</li>
+<li><strong>[Fix #46]</strong> Track the update rate of Alpaca Driver telemetry; alert the user if updates are missed (detects Alpaca Driver stop)</li>
+<li><strong>[Fix #56]</strong> Ensure Polaris sends position updates after connection, compass align and star align</li>
+<li><strong>[Fix #55]</strong> Handle Win11 Bluetooth "cancelled by system error" gracefully and log it</li>
+</ul>
+<h2 id="whats-new-in-beta3">What's new in beta3<a class="headerlink" href="#whats-new-in-beta3" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Epoch Change]</strong> Default epoch for live coordinates changed from J2000 to JNow (ASCOM-recommended)</li>
+<li><strong>[PID Integral]</strong> Improved reliability of PID integral term: preloads with offset to cancel derivative, clamps to 3× sidereal rate</li>
+<li><strong>[PID Tuning]</strong> Updated default PID parameters to improve responsiveness: increased Kp to 1.0, Ki to 0.05, and reduced Kd to 0.5</li>
+<li><strong>[PID Status]</strong> Added PID Status chip to the tuning page for real-time GOTO completion monitoring</li>
+<li><strong>[Aiming Ajustment]</strong> The default V1.0 Aiming Adjustment feature will be disabled as we no longer need forward aiming</li>
+<li><strong>[Chart Gridlines]</strong> Highlight horizontal gridline at Y = 0 for better visibility on all charts</li>
+<li><strong>[GOTO Tolerance]</strong> Reduced GOTO tolerance to 0.5 arcminutes to allow more time for tracking stabilization</li>
+<li><strong>[Goto Timeout]</strong> If GOTO fails to reach tolerance within 45s, system returns to IDLE or TRACKING</li>
+<li><strong>[Sync Residual]</strong> Enforce zero residual at the most recent sync, by applying a final local correction atop globally optimized multi-point alignment</li>
+<li><strong>[Weighted Sync]</strong> Multi-point sync now prioritizes recent, nearby, and polar-adjacent points for improved global alignment</li>
+<li><strong>[Limit Syncs]</strong> Capped sync history to 10 points; lowest-weighted entries are discarded when new syncs are added</li>
+<li><strong>[Sync Diagnostics]</strong> New Driver Log setting enables optional logging of sync weights used in QUEST model calculations</li>
+<li><strong>[Bluetooth LE]</strong> Enhanced Bluetooth Low Energy support on macOS</li>
+<li><strong>[Warning Banner]</strong> Connection warnings now appear on all pages, including the Connection Page</li>
+<li><strong>[Park Notification]</strong> Clear notification you cannot find Home while mount is Parked</li>
+<li><strong>[Catalog Search]</strong> Catalog search now includes DSOs below horizon and near zenith</li>
+<li><strong>[Issue #52]</strong> Fixed bug preventing Home and Park after 45s timeout post-GOTO</li>
+<li><strong>[Issue #53]</strong> Improved radial dial click compatibility with Firefox browser</li>
+<li><strong>[FAQ B5]</strong> Added FAQ documentation note on Benro Polaris load capacity</li>
+<li><strong>[ASCOM 7.1]</strong> Verified compatibility with ASCOM Platform 7.1</li>
+</ul>
+<h2 id="whats-new-in-beta2">What’s new in beta2<a class="headerlink" href="#whats-new-in-beta2" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[PID Integral]</strong> Corrected integral component calculation for better error convergence to zero</li>
+<li><strong>[PID Acceleration]</strong> Increased default max acceleration from 3 to 5°/s² for quicker response</li>
+<li><strong>[PID Tuning]</strong> Added a full PID Tuning page with support for goto, slew, pulse tests, and full parameter exposure</li>
+<li><strong>[Guide Rate]</strong> Pulse Guide rates can now be configured directly from Alpaca Pilot Settings</li>
+<li><strong>[Chart UX]</strong> Improved chart behavior on resize, smoother scrolling, and consistent color mapping for SP, PV, OP, Mx</li>
+<li><strong>[Chart Legends]</strong> All charts now include trace legends</li>
+<li><strong>[Chart Statistics]</strong> Performance metrics now displayed on all charts</li>
+<li><strong>[M1–M3 Readout]</strong> Dashboard now shows absolute angle readouts for motors M1, M2, and M3</li>
+<li><strong>[Find Home]</strong> New feature to return the mount to true Home (M1 = M2 = M3 = 0), safely unwinding cables</li>
+<li><strong>[Set Park]</strong> Park location is now customizable</li>
+<li><strong>[Advanced Park]</strong> Rewritten Park logic for ASCOM compliance — smoother, interruptable, and PID-driven</li>
+<li><strong>[Parking &amp; Homing]</strong> New PID states added to monitor transitions to Park and Home positions</li>
+<li><strong>[NINA Support]</strong> Find Home, Set Park, Park, and UnPark are now accessible from any Alpaca client, including NINA and Alpaca Pilot</li>
+<li><strong>[Celestial Poles]</strong> North and South Celestial Poles added to the catalog for easier alignment</li>
+<li><strong>[QUEST Paper]</strong> A research paper on QUEST has been added to the documentation</li>
+</ul>
+<h2 id="new-features-alpaca-pilot">New Features (Alpaca Pilot)<a class="headerlink" href="#new-features-alpaca-pilot" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Modern App]</strong>: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers</li>
+<li><strong>[Responsive UI]</strong>: Adapts seamlessly to phones, tablets, and desktops for a consistent experience across devices</li>
+<li><strong>[Live Dashboard]</strong>: Real-time telemetry of current Azimuth, Altitude, Roll, Right Ascension, Declination, Position Angle, and Local Sidereal Time</li>
+<li><strong>[Dashboard Status]</strong>: Display mount state including parked, tracking, slewing, gotoing, PID active, and pulse guiding</li>
+<li><strong>[Motor Activity]</strong>: Indicate motor activity and speed on the dashboard</li>
+<li><strong>[Interactive Dials]</strong>: Precision radial dials with zoomable scales for accurate readout and tap-to-set angular targeting</li>
+<li><strong>[Radial Scales]</strong>: Show warning limits on angles; fix wraparound and pointer issues near ±90° and 360/0</li>
+<li><strong>[Quick Actions]</strong>: Floating action buttons for axis control; commands for Eq-Az toggle, park, unpark, abort, track, and tracking rate</li>
+<li><strong>[Manual Slew]</strong>: Slew manually by Alt/Az/Roll or RA/Dec/PA with adjustable slew rate</li>
+<li><strong>[Connection Page]</strong>: Connect to Benro Polaris without the Benro App; discover nearby devices via Bluetooth LE and enable WiFi</li>
+<li><strong>[Configuration Page]</strong>: Instantly view and modify Alpaca Driver settings; save and restore configuration changes</li>
+<li><strong>[Map Verification]</strong>: Display site coordinates on an interactive map to visually confirm the location</li>
+<li><strong>[Site Autocomplete]</strong>: Automatically retrieve location name, elevation, and current pressure via external web services</li>
+<li><strong>[Battery Level]</strong>: Shows charging state and battery percentage in the Alpaca Pilot heading bar</li>
+<li><strong>[Log Streaming]</strong>: - Real-time remote monitoring of Alpaca Driver log activity; includes log viewer and log level control</li>
+<li><strong>[Nina integration]</strong>: Launch Alpaca Pilot directly from the Settings Cogs in NINA’s Equipment tab</li>
+<li><strong>[PWM Testing]</strong>: Dedicated PWM test page with improved SLOW speed handling</li>
+<li><strong>[Speed Calibration]</strong>: Speed calibration test management with cancel and hookup support</li>
+<li><strong>[Position Diagnostics]</strong>: Dedicated diagnostics page for mount position and movement</li>
+<li><strong>[Alignment Tools]</strong>: Single-point and multi-point alignment using Polaris internal model and QUEST modeling; sync with map landmarks and RA/Dec or Az/Alt coordinates</li>
+<li><strong>[Sync Analysis]</strong>: Residual display, editing, and removal of sync points; tripod level correction</li>
+<li><strong>[Rotator Support]</strong>: Full rotator control including Halt, Sync, Reverse, MoveRel, MoveAbs, MoveMech, Position(PA), TargetPosition(PA)</li>
+<li><strong>[Target Catalog]</strong>: Expanded catalog with search, filter, pagination, and sync/goto integration</li>
+<li><strong>[Imaging Enhancements]</strong>: Long exposure stabilization, auto-leveling, Zenith imaging, drift suppression, and dithering support</li>
+</ul>
+<h2 id="new-features-alpaca-driver">New Features (Alpaca Driver)<a class="headerlink" href="#new-features-alpaca-driver" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Alpaca Actions]</strong>: Expose extended ASCOM Actions for Driver Restart, Config Service Control</li>
+<li><strong>[Task Orchestration]</strong>: Streamlined task lifecycle management with coordinated creation and teardown</li>
+<li><strong>[Configuration Service]</strong>: Enhanced config handling with support for saving overrides and restoring defaults</li>
+<li><strong>[Network Services]</strong>: Unified control over network services and port bindings for cleaner security management</li>
+<li><strong>[Web Service]</strong>: Introduced embedded Web and Sockets Service to host the Alpaca Pilot Single Page Application</li>
+<li><strong>[Log Services]</strong>: Aligned logging configuration across all network services</li>
+<li><strong>[Log Files]</strong>: Default log output now directed to the <code>logs</code> directory (previously <code>driver</code>)</li>
+<li><strong>[Driver Startup]</strong>: Driver version now logged on startup for traceability</li>
+<li><strong>[Field Rotation]</strong>: Field Rotation derived from Polaris quaternion data in 518 messages</li>
+<li><strong>[Image Cleanup]</strong>: Added scatter plots to visualize rejected images based on statistical thresholds</li>
+<li><strong>[CORS Middleware]</strong>: Integrated middleware for Cross-Origin Request support</li>
+<li><strong>[Testing Framework]</strong>: Introduced testing framework for Alpaca Driver validation and regression checks</li>
+<li><strong>[Performance Enhancements]</strong>: Improved tracking precision, Kalman Filter tuning, and motor calibration persistence</li>
+</ul>
+<h2 id="new-features-ascom-alpaca-rotator-support">New Features (ASCOM Alpaca Rotator support)<a class="headerlink" href="#new-features-ascom-alpaca-rotator-support" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[ASCOM Rotator]</strong> Implement the ASCOM Alpaca Rotator device standard</li>
+<li><strong>[Nina Integration]</strong> Support Nina Equipment tab and Rotator Control</li>
+<li><strong>[Paralactic Angle]</strong> Parallactic Angle, Position Angle and Roll Angle Targeting</li>
+<li><strong>[Direct Slew]</strong> Direct Slew to Defined Angular Pose</li>
+</ul>
+<h2 id="new-features-ascom-alpaca-findhome-setpark-park-unpark-support-using-telescope-v4-standard">New Features (ASCOM Alpaca FindHome, SetPark, Park, UnPark support, using Telescope v4 standard)<a class="headerlink" href="#new-features-ascom-alpaca-findhome-setpark-park-unpark-support-using-telescope-v4-standard" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Find Home]</strong> Returns mount to true Home position, unwinding cables. </li>
+<li><strong>[Set Park]</strong> Ability to customise the Park location.</li>
+<li><strong>[Advanced Park]</strong> Rewrite of Benro Polaris Park from V1.0 to be more ASCOM compliant. Uses PID controller, smoother Park, interruptable, unwinds, custom locations.</li>
+<li><strong>[Nina Support]</strong> Find Home, Set Park, Park and UnPark are accessable from any Alpaca Client, including Nina, Alpaca Pilot and others.</li>
+</ul>
+<h2 id="new-features-advanced-position-control-algorithm">New Features (Advanced Position Control Algorithm)<a class="headerlink" href="#new-features-advanced-position-control-algorithm" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Kinematic Solver]</strong> Quaternion-based kinematics and inverse solutions</li>
+<li><strong>[PID Tuning]</strong> Optimised PID Control for mount orientation control from Alpaca Driver</li>
+<li><strong>[Motor Control]</strong> Independant Motor Speed Control</li>
+<li><strong>[Rate Interpolation]</strong> Angular Rate Interpolation Framework</li>
+<li><strong>[Angular Metrics]</strong> Real-time Angular Position and Velocity Measurement</li>
+<li><strong>[Orientation Filter]</strong> Orientation Estimation via Kalman Filtering</li>
+<li><strong>[Speed Profiling]</strong> Speed Calibration &amp; Response Profiling</li>
+<li><strong>[Input Normalisation]</strong> Speed Control Input Normalisation across SLOW and FAST Polaris commands</li>
+<li><strong>[Constraint Limiting]</strong> Constraint-Aware Position, Velocity and Acceleration Limiting</li>
+<li><strong>[Motor Limits]</strong> Add Motor Angle Limit for anti-windup protection</li>
+</ul>
+<h1 id="new-features-ephem-position-calculation">New Features (Ephem Position Calculation)<a class="headerlink" href="#new-features-ephem-position-calculation" title="Permanent link">&para;</a></h1>
+<ul>
+<li><strong>[Orbital Positioning]</strong> Accurate Orbital Positioning of Earth and Target Body</li>
+<li><strong>[Light Compensation]</strong> Light Travel Time Compensation for Apparent Position</li>
+<li><strong>[Epoch Alignment]</strong> Epoch-Based Coordinate Precession Alignment</li>
+<li><strong>[Relativistic Deflection]</strong> Relativistic Light Deflection near Solar Limb</li>
+<li><strong>[Nutation Correction]</strong> Earth Nutation Correction (Polar Axis Wobble)</li>
+<li><strong>[Velocity Aberration]</strong> Aberration of Light Due to Earth’s Orbital Velocity</li>
+<li><strong>[Refraction Modeling]</strong> Atmospheric Refraction Modeling (Pressure &amp; Temperature Based)</li>
+<li><strong>[Parallax Offset]</strong> Observer-Based Parallax Offset Correction</li>
+<li><strong>[Geocentric Generation]</strong> Astrometric Geocentric Coordinate Generation</li>
+<li><strong>[Position Refinemen]</strong> Apparent Geocentric Position Refinement</li>
+<li><strong>[Topocentric Output]</strong> Topocentric Apparent Coordinate Output (RA, Dec, PA | Alt, Az, Roll)</li>
+</ul>
+<h1 id="new-features-precision-goto-control">New Features (Precision Goto Control)<a class="headerlink" href="#new-features-precision-goto-control" title="Permanent link">&para;</a></h1>
+<ul>
+<li><strong>[Trajectory Planning]</strong> Kinematically Optimised Mount Trajectory</li>
+<li><strong>[Loop Accuracy]</strong> Improved Goto accuracy through closed loop control</li>
+<li><strong>[Roll Targeting]</strong> Goto allows specifying a roll angle for precise orientation</li>
+<li><strong>[Fixed Movement]</strong> Goto allows moving to a fixed terrestrial coordinate (without auto-enabling tracking mode)</li>
+<li><strong>[Realtime Control]</strong> Real time Goto initiation and interruption (no need to wait for previous commands to finish)</li>
+<li><strong>[Motion Smoothing]</strong> Smooth acceleration and deacceleration profiles</li>
+<li><strong>[Backlash Removal]</strong> Benro Polaris backlash removal process eliminated</li>
+</ul>
+<h2 id="new-features-precision-slew-control">New Features (Precision Slew Control)<a class="headerlink" href="#new-features-precision-slew-control" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Roll Stability]</strong> Improved roll movement (Azimuth and Altitude are maintained during roll movement)</li>
+<li><strong>[Vertical Stability]</strong> Improved vertical movement (Altitude axis now moves directly upward, even when the mount is tilted)</li>
+<li><strong>[Speed Boost]</strong> Increased Maximum Alpaca Axis Speed to 8.4 degrees/s</li>
+<li><strong>[Interruptable Slew]</strong> Slew supports real-time interruption</li>
+<li><strong>[Az/Alt/Roll Slew]</strong> Slew by Azimuth, Altitude, and Roll coordinates (replaces direct motor axis control)</li>
+<li><strong>[RA/Dec/PA Skew]</strong> Slew by Right Ascension, Declination and Polar Angle (when tracking enabled)</li>
+</ul>
+<h2 id="new-features-precision-tracking-control">New Features (Precision Tracking Control)<a class="headerlink" href="#new-features-precision-tracking-control" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Tracking Rates]</strong> Support ASCOM Alpaca Drive Rate Config (0=Sidereal, 1=Lunar, 2=Solar, 3=King)</li>
+<li><strong>[Reduced Drift]</strong> PID Control of Target position for zero drift and closed loop tracking</li>
+<li><strong>[Feed Forward]</strong> Feedforward control anticipates motion and tracking sidereal velocities</li>
+<li><strong>[Deep-Sky Tracking]</strong>: Support for tracking deep-sky objects with high precision</li>
+<li><strong>[Pulse Guiding]</strong>: ASCOM Pulse Guide API support; Nina Dithering and PHD2 integration</li>
+</ul>
+<h2 id="new-features-enabled-by-nina">New Features (enabled by Nina)<a class="headerlink" href="#new-features-enabled-by-nina" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Nina and Nikon Z8]</strong>: Nina v3.2 now supports Nikon Z8 cameras </li>
+</ul>
+<h2 id="new-features-enabled-by-stellarium">New Features (enabled by Stellarium)<a class="headerlink" href="#new-features-enabled-by-stellarium" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Qt6 Support ]</strong>: Latest Stellarium verision is supported (Qt6 UI library works with ASCOM Platform 7)</li>
+</ul>
+<h2 id="upgraded-win11-requirementstxt-compatibility">Upgraded Win11 Requirements.txt Compatibility<a class="headerlink" href="#upgraded-win11-requirementstxt-compatibility" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Python 3.13.9]</strong>: Upgraded Python support from 3.13.5.</li>
+<li><strong>[Python 3.13.5]</strong>: Upgraded Python support from 3.13.1.</li>
+<li><strong>[Uvicorn 0.35.0]</strong>: Upgraded Uvicorn support from 0.33.0.</li>
+<li><strong>[Ephem 4.2]</strong>: Upgraded Ephem support from 4.1.6.</li>
+<li><strong>[numpy 2.3.2]</strong>: Upgraded numpy support from 1.24.4.</li>
+<li><strong>[scipy 1.16.1]</strong>: Upgraded scipy support from 1.16.0.</li>
+</ul>
+<h2 id="documentation-alpaca-driver">Documentation (Alpaca Driver)<a class="headerlink" href="#documentation-alpaca-driver" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Troublshooting B6]</strong>: Add description on how to reset Polaris password</li>
+<li><strong>[Troublshooting B7]</strong>: Add link to Polaris User Manual</li>
+<li><strong>[Troubleshoot C1b]</strong>: Describe how to define Manual Network settings to force IPv4 setup</li>
+<li><strong>[Gemini EAF]</strong>: Add instructions to install Gemini EAF Driver</li>
+<li><strong>[Mobile Hotspot]</strong>: Add instructions to use Registry to start the Mobile Hotspot</li>
+</ul>
+<h2 id="untested-new-features">Untested New Features<a class="headerlink" href="#untested-new-features" title="Permanent link">&para;</a></h2>
+<p>Please let us know if you can try any of these features.</p>
+<ul>
+<li><strong>[Lumix Nina Plugin]</strong>: Supports Panasonic Lumix Cameras and Lens. Untested.</li>
+<li><strong>[Pentax on ASCOM]</strong>: ASCOM Camera driver supports a range of cameras. Untested.</li>
+</ul>
+<h2 id="bug-fixes-from-v100-version">Bug Fixes (from v1.0.0 version)<a class="headerlink" href="#bug-fixes-from-v100-version" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Fix #024]</strong>: First GOTO after a PlateSolve and SYNC, may overcorrect the offset by 2x the right amount.</li>
+<li><strong>[Fix #023]</strong>: Docker build process is now working.</li>
+<li><strong>[Fix #018]</strong>: Explicitly check for 'NaN' on all float inputs on REST API.</li>
+<li><strong>[Fix #019]</strong>: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.</li>
+<li><strong>[Fix #020]</strong>: Implement AbortSlew with SynScan protocol 'M' for Stellarium.</li>
+<li><strong>[Fix #036]</strong>: Polaris protocol parsing should gracefully handle partially received messages.</li>
+</ul>
+<h2 id="tested-compatible-hardware-and-software">Tested Compatible Hardware and Software<a class="headerlink" href="#tested-compatible-hardware-and-software" title="Permanent link">&para;</a></h2>
+<h3 id="photography-equipment">Photography Equipment<a class="headerlink" href="#photography-equipment" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.54, Astro V1.0.2.14</li>
+<li>Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.14</li>
+<li>Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11</li>
+<li>Canon R5, RF 16mm, EF 35mm MkII, RF 135mm, RF 100-500mm, RF 800mm.</li>
+<li>Canon R6 Mk II connected via USB3</li>
+<li>Canon R, 16mm 2.8, 24-240mm f4-6.3</li>
+<li>Canon 6D MkII, Canon EF 50mm f1.8</li>
+<li>Canon 800D, Sigma DC 17-50mm f2.8, Tamron 16-300mm f3.5-6.3</li>
+<li>Sony Alpha 7R IV</li>
+<li>Nikon Z8</li>
+<li>Pentax K1 150-450mm / Irix 45mm</li>
+<li>ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.</li>
+</ul>
+<h3 id="computing-equipment">Computing Equipment<a class="headerlink" href="#computing-equipment" title="Permanent link">&para;</a></h3>
+<ul>
+<li>MacBook Pro with Apple M1 Pro CPU (Driver and CCDCiel)</li>
+<li>MacBook Pro 14” 2021 </li>
+<li>MacBook Pro 13” 2013</li>
+<li>Mele Quieter 4C, Intel N100 800Mhz (Driver and Nina)</li>
+<li>Minis Forum UM350 (Driver and Nina)</li>
+<li>ASUS Vivobook Pro 16X OLED K6604JV (Driver and Nina)</li>
+<li>Laptop Windows 10 Home (Driver and Nina)</li>
+<li>Desktop PC, AMD 7950X (Stellarium Desktop, Siril)</li>
+<li>Desktop PC, AMD Ryzen 5 3600</li>
+<li>Raspberry Pi Zero 2 W and up (Driver)</li>
+</ul>
+<h3 id="portablemobile-equipment">Portable/Mobile Equipment<a class="headerlink" href="#portablemobile-equipment" title="Permanent link">&para;</a></h3>
+<ul>
+<li>iPhone 13 Max (Stellarium Mobile PLUS)</li>
+<li>iPad Pro 3<sup>rd</sup> Generation</li>
+<li>Samsung Galaxy S22 Ultra (Stellarium Mobile PLUS)</li>
+<li>Microsoft Surface Laptop 2</li>
+</ul>
+<h3 id="applications">Applications<a class="headerlink" href="#applications" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Sky Safari 7 Pro v7.3.6 iOS</li>
+<li>Benro Connect Android App v3.0.30, iOS App v1.5.0</li>
+<li>Benro Polaris Android App v3.0.27, iOS App v1.4.4</li>
+<li>Stellarium Mobile PLUS v1.12.9 Android and iOS.</li>
+<li>Stellarium Desktop v25.2 Qt6 Windows (requires ASCOM Platform 7)</li>
+<li>Stellarium Desktop v24.3 Qt5 Windows (not Qt6 version)</li>
+<li>Stellarium Desktop v24.2 Windows</li>
+<li>Nina v3.2.0.9001, HocusFocus v3.0.0.21, LensAF v2.1.0.3, Scope Control  v2.0.2.1</li>
+<li>Nina v3.1.2.9001, HocusFocus v3.0.0.18, LensAF v2.1.0.2, Scope Control  v2.0.2.0</li>
+<li>Nina v3.1.1.9001, HocusFocus v3.0.0.17, ASTAP 2024.08.11</li>
+<li>CCDciel Version beta 0.9.87-3346 Windows</li>
+<li>Siril v1.2.3 de49749</li>
+</ul>
+<h3 id="drivers-and-utilities">Drivers and Utilities<a class="headerlink" href="#drivers-and-utilities" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Windows Remote Desktop v10.0.22621</li>
+<li>ASCOM Platform 7.1 (Build 4707)</li>
+<li>ASCOM Platform 7 Update 3 RC7 (not Update 2 version)</li>
+<li>ASCOM Platform 7 RC7</li>
+<li>ASCOM Platform 6.6 SP2</li>
+</ul>
+<h3 id="operating-systems">Operating Systems<a class="headerlink" href="#operating-systems" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Windows 11 Pro v24H2 </li>
+<li>Windows 11 Pro v23H2 </li>
+<li>Windows 10</li>
+<li>MacOS Sonoma 14.6.1</li>
+<li>MacOS Sequoia 15</li>
+<li>iOS 17.6  </li>
+<li>iPadOS v17.6.1</li>
+<li>Raspberry Pi OS (64-bit) Debian Trixie</li>
+<li>Raspberry Pi OS Lite (64-bit) Debian Trixie</li>
+</ul>
+<h3 id="alpaca-pilot-compatible-browsers">Alpaca Pilot compatible Browsers<a class="headerlink" href="#alpaca-pilot-compatible-browsers" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Firefox version 115+ </li>
+<li>Google Chrome version 115+</li>
+<li>Microsoft Edge version 115+</li>
+<li>Apple Safari 14+</li>
+</ul>
+<h2 id="known-issues">Known Issues<a class="headerlink" href="#known-issues" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Gimbal Lock]</strong>: There is potential gimbal lock at low or negative altitudes. Especially at Azimuth ≈ 0°, Altitude ≈ 0°, Roll ≠ 0°. Please watch mount at all times.</li>
+<li><strong>[Python 3.14.0]</strong>: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.9 instead.</li>
+</ul>
+<h2 id="potential-future-enhancements">Potential Future Enhancements<a class="headerlink" href="#potential-future-enhancements" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[Stellarium MacOS]</strong>: Add position update support to the Stellarium Binary protocol.</li>
+<li><strong>[Software Delivery]</strong>: Deliver as an App rather than a zip file, eliminating the command line.</li>
+<li><strong>[INDI support]</strong>: Add support for INDI protocol, enabling apps like KStars.</li>
+<li><strong>[Emedded Driver]</strong>: The driver should be embedded on the Benro Polaris Device. Benro Change.</li>
+</ul>
+<h2 id="deprecations">Deprecations<a class="headerlink" href="#deprecations" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>[RA 1.04]</strong>: Special RA Axis move command in V1.0 has been replaced with Alpaca Pilot direct RA radial dial control.</li>
+<li><strong>[N-Point Alignment]</strong>: N-Point Alignment in V1.0 has been replaced with Multi-Point Alignment</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../release-notes-v2.1.0/" class="md-footer__link md-footer__link--prev" aria-label="Previous: v2.1.0">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                v2.1.0
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../release-notes-v1.0.1/" class="md-footer__link md-footer__link--next" aria-label="Next: v1.0.1">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                v1.0.1
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

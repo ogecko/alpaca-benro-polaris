@@ -1,0 +1,2782 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/faq/">
+      
+      
+      
+        <link rel="prev" href="../troubleshooting/">
+      
+      
+        <link rel="next" href="../release-notes-v2.2.0/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Frequently Asked Questions - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Frequently Asked Questions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../control/" class="md-tabs__link">
+          
+  
+  Technical
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  A Beginner's Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recommended Hardware Platform
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (Windows)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (macOS)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Setup Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium and Sky Safari Pro
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guiding Users Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alpaca-driver-and-mobile-devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alpaca Driver and Mobile Devices
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alpaca Driver and Mobile Devices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a1--is-alpaca-a-physical-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A1 – Is Alpaca a physical device?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a2--does-the-alpaca-driver-run-on-the-polaris-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A2 – Does the Alpaca Driver run on the Polaris itself?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A3 – Can I run the Alpaca Driver on my phone or iPad?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a4--can-i-run-the-alpaca-driver-on-macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A4 – Can I run the Alpaca Driver on macOS?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a5--why-do-i-need-a-pc-or-mini-pc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A5 – Why do I need a PC or mini-PC?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a5--will-mobile-support-improve-in-the-future" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A5 – Will mobile support improve in the future?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benro-polaris-capability-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Benro Polaris Capability Questions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Benro Polaris Capability Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b1---can-the-benro-polaris-really-be-used-for-deep-sky-photography" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B1 - Can the Benro Polaris really be used for Deep Sky Photography?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2---what-is-the-longest-focal-length-that-benro-polaris-can-track-with" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B2 - What is the longest Focal Length that Benro Polaris can track with?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b3---can-the-alpaca-project-improve-aiming-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B3 - Can the Alpaca Project improve aiming performance?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b4---can-the-alpaca-project-improve-tracking-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B4 - Can the Alpaca Project improve tracking performance?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b5---what-is-the-heaviest-load-the-polaris-can-handle" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B5 - What is the heaviest load the Polaris can handle?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nina-capability-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Nina Capability Questions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Nina Capability Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#n1---how-can-i-connect-both-nina-and-bp-app-to-my-camera-via-usb" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N1 - How can I connect both Nina and BP App to my Camera via USB?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n2---do-i-still-need-to-plug-my-camera-into-the-benro-polaris" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N2 - Do I still need to plug my camera into the Benro Polaris?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n3---can-nina-access-the-cameras-sd-card" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N3 - Can Nina access the Cameras SD Card?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n4---can-i-use-nina-on-my-mobile-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N4 - Can I use Nina on my Mobile Device?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n5---can-nina-generate-a-meta-data-for-each-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N5 - Can Nina generate a meta data for each image?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stellarium-usage-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Stellarium Usage Questions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stellarium Usage Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s1---will-stellarium-work-via-wifi-or-is-a-cable-necessary" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        S1 - Will Stellarium work via Wifi or is a cable necessary?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s2---will-stellarium-work-on-the-same-phone-as-bp-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        S2 - Will Stellarium work on the same phone as BP App?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Benro Polaris Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quest_paper/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#alpaca-driver-and-mobile-devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alpaca Driver and Mobile Devices
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alpaca Driver and Mobile Devices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a1--is-alpaca-a-physical-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A1 – Is Alpaca a physical device?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a2--does-the-alpaca-driver-run-on-the-polaris-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A2 – Does the Alpaca Driver run on the Polaris itself?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A3 – Can I run the Alpaca Driver on my phone or iPad?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a4--can-i-run-the-alpaca-driver-on-macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A4 – Can I run the Alpaca Driver on macOS?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a5--why-do-i-need-a-pc-or-mini-pc" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A5 – Why do I need a PC or mini-PC?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a5--will-mobile-support-improve-in-the-future" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A5 – Will mobile support improve in the future?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benro-polaris-capability-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Benro Polaris Capability Questions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Benro Polaris Capability Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b1---can-the-benro-polaris-really-be-used-for-deep-sky-photography" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B1 - Can the Benro Polaris really be used for Deep Sky Photography?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2---what-is-the-longest-focal-length-that-benro-polaris-can-track-with" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B2 - What is the longest Focal Length that Benro Polaris can track with?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b3---can-the-alpaca-project-improve-aiming-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B3 - Can the Alpaca Project improve aiming performance?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b4---can-the-alpaca-project-improve-tracking-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B4 - Can the Alpaca Project improve tracking performance?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b5---what-is-the-heaviest-load-the-polaris-can-handle" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B5 - What is the heaviest load the Polaris can handle?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#nina-capability-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Nina Capability Questions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Nina Capability Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#n1---how-can-i-connect-both-nina-and-bp-app-to-my-camera-via-usb" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N1 - How can I connect both Nina and BP App to my Camera via USB?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n2---do-i-still-need-to-plug-my-camera-into-the-benro-polaris" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N2 - Do I still need to plug my camera into the Benro Polaris?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n3---can-nina-access-the-cameras-sd-card" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N3 - Can Nina access the Cameras SD Card?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n4---can-i-use-nina-on-my-mobile-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N4 - Can I use Nina on my Mobile Device?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n5---can-nina-generate-a-meta-data-for-each-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        N5 - Can Nina generate a meta data for each image?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stellarium-usage-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Stellarium Usage Questions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stellarium Usage Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#s1---will-stellarium-work-via-wifi-or-is-a-cable-necessary" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        S1 - Will Stellarium work via Wifi or is a cable necessary?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#s2---will-stellarium-work-on-the-same-phone-as-bp-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        S2 - Will Stellarium work on the same phone as BP App?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../troubleshooting/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Help
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h1>
+<h2 id="alpaca-driver-and-mobile-devices">Alpaca Driver and Mobile Devices<a class="headerlink" href="#alpaca-driver-and-mobile-devices" title="Permanent link">&para;</a></h2>
+<h3 id="a1--is-alpaca-a-physical-device">A1 – Is Alpaca a physical device?<a class="headerlink" href="#a1--is-alpaca-a-physical-device" title="Permanent link">&para;</a></h3>
+<p>No. Alpaca is an astronomy standard, a kind of universal language that lets astronomy apps and devices communicate. The <strong>Alpaca Driver</strong> is a Python-based program that acts as a translator between your Benro Polaris and other Alpaca-compatible software.</p>
+<h3 id="a2--does-the-alpaca-driver-run-on-the-polaris-itself">A2 – Does the Alpaca Driver run on the Polaris itself?<a class="headerlink" href="#a2--does-the-alpaca-driver-run-on-the-polaris-itself" title="Permanent link">&para;</a></h3>
+<p>Not currently. The Driver runs on a separate device, like a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.</p>
+<h3 id="a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad">A3 – Can I run the Alpaca Driver on my phone or iPad?<a class="headerlink" href="#a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad" title="Permanent link">&para;</a></h3>
+<p>Not directly. The Driver requires a Python runtime and continuous background processing, something mobile platforms like iOS and Android don’t reliably support due to battery-saving restrictions. Even the current Polaris app struggles with power drain during extended use.</p>
+<p>However, you can still use your phone or tablet to <strong>control</strong> the system remotely:</p>
+<ul>
+<li>Use the <strong>Alpaca Pilot App</strong> via any modern browser (Chrome, Safari, Firefox, Edge) on mobile or tablet.</li>
+<li>Use <strong>Stellarium PLUS</strong> (iOS/Android) to control the Polaris via SynScan protocol.</li>
+<li>Use <strong>Remote Desktop</strong> apps to control your mini-PC from a phone or tablet and operate tools like NINA."</li>
+</ul>
+<h3 id="a4--can-i-run-the-alpaca-driver-on-macos">A4 – Can I run the Alpaca Driver on macOS?<a class="headerlink" href="#a4--can-i-run-the-alpaca-driver-on-macos" title="Permanent link">&para;</a></h3>
+<p>Yes. The Alpaca Driver runs natively on macOS and is a fully supported platform. However, some companion applications have platform-specific limitations:</p>
+<ul>
+<li>NINA (for plate-solving, sequencing, autofocus) is Windows-only. A similar application called CCDciel can be used on macOS.</li>
+<li>Stellarium PLUS is available as a mobile app for iOS and Android</li>
+</ul>
+<p>If you're using macOS, you can run the Driver directly and pair it with Stellarium Desktop or other Alpaca-compatible tools. </p>
+<h3 id="a5--why-do-i-need-a-pc-or-mini-pc">A5 – Why do I need a PC or mini-PC?<a class="headerlink" href="#a5--why-do-i-need-a-pc-or-mini-pc" title="Permanent link">&para;</a></h3>
+<p>The Alpaca Driver maintains real-time communication with the Polaris and exposes multiple control interfaces, including Alpaca, SynScan, HTTP, WebSockets, and Bluetooth. It also supports advanced features including plate-solving (via Nina/ASTAP), extended image sequencing (via Nina), QUEST modeling, Orbital tracking, PID-based motion control.  </p>
+<p>These capabilities require:</p>
+<ul>
+<li>Persistent background processing without interruption </li>
+<li>Concurrent handling of multiple communication stacks</li>
+<li>Real-time processing for time critical tasks</li>
+<li>Sufficient CPU and memory resources to support compute-intensive tasks</li>
+<li>Sufficient file storage for long imaging sessions</li>
+</ul>
+<p>Mobile devices, while convenient, aren’t designed for this kind of sustained workload. A mini-PC offers the stability, performance, and flexibility needed.</p>
+<h3 id="a5--will-mobile-support-improve-in-the-future">A5 – Will mobile support improve in the future?<a class="headerlink" href="#a5--will-mobile-support-improve-in-the-future" title="Permanent link">&para;</a></h3>
+<p>Possibly. There are promising directions:</p>
+<ul>
+<li>Embedding the Driver into Polaris firmware </li>
+<li>Potentially exploring lightweight plate-solving on mobile devices</li>
+</ul>
+<p>There is an open feature request to patch the Polaris firmware and embed the Driver directly into the device. While technically feasible, it’s a complex effort with firmware risks and IP concerns. It’s tracked as issue #33: Patch Polaris firmware to run Alpaca natively, but not planned for V2.0.</p>
+<p>For now, the best experience comes from pairing the Polaris with a mini-PC and using mobile devices as remote interfaces.</p>
+<h2 id="benro-polaris-capability-questions">Benro Polaris Capability Questions<a class="headerlink" href="#benro-polaris-capability-questions" title="Permanent link">&para;</a></h2>
+<h3 id="b1---can-the-benro-polaris-really-be-used-for-deep-sky-photography">B1 - Can the Benro Polaris really be used for Deep Sky Photography?<a class="headerlink" href="#b1---can-the-benro-polaris-really-be-used-for-deep-sky-photography" title="Permanent link">&para;</a></h3>
+<p>Yes, you can definitely use the Benro Polaris for deep-sky photography, but there are limitations! As an Alt/Az mount without auto-guiding, you're limited to relatively short exposures to avoid star trails. However, by combining a good camera, a longer lens (up to 800mm), and the advanced features unlocked by the Alpaca Benro Polaris Driver and software like Nina, you can capture stunning images of deep-sky objects. </p>
+<p>Think of it this way: </p>
+<ul>
+<li>Shorter Exposures are Key: Because the Benro Polaris isn't an equatorial mount, you need to keep your exposures short to prevent star trails.</li>
+<li>Stacking is Your Friend: To compensate for shorter exposures and capture fainter details, you'll use image stacking techniques. Nina can help you capture sequences of images that you'll combine later during processing.</li>
+<li>Software Enhances Hardware: The Alpaca Benro Polaris Driver unlocks features like plate-solving and precise target centering, significantly improving your results.</li>
+</ul>
+<h3 id="b2---what-is-the-longest-focal-length-that-benro-polaris-can-track-with">B2 - What is the longest Focal Length that Benro Polaris can track with?<a class="headerlink" href="#b2---what-is-the-longest-focal-length-that-benro-polaris-can-track-with" title="Permanent link">&para;</a></h3>
+<p>The maximum focal length you can effectively use with the Benro Polaris for astrophotography depends on factors like your camera, lens, the accuracy of your polar alignment, and even environmental conditions.</p>
+<p>Here's some results from the Beta Testers:</p>
+<ul>
+<li>800mm with Success: One user successfully captured deep-sky images using an 800mm lens and exposures up to 15 seconds. Stacking around 240 images resulted in a high-quality, hour-long exposure. </li>
+<li>1750mm Equivalent Focal Length Achieved: Another user, Vladimir, pushed the limits further, achieving impressive results at an equivalent focal length of 1750mm by combining a Sigma 120-400mm lens with a 1.4x extender and a ZWO ASI585MC camera. This demonstrates the Benro Polaris's potential for longer focal lengths with the right equipment and settings. </li>
+</ul>
+<p>Keep in mind that longer focal lengths amplify any tracking errors, making precise polar alignment and potentially shorter exposures crucial.</p>
+<h3 id="b3---can-the-alpaca-project-improve-aiming-performance">B3 - Can the Alpaca Project improve aiming performance?<a class="headerlink" href="#b3---can-the-alpaca-project-improve-aiming-performance" title="Permanent link">&para;</a></h3>
+<p>Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially after re-engaging sidereal tracking post-slewing. The Alpaca Driver V2.0 dramatically enhances mount accuracy, stability and responsiveness. The new PID Motion control eliminates backlash compensation, improves aiming accuracy, manages acceleration profiles, and support real-time redirection.</p>
+<h3 id="b4---can-the-alpaca-project-improve-tracking-performance">B4 - Can the Alpaca Project improve tracking performance?<a class="headerlink" href="#b4---can-the-alpaca-project-improve-tracking-performance" title="Permanent link">&para;</a></h3>
+<p>Yes, significantly. Alpaca V2.0 introduces major improvements to tracking precision and capabilities. Key improvements include</p>
+<ul>
+<li><strong>PID Motion Control:</strong> The Driver features a real-time PID-based motion controller that replaces the native Polaris firmware, delivering smoother tracking, faster recovery from disturbances.</li>
+<li><strong>Plate-Solving:</strong> By integrating with tools like ASTAP and NINA, the Driver enables precise target acquisition and automatic centering, correcting for mount misalignment.</li>
+<li><strong>Multi-Point Alignment:</strong> The Driver supports QUEST modeling, allowing users to build a multi-point sky model that compensates for polar misalignment, cone error, and mount flexure.</li>
+<li><strong>Pulse-Guiding:</strong> ASCOM Alpaca pulse-guiding support enables real-time corrections from guiding software like PHD2, improving long-exposure tracking accuracy and eliminating drift.</li>
+<li><strong>Orbital Tracking:</strong> The Driver can track over 32,000 satellites, planets, and moons using real-time TLE data, updating mount setpoints every 200 ms for accurate tracking of fast-moving or dynamic targets.</li>
+</ul>
+<h3 id="b5---what-is-the-heaviest-load-the-polaris-can-handle">B5 - What is the heaviest load the Polaris can handle?<a class="headerlink" href="#b5---what-is-the-heaviest-load-the-polaris-can-handle" title="Permanent link">&para;</a></h3>
+<p>The Benro USA website claims that the Astro version of the Polaris can support a <strong>payload of 7 kg</strong> (15.4 lb). An impressive capacity for such a compact mount, especially without a counterweight. Benro’s Polaris marketing brochure also specifies a torsional capacity of 70 kgf·cm. This is a measure of torque, equivalent to the following loads at different distances from the axis of rotation:</p>
+<ul>
+<li><strong>70 kgf at 1 cm</strong></li>
+<li><strong>7 kgf at 10 cm</strong></li>
+<li><strong>1.75 kgf at 40 cm</strong></li>
+</ul>
+<p>These figures illustrate how the same torque can be produced by different loads acting at different distances.</p>
+<p>I have tested the performance of the Polaris with my rig up to around 4.4kg (Canon R5, RF 800mm lens, Dew Heater, Mini-PC, Gemini Focuser, ArcaSwiss Mounting Bar, Svbony 50mm Guide Scope, Touptek GPM462M Guide Camera). The Polaris seems to easily handle this load and performs sidereal tracking well. </p>
+<h2 id="nina-capability-questions">Nina Capability Questions<a class="headerlink" href="#nina-capability-questions" title="Permanent link">&para;</a></h2>
+<h3 id="n1---how-can-i-connect-both-nina-and-bp-app-to-my-camera-via-usb">N1 - How can I connect both Nina and BP App to my Camera via USB?<a class="headerlink" href="#n1---how-can-i-connect-both-nina-and-bp-app-to-my-camera-via-usb" title="Permanent link">&para;</a></h3>
+<p>You don't need to connect your camera to both Nina and the Benro Polaris App simultaneously. Choose one or the other. Once you've set up your mount, Nina can handle all imaging functions, including:</p>
+<ul>
+<li>Autofocus</li>
+<li>Plate Solving</li>
+<li>Framing</li>
+<li>Image Sequencing</li>
+</ul>
+<p>After capturing your images in Nina, you can always disconnect your camera and go back to using the BP App if needed.</p>
+<h3 id="n2---do-i-still-need-to-plug-my-camera-into-the-benro-polaris">N2 - Do I still need to plug my camera into the Benro Polaris?<a class="headerlink" href="#n2---do-i-still-need-to-plug-my-camera-into-the-benro-polaris" title="Permanent link">&para;</a></h3>
+<p>When using Nina or CCDciel for imaging, you don't need to keep your camera plugged into the Benro Polaris. Once the mount is set up, connect your camera directly to the mini-PC running Nina via USB.</p>
+<p>Nina takes over. Focusing: Using your camera's lens autofocus motor or an external focuser. Plate Solving: To confirm and correct the Benro Polaris's pointing. Image Capture: Taking sequences of light, dark, bias, and flat frames.</p>
+<h3 id="n3---can-nina-access-the-cameras-sd-card">N3 - Can Nina access the Cameras SD Card?<a class="headerlink" href="#n3---can-nina-access-the-cameras-sd-card" title="Permanent link">&para;</a></h3>
+<p>No, Nina doesn't directly access the images stored on your camera's SD card. Instead, it communicates directly with the camera through the USB cable using either a native camera driver (for supported Canon and Nikon cameras) or an ASCOM camera driver (for Sony and other camera models). </p>
+<p>This direct communication allows Nina to </p>
+<ul>
+<li>Control camera settings</li>
+<li>Capture images</li>
+<li>Download images directly to your mini-PC's hard drive</li>
+</ul>
+<h3 id="n4---can-i-use-nina-on-my-mobile-device">N4 - Can I use Nina on my Mobile Device?<a class="headerlink" href="#n4---can-i-use-nina-on-my-mobile-device" title="Permanent link">&para;</a></h3>
+<p>Nina is designed as a Windows application and works best on a desktop, laptop, or mini-PC. However, you can indirectly use Nina from your phone or tablet with a remote desktop app. These apps allow you to control a computer remotely over Wi-Fi or a mobile network.</p>
+<p>Keep in mind that using Nina via remote desktop from a mobile device might not provide the ideal user experience due to the smaller screen size and potential lag. </p>
+<h3 id="n5---can-nina-generate-a-meta-data-for-each-image">N5 - Can Nina generate a meta data for each image?<a class="headerlink" href="#n5---can-nina-generate-a-meta-data-for-each-image" title="Permanent link">&para;</a></h3>
+<p>Yes, Nina can do this! It has a handy plug-in called Session Manager that can record various metadata for each image, including:</p>
+<ul>
+<li>Coordinates (RA/Dec): So you know exactly where each image was pointing.</li>
+<li>Weather Conditions: Temperature, humidity, etc., which can be useful for analysis.</li>
+<li>Target Information: The object you were imaging.</li>
+<li>Star Detection Stats</li>
+</ul>
+<p>This information is saved in CSV files, making it easy to import and use in other astrophotography software.</p>
+<h2 id="stellarium-usage-questions">Stellarium Usage Questions<a class="headerlink" href="#stellarium-usage-questions" title="Permanent link">&para;</a></h2>
+<h3 id="s1---will-stellarium-work-via-wifi-or-is-a-cable-necessary">S1 - Will Stellarium work via Wifi or is a cable necessary?<a class="headerlink" href="#s1---will-stellarium-work-via-wifi-or-is-a-cable-necessary" title="Permanent link">&para;</a></h3>
+<p>Stellarium doesn't require a USB connection to work with the Alpaca Benro Polaris Driver. It can connect wirelessly through your Wi-Fi network. This means you can use Stellarium on various devices:</p>
+<ul>
+<li>Mini-PC: For a dedicated astrophotography setup.</li>
+<li>Laptop/Desktop: For planning and control from your primary computer.</li>
+<li>iPhone/Android Phone/iPad: For a portable planetarium and control interface.</li>
+</ul>
+<h3 id="s2---will-stellarium-work-on-the-same-phone-as-bp-app">S2 - Will Stellarium work on the same phone as BP App?<a class="headerlink" href="#s2---will-stellarium-work-on-the-same-phone-as-bp-app" title="Permanent link">&para;</a></h3>
+<p>Yes, you can use Stellarium on the same phone where you have the Benro Polaris App installed. In the past, the BP App needed to run in the background. However, the Alpaca Benro Polaris Driver can now keep the Polaris Wi-Fi connection alive even after you close the BP App. This is great for saving battery life on your phone.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../troubleshooting/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Troubleshooting">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Troubleshooting
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../release-notes-v2.2.0/" class="md-footer__link md-footer__link--next" aria-label="Next: v2.2.0">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                v2.2.0
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

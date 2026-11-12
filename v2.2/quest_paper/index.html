@@ -1,0 +1,3516 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/quest_paper/">
+      
+      
+      
+        <link rel="prev" href="../kinematics/">
+      
+      
+        <link rel="next" href="../study_alignment_mac_v2/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../control/" class="md-tabs__link">
+          
+  
+  Technical
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  A Beginner's Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recommended Hardware Platform
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (Windows)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation (macOS)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Setup Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium and Sky Safari Pro
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel with Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guiding Users Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Technical
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Technical
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Benro Polaris Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Introduction
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-the-quest-algorithm-wahbas-problem-and-altazroll-telescope-mounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Background: The QUEST Algorithm, Wahba’s Problem, and Alt/Az/Roll Telescope Mounts
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Background: The QUEST Algorithm, Wahba’s Problem, and Alt&#x2f;Az&#x2f;Roll Telescope Mounts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quest-and-wahbas-problem-in-telescope-pointing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        QUEST and Wahba’s Problem in Telescope Pointing
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#altazroll-mounts-and-tracking-challenges" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alt/Az/Roll Mounts and Tracking Challenges
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-tracking-error-minimization-vs-quaternion-best-fit-when-no-axis-is-polar-aligned" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A. Tracking Error Minimization vs. Quaternion Best-Fit When No Axis Is Polar-Aligned
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A. Tracking Error Minimization vs. Quaternion Best-Fit When No Axis Is Polar-Aligned">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Problem Statement">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Key Questions</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analytical-insight-quest-cost-function-vs-tracking-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Analytical Insight: QUEST Cost Function vs. Tracking Error</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tracking-centric-alignment-weighted-and-localized-cost-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Tracking-Centric Alignment: Weighted and Localized Cost Function</strong>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tracking-Centric Alignment: Weighted and Localized Cost Function">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mathematical-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Mathematical Formulation</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithmic-modifications-for-tracking-optimal-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Algorithmic Modifications for Tracking-Optimal Alignment</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-implementation-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Practical Implementation Strategies</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conclusion-for-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Conclusion for (A):</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#b-sync-point-geometry-aligning-with-the-dso-arc-and-implications-for-quest-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B. Sync Point Geometry: Aligning with the DSO Arc and Implications for QUEST Alignment
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="B. Sync Point Geometry: Aligning with the DSO Arc and Implications for QUEST Alignment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mathematical-rationale-the-geometry-of-sync-points-and-pointing-model-conditioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Mathematical Rationale: The Geometry of Sync Points and Pointing Model Conditioning</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices-for-sync-point-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Best Practices for Sync Point Placement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-recommendation-for-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Summary Recommendation for (B):</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#c-polar-wedge-alignment-integrating-manual-axis-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        C. Polar (Wedge) Alignment: Integrating Manual Axis Alignment
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="C. Polar (Wedge) Alignment: Integrating Manual Axis Alignment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theoretical-foundations-polar-alignment-and-transformation-simplification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Theoretical Foundations: Polar Alignment and Transformation Simplification</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approaches-for-integrating-wedge-alignment-into-quest-based-or-sync-point-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Approaches for Integrating Wedge Alignment Into QUEST-Based or Sync Point Models</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-steps-and-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Practical Steps and Recommendations</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveats-and-subtleties" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Caveats and Subtleties</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-table-integrating-polar-alignment-in-mount-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Summary Table: Integrating Polar Alignment in Mount Control</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d-alternative-approaches-beyond-quest-improving-dso-tracking-accuracy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        D. Alternative Approaches Beyond QUEST: Improving DSO Tracking Accuracy
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="D. Alternative Approaches Beyond QUEST: Improving DSO Tracking Accuracy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#survey-of-advanced-attitude-determination-and-tracking-techniques" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Survey of Advanced Attitude Determination and Tracking Techniques</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-source-implementations-and-real-world-case-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Open-Source Implementations and Real-World Case Studies</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-table-pros-and-cons-of-key-tracking-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Summary Table: Pros and Cons of Key Tracking Approaches</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-recommendations-integrating-alternatives-for-maximum-dso-tracking-accuracy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Practical Recommendations: Integrating Alternatives for Maximum DSO Tracking Accuracy</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Conclusion
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-approaches-for-sidereal-tracking-optimization-in-altazroll-mounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Table: Approaches for Sidereal Tracking Optimization in Alt/Az/Roll Mounts
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Table: Approaches for Sidereal Tracking Optimization in Alt&#x2f;Az&#x2f;Roll Mounts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bibliography" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Bibliography
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Introduction
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-the-quest-algorithm-wahbas-problem-and-altazroll-telescope-mounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Background: The QUEST Algorithm, Wahba’s Problem, and Alt/Az/Roll Telescope Mounts
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Background: The QUEST Algorithm, Wahba’s Problem, and Alt&#x2f;Az&#x2f;Roll Telescope Mounts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#quest-and-wahbas-problem-in-telescope-pointing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        QUEST and Wahba’s Problem in Telescope Pointing
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#altazroll-mounts-and-tracking-challenges" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alt/Az/Roll Mounts and Tracking Challenges
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-tracking-error-minimization-vs-quaternion-best-fit-when-no-axis-is-polar-aligned" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A. Tracking Error Minimization vs. Quaternion Best-Fit When No Axis Is Polar-Aligned
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A. Tracking Error Minimization vs. Quaternion Best-Fit When No Axis Is Polar-Aligned">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Problem Statement">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Key Questions</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analytical-insight-quest-cost-function-vs-tracking-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Analytical Insight: QUEST Cost Function vs. Tracking Error</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tracking-centric-alignment-weighted-and-localized-cost-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Tracking-Centric Alignment: Weighted and Localized Cost Function</strong>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tracking-Centric Alignment: Weighted and Localized Cost Function">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mathematical-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Mathematical Formulation</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithmic-modifications-for-tracking-optimal-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Algorithmic Modifications for Tracking-Optimal Alignment</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-implementation-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Practical Implementation Strategies</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#conclusion-for-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Conclusion for (A):</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#b-sync-point-geometry-aligning-with-the-dso-arc-and-implications-for-quest-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        B. Sync Point Geometry: Aligning with the DSO Arc and Implications for QUEST Alignment
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="B. Sync Point Geometry: Aligning with the DSO Arc and Implications for QUEST Alignment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mathematical-rationale-the-geometry-of-sync-points-and-pointing-model-conditioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Mathematical Rationale: The Geometry of Sync Points and Pointing Model Conditioning</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices-for-sync-point-placement" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Best Practices for Sync Point Placement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-recommendation-for-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Summary Recommendation for (B):</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#c-polar-wedge-alignment-integrating-manual-axis-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        C. Polar (Wedge) Alignment: Integrating Manual Axis Alignment
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="C. Polar (Wedge) Alignment: Integrating Manual Axis Alignment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#theoretical-foundations-polar-alignment-and-transformation-simplification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Theoretical Foundations: Polar Alignment and Transformation Simplification</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#approaches-for-integrating-wedge-alignment-into-quest-based-or-sync-point-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Approaches for Integrating Wedge Alignment Into QUEST-Based or Sync Point Models</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-steps-and-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Practical Steps and Recommendations</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveats-and-subtleties" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Caveats and Subtleties</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-table-integrating-polar-alignment-in-mount-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Summary Table: Integrating Polar Alignment in Mount Control</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#d-alternative-approaches-beyond-quest-improving-dso-tracking-accuracy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        D. Alternative Approaches Beyond QUEST: Improving DSO Tracking Accuracy
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="D. Alternative Approaches Beyond QUEST: Improving DSO Tracking Accuracy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Problem Statement</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#survey-of-advanced-attitude-determination-and-tracking-techniques" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Survey of Advanced Attitude Determination and Tracking Techniques</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-source-implementations-and-real-world-case-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Open-Source Implementations and Real-World Case Studies</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-table-pros-and-cons-of-key-tracking-approaches" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Summary Table: Pros and Cons of Key Tracking Approaches</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#practical-recommendations-integrating-alternatives-for-maximum-dso-tracking-accuracy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Practical Recommendations: Integrating Alternatives for Maximum DSO Tracking Accuracy</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Conclusion
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-approaches-for-sidereal-tracking-optimization-in-altazroll-mounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Table: Approaches for Sidereal Tracking Optimization in Alt/Az/Roll Mounts
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Table: Approaches for Sidereal Tracking Optimization in Alt&#x2f;Az&#x2f;Roll Mounts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bibliography" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Bibliography
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../control/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Technical
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="improving-sidereal-tracking-accuracy-for-altazroll-telescope-mounts">Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts<a class="headerlink" href="#improving-sidereal-tracking-accuracy-for-altazroll-telescope-mounts" title="Permanent link">&para;</a></h1>
+<hr />
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
+<p>Advancing deep-sky astrophotography—especially at long focal lengths and with lengthy exposures—places extraordinary demands on telescope mounts and their tracking models. Altitude-Azimuth-Roll (alt/az/roll) mounts promise mechanical simplicity and easy instrument access but typically suffer from geometric limitations in tracking the apparent motion of the sky. Their axes are not aligned with Earth’s rotation, resulting in complex, multi-axis coordinated motions to maintain object centering and frame orientation over time.</p>
+<p>Algorithms such as QUEST (“QUaternion ESTimator”), developed to solve Wahba’s problem for attitude determination, are widely adopted for telescope and spacecraft pointing. These algorithms compute the optimal rotation that aligns a set of predicted vectors with observed ones, minimizing angular error. In the Alpaca Driver v2.0 implementation, quaternion alignment using QUEST is employed to fit transformations between predicted and observed directions using “sync points.”</p>
+<p>The predicted directions are derived from an Attitude and Heading Reference System (AHRS), a real-time sensor fusion framework that estimates the orientation of the mount in real time. In contrast, the observed directions are obtained through plate solving, or by manually centering known celestial objects within the field of view. These observed positions serve as ground-truth references with known equatorial coordinates, allowing the system to calibrate and refine its internal pointing model.</p>
+<p>This report rigorously examines how to further optimise the QUEST-based models to minimize actual target tracking error for DSOs with alt/az/roll mounts. We explore four improvement scenarios in full, including mathematical insights, algorithmic modifications, and practical strategies. </p>
+<p>The specific practical recommendations are provided for each context: (A) tracking error minimization when no axis is polar-aligned, (B) optimal sync point geometry, (C) maximizing wedge-aligned tracking, and (D) advanced and alternative estimation strategies. The discussion integrates the latest advanced literature and field experience in telescope control, attitude determination, and long-exposure imaging.</p>
+<hr />
+<h2 id="background-the-quest-algorithm-wahbas-problem-and-altazroll-telescope-mounts">Background: The QUEST Algorithm, Wahba’s Problem, and Alt/Az/Roll Telescope Mounts<a class="headerlink" href="#background-the-quest-algorithm-wahbas-problem-and-altazroll-telescope-mounts" title="Permanent link">&para;</a></h2>
+<h3 id="quest-and-wahbas-problem-in-telescope-pointing">QUEST and Wahba’s Problem in Telescope Pointing<a class="headerlink" href="#quest-and-wahbas-problem-in-telescope-pointing" title="Permanent link">&para;</a></h3>
+<p>The fundamental challenge in mount alignment and tracking is to solve <em>Wahba’s problem</em>: Given a set of celestial reference vectors (e.g., catalog positions for stars or DSOs) and their associated measured directions in the mount’s local frame (e.g., encoder readings), determine the optimal rotation (attitude) that maps one set onto the other, typically under least-squares or maximum likelihood criteria.</p>
+<p>The QUEST algorithm provides an efficient, robust framework for estimating this orientation as a unit quaternion, optimizing the quadratic loss function:</p>
+<div class="arithmatex">\[
+L(A) = \sum_{i=1}^n a_i \| w_i - A v_i \|^2
+\]</div>
+<p>where <span class="arithmatex">\(w_i\)</span> and <span class="arithmatex">\(v_i\)</span> are paired observations in the reference and measured frames, <span class="arithmatex">\(A\)</span> is the rotation matrix, and <span class="arithmatex">\(a_i\)</span> are weights (often related to measurement uncertainties). The problem transforms into maximizing a quadratic gain function, whose solution is the eigenvector with the largest eigenvalue of the Davenport matrix <span class="arithmatex">\(K\)</span>, constructed from the weighted outer products of the reference and measured vectors.</p>
+<p>QUEST’s power lies in its closed-form solution, computational efficiency, and guaranteed quaternion normalization, providing a global best-fit for arbitrary sets of vector pairs—assuming, however, that tracking accuracy (as desired for DSO imaging) is faithfully reflected in residual vector misalignments.</p>
+<h3 id="altazroll-mounts-and-tracking-challenges">Alt/Az/Roll Mounts and Tracking Challenges<a class="headerlink" href="#altazroll-mounts-and-tracking-challenges" title="Permanent link">&para;</a></h3>
+<p>A traditional equatorial mount aligns one axis (RA) to Earth’s rotation axis, so sidereal tracking can proceed with a single motor at a constant rate. Alt/az/roll mounts, by contrast, have no axis parallel to Earth’s spin. Tracking a celestial object thus requires precisely coordinated rotation of all three axes. Moreover, the sky’s rotation appears as both field translation and field rotation in the instrument frame, introducing additional complexity for imaging.</p>
+<p>Standard pointing models with sync points (where the telescope is aimed at known coordinates, and the mount is “told” the corresponding true sky position) build up a transformation between the sky and the mount frame. Conventional alignments (1-star, 2-star, 3-star, n-star) fit for translation, rotation, and sometimes scale or skew. When these transformations are derived using least-squares (or quaternion) alignment, they minimize the overall misalignment between the predicted and measured directions—but may fail to prioritize minimal tracking error along the path traced by the desired object, especially in regions remote from the sync points or in the presence of field rotation.</p>
+<p>In the context of DSO astrophotography, priorities shift:</p>
+<ul>
+<li><strong>Minimizing drift (centering error) over long exposures</strong></li>
+<li><strong>Ensuring field rotation is negligible, or explicitly corrected</strong></li>
+<li><strong>Guaranteeing optimal tracking even when reference or observed vectors are not evenly distributed over the area of interest</strong></li>
+</ul>
+<p>The remainder of this report unpacks how to address these goals with both established and state-of-the-art solutions, structured according to the four outlined scenarios.</p>
+<hr />
+<h2 id="a-tracking-error-minimization-vs-quaternion-best-fit-when-no-axis-is-polar-aligned">A. Tracking Error Minimization vs. Quaternion Best-Fit When No Axis Is Polar-Aligned<a class="headerlink" href="#a-tracking-error-minimization-vs-quaternion-best-fit-when-no-axis-is-polar-aligned" title="Permanent link">&para;</a></h2>
+<h3 id="problem-statement"><strong>Problem Statement</strong><a class="headerlink" href="#problem-statement" title="Permanent link">&para;</a></h3>
+<p>When the alt/az/roll mount has no axis physically aligned with Earth’s rotational axis, the instrument’s coordinated motion does not natively “follow the stars” by moving a single rotation axis at a uniform sidereal rate. Even a mathematically perfect quaternion best-fit between sync points’ predicted and measured vectors does not guarantee minimal tracking error—i.e., minimal drift of a target DSO over time—especially at regions not densely sampled by sync points.</p>
+<h4 id="key-questions"><strong>Key Questions</strong><a class="headerlink" href="#key-questions" title="Permanent link">&para;</a></h4>
+<ul>
+<li>How does QUEST’s cost function relate to actual target tracking error?</li>
+<li>What modifications or extensions can be made to prioritize minimal error along a specific object’s tracking arc, rather than over the entire set of sync points?</li>
+<li>How can you tune the alignment and transformation for best tracking, not just “best average fit”?</li>
+</ul>
+<hr />
+<h3 id="analytical-insight-quest-cost-function-vs-tracking-error"><strong>Analytical Insight: QUEST Cost Function vs. Tracking Error</strong><a class="headerlink" href="#analytical-insight-quest-cost-function-vs-tracking-error" title="Permanent link">&para;</a></h3>
+<p>The classic QUEST alignment computes the quaternion <span class="arithmatex">\(q_{opt}\)</span> that minimizes the global misalignment over all sync points. The cost function is distributed over the spherical surface sampled by those sync points. In practice, this can mean excellent average alignment, but if the sync points are not selectively placed along the intended DSO arc, the local error at the DSO’s position (or along its tracking path) may be significant—even more so as exposure times grow, or away from the area bounded by the sync points.</p>
+<p><strong>Mathematically, this is an issue of cost function localization:</strong> Global least-squares does not guarantee minimum error at a specific location (or along a chosen path); it minimizes the sum of residuals squared. Field rotation effects, which dominate at longer exposures in alt/az mode, are not explicitly minimized in this framework.</p>
+<h3 id="tracking-centric-alignment-weighted-and-localized-cost-function"><strong>Tracking-Centric Alignment: Weighted and Localized Cost Function</strong><a class="headerlink" href="#tracking-centric-alignment-weighted-and-localized-cost-function" title="Permanent link">&para;</a></h3>
+<p>To truly prioritize tracking accuracy along the DSO’s arc, the cost function should be <strong>weighted or localized</strong> so that sync points near or along the desired tracking path are assigned higher importance. This can be achieved in several ways:</p>
+<ul>
+<li><strong>Weighted QUEST:</strong> Assign higher weights (<span class="arithmatex">\(a_i\)</span>) to sync points close to or coincident with the DSO’s planned track, lower weights elsewhere. The solution will then emphasize alignment fidelity near the target arc, enabling more accurate sidereal tracking for that region, possibly at the expense of accuracy elsewhere on the sky.</li>
+<li><strong>Target-centric or Path-Specific “dummy” points:</strong> Artificial sync points (possibly interpolated or calculated) that densely sample the DSO’s anticipated track can be added and heavily weighted, causing the fit to optimize those positions.</li>
+<li><strong>Constrained or “projection-optimized” alignment:</strong> Beyond the simple least-squares distance in 3D space, tracking error can be expressed as a function of the difference between the true sidereal vector velocity and the estimated mount trajectory. This can be minimized by explicitly including first derivatives in the error function, i.e., minimizing the difference in pointing vector <em>and</em> its time derivative at the target location.</li>
+</ul>
+<h4 id="mathematical-formulation"><strong>Mathematical Formulation</strong><a class="headerlink" href="#mathematical-formulation" title="Permanent link">&para;</a></h4>
+<p>Suppose the mount transformation is a function <span class="arithmatex">\(M(\theta_1, \theta_2, \theta_3)\)</span>, parameterized by the three axes. The predicted sky track (as a function of time <span class="arithmatex">\(t\)</span>) corresponds to a time series of equatorial vectors <span class="arithmatex">\(v_{eq}(t)\)</span>, which map to desired mount coordinates via the transformation. The <strong>tracking error</strong> at time <span class="arithmatex">\(t\)</span> is:</p>
+<div class="arithmatex">\[
+e_{track}(t) = \| M^{-1}(v_{eq}(t)) - (\theta_1(t), \theta_2(t), \theta_3(t)) \|
+\]</div>
+<p>The goal is to choose the alignment (i.e., the parameters of <span class="arithmatex">\(M\)</span>) that <strong>minimizes <span class="arithmatex">\(e_{track}\)</span> specifically along this path</strong>. Weighting the cost function accordingly leads to:</p>
+<div class="arithmatex">\[
+L_{tracking}(M) = \sum_{i} w_i \| M(\theta_i) - v_{eq}(t_i) \|^2 + \lambda \sum_{j} \| \dot{M}(\theta_j) - \dot{v}_{eq}(t_j) \|^2
+\]</div>
+<p>with higher <span class="arithmatex">\(w_i\)</span> along the DSO’s arc, and possibly a regularization term (with weight <span class="arithmatex">\(\lambda\)</span>) for velocity matching (i.e., drift minimization).</p>
+<hr />
+<h3 id="algorithmic-modifications-for-tracking-optimal-alignment"><strong>Algorithmic Modifications for Tracking-Optimal Alignment</strong><a class="headerlink" href="#algorithmic-modifications-for-tracking-optimal-alignment" title="Permanent link">&para;</a></h3>
+<p><strong>Implementation Steps:</strong></p>
+<ol>
+<li><strong>Dense Sampling:</strong> Generate a dense set of target vectors along the DSO’s sidereal path (across the planned exposure window), converting RA/Dec/PA to Az/Alt/Roll for each time point using standard astronomical coordinate transformations.</li>
+<li><strong>Augmented Sync Point Set:</strong> Add these positions to the set of sync points, possibly with high weights.</li>
+<li>
+<p><strong>Weighted QUEST Formulation:</strong> In the construction of the attitude profile matrix <span class="arithmatex">\(B\)</span>, use the augmented and weighted set, i.e.,</p>
+<div class="arithmatex">\[
+B = \sum_{k} a_k W_k V_k^T
+\]</div>
+<p>where <span class="arithmatex">\(a_k\)</span> is large for points on the DSO path, smaller otherwise, <span class="arithmatex">\(W_k\)</span> are measured vectors (e.g., from hypothetical or actual mount positions), <span class="arithmatex">\(V_k\)</span> are reference (catalog) sky directions.</p>
+</li>
+<li>
+<p><strong>Calculate the Attitude Quaternion:</strong> Obtain the solution for <span class="arithmatex">\(K q = \lambda_{max} q\)</span> using standard QUEST or, for better numerical performance in ill-conditioned cases, alternative formulations such as ESOQ2.</p>
+</li>
+<li><strong>Validation:</strong> Simulate the expected sky movement and verify that the mount’s transformation, when controlled via the estimated attitude and its derivatives, maintains sub-pixel drift across the exposure time at the target region.</li>
+</ol>
+<h3 id="practical-implementation-strategies"><strong>Practical Implementation Strategies</strong><a class="headerlink" href="#practical-implementation-strategies" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Regularly Update the Sync Point Model:</strong> Over time, mechanical flexure or encoder drift may degrade pointing accuracy. Periodic re-synchronization along the DSO arc mitigates tracking drift.</li>
+<li><strong>Simulate and Visualize Tracking Paths:</strong> Use computational tools to simulate the projected sky path versus the predicted mount trajectory, visualizing errors both across the whole sky and focused on the DSO arc. This makes it easier to verify improvements and adjust weights or models accordingly.</li>
+<li><strong>Integrate Guiding Feedback:</strong> For best results at long focal lengths, use off-axis guiding or multi-star guiding, which can detect and correct sub-arcsecond drift caused by unmodeled errors or atmospheric refraction.</li>
+</ul>
+<p><strong>Summary Table: Approaches for Tracking Error Minimization</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classic QUEST</td>
+<td>Efficient;  robust for general pointing</td>
+<td>Average best fit, may not minimize error on DSO path</td>
+</tr>
+<tr>
+<td>Weighted QUEST</td>
+<td>Emphasizes accuracy where most needed</td>
+<td>Requires careful weight selection; may reduce global fit</td>
+</tr>
+<tr>
+<td>Dummy/augmented points</td>
+<td>Highly localizes fit; can prioritize specific objects</td>
+<td>Risk of overfitting/local minima; reduces skywide accuracy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="conclusion-for-a"><strong>Conclusion for (A):</strong><a class="headerlink" href="#conclusion-for-a" title="Permanent link">&para;</a></h3>
+<p><strong>To minimize tracking error for a DSO with an alt/az/roll mount (without a polar axis):</strong></p>
+<ul>
+<li>Transition from global least-squares (classic QUEST) to a <em>weighted or localized</em> optimization, prioritizing sync/data points along the DSO’s arc.</li>
+<li>Consider augmenting sync points, using simulated or measured positions with high weights on the target path.</li>
+<li>Optionally employ off axis guiding.</li>
+</ul>
+<hr />
+<h2 id="b-sync-point-geometry-aligning-with-the-dso-arc-and-implications-for-quest-alignment">B. Sync Point Geometry: Aligning with the DSO Arc and Implications for QUEST Alignment<a class="headerlink" href="#b-sync-point-geometry-aligning-with-the-dso-arc-and-implications-for-quest-alignment" title="Permanent link">&para;</a></h2>
+<h3 id="problem-statement_1"><strong>Problem Statement</strong><a class="headerlink" href="#problem-statement_1" title="Permanent link">&para;</a></h3>
+<p>If sync points are purposely distributed along the apparent celestial track the DSO will follow (i.e., same Declination, but varying Right Ascension corresponding to imaging times), will this improve the accuracy of QUEST alignment for tracking? Are there further optimizations in sync point placement or geometry to further minimize tracking error for long-exposure DSO imaging?</p>
+<hr />
+<h3 id="mathematical-rationale-the-geometry-of-sync-points-and-pointing-model-conditioning"><strong>Mathematical Rationale: The Geometry of Sync Points and Pointing Model Conditioning</strong><a class="headerlink" href="#mathematical-rationale-the-geometry-of-sync-points-and-pointing-model-conditioning" title="Permanent link">&para;</a></h3>
+<p>The accuracy and stability of any least-squares or QUEST-based fit depend strongly on both <strong>the number and spatial distribution (geometry) of sync points</strong>. This holds particularly true for alt/az/roll mounts, where field rotation and non-orthogonality magnify local model errors—especially remote from the “convex hull” formed by the sync points.</p>
+<p><strong>When all sync points lie along the DSO arc:</strong></p>
+<ul>
+<li>The fit is highly accurate along that arc (i.e., tracking error near the DSO is minimized).</li>
+<li>Off-arc accuracy may degrade.</li>
+<li>For most DSO imaging, this is advantageous, as only the local (arc) tracking is critical.</li>
+</ul>
+<p>The geometric principle is analogous to interpolation vs. extrapolation: QUEST (or affine) fits will most faithfully reproduce the actual transformation along or between the points spanning the region of interest, but may perform poorly for positions far from that region.</p>
+<hr />
+<h3 id="best-practices-for-sync-point-placement"><strong>Best Practices for Sync Point Placement</strong><a class="headerlink" href="#best-practices-for-sync-point-placement" title="Permanent link">&para;</a></h3>
+<p><strong>1. Locally Clustered or Path-Following Sync Points:</strong></p>
+<ul>
+<li>Place sync points at multiple future times along the DSO’s predicted sky track during the planned exposure(s).</li>
+<li>For exposures of tens of minutes to hours, sample at intervals sufficient to capture any nonlinearity (e.g., every few degrees or every several minutes of time).</li>
+</ul>
+<p><strong>2. Multiple Objects for Large Mosaics or Surveys:</strong></p>
+<ul>
+<li>If intending to image several nearby DSOs, use sync points along the arcs of each, balancing their respective weights as needed.</li>
+</ul>
+<p><strong>3. Avoid Overfitting:</strong></p>
+<ul>
+<li>Do not over-constrain with excessive, closely clustered sync points with vastly different positional uncertainties; this can destabilize the solution (as in ill-conditioned configuration matrices in least squares).</li>
+</ul>
+<p><strong>4. Combined Global and Local Sync Points:</strong></p>
+<ul>
+<li>For guiding the telescope across larger sky regions (e.g., for visual or survey use), maintain a small number of broadly spaced sync points in addition to arc-specific ones, with weights reflecting their intended importance.</li>
+</ul>
+<h3 id="summary-recommendation-for-b"><strong>Summary Recommendation for (B):</strong><a class="headerlink" href="#summary-recommendation-for-b" title="Permanent link">&para;</a></h3>
+<p>Aligning sync points along the DSO’s arc (i.e., same Declination, distributed in RA/time) should improve tracking accuracy for that object using QUEST. If tracking precision is paramount in that region of sky during the exposure, prioritize sampling the path with sufficient density. For broader use, triangulation and/or mixed weighting are recommended.</p>
+<p><strong>Table: Effect of Sync Point Geometry on Local Tracking Error</strong></p>
+<table>
+<thead>
+<tr>
+<th>Geometry</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Distributed on DSO arc</td>
+<td>Highest local accuracy for DSO tracking</td>
+<td>Accuracy elsewhere degrades</td>
+</tr>
+<tr>
+<td>Uniform grid (whole sky)</td>
+<td>Moderate accuracy everywhere</td>
+<td>Suboptimal at specific targets</td>
+</tr>
+<tr>
+<td>Clustered (local region)</td>
+<td>Good for small FOV imaging, eg. mosaics</td>
+<td>Poor for tracking other, remote objects</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="c-polar-wedge-alignment-integrating-manual-axis-alignment">C. Polar (Wedge) Alignment: Integrating Manual Axis Alignment<a class="headerlink" href="#c-polar-wedge-alignment-integrating-manual-axis-alignment" title="Permanent link">&para;</a></h2>
+<h3 id="problem-statement_2"><strong>Problem Statement</strong><a class="headerlink" href="#problem-statement_2" title="Permanent link">&para;</a></h3>
+<p>When one motor axis of the alt/az/roll mount is manually aligned (via a wedge) with Earth’s rotation axis, how does this change the alignment problem? Is it sufficient to insert “dummy sync points” (i.e., tell the software that the axis is “perfectly aligned”), or are further steps required to ensure optimal tracking and minimal field rotation for DSO imaging?</p>
+<hr />
+<h3 id="theoretical-foundations-polar-alignment-and-transformation-simplification"><strong>Theoretical Foundations: Polar Alignment and Transformation Simplification</strong><a class="headerlink" href="#theoretical-foundations-polar-alignment-and-transformation-simplification" title="Permanent link">&para;</a></h3>
+<p>Physically aligning the azimuth axis of the mount with Earth’s rotational axis (i.e., “wedge mounting”) places the mount in an equatorial configuration, so that tracking in Right Ascension aligns with the sidereal motion—ideally eliminating field rotation and simplifying tracking to a single axis (plus residual corrections). In practice, this is the core principle behind equatorial mounts used in astrophotography.</p>
+<p><strong>Mathematically, this has several consequences:</strong></p>
+<ul>
+<li>The transformation from celestial coordinates (RA/Dec) to mount axes is simplified; the mapping becomes predominantly a rotation about the polar axis, with Declination adjusting the secondary axis (as in classic German Equatorial or fork mounts).</li>
+<li>If the mount’s encoder or transformation model “knows” its polar axis is correctly aligned, the attitude determination no longer needs to account for arbitrary coupling between all three mount axes and the inertial frame; only the (small) residual misalignments and orthogonality errors need to be corrected.</li>
+</ul>
+<hr />
+<h3 id="approaches-for-integrating-wedge-alignment-into-quest-based-or-sync-point-models"><strong>Approaches for Integrating Wedge Alignment Into QUEST-Based or Sync Point Models</strong><a class="headerlink" href="#approaches-for-integrating-wedge-alignment-into-quest-based-or-sync-point-models" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Reference Frame Constraint:</strong> Modify the pointing model such that one axis is constrained (mathematically “locked”) to Earth’s rotational axis. This can be enforced by defining an explicit reference rotation (i.e., the mount’s “equatorial” axis is parallel to the celestial pole) in the coordinate transformation, reducing the degrees of freedom in the attitude determination.</li>
+<li><strong>Dummy Sync Points:</strong> Insert synthetic alignment points at the celestial pole (or at positions corresponding to pure sidereal motion), with zero error and high weight, to force the least-squares or quaternion fit to align that axis accordingly. This is an expedient, approximate solution that works well if the physical alignment is accurate, but may fail if there is significant residual misalignment or flexure.</li>
+<li><strong>Model Parameter Reduction:</strong> Explicitly reduce the model order, removing terms that account for axis non-perpendicularity or arbitrary offsets (i.e., only include parameters relevant to residual errors, not global 3-axis orientation).</li>
+<li><strong>Refined Calibration:</strong> After physical wedge alignment, perform at least one “star sync” near the meridian (high altitude), where atmospheric refraction and flexure are lowest, to further correct for mechanical deviations between the physical and the “mathematical” equatorial axis.</li>
+<li><strong>Polar-Optimized Pointing Model:</strong> Switch the pointing software to use a polar (equatorial) model; many mount control packages offer this as an option, which simplifies transforms and improves tracking accuracy.</li>
+</ol>
+<hr />
+<h3 id="practical-steps-and-recommendations"><strong>Practical Steps and Recommendations</strong><a class="headerlink" href="#practical-steps-and-recommendations" title="Permanent link">&para;</a></h3>
+<p><strong>1. After Wedge Alignment:</strong></p>
+<ul>
+<li>Use software or hand controller features to “set the mount to equatorial mode” wherever possible.</li>
+<li>Execute high-precision polar alignment using iterative or drift alignment (e.g., with plate solving, PHD2 drift align, or polar alignment routines in SharpCap or ASIAir Pro).</li>
+<li>If using sync points, place at least one at or near the celestial pole, and additional ones near the equator/meridian for best correction.</li>
+</ul>
+<p><strong>2. Insert Dummy Sync Points:</strong> </p>
+<ul>
+<li>Add sync points aligned with the polar axis; assign highest possible weights to these points to “force” the fit to preserve the alignment.</li>
+<li>Optionally, add a few more along the celestial equator to help constrain residual flexure or orthogonality errors.</li>
+</ul>
+<p><strong>3. Recalibrate After Each Mechanical Reset:</strong></p>
+<ul>
+<li>Re-align and re-sync whenever the wedge or axes are adjusted, as even minor shifts can introduce arcminute-level errors.</li>
+</ul>
+<p><strong>4. Verify Field Rotation Correction:</strong></p>
+<ul>
+<li>Test for residual field rotation by imaging a star field at high Declination (near the pole) and low Declination (near the celestial equator), observing whether star shapes remain circular across the field during long exposures.</li>
+</ul>
+<hr />
+<h3 id="caveats-and-subtleties"><strong>Caveats and Subtleties</strong><a class="headerlink" href="#caveats-and-subtleties" title="Permanent link">&para;</a></h3>
+<p><strong>Physical wedge alignment is rarely perfect:</strong> Residual error arises from mechanical flexure, tripod tilt, atmospheric refraction, and misalignment. High-precision DSO imaging at long focal lengths demands repeated verification and calibration, possibly supplemented by guiding.</p>
+<p><strong>Using dummy sync points simulates, but does not guarantee, alignment:</strong> If the physical axis is misaligned by even a few arcminutes, field rotation and drift errors reappear during long exposures. Empirical adjustment using drift alignment or plate solving is always advisable for best results.</p>
+<hr />
+<h3 id="summary-table-integrating-polar-alignment-in-mount-control"><strong>Summary Table: Integrating Polar Alignment in Mount Control</strong><a class="headerlink" href="#summary-table-integrating-polar-alignment-in-mount-control" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wedge with Pointing Model</td>
+<td>Simplifies tracking, true sidereal rate</td>
+<td>Requires precise physical alignment</td>
+</tr>
+<tr>
+<td>Dummy Sync Points</td>
+<td>Easy to implement in software</td>
+<td>Susceptible to residual error/coupling</td>
+</tr>
+<tr>
+<td>Reduced Model Complexity</td>
+<td>Fewer parameters, robust fitting</td>
+<td>Less flexible if misalignment occurs</td>
+</tr>
+<tr>
+<td>Repeated Calibration</td>
+<td>Maintains highest accuracy</td>
+<td>Requires time, additional steps</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="d-alternative-approaches-beyond-quest-improving-dso-tracking-accuracy">D. Alternative Approaches Beyond QUEST: Improving DSO Tracking Accuracy<a class="headerlink" href="#d-alternative-approaches-beyond-quest-improving-dso-tracking-accuracy" title="Permanent link">&para;</a></h2>
+<h3 id="problem-statement_3"><strong>Problem Statement</strong><a class="headerlink" href="#problem-statement_3" title="Permanent link">&para;</a></h3>
+<p>Are there alternative algorithmic approaches or extended models beyond QUEST that can improve sidereal tracking accuracy for DSOs, especially for long focal lengths and exposures? Should you consider filters, machine learning, adaptive estimation, or hardware augmentations?</p>
+<hr />
+<h3 id="survey-of-advanced-attitude-determination-and-tracking-techniques"><strong>Survey of Advanced Attitude Determination and Tracking Techniques</strong><a class="headerlink" href="#survey-of-advanced-attitude-determination-and-tracking-techniques" title="Permanent link">&para;</a></h3>
+<p><strong>1. Alternative Batch Estimators: ESOQ, Davenport’s q-Method, and SVD</strong></p>
+<ul>
+<li><strong>ESOQ/ESOQ2:</strong> Fast, robust quaternion estimators with improved numerical performance, especially in cases approaching singularities or with large differences in vector weights.</li>
+<li><strong>Davenport’s q-Method:</strong> Canonical eigenvalue-based estimator, slower but highly robust, often used as a “reference solution” in spacecraft and telescope attitude determination.</li>
+<li><strong>SVD (Singular Value Decomposition):</strong> Provides the most robust solution and error covariance estimates, especially when sync points are not well-conditioned; slower but less susceptible to numerical instability.</li>
+</ul>
+<p><strong>2. Affine or Piecewise-Affine Models</strong></p>
+<p>For mounts that exhibit non-rigid errors (e.g., from mechanical flexure, temperature changes, or time-varying atmospheric distortion), affine or local least-squares fits (sometimes organized piecewise using triangulation) outperform global rigid-body models. This is especially relevant when numerous sync points are available, as in the n-point triangulation schemes.</p>
+<p><strong>3. Filter-Based Algorithms: Kalman, Extended Kalman, Unscented Kalman (UKF), etc.</strong></p>
+<ul>
+<li><strong>Kalman Filtering:</strong> Fuses real-time sensor and pointing data with the QUEST batch estimate, adaptively adjusting the attitude or mount parameters to minimize residual tracking error. A base Kalman FIlter has been implemented in the Alpaca Driver.</li>
+<li><strong>Extended Kalman Filter (EKF):</strong> Handles nonlinear measurement and process models; well-suited to integrating IMU, encoder, and even guide camera data for adaptive, closed-loop correction.</li>
+<li><strong>Unscented Kalman Filter (UKF):</strong> Handles strong nonlinearities better than EKF, at the cost of increased computation; allows for more accurate modeling of quaternion and rotation manifolds; very effective for complex or rapidly changing error patterns.</li>
+</ul>
+<p><strong>4. Machine Learning &amp; Adaptive Models</strong></p>
+<ul>
+<li><strong>Neural Networks/Gradient Boosted Trees:</strong> Recent research within astronomical telescope control demonstrates adaptive, data-driven pointing models that outperform static ones as errors change over time (thermal drift, mechanical wear).</li>
+<li><strong>Sequence-Based (Recurrent) Models:</strong> Account for temporally correlated errors and can adapt tracking dynamically as environmental conditions, mount states, or pointing regions change.</li>
+</ul>
+<p><strong>5. Real-time/Camera-Based Feedback and Guiding</strong></p>
+<ul>
+<li><strong>Off-Axis Guiding (OAG):</strong> Use the imaging telescope optics to guide, eliminating differential flexure between guiders and main scope. Guiding corrections are fed directly to the mount controller to compensate for unexplained tracking errors.</li>
+<li><strong>Multi-Star Guiding:</strong> Uses several guide stars across the field to detect and compensate for local field rotation and flexure effects.</li>
+</ul>
+<h3 id="open-source-implementations-and-real-world-case-studies"><strong>Open-Source Implementations and Real-World Case Studies</strong><a class="headerlink" href="#open-source-implementations-and-real-world-case-studies" title="Permanent link">&para;</a></h3>
+<p>Numerous open-source repositories implement advanced alignment and tracking models:</p>
+<ul>
+<li><strong>telescope-sync (henrythasler):</strong> n-point triangulation, affine models, and sync point selection.</li>
+<li><strong>ESoQ2 (muzhig):</strong> Python/Matlab/C++ implementations for fast, batch quaternion estimation.</li>
+<li><strong>dobson (legourrierec):</strong> Full-control pipeline for DIY dobsonian with equatorial table, solves, syncs, and tracks with embedded flexure correction.</li>
+<li><strong>AltAzGoto (nikcain):</strong> Arduino code for stepper motor control and GoTo automation in alt/az mount, with database integration.</li>
+</ul>
+<p>Commercial and community control packages (EQMOD, ASCOM, N.I.N.A., SharpCap, PHD2) also provide various combinations of field rotation correction, sync point modeling, and guiding integration.</p>
+<hr />
+<h3 id="summary-table-pros-and-cons-of-key-tracking-approaches"><strong>Summary Table: Pros and Cons of Key Tracking Approaches</strong><a class="headerlink" href="#summary-table-pros-and-cons-of-key-tracking-approaches" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Classic QUEST</td>
+<td>Fast, robust for average pointing, closed-form solution</td>
+<td>Least-squares “best fit” may not minimize local tracking error</td>
+</tr>
+<tr>
+<td>Weighted/localized QUEST</td>
+<td>Optimizes accuracy along DSO track</td>
+<td>May reduce fidelity elsewhere; requires sync point management</td>
+</tr>
+<tr>
+<td>Triangulated / Piecewise Model</td>
+<td>High accuracy in user-selected regions; adapts to local mechanical errors</td>
+<td>Discontinuous at triangle/sector boundaries; more sync points needed</td>
+</tr>
+<tr>
+<td>Kalman/UKF Fusion</td>
+<td>Real-time correction, sensor data fusion, adapts to state changes</td>
+<td>Computationally intensive</td>
+</tr>
+<tr>
+<td>Machine Learning (NN, GBT, etc)</td>
+<td>Learns complex, time-varying error patterns; high flexibility</td>
+<td>Requires training data, can be opaque/less explainable</td>
+</tr>
+<tr>
+<td>Guiding/Guider integration</td>
+<td>Direct real-time drift correction, especially at sub-arcsecond level</td>
+<td>Requires OAG/flexure-free setup; external hardware/software</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="practical-recommendations-integrating-alternatives-for-maximum-dso-tracking-accuracy"><strong>Practical Recommendations: Integrating Alternatives for Maximum DSO Tracking Accuracy</strong><a class="headerlink" href="#practical-recommendations-integrating-alternatives-for-maximum-dso-tracking-accuracy" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>For DSO-only, long-exposure imaging,</strong> employ a dense, weighted sync point model or even explicit path fitting, using QUEST or ESOQ2 for quaternion estimation.</li>
+<li><strong>For environments with significant flexure, temperature variation, or slew-to-slew changes,</strong> utilize adaptive or filter-based approaches (e.g., Kalman or UKF).</li>
+<li><strong>Where supported, combine OAG or multi-star guiding</strong> for real-time drift and field rotation correction, supplementing model-based tracking with empirical correction.</li>
+<li><strong>Always validate alignment and tracking performance</strong> empirically, with test exposures, centroid measurements, and plate solves, especially after any mount changes.</li>
+</ul>
+<hr />
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>Maximizing DSO tracking accuracy on alt/az/roll mounts for long focal length and exposure astrophotography is fundamentally constrained by the mapping between celestial and local coordinates and the model used to fit that transformation. The classic QUEST algorithm provides an efficient and robust least-squares global fit, but prioritizes average pointing fidelity rather than local tracking error. For best results, especially with no polar-aligned axis, the cost function must be locally weighted along the DSO’s track, with carefully chosen sync points or dummy points enhancing fit where needed.</p>
+<p>Manual alignment of one axis (wedge mounting) simplifies the problem, but requires both mechanical precision and explicit modifications of the transformation model—often best achieved by constraining the fit or inserting synthetic points reflecting the axis orientation.</p>
+<p>A broad set of alternatives—advanced rigid and affine batch estimators, adaptive filtering, machine learning, and real-time closed-loop correction—enable further improvements, at the cost of computational complexity or hardware augmentation. Field rotation can be addressed both in software (derotation models) and in hardware (rotators or OAG-based guiding).</p>
+<p><strong>In summary:</strong></p>
+<ul>
+<li>Employ locally weighted or path-specific alignment for DSO tracking.</li>
+<li>Optimize sync point geometry, prioritizing the imaging target’s arc.</li>
+<li>Integrate wedge alignment physically and mathematically where appropriate.</li>
+<li>Embrace advanced estimation (adaptive filtering, machine learning) and guiding for the highest accuracy where feasible.</li>
+<li>Validate empirically—tracking accuracy is best measured at the sensor, not just in the model.</li>
+</ul>
+<p>With these strategies, alt/az/roll mounts can deliver the accuracy required for modern DSO astrophotography, even at demanding focal lengths and exposure times.</p>
+<hr />
+<h2 id="table-approaches-for-sidereal-tracking-optimization-in-altazroll-mounts">Table: Approaches for Sidereal Tracking Optimization in Alt/Az/Roll Mounts<a class="headerlink" href="#table-approaches-for-sidereal-tracking-optimization-in-altazroll-mounts" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Approach/Scenario</th>
+<th>Key Features</th>
+<th>DSO Tracking Accuracy</th>
+<th>Implementation Complexity</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Classic QUEST</strong></td>
+<td>Global quaternion alignment on all sync points</td>
+<td>Moderate – best average fit</td>
+<td>Low</td>
+<td>Fast, robust</td>
+<td>Not locally optimized</td>
+</tr>
+<tr>
+<td><strong>Weighted/Path-Localized QUEST</strong></td>
+<td>Higher weights for sync points along DSO arc</td>
+<td>High – best for target region</td>
+<td>Moderate</td>
+<td>Targeted accuracy</td>
+<td>Needs careful weight/point selection</td>
+</tr>
+<tr>
+<td><strong>Triangulation-Based Model</strong></td>
+<td>Piecewise local fits within triangulated regions</td>
+<td>High inside triangles</td>
+<td>Moderate-High</td>
+<td>Versatile, local correction</td>
+<td>Complexity, edge artifacts</td>
+</tr>
+<tr>
+<td><strong>Wedge Alignment + Pointing Model</strong></td>
+<td>Physical RA axis alignment, constrained fit</td>
+<td>Very high if wedge is near-perfect</td>
+<td>Moderate</td>
+<td>Minimal field rotation</td>
+<td>Physical errors still possible</td>
+</tr>
+<tr>
+<td><strong>Dummy Sync Points at Polar Axis</strong></td>
+<td>Forces mathematical constraint on model</td>
+<td>High near axis; indirect elsewhere</td>
+<td>Moderate</td>
+<td>Works with existing code</td>
+<td>Susceptible to misalignment</td>
+</tr>
+<tr>
+<td><strong>Realtime Kalman/UKF/Adaptive Filtering</strong></td>
+<td>Integrate sensor/guiding feedback, dynamic reweighting</td>
+<td>Very high, adaptive</td>
+<td>High</td>
+<td>Corrects drift, multi-sensor fusion</td>
+<td>Compute and code complexity</td>
+</tr>
+<tr>
+<td><strong>OAG / Guiding Integration</strong></td>
+<td>Hardware/software feedback, corrects in real-time</td>
+<td>Highest attainable</td>
+<td>High</td>
+<td>Compensates for unmodeled errors</td>
+<td>Requires extra hardware, guiding stars</td>
+</tr>
+<tr>
+<td><strong>Machine-Learning Models</strong></td>
+<td>Data-driven, adapt to systematic errors</td>
+<td>High over long term/large datasets</td>
+<td>High</td>
+<td>Learns time-varying error patterns</td>
+<td>Requires data, possible black-box results</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="bibliography">Bibliography<a class="headerlink" href="#bibliography" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>AHRS Documentation. (n.d.). <em>QUEST Filter</em>.<br />
+<a href="https://ahrs.readthedocs.io/en/latest/filters/quest.html">https://ahrs.readthedocs.io/en/latest/filters/quest.html</a></p>
+</li>
+<li>
+<p>Bidshahri, R. (2022). <em>Improve Your Images with an Off-Axis Guider (OAG)</em>. Cloudy Nights.<br />
+    Explains how OAG improves tracking accuracy by eliminating differential flexure.<br />
+<a href="https://www.cloudynights.com/articles/cat/astro-gear-today/more/how-to1701492819/improve-your-images-with-an-off-axis-guider-oag-steps-to-get-started-r4514">https://www.cloudynights.com/articles/cat/astro-gear-today/more/how-to1701492819/improve-your-images-with-an-off-axis-guider-oag-steps-to-get-started-r4514</a></p>
+</li>
+<li>
+<p>Cheng, Y., &amp; Shuster, M. D. (2007). <em>An improvement to the QUEST algorithm</em>. Journal of the Astronautical Sciences.<br />
+<a href="https://malcolmdshuster.com/Pubp_010_031z_J_JAS1290_cquest_MDS.pdf">https://malcolmdshuster.com/Pubp_010_031z_J_JAS1290_cquest_MDS.pdf</a></p>
+</li>
+<li>
+<p>Crassidis, J. L., &amp; Junkins, J. L. (2011). <em>Optimal estimation of dynamic systems</em> (2<sup>nd</sup> ed.). CRC Press.<br />
+    — Chapter 5 covers Wahba’s problem and QUEST in depth.</p>
+</li>
+<li>
+<p>Davenport, P. B. (1968). <em>A vector approach to attitude determination</em>. NASA Technical Report.<br />
+    The original formulation of the q-Method, solving Wahba’s problem via eigenvalue decomposition of the Davenport matrix.</p>
+</li>
+<li>
+<p>GitHub Repository: ESOQ2 Implementation.<br />
+    Contains Python, MATLAB, and C++ implementations of ESOQ2 for spacecraft attitude estimation.<br />
+<a href="https://github.com/muzhig/ESOQ2">https://github.com/muzhig/ESOQ2</a></p>
+</li>
+<li>
+<p>Grech, G. (2023). <em>Mastering Off-Axis Guiding</em>. Optics Central.<br />
+    Covers equipment, calibration, and setup tips for high-precision guiding.<br />
+<a href="https://www.opticscentral.com.au/blog/mastering-off-axis-guiding/">https://www.opticscentral.com.au/blog/mastering-off-axis-guiding/</a></p>
+</li>
+<li>
+<p>Lang, D., Hogg, D. W., Mierle, K., Blanton, M., &amp; Roweis, S. (2010). <em>Astrometry.net: Blind astrometric calibration of arbitrary astronomical images</em>. The Astronomical Journal, 139(5), 1782–1800.</p>
+</li>
+<li>
+<p>Markley, F. L. (2000). <em>Quaternion attitude estimation using vector observations</em>. Journal of the Astronautical Sciences, 48(2–3), 359–380.<br />
+<a href="https://gps.mae.cornell.edu/extended_quest.pdf">https://gps.mae.cornell.edu/extended_quest.pdf</a></p>
+</li>
+<li>
+<p>Markley, F. L. (2003). <em>Attitude estimation or quaternion estimation?</em> NASA Technical Report.<br />
+<a href="https://ntrs.nasa.gov/citations/20030093641">https://ntrs.nasa.gov/citations/20030093641</a></p>
+</li>
+<li>
+<p>Markley, F. L. (2015). <em>Equivalence of Two Solutions of Wahba’s Problem</em>.<br />
+    Shows that QUEST and ESOQ are mathematically equivalent to SVD-based solutions under certain conditions.<br />
+<a href="https://link.springer.com/content/pdf/10.1007/s40295-015-0049-x.pdf">https://link.springer.com/content/pdf/10.1007/s40295-015-0049-x.pdf</a></p>
+</li>
+<li>
+<p>Markley, F. L. (2018). <em>Statistical attitude determination</em>. NASA Technical Report.<br />
+<a href="https://ntrs.nasa.gov/api/citations/20180000027/downloads/20180000027.pdf">https://ntrs.nasa.gov/api/citations/20180000027/downloads/20180000027.pdf</a></p>
+</li>
+<li>
+<p>Markley, F. L., &amp; Mortari, D. (1999). <em>How to Estimate Attitude from Vector Observations</em>. AAS 99-427.<br />
+    Compares QUEST, ESOQ, and SVD methods for speed and robustness.<br />
+<a href="https://malcolmdshuster.com/FC_MarkleyMortari_Girdwood_1999_AAS.pdf">https://malcolmdshuster.com/FC_MarkleyMortari_Girdwood_1999_AAS.pdf</a></p>
+</li>
+<li>
+<p>Markley, F. L., &amp; Mortari, D. (2000). <em>New developments in quaternion estimation from vector observations</em>. NASA Technical Report.<br />
+    Discusses enhancements to QUEST and ESOQ2, including robustness and computational efficiency.<br />
+<a href="https://ntrs.nasa.gov/api/citations/20000034107/downloads/20000034107.pdf">https://ntrs.nasa.gov/api/citations/20000034107/downloads/20000034107.pdf</a></p>
+</li>
+<li>
+<p>Mortari, D. (2000). <em>ESOQ: A closed-form solution to the Wahba problem</em>. Journal of the Astronautical Sciences, 45(2), 195–209.<br />
+    Introduces ESOQ as a non-iterative, closed-form solution to Wahba’s problem using quaternion algebra.</p>
+</li>
+<li>
+<p>NASA (2021). <em>Optical Navigation Attitude Estimation and Calibration Performance Improvement using Outlier Rejection</em>. NASA Technical Report.<br />
+<a href="https://ntrs.nasa.gov/api/citations/20210026612/downloads/OpNav_OutliersRejection_Final.pdf">https://ntrs.nasa.gov/api/citations/20210026612/downloads/OpNav_OutliersRejection_Final.pdf</a></p>
+</li>
+<li>
+<p>Shuster, M. D., &amp; Oh, S. D. (1981). <em>Three-axis attitude determination from vector observations</em>. Journal of Guidance and Control, 4(1), 70–77.</p>
+</li>
+<li>
+<p>Shuster, M. D. (1993). <em>A survey of attitude representations</em>. Journal of the Astronautical Sciences, 41(4), 439–517.<br />
+    Includes a detailed comparison of quaternion-based methods including the q-Method.</p>
+</li>
+<li>
+<p>Vallado, D. A. (2013). <em>Fundamentals of astrodynamics and applications</em> (4<sup>th</sup> ed.). Microcosm Press.<br />
+    — Includes sidereal time computation and coordinate transformations.</p>
+</li>
+<li>
+<p>Zanetti, R., et al. (2012). <em>Q-Method Extended Kalman Filter</em>. NASA/Draper Lab.<br />
+    Integrates Davenport’s q-Method with EKF for recursive attitude estimation.<br />
+<a href="https://ntrs.nasa.gov/api/citations/20120017927/downloads/20120017927.pdf">https://ntrs.nasa.gov/api/citations/20120017927/downloads/20120017927.pdf</a></p>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../kinematics/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Alpaca Benro Polaris Driver — Kinematics Reference">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Alpaca Benro Polaris Driver — Kinematics Reference
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../study_alignment_mac_v2/" class="md-footer__link md-footer__link--next" aria-label="Next: Alignment Model — M2&#x2f;M3 Offsets and M2 Scale in QUEST (Plan)">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>
