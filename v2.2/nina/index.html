@@ -30,7 +30,7 @@
     
     
       
-        <title>Using Nina with Benro Polaris - Alpaca Benro Polaris Driver</title>
+        <title>Using Nina - Alpaca Benro Polaris Driver</title>
       
     
     
@@ -123,7 +123,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Using Nina with Benro Polaris
+              Using Nina
             
           </span>
         </div>
@@ -274,6 +274,8 @@
       
         
       
+        
+      
     
     
     
@@ -374,15 +376,19 @@
       
         
       
+        
+      
+        
+      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../control/" class="md-tabs__link">
+        <a href="../alpaca-api/" class="md-tabs__link">
           
   
-  Technical
+  Reference
 
         </a>
       </li>
@@ -756,6 +762,8 @@
       
         
       
+        
+      
     
     
     
@@ -835,6 +843,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../panoramas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../stellarium/" class="md-nav__link">
         
   
@@ -842,7 +877,7 @@
   <span class="md-ellipsis">
     
   
-  Using Stellarium and Sky Safari Pro
+  Using Stellarium
 
     
   </span>
@@ -878,7 +913,7 @@
   <span class="md-ellipsis">
     
   
-  Using Nina with Benro Polaris
+  Using Nina
 
     
   </span>
@@ -895,7 +930,7 @@
   <span class="md-ellipsis">
     
   
-  Using Nina with Benro Polaris
+  Using Nina
 
     
   </span>
@@ -1352,7 +1387,7 @@
   <span class="md-ellipsis">
     
   
-  Using CCDciel with Benro Polaris
+  Using CCDciel
 
     
   </span>
@@ -1379,7 +1414,7 @@
   <span class="md-ellipsis">
     
   
-  Guiding Users Guide
+  Using Guiding
 
     
   </span>
@@ -1744,6 +1779,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1765,7 +1804,7 @@
   <span class="md-ellipsis">
     
   
-  Technical
+  Reference
 
     
   </span>
@@ -1781,10 +1820,64 @@
               <span class="md-nav__icon md-icon"></span>
               
   
-  Technical
+  Reference
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alpaca-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -2806,6 +2899,8 @@
       
         
       
+        
+      
     
     
     
@@ -2962,7 +3057,7 @@
 <li><strong>Utility Device Action</strong> - Special Device Actions including tracking on orbital.</li>
 <li><strong>Guider Instructions</strong> - Instructions sent to the guiding application can indirectly control the mount.</li>
 </ul>
-<p>For information on how to use the Advanced Sequence for Panorama Workflows, please refer to the <a href=".././pilot/#1-why-use-the-alpaca-driver-for-panoramas">Alpaca Pilot Documentation</a>.</p>
+<p>For information on how to use the Advanced Sequence for Panorama Workflows, please refer to <a href=".././panoramas/#1-why-use-the-alpaca-driver-for-panoramas">Creating Panoramas</a>.</p>
 <h2 id="advanced-sequence-reference">Advanced Sequence Reference<a class="headerlink" href="#advanced-sequence-reference" title="Permanent link">&para;</a></h2>
 <h3 id="flow-control">Flow Control<a class="headerlink" href="#flow-control" title="Permanent link">&para;</a></h3>
 <ul>
@@ -3012,109 +3107,7 @@
 <li><strong>Wait for Time Span</strong> - Wait for a given duration in seconds</li>
 <li><strong>Wait for Time</strong> - Wait until a specific time. Can also wait for sunset, civil, nautical and astronomical dusk or dawn.</li>
 <li><strong>Message Box</strong> - Opens up a message box with the defined text, waiting for confirmation from the user.</li>
-<li><strong>Device Action</strong> - The Alpaca Driver exposes several Device Actions for functions that are not part of the ASCOM Alpaca standard, but used by Alpaca Pilot. Nina can also make use of these extensions via the Device Action instruction.  </li>
-<li>
-<p><strong>Polaris:PanoGrid</strong><br />
-Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot. Any of these settings can be given, the rest keep their current values: <code>cols</code>, <code>rows</code> (the grid size), <code>hstep</code>, <code>vstep</code> (degrees between panel centres), <code>first</code> (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), <code>order</code> (0 Row-Major, 1 Column-Major, 2 Serpentine), <code>track</code> (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), <code>anchor</code> (what sits at the reference position: 0 the whole mosaic's centre, n panel n), <code>ref</code> (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and <code>r1</code>, <code>r2</code>, <code>r3</code> (the reference position in that frame, RA in hours). Use <strong>Polaris:ConfigSave</strong> to keep them for the next session.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:PanoGrid</code> |  <code>{"cols": 5, "rows": 3, "hstep": 2.0, "vstep": 1.4, "first": 0, "order": 2, "track": 2}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:PanoGrid</code> |  <code>{"anchor": 0, "ref": 1, "r1": 5.59, "r2": -5.39, "r3": 0}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:PanoSlew</strong><br />
-Slew to a panel of the grid set by <strong>Polaris:PanoGrid</strong>, rolling and tracking as its <code>track</code> setting says. <code>panel</code> is the panel number (1 to cols x rows); leave it out to go to the next panel (after the last it wraps round to panel 1), or use -1 to return to the current one. It waits for the slew to finish unless <code>"isasync": true</code> is given. In an advanced sequence a loop of <strong>Polaris:PanoSlew</strong> <code>{}</code> followed by your exposures captures the whole grid.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:PanoSlew</code> |  <code>{"panel": 1}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:PanoSlew</code> |  <code>{}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:SlewAbsolute</strong><br />
-Slew to a position given in any one co-ordinate system, including Roll and Position Angle, which the standard ASCOM slews can't set: <code>az</code>, <code>alt</code>, <code>roll</code> (topocentric), <code>ra</code> (hours), <code>dec</code>, <code>pa</code> (equatorial), <code>l</code>, <code>b</code>, <code>gpa</code> (galactic), or <code>m1</code>, <code>m2</code>, <code>m3</code> (motor angles). Values are decimal degrees, or strings such as <code>"-05:23:28"</code>. Axes left out keep their current value. Motor angles are the M1/M2/M3 shown in Alpaca Pilot's Motor Speed &amp; Position panel; the motors are driven straight to them, so M1 and M3 always end the same way round, and the cables in the same state. They must be within the motor limits and can't be mixed with the other keys. It waits for the slew to finish unless <code>"isasync": true</code> is given. Needs Advanced Goto enabled.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:SlewAbsolute</code> |  <code>{"az": 180, "alt": 81, "roll": 0}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:SlewAbsolute</code> |  <code>{"pa": 90}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:SlewAbsolute</code> |  <code>{"m1": 0, "m2": -30, "m3": 0}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:SlewRelative</strong><br />
-As <strong>Polaris:SlewAbsolute</strong>, but each value is added to the current position: for example to step the framing, or turn the camera. Motor angles add to the current motor angles.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:SlewRelative</code> |  <code>{"ra": 0.1, "dec": -1.5}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:SlewRelative</code> |  <code>{"roll": 90}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:AbortSlew</strong><br />
-Stop any goto, slew or axis movement and stop tracking, the same as the Stop button in Alpaca Pilot.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:AbortSlew</code> |  <code>{}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:MoveAxis</strong><br />
-Move continuously along one axis at <code>rate</code> degrees per second (negative for the other direction) until it is called again with <code>"rate": 0</code>. <code>axis</code> is 0 Azimuth, 1 Altitude, 2 Roll, 3 RA, 4 Dec, 5 Position Angle, 6 Galactic longitude, 7 Galactic latitude, 8 Galactic PA. The mount combines the motors to move along that axis only, as the Alpaca Pilot joysticks do. Needs Advanced Slewing enabled.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:MoveAxis</code> |  <code>{"axis": 2, "rate": 3}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:MoveAxis</code> |  <code>{"axis": 2, "rate": 0}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:MoveMotor</strong><br />
-Run one motor directly at <code>rate</code> degrees per second (between -9 and +9), with no co-ordination or pointing control, until it is called again with <code>"rate": 0</code>. <code>axis</code> is 0 M1, 1 M2, 2 M3. Meant for testing and for unwinding cables: the motor keeps running until stopped, or until it reaches its motor limit, where the driver stops all motors.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:MoveMotor</code> |  <code>{"axis": 0, "rate": -5}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:MoveMotor</code> |  <code>{"axis": 0, "rate": 0}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:ResetAxes</strong><br />
-Command the Polaris to reset all three axes, which drives each motor to its zero. This replicates the double-tap gesture on each joystick in the Benro Polaris App. After the Polaris is switched on, the first reset also re-takes each motor's zero from its position sensor, which only knows the angle within one turn. If the head was more than half a turn from its home position when the Polaris was switched on (for example cables wound by a long satellite pass), unwind it by hand first: otherwise the reset can turn it a further turn the same way and the zero ends a whole turn out.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ResetAxes</code> |  <code>{}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:ReplayMark</strong><br />
-Write a marker line (<code>REPLAYLOG</code>) with the given parameters into the Alpaca Driver's log, whatever the log settings. Useful to mark where something happened in a sequence (a new target, a filter change, the start of a test) so it can be found later in the log, on the same timeline as the driver's own records.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ReplayMark</code> |  <code>{"note": "NGC 104 start"}</code> |</p>
-</li>
-<li>
-<p><strong>Polaris:TrackOrbital</strong><br />
-Fetch the orbital parameters of an object, slew to its co-ordinates and start non-sidereal tracking. This Device Action can be used to slew to the Moon, Sun, Satellites, Comets etc. The Parameters field should be in JSON format defining "name" and "category" of the object, where category 3: 'Star', 4: 'Planet', 5: 'Moon', 6: 'Satellite', 7: 'Commet', 8: 'Asteroid', 9: 'Landmark', 10: 'Custom'. For example to track a Solar Eclipse, Lunar Eclipse or the International Space Station use the following settings.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:TrackOrbital</code> |  <code>{"name": "Sun", "category":3}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:TrackOrbital</code> |  <code>{"name": "Moon", "category":5}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:TrackOrbital</code> |  <code>{"name": "25544", "category":6}</code> |        </p>
-</li>
-<li>
-<p><strong>Polaris:ConfigUpdate</strong><br />
-Update the Alpaca Driver configuration setting to the defined values. Any property defined in config.toml can be modified with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, &copy; to alter the park position and (d) to alter the ASCOM focal length; use the following.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ConfigUpdate</code> |  <code>{"advanced_alignment": true}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ConfigUpdate</code> |  <code>{"pid_Kc": 15}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ConfigUpdate</code> |  <code>{"m3_park": 90, "m2_park":-45}</code> |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ConfigUpdate</code> |  <code>{"focal_length": 100}</code> |</p>
-<p>Note that the <strong>Polaris:ConfigUpdate</strong> action returns a value indicating what has been changed. Nina doesnt understand this reponse and marks the instruction execution return as an error. You can safely ignore this in the advanced sequence and mark the instruction as <strong>On Error</strong> <code>Continue</code></p>
-</li>
-<li>
-<p><strong>Polaris:ConfigSave</strong><br />
-Save any modified Alpaca Driver settings to the file <code>config.pilot.json</code> in the data directory.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ConfigSave</code> |  <code>{}</code> |</p>
-</li>
-<li><strong>Polaris:ConfigRestore</strong><br />
-Restore all Alpaca Driver settings back to the defaults from <code>config.toml</code>.
-      | <strong>Instruction</strong> | <strong>Device</strong> | Action | Parameters |
-      | --- | --- | --- | --- |
-      | <strong>Utility &gt; Device Action</strong> | <code>Telescope</code> |  <code>Polaris:ConfigRestore</code> |  <code>{}</code> |</li>
+<li><strong>Device Action</strong> - Runs one of the Alpaca Driver's Device Actions, for functions that are not part of the ASCOM Alpaca standard, such as <code>Polaris:PanoGrid</code> and <code>Polaris:TrackOrbital</code>. See <a href=".././alpaca-api/#device-actions">Device Actions</a> for the full list, with parameters and examples.</li>
 </ul>
 
 
@@ -3155,7 +3148,7 @@ Restore all Alpaca Driver settings back to the defaults from <code>config.toml</
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../stellarium/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Using Stellarium and Sky Safari Pro">
+          <a href="../stellarium/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Using Stellarium">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -3165,20 +3158,20 @@ Restore all Alpaca Driver settings back to the defaults from <code>config.toml</
                 Previous
               </span>
               <div class="md-ellipsis">
-                Using Stellarium and Sky Safari Pro
+                Using Stellarium
               </div>
             </div>
           </a>
         
         
           
-          <a href="../ccdciel/" class="md-footer__link md-footer__link--next" aria-label="Next: Using CCDciel with Benro Polaris">
+          <a href="../ccdciel/" class="md-footer__link md-footer__link--next" aria-label="Next: Using CCDciel">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Using CCDciel with Benro Polaris
+                Using CCDciel
               </div>
             </div>
             <div class="md-footer__button md-icon">

@@ -1,0 +1,4296 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/catalog/">
+      
+      
+      
+        <link rel="prev" href="../alpaca-api/">
+      
+      
+        <link rel="next" href="../control/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Catalog Reference - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Catalog Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../alpaca-api/" class="md-tabs__link">
+          
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Start Here
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Hardware Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Windows Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  macOS Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../panoramas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alpaca-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#reference-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Reference Catalogs
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extending-the-alpaca-pilot-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Extending the Alpaca Pilot Catalog
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Extending the Alpaca Pilot Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-format-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        File Format Overview
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-structure-of-an-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Required Structure of an Entry
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#catalog-field-enumerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Catalog Field Enumerations
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Catalog Field Enumerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rating-rt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Rating (Rt)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visibility-vz" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Visibility (Vz)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#size-sz" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Size (Sz)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#primary-type-c1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Primary Type (C1)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subtype-c2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Subtype (C2)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constellation-cn" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Constellation (Cn)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class---object-classification-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Class - Object Classification Codes</strong>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Class - Object Classification Codes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#individual-galaxies---format-ab-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Individual Galaxies - <strong>Format:</strong> <code>a/b</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Individual Galaxies - Format: a&#x2f;b where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-type-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Type (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-features-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Features (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-galaxies---format-a-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Multiple Galaxies - <strong>Format:</strong> <code>a</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multiple Galaxies - Format: a where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#number--arrangement-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Number / Arrangement (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-mergers---format-ab-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Mergers - <strong>Format:</strong> <code>a/b</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Galaxy Mergers - Format: a&#x2f;b where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#merger-type-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Merger Type (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-features-b_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Features (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planetary-nebulae-pn---format-abcd-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Planetary Nebulae (PN) - <strong>Format:</strong> <code>abc/d</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Planetary Nebulae (PN) - Format: abc&#x2f;d where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shape-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Shape (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Signal (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#progenitor-visibility-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Progenitor Visibility (<code>c</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pn-features-d" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PN Features (<code>d</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emission-nebulae---format-ab-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Emission Nebulae - <strong>Format:</strong> <code>a/b</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Emission Nebulae - Format: a&#x2f;b where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#emission-type-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Emission Type (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-strengths-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Signal Strengths (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dark-nebulae---format-a-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Dark Nebulae - <strong>Format:</strong> <code>a</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dark Nebulae - Format: a where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opacity-rating-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Opacity Rating (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#globular-clusters---format-a-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Globular Clusters - <strong>Format:</strong> <code>a</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Globular Clusters - Format: a where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shapleysawyer-concentration-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Shapley–Sawyer Concentration (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-clusters---format-a-b-c-d" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Open Clusters - <strong>Format:</strong> <code>a-b-c-d</code>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Open Clusters - Format: a-b-c-d">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trumpler-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Trumpler Classification
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quest_paper/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#reference-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Reference Catalogs
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extending-the-alpaca-pilot-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Extending the Alpaca Pilot Catalog
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Extending the Alpaca Pilot Catalog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-format-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        File Format Overview
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-structure-of-an-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Required Structure of an Entry
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#catalog-field-enumerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Catalog Field Enumerations
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Catalog Field Enumerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rating-rt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Rating (Rt)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visibility-vz" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Visibility (Vz)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#size-sz" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Size (Sz)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#primary-type-c1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Primary Type (C1)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subtype-c2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Subtype (C2)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constellation-cn" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Constellation (Cn)</strong>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#class---object-classification-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        <strong>Class - Object Classification Codes</strong>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Class - Object Classification Codes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#individual-galaxies---format-ab-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Individual Galaxies - <strong>Format:</strong> <code>a/b</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Individual Galaxies - Format: a&#x2f;b where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-type-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Type (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-features-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Features (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiple-galaxies---format-a-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Multiple Galaxies - <strong>Format:</strong> <code>a</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multiple Galaxies - Format: a where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#number--arrangement-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Number / Arrangement (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-mergers---format-ab-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Mergers - <strong>Format:</strong> <code>a/b</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Galaxy Mergers - Format: a&#x2f;b where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#merger-type-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Merger Type (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#galaxy-features-b_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Galaxy Features (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#planetary-nebulae-pn---format-abcd-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Planetary Nebulae (PN) - <strong>Format:</strong> <code>abc/d</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Planetary Nebulae (PN) - Format: abc&#x2f;d where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shape-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Shape (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Signal (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#progenitor-visibility-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Progenitor Visibility (<code>c</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pn-features-d" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PN Features (<code>d</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emission-nebulae---format-ab-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Emission Nebulae - <strong>Format:</strong> <code>a/b</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Emission Nebulae - Format: a&#x2f;b where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#emission-type-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Emission Type (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signal-strengths-b" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Signal Strengths (<code>b</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dark-nebulae---format-a-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Dark Nebulae - <strong>Format:</strong> <code>a</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Dark Nebulae - Format: a where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opacity-rating-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Opacity Rating (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#globular-clusters---format-a-where" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Globular Clusters - <strong>Format:</strong> <code>a</code> where
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Globular Clusters - Format: a where">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#shapleysawyer-concentration-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Shapley–Sawyer Concentration (<code>a</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#open-clusters---format-a-b-c-d" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Open Clusters - <strong>Format:</strong> <code>a-b-c-d</code>
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Open Clusters - Format: a-b-c-d">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#trumpler-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Trumpler Classification
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../alpaca-api/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="catalog-reference">Catalog Reference<a class="headerlink" href="#catalog-reference" title="Permanent link">&para;</a></h1>
+<p><a href="#reference-catalogs">Reference Catalogs</a> | <a href="#extending-the-alpaca-pilot-catalog">Extending the Catalog</a> | <a href="#catalog-field-enumerations">Field Enumerations</a></p>
+<p>This page lists the reference catalogues behind Alpaca Pilot's catalog, and explains how to extend the catalog with your own entries. For how to search, filter and slew to catalog targets, see <a href=".././pilot/#iv-using-the-catalog">Using the Catalog</a> in the Alpaca Pilot Guide.</p>
+<h2 id="reference-catalogs">Reference Catalogs<a class="headerlink" href="#reference-catalogs" title="Permanent link">&para;</a></h2>
+<p>Alpaca Pilot’s select list of objects are cross-referenced with more than 25 master catalogues, encompassing the most popular and scientifically significant deep-sky objects observed by both amateur and professional astronomers.</p>
+<table>
+<thead>
+<tr>
+<th>Catalogue</th>
+<th>Description</th>
+<th>Objects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td></td>
+<td><strong>General Catalogues</strong></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Messier (M)</strong></td>
+<td>Classic list of 110 bright deep-sky objects compiled by Charles Messier (~1774).</td>
+<td>110</td>
+</tr>
+<tr>
+<td><strong>Caldwell (Caldwell)</strong></td>
+<td>Patrick Moore’s 1995 complement to Messier, covering both hemispheres.</td>
+<td>109</td>
+</tr>
+<tr>
+<td><strong>Herschel 400 (H)</strong></td>
+<td>400 of William Herschel’s best nebulae and clusters from his 18<sup>th</sup>-century survey.</td>
+<td>400</td>
+</tr>
+<tr>
+<td><strong>New General Catalogue (NGC)</strong></td>
+<td>The main reference catalogue for deep-sky objects (~1888).</td>
+<td>7,840</td>
+</tr>
+<tr>
+<td><strong>Index Catalogue (IC)</strong></td>
+<td>Supplement to the NGC with later discoveries (~1912).</td>
+<td>5,386</td>
+</tr>
+<tr>
+<td><strong>Henry Draper (HD)</strong></td>
+<td>Comprehensive stellar catalogue listing over 225,000 stars, compiled at Harvard College Observatory (1918–1924). Each star is identified by spectral type and magnitude.</td>
+<td>225,300+</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Galaxy Catalogues</strong></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Abell</strong></td>
+<td>Clusters of galaxies—the largest bound structures in the universe (~1958).</td>
+<td>4,073</td>
+</tr>
+<tr>
+<td><strong>Arp</strong></td>
+<td>Atlas of 338 “peculiar” or interacting galaxies (~1966).</td>
+<td>338</td>
+</tr>
+<tr>
+<td><strong>Hickson</strong></td>
+<td>Compact groups of small, closely packed galaxies (~1982).</td>
+<td>100</td>
+</tr>
+<tr>
+<td><strong>PGC</strong></td>
+<td>Principal Galaxies Catalogue—comprehensive all-sky galaxy list (~1995).</td>
+<td>73,197</td>
+</tr>
+<tr>
+<td><strong>UGC</strong></td>
+<td>Uppsala General Catalogue—northern hemisphere galaxies (~1973).</td>
+<td>12,921</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Planetary Nebulae Catalogues</strong></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Abell</strong></td>
+<td>Old planetary nebulae from Palomar Sky Survey (~1966).</td>
+<td>86</td>
+</tr>
+<tr>
+<td><strong>Minkowski</strong></td>
+<td>PNe discovered in the 1940s; includes the M 1–4 series.</td>
+<td>207</td>
+</tr>
+<tr>
+<td><strong>Kohoutek</strong></td>
+<td>Extensive PN survey by Luboš Kohoutek (~1967).</td>
+<td>1,500</td>
+</tr>
+<tr>
+<td><strong>Griffiths</strong></td>
+<td>Modern visual selection of bright, interesting PN (~2012).</td>
+<td>45</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Nebulae Catalogues</strong></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Barnard</strong></td>
+<td>Classic dark nebulae photographed by E.E. Barnard (~1927).</td>
+<td>349</td>
+</tr>
+<tr>
+<td><strong>LDN</strong></td>
+<td>Lynds Dark Nebulae from Palomar survey (~1962).</td>
+<td>1,802</td>
+</tr>
+<tr>
+<td><strong>LBN</strong></td>
+<td>Lynds Bright Nebulae—bright diffuse nebulosity (~1965).</td>
+<td>1,025</td>
+</tr>
+<tr>
+<td><strong>Sharpless (Sh 2-)</strong></td>
+<td>Emission nebulae and H II regions (~1959).</td>
+<td>313</td>
+</tr>
+<tr>
+<td><strong>RCW</strong></td>
+<td>Southern emission nebulae (~1960).</td>
+<td>182</td>
+</tr>
+<tr>
+<td><strong>Gum</strong></td>
+<td>Southern H II regions catalogue (~1955).</td>
+<td>85</td>
+</tr>
+<tr>
+<td><strong>vdB</strong></td>
+<td>Reflection nebulae (~1966).</td>
+<td>159</td>
+</tr>
+<tr>
+<td><strong>SNR</strong></td>
+<td>Galactic Supernova Remnants (~1984).</td>
+<td>294</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Other Special Catalogues</strong></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>Hidden Treasures (HT)</strong></td>
+<td>Stephen O’Meara’s list of 109 overlooked but beautiful objects (~2007).</td>
+<td>109</td>
+</tr>
+<tr>
+<td><strong>Secret Deep (SD)</strong></td>
+<td>Further 109 deep-sky highlights not in Messier or Caldwell (~2011).</td>
+<td>109</td>
+</tr>
+<tr>
+<td><strong>Orphaned Beauties (OB)</strong></td>
+<td>Astrophotography-focused list of 109 large, under-appreciated objects (~2020).</td>
+<td>109</td>
+</tr>
+<tr>
+<td><strong>Small Packages (SP)</strong></td>
+<td>109 compact but fascinating small targets (~2020).</td>
+<td>109</td>
+</tr>
+<tr>
+<td><strong>Satellites (ID)</strong></td>
+<td>NORAD-tracked artificial objects with known brightness and motion (~ongoing).</td>
+<td>32k+</td>
+</tr>
+<tr>
+<td><strong>Solar System Bodies (IAU)</strong></td>
+<td>IAU-designated planetary and lunar objects including Sun, Moon, Planets, Moons</td>
+<td>30+</td>
+</tr>
+</tbody>
+</table>
+<p><br>
+<br></p>
+<h2 id="extending-the-alpaca-pilot-catalog">Extending the Alpaca Pilot Catalog<a class="headerlink" href="#extending-the-alpaca-pilot-catalog" title="Permanent link">&para;</a></h2>
+<p>Alpaca Pilot includes a built-in deep-sky catalog, planetary data, and live orbital objects.
+However, you may also <strong>extend the catalog with your own custom entries</strong>, including local landmarks, favourite observing targets, or additional DSOs not included in the standard database.</p>
+<p>Custom items are defined in a file named <strong><code>catalog.json</code></strong> placed in the Alpaca Driver’s <em>data directory</em>.</p>
+<p>Whenever Alpaca Pilot loads or you refresh a catalog page (via <strong>F5</strong>), the Pilot application requests this file from the Driver. If it exists and contains valid entries, those entries are <strong>merged directly into the main catalog</strong> and displayed alongside all standard objects. </p>
+<p>Once loaded, your user-defined entries are fully integrated into Alpaca Pilot. They appear alongside the standard catalog and support all normal features, including search, filtering, sorting, and object interaction.</p>
+<h3 id="file-format-overview">File Format Overview<a class="headerlink" href="#file-format-overview" title="Permanent link">&para;</a></h3>
+<p>A sample file named <strong><code>catalog.sample.json</code></strong> is included in the <em>data directory</em> to help you get started.</p>
+<p>To create your own custom catalog entries, simply copy this file to <strong><code>catalog.json</code></strong> and edit/add the values as needed. The sample outlines the required structure and field names, making it easy to add, remove, or modify entities with confidence.</p>
+<p>Your custom <strong><code>catalog.json</code></strong> file must follow standard JSON rules:</p>
+<ul>
+<li>The <strong>top-level structure must be an array</strong> (<code>[...]</code>)</li>
+<li>Each catalog entry must be an <strong>object</strong> with quoted field names (<code>"Name": "Example</code>")</li>
+<li><strong>Field Names and Strings</strong> must be quoted</li>
+<li><strong>Commas</strong> are required between fields and entries</li>
+<li><strong>full-line comments</strong> beginning with <code>//</code> are allowed</li>
+<li><strong>trailing commas</strong> on the last field or entry are allowed</li>
+</ul>
+<h3 id="required-structure-of-an-entry">Required Structure of an Entry<a class="headerlink" href="#required-structure-of-an-entry" title="Permanent link">&para;</a></h3>
+<p>Each entry in <code>catalog.json</code> must follow the structure below.
+All fields are optional except <code>MainID</code>, <code>Name</code>, and at least one co-ordinate pair </p>
+<ul>
+<li><code>RA_hr</code>, <code>Dec_deg</code> - Equatorial Co-ordinates of the entity </li>
+<li><code>Az_deg</code>, <code>Alt_deg</code> - Topocentric Co-ordinates, only relevant for Landmarks ie C1=9</li>
+</ul>
+<p>Adding the other fields provides richer detail and better UI integration.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>{
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  "MainID": string,     // A unique identifier for the object (e.g. "U001")
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  "Name": string,       // Short human-readable name
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  "Notes": string,      // Longer description shown in the UI
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  "Class": string,      // Optional Class Object Classification Codes see below (e.g. "SHO")
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  "OtherIDs": string,   // Comma-separated alternate identifiers
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  "Rt": integer,        // Rating 0–5 (Showcase → Not recommended)
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  "Vz": integer,        // Visibility class 0–7
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  "Sz": integer,        // Apparent size class 0–8
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  "C1": integer,        // Object Type (Galaxy, Nebula, Planet, Landmark, etc.)
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  "C2": integer,        // Subtype (Spiral Galaxy, Emission Nebula, etc.)
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  "Cn": integer,        // Constellation index (0–84)
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  "RA_hr": float,       // Right Ascension (hours)
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  "Dec_deg": float,     // Declination (degrees)
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>  // OR, for Landmarks where C1=9, fixed non-celestial objects:
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  "Az_deg": float,      // Azimuth position (degrees)
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>  "Alt_deg": float      // Altitude position (degrees)
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>}
+</span></code></pre></div>
+<h2 id="catalog-field-enumerations">Catalog Field Enumerations<a class="headerlink" href="#catalog-field-enumerations" title="Permanent link">&para;</a></h2>
+<p>Several fields in the custom catalog use numeric codes rather than text labels. Alpaca Pilot converts these codes into readable descriptions for display. The tables below define every possible value for each enumeration.</p>
+<h3 id="rating-rt"><strong>Rating (Rt)</strong><a class="headerlink" href="#rating-rt" title="Permanent link">&para;</a></h3>
+<p>Represents an overall “quality” or showcase value of the object.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>5</strong></td>
+<td>Showcase (Top 2%) (Default)</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Excellent (Top 10%)</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Good (Top 25%)</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Typical</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Challenging</td>
+</tr>
+<tr>
+<td><strong>0</strong></td>
+<td>Not recommended</td>
+</tr>
+</tbody>
+</table>
+<h3 id="visibility-vz"><strong>Visibility (Vz)</strong><a class="headerlink" href="#visibility-vz" title="Permanent link">&para;</a></h3>
+<p>Approximate naked-eye or binocular visibility based on magnitude.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0</strong></td>
+<td>Ultra Faint (Mag 12+)</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Ghostly (Mag 10–12)</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Faint (Mag 8–10)</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Dim (Mag 6–8)</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Visible (Mag 4–6)</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Bright (Mag 2–4)</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>Brilliant (Mag &lt;2)</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>Unknown  (Default)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="size-sz"><strong>Size (Sz)</strong><a class="headerlink" href="#size-sz" title="Permanent link">&para;</a></h3>
+<p>Apparent angular size of the object.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0</strong></td>
+<td>Very Tiny (&lt;0.5′)</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Tiny (0.5–1′)</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Small (1–2′)</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Compact (2–5′)</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Moderate (5–10′)</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Prominent (10–30′)</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>Extended (30–100′)</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>Expansive (100′+)</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td>Unknown  (Default)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="primary-type-c1"><strong>Primary Type (C1)</strong><a class="headerlink" href="#primary-type-c1" title="Permanent link">&para;</a></h3>
+<p>The high-level category of object.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0</strong></td>
+<td>Nebula</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td>Galaxy</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>Cluster</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>Star</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>Planet</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>Moon</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>Satellite</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>Comet</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td>Asteroid</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td>Landmark (for Az/Alt)</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td>Custom (Default)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="subtype-c2"><strong>Subtype (C2)</strong><a class="headerlink" href="#subtype-c2" title="Permanent link">&para;</a></h3>
+<p>A more specific classification depending on the primary type.
+All values are listed for completeness.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Set of Chained Galaxies</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Set of Clustered Galaxies</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Set of Grouped Galaxies</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Set of Merging Galaxies</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Pair of Galaxies</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Trio of Galaxies</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Blue Compact Dwarf Galaxy</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Collisional Ring Galaxy</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Dwarf Galaxy</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Elliptical Galaxy</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Flocculent Galaxy</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Lenticular Galaxy</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Magellanic Galaxy</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Polar Galaxy</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Spiral Galaxy</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Dark Nebula</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Emission Nebula</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Molecular Cloud Nebula</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Planetary Nebula</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Protoplanetary Nebula</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Reflection Nebula</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Supernova Remnant Nebula</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Globular Cluster</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Herbig–Haro Object</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Nova Object</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Open Cluster</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Star</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Star Cloud</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Young Stellar Object</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Planet</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Dwarf Planet</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Martian Moon</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Galilean Moon</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Saturnian Moon</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Natural Satellite</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Space Station</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Satellite</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Rocket Body</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Space Debris</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Comet</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Asteroid</td>
+</tr>
+<tr>
+<td>41</td>
+<td>User-Defined (Default)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="constellation-cn"><strong>Constellation (Cn)</strong><a class="headerlink" href="#constellation-cn" title="Permanent link">&para;</a></h3>
+<p>Each number corresponds to a constellation by index.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Constellation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Andromeda</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Antlia</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Apus</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Aquila</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Aquarius</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Ara</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Aries</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Auriga</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Boötes</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Canis Major</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Canis Minor</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Canes Venatici</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Camelopardalis</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Capricornus</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Carina</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Cassiopeia</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Centaurus</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Cepheus</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Cetus</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Chamaeleon</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Circinus</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Cancer</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Columba</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Coma Berenices</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Corona Australis</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Corona Borealis</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Crater</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Crux</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Corvus</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Cygnus</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Delphinus</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Dorado</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Draco</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Eridanus</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Fornax</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Gemini</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Grus</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Hercules</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Horologium</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Hydra</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Leo Minor</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Lacerta</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Leo</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Lepus</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Libra</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Lupus</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Lynx</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Lyra</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Mensa</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Microscopium</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Monoceros</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Musca</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Norma</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Octans</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Ophiuchus</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Orion</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Pavo</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Pegasus</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Perseus</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Phoenix</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Pictor</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Piscis Austrinus</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Pisces</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Puppis</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Pyxis</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Reticulum</td>
+</tr>
+<tr>
+<td>66</td>
+<td>Sculptor</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Scorpius</td>
+</tr>
+<tr>
+<td>68</td>
+<td>Scutum</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Serpens</td>
+</tr>
+<tr>
+<td>70</td>
+<td>Sextans</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Sagitta</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Sagittarius</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Taurus</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Telescopium</td>
+</tr>
+<tr>
+<td>75</td>
+<td>Triangulum Australe</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Triangulum</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Tucana</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Ursa Major</td>
+</tr>
+<tr>
+<td>79</td>
+<td>Ursa Minor</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Vela</td>
+</tr>
+<tr>
+<td>81</td>
+<td>Virgo</td>
+</tr>
+<tr>
+<td>82</td>
+<td>Volans</td>
+</tr>
+<tr>
+<td>83</td>
+<td>Vulpecula</td>
+</tr>
+<tr>
+<td>84</td>
+<td>Orbit (Ephemeris-based objects)</td>
+</tr>
+<tr>
+<td>85</td>
+<td>Space (Default)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="class---object-classification-codes"><strong>Class - Object Classification Codes</strong><a class="headerlink" href="#class---object-classification-codes" title="Permanent link">&para;</a></h3>
+<p>Objects in the standard catalog may include a <strong>Class</strong> field that helps guide your imaging strategy. This classification provides insight into the physical characteristics of the target and can inform choices such as filter selection and exposure balance.</p>
+<p>For emission nebulae, the <strong>Class</strong> field indicates the narrowband emission types present and their relative signal strengths. For example, the Eagle Nebula (M16) has a Class of <code>SHO-.2/1/.3</code></p>
+<p>This means the nebula emits <strong>Sulphur II (SII)</strong>, <strong>Hydrogen-alpha (Hα)</strong>, and <strong>Oxygen III (OIII)</strong> in an approximate <strong>20% / 100% / 30%</strong> ratio. In practical terms, to balance the channels, weaker signals require <strong>more integration time</strong>:</p>
+<ul>
+<li>If you collect <strong>10 minutes of Hα</strong></li>
+<li>You would need approximately:<ul>
+<li><strong>50 minutes of SII</strong> (1 / 0.2 × 10)</li>
+<li><strong>33 minutes of OIII</strong> (1 / 0.3 × 10)</li>
+</ul>
+</li>
+</ul>
+<p>These ratios are <strong>guidelines</strong>, not strict rules. Actual exposure balance will depend on:</p>
+<ul>
+<li>Optical speed (f-ratio)</li>
+<li>Sensor quantum efficiency per wavelength</li>
+<li>Sky conditions and light pollution</li>
+<li>Target altitude and extinction</li>
+</ul>
+<p>The full definition of the Class field depends on the C2 SubType of the target as follows:</p>
+<h4 id="individual-galaxies---format-ab-where">Individual Galaxies - <strong>Format:</strong> <code>a/b</code> where<a class="headerlink" href="#individual-galaxies---format-ab-where" title="Permanent link">&para;</a></h4>
+<h5 id="galaxy-type-a">Galaxy Type (<code>a</code>)<a class="headerlink" href="#galaxy-type-a" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>S</strong> — Spiral</li>
+<li><strong>SB</strong> — Barred Spiral</li>
+<li><strong>S0</strong> — Lenticular</li>
+<li><strong>SB0</strong> — Barred Lenticular</li>
+<li><strong>E</strong> — Elliptical<ul>
+<li><em>E0</em> (nearly spherical) to <em>E7</em> (highly elongated)</li>
+</ul>
+</li>
+<li>Spiral Subtypes<ul>
+<li><strong>a</strong> — Large bulge, tightly wrapped smooth arms</li>
+<li><strong>b</strong> — Medium bulge, moderately open arms</li>
+<li><strong>c</strong> — Small bulge, open or patchy arms</li>
+</ul>
+</li>
+</ul>
+<h5 id="galaxy-features-b">Galaxy Features (<code>b</code>)<a class="headerlink" href="#galaxy-features-b" title="Permanent link">&para;</a></h5>
+<p><strong>Core</strong></p>
+<ul>
+<li><strong>l</strong> — Barlens</li>
+<li><strong>p</strong> — Peanut-shaped (X-shaped)</li>
+<li><strong>z</strong> — Barred</li>
+</ul>
+<p><strong>Disk</strong></p>
+<ul>
+<li><strong>d</strong> — Edge-on</li>
+<li><strong>f</strong> — Face-on</li>
+<li><strong>g</strong> — Grand design (two strong symmetric arms)</li>
+<li><strong>k</strong> — VV rows</li>
+<li><strong>t</strong> — Superthin</li>
+<li><strong>w</strong> — Warped</li>
+</ul>
+<p><strong>Rings</strong></p>
+<ul>
+<li><strong>m</strong> — Ring (concentric)</li>
+<li><strong>n</strong> — Nuclear ring</li>
+<li><strong>o</strong> — Outer ring</li>
+<li><strong>r</strong> — Inner ring (mid-region)</li>
+</ul>
+<p><strong>Star Streams</strong></p>
+<ul>
+<li><strong>h</strong> — Shells</li>
+<li><strong>j</strong> — Loops</li>
+<li><strong>u</strong> — Single tail</li>
+<li><strong>x</strong> — Dual tails</li>
+<li><strong>y</strong> — Superlong</li>
+</ul>
+<hr />
+<h4 id="multiple-galaxies---format-a-where">Multiple Galaxies - <strong>Format:</strong> <code>a</code> where<a class="headerlink" href="#multiple-galaxies---format-a-where" title="Permanent link">&para;</a></h4>
+<h5 id="number--arrangement-a">Number / Arrangement (<code>a</code>)<a class="headerlink" href="#number--arrangement-a" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>Cluster</strong> — More than 12 galaxies</li>
+<li><strong>Group</strong> — 12 or fewer galaxies</li>
+<li><strong>Chain</strong> — More than 3 galaxies aligned along the line of sight</li>
+</ul>
+<hr />
+<h4 id="galaxy-mergers---format-ab-where">Galaxy Mergers - <strong>Format:</strong> <code>a/b</code> where<a class="headerlink" href="#galaxy-mergers---format-ab-where" title="Permanent link">&para;</a></h4>
+<h5 id="merger-type-a">Merger Type (<code>a</code>)<a class="headerlink" href="#merger-type-a" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>I</strong> — Long bridge (&gt; 1 galaxy diameter)</li>
+<li><strong>II</strong> — Short bridge (&lt; 1 galaxy diameter, disks not touching)</li>
+<li><strong>III</strong> — Two close cores, disks touching</li>
+<li><strong>IV</strong> — Single core with tails</li>
+<li><strong>V</strong> — Single core, no visible tails</li>
+</ul>
+<h5 id="galaxy-features-b_1">Galaxy Features (<code>b</code>)<a class="headerlink" href="#galaxy-features-b_1" title="Permanent link">&para;</a></h5>
+<ul>
+<li>Uses the same feature codes listed under <em>Individual Galaxies</em>.</li>
+</ul>
+<hr />
+<h4 id="planetary-nebulae-pn---format-abcd-where">Planetary Nebulae (PN) - <strong>Format:</strong> <code>abc/d</code> where<a class="headerlink" href="#planetary-nebulae-pn---format-abcd-where" title="Permanent link">&para;</a></h4>
+<h5 id="shape-a">Shape (<code>a</code>)<a class="headerlink" href="#shape-a" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>A</strong> — Ancient</li>
+<li><strong>B</strong> — Bipolar</li>
+<li><strong>E</strong> — Elliptical</li>
+<li><strong>M</strong> — Multipolar</li>
+<li><strong>P</strong> — Peculiar</li>
+<li><strong>S</strong> — Spherical</li>
+<li><strong>X</strong> — Stellar (≤ 0.2 arcmin diameter)</li>
+</ul>
+<h5 id="signal-b">Signal (<code>b</code>)<a class="headerlink" href="#signal-b" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>O</strong> — OIII dominant (cyan)</li>
+<li><strong>H</strong> — Hα dominant (red)</li>
+<li><strong>C</strong> — OIII and Hα comparable (gray)</li>
+<li><strong>R</strong> — Hα rim with OIII interior</li>
+</ul>
+<h5 id="progenitor-visibility-c">Progenitor Visibility (<code>c</code>)<a class="headerlink" href="#progenitor-visibility-c" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>Y</strong> — Visible</li>
+<li><strong>N</strong> — Not visible</li>
+</ul>
+<h5 id="pn-features-d">PN Features (<code>d</code>)<a class="headerlink" href="#pn-features-d" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>c</strong> — Bipolar lobes broken through</li>
+<li><strong>f</strong> — Bright filaments</li>
+<li><strong>h</strong> — Hexagonal shape</li>
+<li><strong>i</strong> — ISM interaction</li>
+<li><strong>j</strong> — Polar jets</li>
+<li><strong>o</strong> — Owl (M97-type) / inner voids</li>
+<li><strong>q</strong> — Opposing brightened rim segments</li>
+<li><strong>r</strong> — Bright toroidal ring</li>
+<li><strong>t</strong> — Thin rim</li>
+<li><strong>y</strong> — Ansae</li>
+</ul>
+<hr />
+<h4 id="emission-nebulae---format-ab-where">Emission Nebulae - <strong>Format:</strong> <code>a/b</code> where<a class="headerlink" href="#emission-nebulae---format-ab-where" title="Permanent link">&para;</a></h4>
+<h5 id="emission-type-a">Emission Type (<code>a</code>)<a class="headerlink" href="#emission-type-a" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>SHO</strong> — All narrowband channels present</li>
+<li><strong>HII</strong> — Hα dominant</li>
+<li><strong>SS</strong> — Strömgren sphere</li>
+<li><strong>WR</strong> — Wolf–Rayet nebula</li>
+</ul>
+<h5 id="signal-strengths-b">Signal Strengths (<code>b</code>)<a class="headerlink" href="#signal-strengths-b" title="Permanent link">&para;</a></h5>
+<ul>
+<li>Comparative strengths of SHO channels, normalized to the strongest signal</li>
+</ul>
+<hr />
+<h4 id="dark-nebulae---format-a-where">Dark Nebulae - <strong>Format:</strong> <code>a</code> where<a class="headerlink" href="#dark-nebulae---format-a-where" title="Permanent link">&para;</a></h4>
+<h5 id="opacity-rating-a">Opacity Rating (<code>a</code>)<a class="headerlink" href="#opacity-rating-a" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>1</strong> — Lightest</li>
+<li><strong>6</strong> — Darkest</li>
+<li><strong>0</strong> — Extremely faint</li>
+</ul>
+<hr />
+<h4 id="globular-clusters---format-a-where">Globular Clusters - <strong>Format:</strong> <code>a</code> where<a class="headerlink" href="#globular-clusters---format-a-where" title="Permanent link">&para;</a></h4>
+<h5 id="shapleysawyer-concentration-a">Shapley–Sawyer Concentration (<code>a</code>)<a class="headerlink" href="#shapleysawyer-concentration-a" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>I</strong> — Highly concentrated core</li>
+<li><strong>XII</strong> — Very loose concentration</li>
+</ul>
+<hr />
+<h4 id="open-clusters---format-a-b-c-d">Open Clusters - <strong>Format:</strong> <code>a-b-c-d</code><a class="headerlink" href="#open-clusters---format-a-b-c-d" title="Permanent link">&para;</a></h4>
+<h5 id="trumpler-classification">Trumpler Classification<a class="headerlink" href="#trumpler-classification" title="Permanent link">&para;</a></h5>
+<ul>
+<li><strong>a</strong> — Concentration<ul>
+<li><strong>I</strong> (strong) to <strong>IV</strong> (none)</li>
+</ul>
+</li>
+<li><strong>b</strong> — Brightness Range<ul>
+<li><strong>1</strong> (uniform brightness) to <strong>3</strong> (wide brightness range)</li>
+</ul>
+</li>
+<li><strong>c</strong> — Number of stars</li>
+<li><strong>d</strong> — Additional designations<ul>
+<li><strong>a</strong> — Asterism</li>
+</ul>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../alpaca-api/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Alpaca API Reference">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Alpaca API Reference
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../control/" class="md-footer__link md-footer__link--next" aria-label="Next: Advanced Motion Control Guide">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Advanced Motion Control Guide
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

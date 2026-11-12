@@ -1,0 +1,3031 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/alpaca-api/">
+      
+      
+      
+        <link rel="prev" href="../release-notes-v1.0.0/">
+      
+      
+        <link rel="next" href="../catalog/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Alpaca API Reference - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Alpaca API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beginners/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="././" class="md-tabs__link">
+          
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../beta_results_v2.2/" class="md-tabs__link">
+          
+  
+  Project
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beginners/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Start Here
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Hardware Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Windows Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  macOS Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../panoramas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Discovery
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#management" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Management
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#telescope" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Telescope
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotator" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Rotator
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#device-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Device Actions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Device Actions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#polarispanogrid" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:PanoGrid
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarispanoslew" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:PanoSlew
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisslewabsolute" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:SlewAbsolute
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisslewrelative" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:SlewRelative
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisabortslew" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:AbortSlew
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarismoveaxis" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:MoveAxis
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarismovemotor" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:MoveMotor
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisresetaxes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ResetAxes
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisreplaymark" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ReplayMark
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polaristrackorbital" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:TrackOrbital
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisconfigupdate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ConfigUpdate
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisconfigsave" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ConfigSave
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisconfigrestore" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ConfigRestore
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Motion Control Guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Driver — Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quest_paper/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_alignment_mac_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_goto_response/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_drift/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC Drift — When to Learn, When to Apply
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Project
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_results_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Results v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beta_agreement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Beta Agreement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v2
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  PCCGG Feedback v1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../podcast_2024_oct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Podcast Oct 2024
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  MLAstro SAL-33
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Sponsorship
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Discovery
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#management" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Management
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#telescope" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Telescope
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotator" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Rotator
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#device-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Device Actions
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Device Actions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#polarispanogrid" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:PanoGrid
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarispanoslew" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:PanoSlew
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisslewabsolute" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:SlewAbsolute
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisslewrelative" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:SlewRelative
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisabortslew" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:AbortSlew
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarismoveaxis" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:MoveAxis
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarismovemotor" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:MoveMotor
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisresetaxes" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ResetAxes
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisreplaymark" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ReplayMark
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polaristrackorbital" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:TrackOrbital
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisconfigupdate" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ConfigUpdate
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisconfigsave" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ConfigSave
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarisconfigrestore" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Polaris:ConfigRestore
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="././" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="alpaca-api-reference">Alpaca API Reference<a class="headerlink" href="#alpaca-api-reference" title="Permanent link">&para;</a></h1>
+<p><a href="#discovery">Discovery</a> | <a href="#management">Management</a> | <a href="#telescope">Telescope</a> | <a href="#rotator">Rotator</a> | <a href="#device-actions">Device Actions</a></p>
+<p>The Alpaca Driver presents the Benro Polaris to astronomy applications as two standard ASCOM Alpaca devices, a <strong>Telescope</strong> and a <strong>Rotator</strong>, together with a set of <strong>Device Actions</strong> for features that go beyond the ASCOM standard. Applications like NINA, PHD2, Stellarium and CCDciel make these calls for you. This page is for anyone who wants to script the mount directly, or understand what their applications are doing.</p>
+<p>All requests go to the driver's Alpaca REST API on port <code>5555</code> (the <code>alpaca_restapi_port</code> setting), at <code>http://&lt;driver address&gt;:5555/api/v1/&lt;device&gt;/0/&lt;member&gt;</code>. The examples below use <code>ap.local</code> as the driver address; use the IP address of the computer running the driver if <code>ap.local</code> doesn't resolve on your network (see <a href=".././pilot/#i-launching-the-alpaca-pilot-application">Launching the Alpaca Pilot Application</a>). Each request includes a <code>ClientID</code> and <code>ClientTransactionID</code>, and the driver must be connected to the Polaris for most calls to succeed.</p>
+<h2 id="discovery">Discovery<a class="headerlink" href="#discovery" title="Permanent link">&para;</a></h2>
+<p>Applications find the Alpaca Driver using ASCOM Alpaca discovery. They broadcast the message <code>alpacadiscovery1</code> on UDP port <code>32227</code> (the <code>alpaca_discovery_port</code> setting), and the driver replies with the port of its REST API, for example <code>{"AlpacaPort": 5555}</code>. This is how NINA and other Alpaca applications list the driver's devices without you entering its address. Discovery only works within your local network, so if an application can't find the driver, enter the driver's IP address and port <code>5555</code> instead. See the <a href="https://ascom-standards.org/api/">ASCOM Alpaca API reference</a> for the discovery protocol.</p>
+<h2 id="management">Management<a class="headerlink" href="#management" title="Permanent link">&para;</a></h2>
+<p>The Management API describes the driver and the devices it offers. List the configured devices:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>curl "http://ap.local:5555/management/v1/configureddevices?ClientID=1&amp;ClientTransactionID=1"
+</span></code></pre></div>
+<p>The response lists each device with its type and device number, the <code>0</code> in each device's URL:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span><span class="nt">"Value"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p">{</span><span class="nt">"DeviceName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Alpaca Benro Polaris Telescope"</span><span class="p">,</span><span class="w"> </span><span class="nt">"DeviceType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Telescope"</span><span class="p">,</span><span class="w"> </span><span class="nt">"DeviceNumber"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"UniqueID"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">},</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="p">{</span><span class="nt">"DeviceName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Alpaca Benro Polaris Rotator"</span><span class="p">,</span><span class="w"> </span><span class="nt">"DeviceType"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Rotator"</span><span class="p">,</span><span class="w"> </span><span class="nt">"DeviceNumber"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"UniqueID"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">}</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">],</span><span class="w"> </span><span class="nt">"ClientTransactionID"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"ServerTransactionID"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"ErrorNumber"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"ErrorMessage"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">}</span>
+</span></code></pre></div>
+<p>The Rotator is only listed when <strong>Alpaca Rotator</strong> is enabled under <strong>Advanced Control Features</strong> in Alpaca Pilot's Settings. <code>/management/v1/description</code> returns the driver's name, version and location, and <code>/management/apiversions</code> the Alpaca API versions it supports.</p>
+<p>Every device also has the members common to all ASCOM devices, such as <code>connected</code>, <code>name</code>, <code>description</code>, <code>driverinfo</code>, <code>driverversion</code> and <code>supportedactions</code>. For example, <code>GET /api/v1/telescope/0/supportedactions</code> lists all of the Telescope's Device Actions.</p>
+<h2 id="telescope">Telescope<a class="headerlink" href="#telescope" title="Permanent link">&para;</a></h2>
+<p>The Telescope device implements the ASCOM <strong>ITelescopeV3</strong> interface. See the <a href="https://ascom-standards.org/newdocs/telescope.html">ASCOM Telescope interface</a> for what each property and method does, and the <a href="https://ascom-standards.org/api/">ASCOM Alpaca API reference</a> for the REST calls. Meridian flips are not supported, as the Polaris is an Alt/Az mount.</p>
+<p>Read the Right Ascension the mount is pointing at, in hours:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl "http://ap.local:5555/api/v1/telescope/0/rightascension?ClientID=1&amp;ClientTransactionID=1"
+</span></code></pre></div>
+<p>The response gives the value, along with any error:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="nt">"Value"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.5881</span><span class="p">,</span><span class="w"> </span><span class="nt">"ClientTransactionID"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"ServerTransactionID"</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span><span class="w"> </span><span class="nt">"ErrorNumber"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"ErrorMessage"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">}</span>
+</span></code></pre></div>
+<p>Slew to the Orion Nebula (Right Ascension in hours, Declination in degrees):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl -X PUT http://ap.local:5555/api/v1/telescope/0/slewtocoordinatesasync \
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>     -d "RightAscension=5.5881&amp;Declination=-5.391&amp;ClientID=1&amp;ClientTransactionID=2"
+</span></code></pre></div>
+<h2 id="rotator">Rotator<a class="headerlink" href="#rotator" title="Permanent link">&para;</a></h2>
+<p>The Rotator device implements the ASCOM <strong>IRotatorV3</strong> interface. See the <a href="https://ascom-standards.org/newdocs/rotator.html">ASCOM Rotator interface</a> and the <a href="https://ascom-standards.org/api/">ASCOM Alpaca API reference</a>. Rotating the camera keeps the mount pointing at the same target. The Rotator's <code>Position</code> is the Position Angle of the camera on the sky, and its <code>MechanicalPosition</code> is the Roll Angle of the camera relative to the horizon (see <a href=".././control/#ii-key-concepts-roll-angle-vs-position-angle">Roll Angle vs. Position Angle</a>).</p>
+<p>Read the current Position Angle, in degrees:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl "http://ap.local:5555/api/v1/rotator/0/position?ClientID=1&amp;ClientTransactionID=3"
+</span></code></pre></div>
+<p>Rotate the camera to a Position Angle of 90°:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl -X PUT http://ap.local:5555/api/v1/rotator/0/moveabsolute \
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>     -d "Position=90&amp;ClientID=1&amp;ClientTransactionID=4"
+</span></code></pre></div>
+<h2 id="device-actions">Device Actions<a class="headerlink" href="#device-actions" title="Permanent link">&para;</a></h2>
+<p>Device Actions are the ASCOM standard's way for a driver to offer features that the standard interfaces don't cover. The Alpaca Driver's Device Actions belong to the Telescope device and are named <code>Polaris:&lt;action&gt;</code>. Alpaca Pilot uses many of them internally; the ones documented here are those that are useful in your own sequences and scripts.</p>
+<p>Three approaches you can use Device Actions, include:</p>
+<ol>
+<li>From NINA's <a href=".././nina/#5-advanced-sequence">Advanced Sequencer</a>, install the <strong>Device Actions and Commands</strong> plug-in, then add a <strong>Utility &gt; Device Action</strong> instruction, set the Device to <code>Telescope</code>, and choose the Action and its Parameters as shown in the tables below. </li>
+<li>From CCDciel, run one of the Alpaca Driver's scripts as a step of a plan, see <a href=".././ccdciel/#5-scripting">Scripting</a> in the CCDciel guide.</li>
+<li>
+<p>Call them directly through the REST API, with the Parameters as a JSON object:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>curl -X PUT http://ap.local:5555/api/v1/telescope/0/action \
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>     -d "Action=Polaris:PanoSlew&amp;ClientID=1&amp;ClientTransactionID=5" \
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>     --data-urlencode 'Parameters={"panel": 1}'
+</span></code></pre></div>
+</li>
+</ol>
+<h3 id="polarispanogrid">Polaris:PanoGrid<a class="headerlink" href="#polarispanogrid" title="Permanent link">&para;</a></h3>
+<p>Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot. Any of these settings can be given, the rest keep their current values: <code>cols</code>, <code>rows</code> (the grid size), <code>hstep</code>, <code>vstep</code> (degrees between panel centres), <code>first</code> (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), <code>order</code> (0 Row-Major, 1 Column-Major, 2 Serpentine), <code>track</code> (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), <code>anchor</code> (what sits at the reference position: 0 the whole mosaic's centre, n panel n), <code>ref</code> (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and <code>r1</code>, <code>r2</code>, <code>r3</code> (the reference position in that frame, RA in hours). Use <strong>Polaris:ConfigSave</strong> to keep them for the next session.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:PanoGrid</code></td>
+<td><code>{"cols": 5, "rows": 3, "hstep": 2.0, "vstep": 1.4, "first": 0, "order": 2, "track": 2}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:PanoGrid</code></td>
+<td><code>{"anchor": 0, "ref": 1, "r1": 5.59, "r2": -5.39, "r3": 0}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarispanoslew">Polaris:PanoSlew<a class="headerlink" href="#polarispanoslew" title="Permanent link">&para;</a></h3>
+<p>Slew to a panel of the grid set by <strong>Polaris:PanoGrid</strong>, rolling and tracking as its <code>track</code> setting says. <code>panel</code> is the panel number (1 to cols x rows); leave it out to go to the next panel (after the last it wraps round to panel 1), or use -1 to return to the current one. It waits for the slew to finish unless <code>"isasync": true</code> is given. In an advanced sequence a loop of <strong>Polaris:PanoSlew</strong> <code>{}</code> followed by your exposures captures the whole grid.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:PanoSlew</code></td>
+<td><code>{"panel": 1}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:PanoSlew</code></td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarisslewabsolute">Polaris:SlewAbsolute<a class="headerlink" href="#polarisslewabsolute" title="Permanent link">&para;</a></h3>
+<p>Slew to a position given in any one co-ordinate system, including Roll and Position Angle, which the standard ASCOM slews can't set: <code>az</code>, <code>alt</code>, <code>roll</code> (topocentric), <code>ra</code> (hours), <code>dec</code>, <code>pa</code> (equatorial), <code>l</code>, <code>b</code>, <code>gpa</code> (galactic), or <code>m1</code>, <code>m2</code>, <code>m3</code> (motor angles). Values are decimal degrees, or strings such as <code>"-05:23:28"</code>. Axes left out keep their current value. Motor angles are the M1/M2/M3 shown in Alpaca Pilot's Motor Speed &amp; Position panel; the motors are driven straight to them, so M1 and M3 always end the same way round, and the cables in the same state. They must be within the motor limits and can't be mixed with the other keys. It waits for the slew to finish unless <code>"isasync": true</code> is given. Needs Advanced Goto enabled.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:SlewAbsolute</code></td>
+<td><code>{"az": 180, "alt": 81, "roll": 0}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:SlewAbsolute</code></td>
+<td><code>{"pa": 90}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:SlewAbsolute</code></td>
+<td><code>{"m1": 0, "m2": -30, "m3": 0}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarisslewrelative">Polaris:SlewRelative<a class="headerlink" href="#polarisslewrelative" title="Permanent link">&para;</a></h3>
+<p>As <strong>Polaris:SlewAbsolute</strong>, but each value is added to the current position: for example to step the framing, or turn the camera. Motor angles add to the current motor angles.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:SlewRelative</code></td>
+<td><code>{"ra": 0.1, "dec": -1.5}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:SlewRelative</code></td>
+<td><code>{"roll": 90}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarisabortslew">Polaris:AbortSlew<a class="headerlink" href="#polarisabortslew" title="Permanent link">&para;</a></h3>
+<p>Stop any goto, slew or axis movement and stop tracking, the same as the Stop button in Alpaca Pilot.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:AbortSlew</code></td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarismoveaxis">Polaris:MoveAxis<a class="headerlink" href="#polarismoveaxis" title="Permanent link">&para;</a></h3>
+<p>Move continuously along one axis at <code>rate</code> degrees per second (negative for the other direction) until it is called again with <code>"rate": 0</code>. <code>axis</code> is 0 Azimuth, 1 Altitude, 2 Roll, 3 RA, 4 Dec, 5 Position Angle, 6 Galactic longitude, 7 Galactic latitude, 8 Galactic PA. The mount combines the motors to move along that axis only, as the Alpaca Pilot joysticks do. Needs Advanced Slewing enabled.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:MoveAxis</code></td>
+<td><code>{"axis": 2, "rate": 3}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:MoveAxis</code></td>
+<td><code>{"axis": 2, "rate": 0}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarismovemotor">Polaris:MoveMotor<a class="headerlink" href="#polarismovemotor" title="Permanent link">&para;</a></h3>
+<p>Run one motor directly at <code>rate</code> degrees per second (between -9 and +9), with no co-ordination or pointing control, until it is called again with <code>"rate": 0</code>. <code>axis</code> is 0 M1, 1 M2, 2 M3. Meant for testing and for unwinding cables: the motor keeps running until stopped, or until it reaches its motor limit, where the driver stops all motors.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:MoveMotor</code></td>
+<td><code>{"axis": 0, "rate": -5}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:MoveMotor</code></td>
+<td><code>{"axis": 0, "rate": 0}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarisresetaxes">Polaris:ResetAxes<a class="headerlink" href="#polarisresetaxes" title="Permanent link">&para;</a></h3>
+<p>Command the Polaris to reset all three axes, which drives each motor to its zero. This replicates the double-tap gesture on each joystick in the Benro Polaris App. After the Polaris is switched on, the first reset also re-takes each motor's zero from its position sensor, which only knows the angle within one turn. If the head was more than half a turn from its home position when the Polaris was switched on (for example cables wound by a long satellite pass), unwind it by hand first: otherwise the reset can turn it a further turn the same way and the zero ends a whole turn out.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ResetAxes</code></td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarisreplaymark">Polaris:ReplayMark<a class="headerlink" href="#polarisreplaymark" title="Permanent link">&para;</a></h3>
+<p>Write a marker line (<code>REPLAYLOG</code>) with the given parameters into the Alpaca Driver's log, whatever the log settings. Useful to mark where something happened in a sequence (a new target, a filter change, the start of a test) so it can be found later in the log, on the same timeline as the driver's own records.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ReplayMark</code></td>
+<td><code>{"note": "NGC 104 start"}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polaristrackorbital">Polaris:TrackOrbital<a class="headerlink" href="#polaristrackorbital" title="Permanent link">&para;</a></h3>
+<p>Fetch the orbital parameters of an object, slew to its co-ordinates and start non-sidereal tracking. This Device Action can be used to slew to the Moon, Sun, Satellites, Comets etc. The Parameters field should be in JSON format defining "name" and "category" of the object, where category 3: 'Star', 4: 'Planet', 5: 'Moon', 6: 'Satellite', 7: 'Commet', 8: 'Asteroid', 9: 'Landmark', 10: 'Custom'. For example to track a Solar Eclipse, Lunar Eclipse or the International Space Station use the following settings.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:TrackOrbital</code></td>
+<td><code>{"name": "Sun", "category":3}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:TrackOrbital</code></td>
+<td><code>{"name": "Moon", "category":5}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:TrackOrbital</code></td>
+<td><code>{"name": "25544", "category":6}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarisconfigupdate">Polaris:ConfigUpdate<a class="headerlink" href="#polarisconfigupdate" title="Permanent link">&para;</a></h3>
+<p>Update the Alpaca Driver configuration setting to the defined values. Any property defined in config.toml can be modified with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, &copy; to alter the park position and (d) to alter the ASCOM focal length; use the following.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ConfigUpdate</code></td>
+<td><code>{"advanced_alignment": true}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ConfigUpdate</code></td>
+<td><code>{"pid_Kc": 15}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ConfigUpdate</code></td>
+<td><code>{"m3_park": 90, "m2_park":-45}</code></td>
+</tr>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ConfigUpdate</code></td>
+<td><code>{"focal_length": 100}</code></td>
+</tr>
+</tbody>
+</table>
+<p>Note that the <strong>Polaris:ConfigUpdate</strong> action returns a value indicating what has been changed. Nina doesnt understand this reponse and marks the instruction execution return as an error. You can safely ignore this in the advanced sequence and mark the instruction as <strong>On Error</strong> <code>Continue</code></p>
+<h3 id="polarisconfigsave">Polaris:ConfigSave<a class="headerlink" href="#polarisconfigsave" title="Permanent link">&para;</a></h3>
+<p>Save any modified Alpaca Driver settings to the file <code>config.pilot.json</code> in the data directory.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ConfigSave</code></td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="polarisconfigrestore">Polaris:ConfigRestore<a class="headerlink" href="#polarisconfigrestore" title="Permanent link">&para;</a></h3>
+<p>Restore all Alpaca Driver settings back to the defaults from <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th><strong>Instruction</strong></th>
+<th><strong>Device</strong></th>
+<th>Action</th>
+<th>Parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Utility &gt; Device Action</strong></td>
+<td><code>Telescope</code></td>
+<td><code>Polaris:ConfigRestore</code></td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../release-notes-v1.0.0/" class="md-footer__link md-footer__link--prev" aria-label="Previous: v1.0.0">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                v1.0.0
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../catalog/" class="md-footer__link md-footer__link--next" aria-label="Next: Catalog Reference">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Catalog Reference
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

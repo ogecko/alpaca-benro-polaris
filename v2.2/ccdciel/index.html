@@ -30,7 +30,7 @@
     
     
       
-        <title>Using CCDciel with Benro Polaris - Alpaca Benro Polaris Driver</title>
+        <title>Using CCDciel - Alpaca Benro Polaris Driver</title>
       
     
     
@@ -123,7 +123,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Using CCDciel with Benro Polaris
+              Using CCDciel
             
           </span>
         </div>
@@ -274,6 +274,8 @@
       
         
       
+        
+      
     
     
     
@@ -374,15 +376,19 @@
       
         
       
+        
+      
+        
+      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../control/" class="md-tabs__link">
+        <a href="../alpaca-api/" class="md-tabs__link">
           
   
-  Technical
+  Reference
 
         </a>
       </li>
@@ -756,6 +762,8 @@
       
         
       
+        
+      
     
     
     
@@ -835,6 +843,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../panoramas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../stellarium/" class="md-nav__link">
         
   
@@ -842,7 +877,7 @@
   <span class="md-ellipsis">
     
   
-  Using Stellarium and Sky Safari Pro
+  Using Stellarium
 
     
   </span>
@@ -869,7 +904,7 @@
   <span class="md-ellipsis">
     
   
-  Using Nina with Benro Polaris
+  Using Nina
 
     
   </span>
@@ -905,7 +940,7 @@
   <span class="md-ellipsis">
     
   
-  Using CCDciel with Benro Polaris
+  Using CCDciel
 
     
   </span>
@@ -922,7 +957,7 @@
   <span class="md-ellipsis">
     
   
-  Using CCDciel with Benro Polaris
+  Using CCDciel
 
     
   </span>
@@ -1181,6 +1216,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#other-device-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Other Device Actions
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1259,7 +1305,7 @@
   <span class="md-ellipsis">
     
   
-  Guiding Users Guide
+  Using Guiding
 
     
   </span>
@@ -1624,6 +1670,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1645,7 +1695,7 @@
   <span class="md-ellipsis">
     
   
-  Technical
+  Reference
 
     
   </span>
@@ -1661,10 +1711,64 @@
               <span class="md-nav__icon md-icon"></span>
               
   
-  Technical
+  Reference
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alpaca-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -2457,6 +2561,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#other-device-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Other Device Actions
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2555,6 +2670,8 @@
   
     
     
+      
+        
       
         
       
@@ -2681,11 +2798,12 @@
 <h2 id="5-scripting">5. Scripting<a class="headerlink" href="#5-scripting" title="Permanent link">&para;</a></h2>
 <p>CCDciel scripts are written in Python. Enable the Script tool from the <strong>Display</strong> menu, then open the <strong>Capture</strong> tab on the right of the screen: under <strong>Run Script</strong> you can select a script and run it, or use <strong>Edit</strong>, <strong>New</strong> and <strong>Copy</strong> to open the script editor. Scripts can be run from there, or as part of a sequence: when a target starts, as a step of a plan, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's <a href="https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference">Script reference</a>.</p>
 <h3 id="alpaca-driver-scripts">Alpaca Driver Scripts<a class="headerlink" href="#alpaca-driver-scripts" title="Permanent link">&para;</a></h3>
-<p>The <a href="https://github.com/ogecko/alpaca-benro-polaris/blob/main/utility/ccdciel"><code>utility/ccdciel</code></a> folder provides scripts for the Alpaca Driver's most common extensions:</p>
+<p>CCDciel has no instruction for sending an Alpaca <a href=".././alpaca-api/#device-actions">Device Action</a>, so the <a href="https://github.com/ogecko/alpaca-benro-polaris/blob/main/utility/ccdciel"><code>utility/ccdciel</code></a> folder provides scripts that send the Alpaca Driver's most common ones:</p>
 <table>
 <thead>
 <tr>
 <th>Script</th>
+<th>Device Action</th>
 <th>Arguments</th>
 <th>What it does</th>
 </tr>
@@ -2693,21 +2811,25 @@
 <tbody>
 <tr>
 <td><code>PolarisSyncGuide</code></td>
+<td>none (CCDciel's plate-solve and sync)</td>
 <td>settle seconds (optional, default 5)</td>
 <td>Plate-solves the current image and syncs the mount, for <a href="#sync-guiding">Sync Guiding</a></td>
 </tr>
 <tr>
 <td><code>PolarisPanoSlew</code></td>
+<td><code>Polaris:PanoSlew</code></td>
 <td>panel number (optional)</td>
 <td>Slews to the next <a href="#panoramas">panorama</a> panel, or to the given panel</td>
 </tr>
 <tr>
 <td><code>PolarisSlewAbsolute</code></td>
+<td><code>Polaris:SlewAbsolute</code></td>
 <td><code>key=value</code> coordinates</td>
 <td>Slews to the given coordinates, see <a href="#slewing">Slewing</a></td>
 </tr>
 <tr>
 <td><code>PolarisSlewRelative</code></td>
+<td><code>Polaris:SlewRelative</code></td>
 <td><code>key=value</code> offsets</td>
 <td>Moves by the given offsets, see <a href="#slewing">Slewing</a></td>
 </tr>
@@ -2728,7 +2850,7 @@
 <li>Don't combine sync guiding with pulse guiding: the guider pulls each sync correction straight back to its lock position.</li>
 </ul>
 <h3 id="panoramas">Panoramas<a class="headerlink" href="#panoramas" title="Permanent link">&para;</a></h3>
-<p>The use the Alpaca Driver's <a href=".././pilot/#capturing-panoramas-with-the-alpaca-driver">PanoGrid</a> for advanced panorama workflows. The <code>PolarisPanoSlew</code> script, allows you to move the mount between the defined panels.</p>
+<p>Use the Alpaca Driver's <a href=".././panoramas/">Panorama Grid</a> for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the <code>PolarisPanoSlew</code> script to move the mount between its panels.</p>
 <p>In CCDciel, add a <code>PolarisPanoSlew</code> step before each panel's light frames. With no argument, the script slews to the next panel, wrapping back to panel 1 after the last panel. You can also specify a panel number to slew directly to that panel. The step completes once the slew is finished.</p>
 <h3 id="slewing">Slewing<a class="headerlink" href="#slewing" title="Permanent link">&para;</a></h3>
 <p>To Slew to alternate coordinate reference frames supported by the Alpaca Driver, you can use the <code>PolarisSlewAbsolute</code> and <code>PolarisSlewRelative</code> scripts. Their arguments are one or more <code>key=value</code> pairs separated by spaces:</p>
@@ -2801,6 +2923,24 @@
 <li>The driver keeps every slew within the Benro Polaris limits (Altitude 0-70°, Roll ±60°, see <a href=".././control/">Control</a>).</li>
 <li>The step finishes when the slew is complete.</li>
 </ul>
+<h3 id="other-device-actions">Other Device Actions<a class="headerlink" href="#other-device-actions" title="Permanent link">&para;</a></h3>
+<p>To send a Device Action that has no script, such as <code>Polaris:TrackOrbital</code> or <code>Polaris:PanoGrid</code>, make your own script from <code>PolarisPanoSlew.py</code>:</p>
+<ol>
+<li>Copy <code>PolarisPanoSlew.py</code> to a new name, for example <code>PolarisTrackMoon.py</code>.</li>
+<li>
+<p>In its <code>main()</code> function, replace the <code>Polaris:PanoSlew</code> call with the action and Parameters you want. The <code>alpaca_action()</code> function takes the action name and its Parameters, as listed in the <a href=".././alpaca-api/#device-actions">Device Actions reference</a>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s1">'PolarisTrackMoon: </span><span class="si">{</span><span class="n">alpaca_action</span><span class="p">(</span><span class="s2">"Polaris:TrackOrbital"</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s2">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Moon"</span><span class="p">,</span><span class="w"> </span><span class="s2">"category"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">})</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">log</span><span class="p">(</span><span class="sa">f</span><span class="s1">'PolarisTrackMoon: failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span></code></pre></div>
+</li>
+<li>
+<p>Install it like the other scripts, as <code>PolarisTrackMoon.script</code>, and add it to your plan as a script step.</p>
+</li>
+</ol>
 <h2 id="6-pulse-guiding">6. Pulse Guiding<a class="headerlink" href="#6-pulse-guiding" title="Permanent link">&para;</a></h2>
 <p>CCDciel's <strong>Internal guider</strong> uses a guide camera to watch a guide star and sends pulse guide commands to the mount, which the Alpaca Driver turns into small corrections of the M1-M3 motor speeds. It has been tested with the Alpaca Driver.</p>
 <h3 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h3>
@@ -2858,7 +2998,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../nina/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Using Nina with Benro Polaris">
+          <a href="../nina/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Using Nina">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -2868,20 +3008,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Using Nina with Benro Polaris
+                Using Nina
               </div>
             </div>
           </a>
         
         
           
-          <a href="../guiding/" class="md-footer__link md-footer__link--next" aria-label="Next: Guiding Users Guide">
+          <a href="../guiding/" class="md-footer__link md-footer__link--next" aria-label="Next: Using Guiding">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Guiding Users Guide
+                Using Guiding
               </div>
             </div>
             <div class="md-footer__button md-icon">
