@@ -1,7 +1,7 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Installation Guide 
-[Alpaca Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Alpaca MacOS](./installation_macos.md) | 
+[Microsoft Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Apple MacOS](./installation_macos.md) | [Raspberry Pi](./raspberrypi.md) | 
 [Startup](#starting-the-alpaca-pilot-app) | 
 [Workflow](#imaging-with-alpaca-driver-v20-and-nina) | 
 [Stellarium](#installing-stellarium-optional) | 
@@ -13,16 +13,9 @@
 
 ## Software Installation
 
-### To install on a MAC
-Please refer to the separate [MAC installation guide](./installation_macos.md).
-
-### To install on a Raspberry Pi
-Please refer to the separate [Raspberry Setup guide](./raspberrypi.md).
-
-
 ### To Install on Windows 10/11
 
-You can view a demonstration of parts of this documentation in the following YouTube Video (TODO - change URL when video has been updated).
+You can view a demonstration of parts of this documentation in the following YouTube Video.
 
 [![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
