@@ -2560,17 +2560,17 @@ PINS is for users who want to experiment with a more portable, lower-power field
 <li>Join the <code>pins-xxxxx</code> network, by clicking Connect, then choose 'Connect using a password instead', then enter <code>touchnstars</code> </li>
 <li>
 <p>On your PC, open a <strong>Command Prompt</strong> or <strong>Powershell Window</strong> and connect to the Raspberry Pi with the following command. Replacing <code>pins-xxxxx</code> with the network name. The default pi user password is <strong>pins</strong>.
-     <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ssh pi@pins-xxxxx
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ssh pi@pins-xxxxx
 </span></code></pre></div></p>
 </li>
 <li>
 <p>Add your home network to PINS. Enter the following command replacing YourSSID and YourPassword with your home network settings.
-     <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo nmcli con add type wifi ifname wlan0 con-name home ssid "YourSSID" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "YourPassword"
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo nmcli con add type wifi ifname wlan0 con-name home ssid "YourSSID" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "YourPassword"
 </span></code></pre></div></p>
 </li>
 <li>
 <p>Switch PINS to your home network.
-     <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo nmcli con up home
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sudo nmcli con up home
 </span></code></pre></div></p>
 </li>
 <li>
@@ -2601,22 +2601,22 @@ PINS is for users who want to experiment with a more portable, lower-power field
 </li>
 <li>
 <p>On your PC, open a <strong>Command Prompt</strong> or <strong>Powershell Window</strong> and connect to the Raspberry Pi with the following command. If you used your own <code>username</code> and <code>hostname</code> in the image above then replace <code>pi@alpaca</code> with your <code>username@hostname</code>. Enter your username's <code>password</code> when prompted. Once <code>ssh</code> connects, any commands you enter will run on the Raspberry Pi. 
-     <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ssh pi@alpaca
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ssh pi@alpaca
 </span></code></pre></div></p>
 </li>
 <li>
 <p>On the Raspberry Pi, download the Alpaca Driver setup.sh script. This is a program that automatically installs everything the Alpaca Driver needs, so you don't have to do it by hand.
-     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>wget<span class="w"> </span>https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/main/platforms/raspberry_pi/setup.sh<span class="w"> </span>-O<span class="w"> </span>setup.sh
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>wget<span class="w"> </span>https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/main/platforms/raspberry_pi/setup.sh<span class="w"> </span>-O<span class="w"> </span>setup.sh
 </span></code></pre></div></p>
 </li>
 <li>
 <p>Make the script runnable, then run it.
-     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>./setup.sh
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>./setup.sh
 </span></code></pre></div>
-     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>./setup.sh
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>./setup.sh
 </span></code></pre></div>
-     Note that if you want to install a specific version of the Alpaca Driver, you can pass the Git-Hub Branch name as the first argument to setup.sh. For example, the following command will fetch the <strong>dev2_2</strong> branch.
-     <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./setup.sh dev2_2
+    Note that if you want to install a specific version of the Alpaca Driver, you can pass the Git-Hub Branch name as the first argument to setup.sh. For example, the following command will fetch the <strong>dev2_2</strong> branch.
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./setup.sh dev2_2
 </span></code></pre></div></p>
 </li>
 <li>
@@ -2689,23 +2689,23 @@ PINS is for users who want to experiment with a more portable, lower-power field
 <ol>
 <li>
 <p>Install gpsd and its status client:
-     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>./setup.sh<span class="w"> </span>-g
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>./setup.sh<span class="w"> </span>-g
 </span></code></pre></div>
-     The <code>-g</code> option adds the gpsd packages to setup's package installation; it does not select GPSD in Alpaca Pilot.</p>
+    The <code>-g</code> option adds the gpsd packages to setup's package installation; it does not select GPSD in Alpaca Pilot.</p>
 </li>
 <li>
 <p>Configure gpsd to use the receiver. Find its stable USB path with <code>ls -l /dev/serial/by-id/</code>, then set it in <code>/etc/default/gpsd</code>, for example:
-     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">DEVICES</span><span class="o">=</span><span class="s2">"/dev/serial/by-id/usb-your-receiver"</span>
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">DEVICES</span><span class="o">=</span><span class="s2">"/dev/serial/by-id/usb-your-receiver"</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">USBAUTO</span><span class="o">=</span><span class="s2">"false"</span>
 </span></code></pre></div></p>
 </li>
 <li>
 <p>Start gpsd and confirm the receiver has a fix:
-     <div class="language-Bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>gpsd.socket
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>gpsd.socket
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>gpsd
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>cgps<span class="w"> </span>-s
 </span></code></pre></div>
-     Exit <code>cgps</code> with <strong>Ctrl+C</strong> after confirming it reports a fix.</p>
+    Exit <code>cgps</code> with <strong>Ctrl+C</strong> after confirming it reports a fix.</p>
 </li>
 <li>
 <p>In Pilot <strong>Settings</strong>, click the arrow beside <strong>Locate</strong>, choose <strong>Use GPS Receiver</strong>, and set <strong>Connection to GPS Receiver</strong> to <strong>GPS Daemon (GPSD)</strong>. The defaults (host <code>127.0.0.1</code>, port <code>2947</code>) are correct when gpsd runs on the Pi itself. Click <strong>OK</strong>, then <strong>Locate (GPS)</strong>.</p>

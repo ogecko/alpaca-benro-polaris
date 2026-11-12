@@ -4202,7 +4202,7 @@ solving every 2 minutes (after 2 exposures). MAC off for the entire test and log
 <li>55 Used / 23 Failed Light frames - when zoomed in, a high number of images show unusual shaped stars with squiggles, indicating some kind of movement during the session (but there was no wind).
 Almost as if there may have been some form of vibration or oscillation during the imaging. Using PixInsight for Weighted Batch Preprocessing (see image), shows only 55 light frames
 were used (23 failed and 12 rejected due to squiggles?) - see image1
-      &gt; JDM - I analysed the logs with fits_pec.ipynb and it show excellent PEC tracking after about 10min of learning. RA drift 111 '/hr &plusmn; 10 H1 cycle , Dec drift 22 '/hr &plusmn; 4.4 H1 cycle. Given the good results I have a hunch that the Failed frames are due to wiggle after some of the Sync Guides. On my setup I change filters after each Sync Guide so this gives it time to settle, but with OSC there is potentially too little time to settle. You could try adding a "Wait for Time Span" instruction after the "Solve and Sync" to check whether this helps. Start with say 30s to see if it eliminate wiggle, then reduce and optimise. Let me know if this helps, I will try as well without filters. </li>
+    &gt; JDM - I analysed the logs with fits_pec.ipynb and it show excellent PEC tracking after about 10min of learning. RA drift 111 '/hr &plusmn; 10 H1 cycle , Dec drift 22 '/hr &plusmn; 4.4 H1 cycle. Given the good results I have a hunch that the Failed frames are due to wiggle after some of the Sync Guides. On my setup I change filters after each Sync Guide so this gives it time to settle, but with OSC there is potentially too little time to settle. You could try adding a "Wait for Time Span" instruction after the "Solve and Sync" to check whether this helps. Start with say 30s to see if it eliminate wiggle, then reduce and optimise. Let me know if this helps, I will try as well without filters. </li>
 <li>MPA - as an experiment, I changed the usual existing workflow. This resulted in the best residuals I have ever had (see image2) ... not sure if this is down to the revised workflow or other factors with the Beta version.<ul>
 <li>Existing: (1) South Celestial Pole (2) Future Target (d-2) (3) NINA</li>
 <li>Revised:(1) South Celestial Pole (2) Target (i.e NGC292 SMC) (3) T Future Target (d-2) (4) NINA<blockquote>
@@ -4216,14 +4216,14 @@ were used (23 failed and 12 rejected due to squiggles?) - see image1
 initial Reset, which mirrors the original double joystick tap on the Benro Connect App). The
 unit did not return to +180° +045° -000° .,..... instead it was +191° +042° +001° (see image3)
 Using the Home and Park again made no difference
-      &gt; JDM - This Park Position offset is due to the accumulated drift that has been corrected for by PEC. Given the large drift of RA 111 '/hr, this can greatly effect its position when the motors are returned to their 0,0,0 position. A solve and sync will fix this.</li>
+    &gt; JDM - This Park Position offset is due to the accumulated drift that has been corrected for by PEC. Given the large drift of RA 111 '/hr, this can greatly effect its position when the motors are returned to their 0,0,0 position. A solve and sync will fix this.</li>
 <li>MPA Persistence - Next Morning when the Mini PC was switched on (in order to copy the image files and Logs
 onto USB drive), I also tried the set up process with Polaris and found that it was already set
 for ‘Multipoint Alignment’ and I presume this is intentional, in case the equipment and target
 were to remain the same for another session.
-      &gt; JDM - In v2.2 when the driver persists the MPA sync points and reloads them whenever the driver restarts. This preserves the alignment through driver restarts, like you experienced the next morning.</li>
+    &gt; JDM - In v2.2 when the driver persists the MPA sync points and reloads them whenever the driver restarts. This preserves the alignment through driver restarts, like you experienced the next morning.</li>
 <li>Alignment reset - Furthermore, after the (180° 45° alignment) the start position showed its starting position as +179° +044° -001° (see image4). Selecting Park, changed this to +178° +045° -000° (see image5). Not sure why these figures aren’t always +180° +045° -000° ??
-      &gt; JDM - this may be due to rounding error as 179°59'50" is very close to 180°</li>
+    &gt; JDM - this may be due to rounding error as 179°59'50" is very close to 180°</li>
 </ul>
 <h4 id="11-july-2026---beta-1-release">11 July 2026 - Beta 1 Release<a class="headerlink" href="#11-july-2026---beta-1-release" title="Permanent link">&para;</a></h4>
 <ul>
@@ -4248,7 +4248,7 @@ Perhaps the MPA workflow may have benefited from being adjusted to:
 (4) Future Target (d-2)
 (5) NINA
 This may have given a better ‘spread’ of the MPA manual plate solves and sync
-      &gt; JDM - I checked log files and could not see any Heartbeat or Event Loop lags.</li>
+    &gt; JDM - I checked log files and could not see any Heartbeat or Event Loop lags.</li>
 </ul>
 <h4 id="15-july-2026---beta-1-release">15 July 2026 - Beta 1 Release<a class="headerlink" href="#15-july-2026---beta-1-release" title="Permanent link">&para;</a></h4>
 <ul>
@@ -4291,8 +4291,8 @@ a good alignment? With 30s exposures this may not be as crucial, compared to lon
 (4) Future Target (d-2)
 (5) NINA
 This may have given a better ‘spread’ of the MPA manual plate solves and sync
-      &gt; JDM - Mark, you are the greatest, thanks for exploring the cause of the 60s subexposure anomalies. 
-      Your latest results confirm there's an issue on subs greater than 30s. The last change to PEC was 3-June, adding the harmonics, which was necessary to cater for the oscillations in the drift rate. If you get a chance, can you compare the current dev2_2 to this old version from 3-June and see if the problem disappears? I've re-created the feature/pec_refactor branch so you can refetch the old version.</li>
+    &gt; JDM - Mark, you are the greatest, thanks for exploring the cause of the 60s subexposure anomalies. 
+    Your latest results confirm there's an issue on subs greater than 30s. The last change to PEC was 3-June, adding the harmonics, which was necessary to cater for the oscillations in the drift rate. If you get a chance, can you compare the current dev2_2 to this old version from 3-June and see if the problem disappears? I've re-created the feature/pec_refactor branch so you can refetch the old version.</li>
 </ul>
 <h4 id="feature-pec_ff_status---26-july-2026">feature-pec_ff_status - 26 July 2026<a class="headerlink" href="#feature-pec_ff_status---26-july-2026" title="Permanent link">&para;</a></h4>
 <ol>
@@ -4621,28 +4621,28 @@ Notes: feedback on MacOS and Raspberry Pi 4</p>
 <p>4 July 2028 - Beta 1 Release</p>
 <ul>
 <li>Elevation offset - started Alpaca but I forgot to fully deploy the Polaris to be horizontal and did the usual setup. But now there is a 45 degrees offset in elevation
-      &gt; JDM - This is likely MPA/Quest model causing an offset from the home position. In v2.2 MPA is persisted to allow restarts without re-aligning. To fix, typically just toggle to SPA and back to MPA</li>
+    &gt; JDM - This is likely MPA/Quest model causing an offset from the home position. In v2.2 MPA is persisted to allow restarts without re-aligning. To fix, typically just toggle to SPA and back to MPA</li>
 <li>Latitude data entry - When a 0 is typed in lat/lon, it disappears when it’s the last digit
-      &gt; JDM - I've increased the debounce to 1.5s to allow for trailing zero data entry on lat/lon. This is fixed in the latest dev2_2</li>
+    &gt; JDM - I've increased the debounce to 1.5s to allow for trailing zero data entry on lat/lon. This is fixed in the latest dev2_2</li>
 <li>No Astro Module - The blue tag was displaying astro v, maybe it should not be displayed at all
-      &gt; JDM - Connect page highlights missing astro module. This is fixed in the latest dev2_2</li>
+    &gt; JDM - Connect page highlights missing astro module. This is fixed in the latest dev2_2</li>
 <li>M2 Speed Calibration - When trying to calibrate the motor M2 I an errorP
-      &gt; JDM - problem with legacy code not updated for new kinematics. This is fixed in the latest dev2_2</li>
+    &gt; JDM - problem with legacy code not updated for new kinematics. This is fixed in the latest dev2_2</li>
 <li>Reset Astro Axis - I don’t know how to reset the astro axes
-      &gt; JDM - Home or Connect Page Reset should reset all axis to zero position.</li>
+    &gt; JDM - Home or Connect Page Reset should reset all axis to zero position.</li>
 <li>SP / PV deviation - It is idle but the white and green arrow are not aligned
-      &gt; JDM - When in idle, if the motors are moved the present value will deviate from the SP. pressing the vertical bar with arrows will realign the SP's.</li>
+    &gt; JDM - When in idle, if the motors are moved the present value will deviate from the SP. pressing the vertical bar with arrows will realign the SP's.</li>
 </ul>
 <p>11 July 2026 - Beta 1 Release</p>
 <ul>
 <li>I have a question about Sync Guiding: how Alpaca is managing to not interfere with the ongoing shooting ? Does this needs a special step in the sequence ? I think so, but is this possible with CCDCiel ? 
 When taking a sequence I'm usually asking CCDCiel to plate solve from time to time the last taken picture without stopping the sequence, I now understand that this may introduce some shaking from the mount if Alpaca issue a correction when a frame is being captured ?
-      &gt; JDM - When the Driver interprets a sync as a sync guide, it updates its position and lets the PID controller shift it back to the current SP. This might cause a disturbance if the shift is significant, but PEC should be keeping this small. Havent tried with CCDciel yet but you may need to add a small delay after the sync to allow the PID to resettle.</li>
+    &gt; JDM - When the Driver interprets a sync as a sync guide, it updates its position and lets the PID controller shift it back to the current SP. This might cause a disturbance if the shift is significant, but PEC should be keeping this small. Havent tried with CCDciel yet but you may need to add a small delay after the sync to allow the PID to resettle.</li>
 <li>Do you have some special advice helping to setup Polaris with Alpca in daytime for tracking the Sun ?
 I'll use a ND 100 000 filter before and after the totality but will be taking it away at the totality to have a chance to capture the Sun corona ! Maybe you might release an Alpaca Total Eclipse Edition
-      &gt; JDM - I havent tried using Polaris for solar at all yet. Let me know if you learn any insights.</li>
+    &gt; JDM - I havent tried using Polaris for solar at all yet. Let me know if you learn any insights.</li>
 <li>You may integrate PeakFinder in the Sky Conditions tab : <a href="https://www.peakfinder.com">https://www.peakfinder.com</a>
-      &gt; JDM - Great idea. I've added it in dev2_2 and included the site info, and telescope pointing direction in the link!</li>
+    &gt; JDM - Great idea. I've added it in dev2_2 and included the site info, and telescope pointing direction in the link!</li>
 </ul>
 <h3 id="feedback-summary">Feedback Summary<a class="headerlink" href="#feedback-summary" title="Permanent link">&para;</a></h3>
 <h2 id="beta-tester-greg-stark">Beta Tester: Greg Stark<a class="headerlink" href="#beta-tester-greg-stark" title="Permanent link">&para;</a></h2>
@@ -4663,14 +4663,14 @@ I'll use a ND 100 000 filter before and after the totality but will be taking it
 <p>June 2026 - Alpha 1 Release</p>
 <ul>
 <li>Early dev2_2 build 19-Jun-26; at Az=0; changing Az around 360/0 can cause unecessary "unwind" operations. 
-      &gt; JDM - fixed in dev2_2</li>
+    &gt; JDM - fixed in dev2_2</li>
 <li>When switching between the Dashboard and Multi-Point Alignment windows in the Pilot App, the coordinates on the Dashboard keep switching back to alt/az (a bit of an annoyance). 
-      &gt; JDM - Fixed in dev2_2</li>
+    &gt; JDM - Fixed in dev2_2</li>
 <li>On the Mac running dev2_2 with Stellarium 26.1, the RA/DEC/PA method to add SYNC points does't seem to work. 
-      &gt; JDM - Unfortunately, Stellarium Desktop doesn't support the SynSCAN Sync command eg “S34AB,12CE”. Not sure why they don't, but Stellarium Mobile does.
+    &gt; JDM - Unfortunately, Stellarium Desktop doesn't support the SynSCAN Sync command eg “S34AB,12CE”. Not sure why they don't, but Stellarium Mobile does.
 July 2026</li>
 <li>I was trying to perform the motor speed calibration as shown in the video and it didnt work. 
-      &gt; JDM - Fixed in dev2_2</li>
+    &gt; JDM - Fixed in dev2_2</li>
 </ul>
 <h3 id="feedback-summary_1">Feedback Summary<a class="headerlink" href="#feedback-summary_1" title="Permanent link">&para;</a></h3>
 <h2 id="beta-tester-johnphantom">Beta Tester: John/Phantom<a class="headerlink" href="#beta-tester-johnphantom" title="Permanent link">&para;</a></h2>
@@ -4688,15 +4688,15 @@ Notes: England, New 5nm filters.</p>
 <p>4 June 2026 - Alpha 1</p>
 <ul>
 <li>Pano Portrait/Landscape - switching between landscape and vertical panos is on my wish list
-      &gt; JDM - I've included a swap button on the Pano Settings page
+    &gt; JDM - I've included a swap button on the Pano Settings page
 19 June 2026 - Alpha 1</li>
 <li>Pano Presets - is it worth being able to save the settings for later use? 
-      &gt; JDM - We could add a Save/Load feature like we did for Locations, but I think this is for a future releases consideration. I spoke too early before. I made the location save/restore into a more generic preset save/restore feature. Now we can save preconfigured Panoramas and restore them easily.</li>
+    &gt; JDM - We could add a Save/Load feature like we did for Locations, but I think this is for a future releases consideration. I spoke too early before. I made the location save/restore into a more generic preset save/restore feature. Now we can save preconfigured Panoramas and restore them easily.</li>
 </ul>
 <p>5-8 July 2026 - Beta 1 Release</p>
 <ul>
 <li>Easier Connect for non DSO Users - The l bracket is a bug I suffer with and I know at least a handful of people also have the same issue. I'd guess it'll be at least a few dozen with the same issue. You could potentially allow people to toggle on and off what they want to see.
-      &gt; JDM - I've added L-Bracket and Site Location to the Connect Page checklist. </li>
+    &gt; JDM - I've added L-Bracket and Site Location to the Connect Page checklist. </li>
 <li>Even after setup the connect Polaris icon stays red instead of turning green. Reproduced several times tonight just going through the connection process<blockquote>
 <p>JDM fixed in dev2_2</p>
 </blockquote>
@@ -4705,9 +4705,9 @@ Notes: England, New 5nm filters.</p>
 <p>11 June 2026 - Beta 1 Release</p>
 <ul>
 <li>Catalog Filter Persistence - something I noted from last night, if you set a filter in the catalogue, hit goto and then come back, the filter is then cleared on your return. 
-      &gt; JDM - fixed in dev2_2. Catalog Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).</li>
+    &gt; JDM - fixed in dev2_2. Catalog Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).</li>
 <li>Residuals - I had a residual with an orange triangle next to it. Obviously that means bad 😂. But I couldn't specifically find the meaning of it in the document. 
-      &gt; JDM - Fixed in dev2_2. Expanded on meaning of outlier residuals in control.md at <a href="https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals">https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals</a></li>
+    &gt; JDM - Fixed in dev2_2. Expanded on meaning of outlier residuals in control.md at <a href="https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals">https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals</a></li>
 </ul>
 <p>16 July 2026 - Galactic Panorama Video feedback</p>
 <ul>

@@ -4389,15 +4389,13 @@
 <li>On the options/plate-solve tab, set your plate-solve exposure time to 1s</li>
 <li>Using the Advanced Sequencer create a Squential Instruction Set</li>
 <li>Set the Loop condition to "Loop for Iterations", 60 times</li>
-<li>
-<p>Within the loop add instructions</p>
-<ul>
+<li>Within the loop add instructions<ul>
 <li>Run a repeating <strong>Solve and Sync</strong> using the short exposures. </li>
 <li>Add a <strong>Wait for Time Span</strong> of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.</li>
 </ul>
-<p><img alt="Worm Gear Corrections" src="../images/abp-nina-worm-profile.png" /></p>
 </li>
 </ul>
+<p><img alt="Worm Gear Corrections" src="../images/abp-nina-worm-profile.png" /></p>
 </li>
 <li>
 <p>Start the sequence of solve and syncs, and keep the sequence running until the test finishes.</p>

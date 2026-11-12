@@ -2712,21 +2712,13 @@
 <li>
 <p><strong>&#9322; Rotation and Tracking <code>"track":</code></strong> Defines how the mount tracks and how camera roll is handled <strong>after moving to each panel</strong>:</p>
 <ul>
-<li>
-<p><strong>0 – Landscape · Untracked</strong>: Tracking is disabled. The camera frame remains fixed relative to the horizon. Typically used in the Topocenteric Reference Frame.
- <em>Use for foreground or landscape panels where star motion is acceptable.</em></p>
-</li>
-<li>
-<p><strong>1 – Sky · Horizon‑Locked</strong>: Sidereal tracking is enabled. The camera roll is reset to <strong>0°</strong> at each panel (when the Anchor Points r3 is zero).
- <em>Use for horizon‑aligned sky panoramas where consistent framing is required.</em></p>
-</li>
-<li>
-<p><strong>2 – Sky · Celestial</strong>: Sidereal tracking is enabled. Camera roll is <strong>not modified</strong> between panels.
- <em>Use for astronomical sky mosaics such as large DSOs.</em></p>
-</li>
-<li>
-<p><strong>3 – Sky · Milky Way</strong>: Sidereal tracking is enabled. Panel positions are calculated in the Galactic Reference Frame, with hstep adjusting Galactic Longitude and vstep adjusting Galactic Latitude. The Galactic Position Angle remains constant for all panels and is derived from the anchor's reference roll angle. <em>Use for mosaics aligned with the milky way spine.</em></p>
-<ul>
+<li><strong>0 – Landscape · Untracked</strong>: Tracking is disabled. The camera frame remains fixed relative to the horizon. Typically used in the Topocenteric Reference Frame.
+    <em>Use for foreground or landscape panels where star motion is acceptable.</em></li>
+<li><strong>1 – Sky · Horizon‑Locked</strong>: Sidereal tracking is enabled. The camera roll is reset to <strong>0°</strong> at each panel (when the Anchor Points r3 is zero).
+    <em>Use for horizon‑aligned sky panoramas where consistent framing is required.</em></li>
+<li><strong>2 – Sky · Celestial</strong>: Sidereal tracking is enabled. Camera roll is <strong>not modified</strong> between panels.
+    <em>Use for astronomical sky mosaics such as large DSOs.</em></li>
+<li><strong>3 – Sky · Milky Way</strong>: Sidereal tracking is enabled. Panel positions are calculated in the Galactic Reference Frame, with hstep adjusting Galactic Longitude and vstep adjusting Galactic Latitude. The Galactic Position Angle remains constant for all panels and is derived from the anchor's reference roll angle. <em>Use for mosaics aligned with the milky way spine.</em><ul>
 <li><strong>Galactic longitude (0–360°)</strong> defines the position around the Milky Way's disk. At longitude 0° and latitude 0°, the camera is pointed toward the Galactic Center, near Sagittarius A*.</li>
 <li><strong>Galactic Latitude (–90° to +90°)</strong> defines the angular distance above or below the Milky Way's disk. At latitude 0°, the camera is centered on the Galactic plane.</li>
 <li><strong>Galactic Position Angle (-180° to +180°)</strong> defines the camera's rotation about its viewing axis. At 0°, the top of the frame points toward the North Galactic Pole. At ±90°, the top of the frame is aligned with the Milky Way plane. Beware of Benro Polaris roll angle limits when defining a Galactic Panorama.</li>
