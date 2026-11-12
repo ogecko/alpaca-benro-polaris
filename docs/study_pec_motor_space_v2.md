@@ -28,14 +28,14 @@ this, both backed by log evidence gathered during the investigation that produce
 sections):
 
 1. **A model fitted in RA/Dec space is fitting an orientation-dependent re-mixing of whatever
-   the real per-motor PE is**, not a fixed signal — so it has no reason to generalize from one
-   orientation/session to the next, even if the underlying mechanical error is completely
-   static. This plausibly explains the repeated "model regresses then recovers" pattern seen
-   in multiple sessions' `resid`/`r2` traces.
+    the real per-motor PE is**, not a fixed signal — so it has no reason to generalize from one
+    orientation/session to the next, even if the underlying mechanical error is completely
+    static. This plausibly explains the repeated "model regresses then recovers" pattern seen
+    in multiple sessions' `resid`/`r2` traces.
 2. **If M1/M2/M3 share the same motor/gearbox** (suspected, not yet confirmed), each axis's
-   mechanical PE should be periodic in *accumulated motor rotation angle*, not in time — a
-   time-based period is only a valid proxy for that when the axis's own rotation rate is
-   constant, which it isn't here.
+    mechanical PE should be periodic in *accumulated motor rotation angle*, not in time — a
+    time-based period is only a valid proxy for that when the axis's own rotation rate is
+    constant, which it isn't here.
 
 The KFLOG "Base vs Corrected Frame Shift" diagnostic (`θ_meas_raw − θ_ref_raw` per axis) also
 showed M1/M3 with a clear sawtooth/sine signature and M2 essentially flat — consistent with
@@ -57,24 +57,24 @@ a pass/fail against a threshold, not "looks better."
 ### What is built
 
 * **PEC Drift Correction** (`advanced_pec_drift`, `driver/control_pec.py` `PecAxis`): an EMA of the guide-correction
-  drift rate per RA/Dec axis, `pec_tau_sec` = 450 s. Chosen from the archive benchmark (`analyse_sessions.ipynb`,
-  `pe_analysis.benchmark_segments`): the old RLS + 2 harmonics with a 21 min period scored about the same as no PEC;
-  an EMA with a 5–10 min time constant was best (no forecastable cycle in RA/Dec — the hypothesis of the Background
-  held: the periodic part lives in the motors, not the sky axes).
+    drift rate per RA/Dec axis, `pec_tau_sec` = 450 s. Chosen from the archive benchmark (`analyse_sessions.ipynb`,
+    `pe_analysis.benchmark_segments`): the old RLS + 2 harmonics with a 21 min period scored about the same as no PEC;
+    an EMA with a 5–10 min time constant was best (no forecastable cycle in RA/Dec — the hypothesis of the Background
+    held: the periodic part lives in the motors, not the sky axes).
 * **PEC Worm Gear Correction** (`advanced_pec_worm`, `driver/control_worm.py`): a per-motor feed-forward on each motor's
-  **MCU angle** (`zeta`, from 517; `theta_raw - zeta_offset` at the 518 rate), applied as a correction rotation in the
-  forward kinematics (`corrQ_WFF`). Profile: 1st + 2nd harmonic per motor of a **6.0° worm** (60-tooth worm wheel:
-  the MCU's 960:1 = 16 × 60), in arcsec of motor angle, from `data/worm_profile.json`.
+    **MCU angle** (`zeta`, from 517; `theta_raw - zeta_offset` at the 518 rate), applied as a correction rotation in the
+    forward kinematics (`corrQ_WFF`). Profile: 1st + 2nd harmonic per motor of a **6.0° worm** (60-tooth worm wheel:
+    the MCU's 960:1 = 16 × 60), in arcsec of motor angle, from `data/worm_profile.json`.
 * **Worm profile test** (`WormProfileTest`, Speed Calibration page): steps all three motors through their own
-  schedules (51 positions, ~±7.5°, ~2.5 worm turns each, approached in the tracking direction to take up backlash)
-  while tracking holds the sky, one plate-solve sync per position (recorded, not applied); `fit_worm_profile` fits
-  all motors jointly with per-test nuisance terms (offset, drift, linear pointing trend, backlash). Approve applies
-  the profile pooled over the last 5 completed tests. Since 2026-10-09 (`7fac1b95`): each motor's sweep is fitted
-  inside the range it can reach (pointing envelope, zeta limits, tracking travel), a position not settled in 90 s
-  ends the test, and the file keeps 50 tests with their samples.
+    schedules (51 positions, ~±7.5°, ~2.5 worm turns each, approached in the tracking direction to take up backlash)
+    while tracking holds the sky, one plate-solve sync per position (recorded, not applied); `fit_worm_profile` fits
+    all motors jointly with per-test nuisance terms (offset, drift, linear pointing trend, backlash). Approve applies
+    the profile pooled over the last 5 completed tests. Since 2026-10-09 (`7fac1b95`): each motor's sweep is fitted
+    inside the range it can reach (pointing envelope, zeta limits, tracking travel), a position not settled in 90 s
+    ends the test, and the file keeps 50 tests with their samples.
 * **Logging**: PECLOG carries `theta_raw`, `zeta_offset` and the logged feed-forward `wff`; analysis in
-  `utility/analyse_worm_profile.ipynb` (per test, across tests, against gear angle and pose) and
-  `utility/analyse_tracking.ipynb` (sections 1, 3 and 7: motor angles, who corrected the drift, the worm terms left).
+    `utility/analyse_worm_profile.ipynb` (per test, across tests, against gear angle and pose) and
+    `utility/analyse_tracking.ipynb` (sections 1, 3 and 7: motor angles, who corrected the drift, the worm terms left).
 
 ### Phase 0 outcome (the gate)
 
@@ -83,11 +83,11 @@ short and too drift-dominated), but from fits in motor space (`utility/pe_analys
 2026-10-02) and then from the profile tests, which measure the worm directly.
 
 * The worm period is **6.0° of motor angle** for every motor; cross-validated angle scans dip only at 6.0° (and its
-  2nd harmonic); the 54-tooth / 6.67° candidate shows nothing. A free period scan on the 10-08 Block E tracking data
-  is also lowest at 6.0°.
+    2nd harmonic); the 54-tooth / 6.67° candidate shows nothing. A free period scan on the 10-08 Block E tracking data
+    is also lowest at 6.0°.
 * Phase 0.3's "fit one session, predict another" turned out to be the wrong test for a slow drift plus a short
-  periodic term; the worm is now measured by the profile test and checked on tracking data afterwards
-  (`analyse_tracking` section 7).
+    periodic term; the worm is now measured by the profile test and checked on tracking data afterwards
+    (`analyse_tracking` section 7).
 
 ### Sky measurements from the profile tests (2026-10-06 … 10-09)
 
@@ -103,59 +103,59 @@ short and too drift-dominated), but from fits in motor space (`utility/pe_analys
 Findings:
 
 1. **The phase does not depend on the gear angle.** On 10-09 M3's peak stayed at 234–248 from M3 at −43° to +46°
-   (8 tests, roll ±25 … ±60 at several azimuths). The angle-dependence suggested by 10-08 Block E is not there.
+    (8 tests, roll ±25 … ±60 at several azimuths). The angle-dependence suggested by 10-08 Block E is not there.
 2. **A power-up does not move it.** Tests 15–16 ran after a Polaris power reset (the zeta offsets changed: M1 −1.9°,
-   M2 +0.57°): peaks 246 and 235, as before. A profile survives restarts.
+    M2 +0.57°): peaks 246 and 235, as before. A profile survives restarts.
 3. **Per motor, 10-09 (spread between tests over the per-test SE; 1 = noise only):** M1 28" mean, spread/SE 1.2 —
-   consistent; M3 91" mean, 3.1 — phase steady, amplitude varies 71–119"; M2 38" mean, 4.2 — inconsistent
-   (amplitude 17–91", peak 125–213): one sine per motor fits M2 poorly.
+    consistent; M3 91" mean, 3.1 — phase steady, amplitude varies 71–119"; M2 38" mean, 4.2 — inconsistent
+    (amplitude 17–91", peak 125–213): one sine per motor fits M2 poorly.
 4. **The phase differs between nights, and not because of the pose.** Test 11 (10-09: θ2 53°, θ3 +25°) and tests 5/6
-   (10-08: θ2 45°, θ3 +35°) are close in pose and gravity load but peak at 246 vs 187–193. The two 200 mm nights
-   differ too (best 10-06 tests 206–227 vs 241). Candidates: payload, how the head and payload were mounted, or
-   something else that settles per session; temperature is unlikely (no drift over 3.5 h on 10-09).
+    (10-08: θ2 45°, θ3 +35°) are close in pose and gravity load but peak at 246 vs 187–193. The two 200 mm nights
+    differ too (best 10-06 tests 206–227 vs 241). Candidates: payload, how the head and payload were mounted, or
+    something else that settles per session; temperature is unlikely (no drift over 3.5 h on 10-09).
 5. **Pose affects amplitude, a little.** On 10-09 M3's amplitude follows the sign of the gravity torque on M3 (proxy
-   `a·(b × down)`): one side 101–131", the other 71–86", with two exceptions (tests 13, 15). M2's angle explains
-   nothing within one night (an apparent trend came from mixing nights). Too few tests to model.
+    `a·(b × down)`): one side 101–131", the other 71–86", with two exceptions (tests 13, 15). M2's angle explains
+    nothing within one night (an apparent trend came from mixing nights). Too few tests to model.
 6. **A profile from one setup is wrong on another.** The pooled 10-08 (300 mm) profile, applied to 10-09's mean worm,
-   would leave 75% of M1, 66% of M3 and 116% of M2 (worse than none).
+    would leave 75% of M1, 66% of M3 and 116% of M2 (worse than none).
 7. **Best pose for a test:** alt 35–45° with |roll| 45–60° (tests 13, 16: the lowest SE for all motors). Above alt
-   ~55° M1 moves the view little and is poorly measured (test 9: M1 ±16.8").
+    ~55° M1 moves the view little and is poorly measured (test 9: M1 ±16.8").
 8. **Same night, same profile: it works at one pose and fails at the opposite one (10-08, tracking).** The driver
-   applies the profile exactly (the feed-forward recomputed from PECLOG's motor angles matches the logged `wff` to
-   1.4"/0.8" on 76"/44" rms). Scored as the worm rate left for the guider with the same night's tests 5–7 (roll −31,
-   M3 +15…+37°): Tuc47 blocks A/B (roll −13/−31, M3 +6…+29°) leave 55–58% (RA) and 25–30% (Dec), correlation
-   0.84–0.97; Block E (roll +56, M3 −36…−11°, gravity on M3 reversed) leaves 183%/116% — the correction ~1.8× too
-   big and ~4–5 min (~55° of worm phase) late, so it added error. The worm error itself was smaller there (8 vs
-   15–26"/min). Consistent in direction with finding 5 (amplitude lower with the torque on that side) but larger
-   than the step tests show between sides (~8° of phase), so the load side and stepping-vs-tracking may both matter.
+    applies the profile exactly (the feed-forward recomputed from PECLOG's motor angles matches the logged `wff` to
+    1.4"/0.8" on 76"/44" rms). Scored as the worm rate left for the guider with the same night's tests 5–7 (roll −31,
+    M3 +15…+37°): Tuc47 blocks A/B (roll −13/−31, M3 +6…+29°) leave 55–58% (RA) and 25–30% (Dec), correlation
+    0.84–0.97; Block E (roll +56, M3 −36…−11°, gravity on M3 reversed) leaves 183%/116% — the correction ~1.8× too
+    big and ~4–5 min (~55° of worm phase) late, so it added error. The worm error itself was smaller there (8 vs
+    15–26"/min). Consistent in direction with finding 5 (amplitude lower with the torque on that side) but larger
+    than the step tests show between sides (~8° of phase), so the load side and stepping-vs-tracking may both matter.
 
 ### Revised plan
 
 1. **Approve a profile per setup.** For the 200 mm, the pool of 10-09's tests 12–16. Leave M2 out of the applied
-   profile unless it repeats.
+    profile unless it repeats.
 2. **Validation night (200 mm), both gravity sides:** at roll **+60 and −60** (alt ~40°), a profile test, then 30–45 min
-   of guided tracking with the worm FF off, at the same pose. Does each step test predict its own pose's tracking
-   error (finding 8)? Does the M3 peak repeat (~241)? Then an A/B with the FF on at the pose that matched. Judge on
-   PHD2 RMS and the drift left for the guider (`analyse_tracking` 3 and 7). This is Phase 5's field gate.
+    of guided tracking with the worm FF off, at the same pose. Does each step test predict its own pose's tracking
+    error (finding 8)? Does the M3 peak repeat (~241)? Then an A/B with the FF on at the pose that matched. Judge on
+    PHD2 RMS and the drift left for the guider (`analyse_tracking` 3 and 7). This is Phase 5's field gate.
 3. **Then:** if each side's step test matches its own tracking but the sides differ, a profile per gravity side
-   (chosen by the sign of the torque on M3); if the phase repeats per setup, per-payload profiles in the driver (save/load a named profile set); if
-   it drifts between nights, a short test at the start of each session (a reduced schedule, ~5–8 min; the sweep fit
-   makes it safe unattended).
+    (chosen by the sign of the torque on M3); if the phase repeats per setup, per-payload profiles in the driver (save/load a named profile set); if
+    it drifts between nights, a short test at the start of each session (a reduced schedule, ~5–8 min; the sweep fit
+    makes it safe unattended).
 4. **Parked** until the A/B shows the leftover worm matters: modelling M3's amplitude (and M2) against gravity load,
-   which needs tests at low arm angles (alt 25–35° with small roll) and the same torque sign at different M2 angles.
+    which needs tests at low arm angles (alt 25–35° with small roll) and the same torque sign at different M2 angles.
 5. **Small driver follow-ups:** ✅ the test now always runs at Roll ±45° (the side it is on), not ±25° only near Roll 0;
-   still to do: warn when a test starts above alt ~55°.
+    still to do: warn when a test starts above alt ~55°.
 
 ### Open questions (current)
 
 1. What sets the worm phase between nights — payload, mounting, or a per-session MCU/mechanical state? (Next test: a
-   repeat on a 200 mm night; a 300 mm repeat if convenient later.)
+    repeat on a 200 mm night; a 300 mm repeat if convenient later.)
 2. Does a profile measured by stepping (the test) match the error while tracking — and is the mismatch at Block E's
-   pose (finding 8) the gravity side, stepping vs tracking, or both?
+    pose (finding 8) the gravity side, stepping vs tracking, or both?
 3. M2: is its worm pose/load dependent, or are the tests just poorly conditioned for it?
 4. Resolved: M1/M2/M3 share the 6.0° worm (960 = 16 × 60); RA/Dec-space periodic fitting is replaced; the PV/FF
-   injection point is `corrQ_WFF` in the forward kinematics; shadow dual-model logging was not needed (PECLOG logs
-   `wff` alongside the guide corrections, so every night shows both).
+    injection point is `corrQ_WFF` in the forward kinematics; shadow dual-model logging was not needed (PECLOG logs
+    `wff` alongside the guide corrections, so every night shows both).
 
 ---
 
@@ -170,66 +170,66 @@ stop and reconsider before investing in Phase 1+.
 Scanned all 69 `alpaca*.log*` files under `logs/` and `logs/logs/`. Findings:
 
 - **Every log ≥9h duration uses the old, pre-dict `PECLOG` format** (`n,2,TOO_FEW_OBS,...`,
-  comma-separated) — `analyse_helpers.parse_payload_line`/`load_pec` only handle the current
-  `PECLOG {...}` dict format and silently find nothing in these. **A legacy-format PECLOG
-  parser is a hard prerequisite** before any of the long sessions (which is most of the useful
-  duration we have) can be used for Phase 0.1–0.3.
+    comma-separated) — `analyse_helpers.parse_payload_line`/`load_pec` only handle the current
+    `PECLOG {...}` dict format and silently find nothing in these. **A legacy-format PECLOG
+    parser is a hard prerequisite** before any of the long sessions (which is most of the useful
+    duration we have) can be used for Phase 0.1–0.3.
 - **No log has "sync-guiding active, PEC completely off."** Searched all 69 files for
-  `SYNC GUIDING` present with zero `PECLOG` lines of either format — none found. Every capture
-  with sync-guiding on also had `advanced_pec` on. Two ways to get an uncontaminated-by-PEC
-  signal without a fresh capture: use the pre-convergence portion of existing sessions
-  (`inhibit != VALID` / `pec_active: False` rows — `apply_pec_drift_correction()` returns
-  immediately while `_pec_active` is false, so these cycles have zero PEC feed-forward applied,
-  genuinely uncorrected), or capture a new log with `advanced_pec` explicitly off. Prefer doing
-  both — the pre-convergence data is free and available now, but is only ever a few minutes per
-  session, so it won't carry the angle-domain periodogram (0.2) on its own.
+    `SYNC GUIDING` present with zero `PECLOG` lines of either format — none found. Every capture
+    with sync-guiding on also had `advanced_pec` on. Two ways to get an uncontaminated-by-PEC
+    signal without a fresh capture: use the pre-convergence portion of existing sessions
+    (`inhibit != VALID` / `pec_active: False` rows — `apply_pec_drift_correction()` returns
+    immediately while `_pec_active` is false, so these cycles have zero PEC feed-forward applied,
+    genuinely uncorrected), or capture a new log with `advanced_pec` explicitly off. Prefer doing
+    both — the pre-convergence data is free and available now, but is only ever a few minutes per
+    session, so it won't carry the angle-domain periodogram (0.2) on its own.
 - **Long files are not clean single-target sessions** — most have real gotos/tracking toggles
-  scattered through them (checked against the actual REST calls: `slewtocoordinatesasync`,
-  `slewtoaltazasync`, `tracking`, `findhome`, etc., not just PECLOG content). They do contain
-  long clean (no-slew) stretches worth extracting:
+    scattered through them (checked against the actual REST calls: `slewtocoordinatesasync`,
+    `slewtoaltazasync`, `tracking`, `findhome`, etc., not just PECLOG content). They do contain
+    long clean (no-slew) stretches worth extracting:
 
-  | File | Raw span | Longest clean (no-slew) stretch | Actual continuous PECLOG activity span |
-  |---|---|---|---|
-  | `alpaca.jdm_Beta3.1_08_02.log` | 15.11h | ~6.6h (12:43→19:20) | **11.19h** (08:09→19:21), one 44min gap, 878 entries, ~40s cadence |
-  | `alpaca.jdm_Beta3.1_08_03.log` | 13.54h | — | 9.76h (09:34→19:20), one 136min gap, 693 entries |
-  | `alpaca.pec_rls_Beta2.0_07_25_tarantula1.log` / `1b.log` | 10.50h | two ~2.5–2.75h chunks | 6.50h (12:55→19:25), 361 entries |
-  | `alpaca.pec_rls_Beta2.0_07_20_master.log` / `_h2.log` | 12.31h | ~5.0h (11:49→16:50) | 4.64h / 5.47h — the two files end at the identical timestamp (16:28:40.972), confirming they're the same underlying capture exported/filtered two ways |
-  | `alpaca.pec_rls_Beta3,9_07_29_7hrs.log` | 13.54h | — | only 3.39h despite the filename |
-  | ~~`alpaca.pec_rls_Beta2.0_07_22_syncguide2.log`~~ | ~~9.29h~~ | ~~8.3h~~ | **Ruled out** — checking actual PECLOG timestamps (not just REST-command gaps) shows all 187 entries land in a 2-minute window (06:54:17→06:56:09), `n` racing 2→23, one `Guide,+nan` value in there — a rapid-fire test burst, not a real session. The rest of the file's 9.29h span has no PEC/sync-guide activity at all. |
+    | File | Raw span | Longest clean (no-slew) stretch | Actual continuous PECLOG activity span |
+    |---|---|---|---|
+    | `alpaca.jdm_Beta3.1_08_02.log` | 15.11h | ~6.6h (12:43→19:20) | **11.19h** (08:09→19:21), one 44min gap, 878 entries, ~40s cadence |
+    | `alpaca.jdm_Beta3.1_08_03.log` | 13.54h | — | 9.76h (09:34→19:20), one 136min gap, 693 entries |
+    | `alpaca.pec_rls_Beta2.0_07_25_tarantula1.log` / `1b.log` | 10.50h | two ~2.5–2.75h chunks | 6.50h (12:55→19:25), 361 entries |
+    | `alpaca.pec_rls_Beta2.0_07_20_master.log` / `_h2.log` | 12.31h | ~5.0h (11:49→16:50) | 4.64h / 5.47h — the two files end at the identical timestamp (16:28:40.972), confirming they're the same underlying capture exported/filtered two ways |
+    | `alpaca.pec_rls_Beta3,9_07_29_7hrs.log` | 13.54h | — | only 3.39h despite the filename |
+    | ~~`alpaca.pec_rls_Beta2.0_07_22_syncguide2.log`~~ | ~~9.29h~~ | ~~8.3h~~ | **Ruled out** — checking actual PECLOG timestamps (not just REST-command gaps) shows all 187 entries land in a 2-minute window (06:54:17→06:56:09), `n` racing 2→23, one `Guide,+nan` value in there — a rapid-fire test burst, not a real session. The rest of the file's 9.29h span has no PEC/sync-guide activity at all. |
 
-  **`alpaca.jdm_Beta3.1_08_02.log` is now the strong candidate for the "~11 hour" session** —
-  11.19 continuous hours of real PECLOG activity, essentially uninterrupted (one 44-minute gap),
-  matching the recollection closely. Worth confirming against notes, but proceeding on this one
-  unless something rules it out.
+    **`alpaca.jdm_Beta3.1_08_02.log` is now the strong candidate for the "~11 hour" session** —
+    11.19 continuous hours of real PECLOG activity, essentially uninterrupted (one 44-minute gap),
+    matching the recollection closely. Worth confirming against notes, but proceeding on this one
+    unless something rules it out.
 
 - **Action items before 0.1 can proceed on the long logs:**
-  - (a) ✅ **Done.** `analyse_helpers.py` now has `parse_peclog_legacy()` (comma-format PECLOG,
-    consistent field layout confirmed across every old-format log in this project) and
-    `parse_sync_guiding_residual_line()` (recovers `resid` — absent from the legacy PECLOG
-    payload itself — from the always-present `SYNC GUIDING ... Residuals` line via the DMS
-    inverse of `shr.py`'s `deg2dms()`). `load_pec()` auto-detects format per line and backfills
-    `resid_1`/`resid_2` for legacy rows by nearest-timestamp merge (2s tolerance), so it now
-    handles a session that mixes both formats too. Validated against real logs, not just
-    compiled: `chicken.log` (131/131 rows, resid cross-checked against the driver's own
-    independently-logged `pec_accum` for a fresh/unsmoothed cycle — matched to 3 decimal
-    places) and `alpaca.jdm_Beta3.1_08_02.log` (878/878 rows, 0 NaN resid, zero regression on
-    the existing dict-format path or the rest of `analyse_pec.ipynb`'s Outcome Overview cell,
-    which ran unchanged against the legacy file end-to-end).
-  - (b) **Leading candidate for the ~11h session confirmed as `alpaca.jdm_Beta3.1_08_02.log`**
-    (11.19h continuous PECLOG activity, one 44min gap) — still worth a sanity check against
-    notes, but nothing found to rule it out.
-  - (c) ✅ **Done.** `find_tracking_segments()` in `analyse_helpers.py` — splits a log into
-    continuous-tracking segments at any slew/goto/tracking-toggle/park/findhome/abortslew REST
-    call, returns `(start_ts, end_ts, duration_min)` for segments over a minimum length.
-    Validated against the manually-checked segments above (reproduces them exactly, e.g.
-    `08_02.log`'s 6.62h segment). **Caveat found while validating**: this only looks at REST
-    boundaries, not whether PECLOG/tracking was actually active throughout — e.g. `08_02.log`'s
-    trailing 3.62h segment is almost certainly idle/parked time (its start lines up with
-    PECLOG's very last entry). Segments must be intersected with actual PECLOG timestamp
-    coverage before use in 0.1/0.2, not taken at face value. For the leading candidate this
-    already looks fine — its best segment (12:43→19:20, 6.62h) sits entirely inside its
-    continuous 08:09→19:21 PECLOG-activity window — but this intersection should be made
-    explicit in code (not just eyeballed per-file) before it's relied on generally.
+    - (a) ✅ **Done.** `analyse_helpers.py` now has `parse_peclog_legacy()` (comma-format PECLOG,
+        consistent field layout confirmed across every old-format log in this project) and
+        `parse_sync_guiding_residual_line()` (recovers `resid` — absent from the legacy PECLOG
+        payload itself — from the always-present `SYNC GUIDING ... Residuals` line via the DMS
+        inverse of `shr.py`'s `deg2dms()`). `load_pec()` auto-detects format per line and backfills
+        `resid_1`/`resid_2` for legacy rows by nearest-timestamp merge (2s tolerance), so it now
+        handles a session that mixes both formats too. Validated against real logs, not just
+        compiled: `chicken.log` (131/131 rows, resid cross-checked against the driver's own
+        independently-logged `pec_accum` for a fresh/unsmoothed cycle — matched to 3 decimal
+        places) and `alpaca.jdm_Beta3.1_08_02.log` (878/878 rows, 0 NaN resid, zero regression on
+        the existing dict-format path or the rest of `analyse_pec.ipynb`'s Outcome Overview cell,
+        which ran unchanged against the legacy file end-to-end).
+    - (b) **Leading candidate for the ~11h session confirmed as `alpaca.jdm_Beta3.1_08_02.log`**
+        (11.19h continuous PECLOG activity, one 44min gap) — still worth a sanity check against
+        notes, but nothing found to rule it out.
+    - (c) ✅ **Done.** `find_tracking_segments()` in `analyse_helpers.py` — splits a log into
+        continuous-tracking segments at any slew/goto/tracking-toggle/park/findhome/abortslew REST
+        call, returns `(start_ts, end_ts, duration_min)` for segments over a minimum length.
+        Validated against the manually-checked segments above (reproduces them exactly, e.g.
+        `08_02.log`'s 6.62h segment). **Caveat found while validating**: this only looks at REST
+        boundaries, not whether PECLOG/tracking was actually active throughout — e.g. `08_02.log`'s
+        trailing 3.62h segment is almost certainly idle/parked time (its start lines up with
+        PECLOG's very last entry). Segments must be intersected with actual PECLOG timestamp
+        coverage before use in 0.1/0.2, not taken at face value. For the leading candidate this
+        already looks fine — its best segment (12:43→19:20, 6.62h) sits entirely inside its
+        continuous 08:09→19:21 PECLOG-activity window — but this intersection should be made
+        explicit in code (not just eyeballed per-file) before it's relied on generally.
 
 ### 0.1 Derive per-motor "observed theta" ground truth from existing PECLOG data ✅ Done
 
@@ -240,15 +240,15 @@ this project's logs. Instead, `derive_theta_ground_truth(df, lat_deg, lon_deg)` 
 `analyse_helpers.py` works entirely from PECLOG's own fields plus site location:
 
 1. `predicted_ra/dec` = this row's `az`/`alt`/`roll` (the PID's PV) → ra/dec, via
-   `kinematics.azalt_to_radec()` (exact `ephem`-based conversion, the same the driver itself
-   uses — better than the parallactic-angle small-rotation approximation originally
-   considered, and avoids needing `alignQ_B2T`, which isn't recoverable from the logs at all).
+    `kinematics.azalt_to_radec()` (exact `ephem`-based conversion, the same the driver itself
+    uses — better than the parallactic-angle small-rotation approximation originally
+    considered, and avoids needing `alignQ_B2T`, which isn't recoverable from the logs at all).
 2. `observed_ra/dec` = `predicted_ra/dec` + `resid` (confirmed: `resid_1`/`resid_2` are exactly
-   `process_guide_sync()`'s `ra_resid`/`dec_resid`, in arcmin of degrees — `/60` recovers
-   degrees directly, no unit surprises).
+    `process_guide_sync()`'s `ra_resid`/`dec_resid`, in arcmin of degrees — `/60` recovers
+    degrees directly, no unit surprises).
 3. `observed_az/alt` = `observed_ra/dec` → az/alt, via `kinematics.radec_to_altaz()`.
 4. `theta_pred`/`theta_obs` = `azaltroll_to_theta(az, alt, roll)` for each pose (roll held
-   fixed — a small RA/Dec offset doesn't meaningfully change field rotation).
+    fixed — a small RA/Dec offset doesn't meaningfully change field rotation).
 
 Also needed **site latitude/longitude**, which isn't computable from anything in the plan —
 resolved by finding it's actually logged, just not where first searched: a startup
@@ -258,20 +258,21 @@ site/user is handled automatically, not a global constant).
 
 **Two real bugs found and fixed while validating against `08_02.log` and `syncguide1.log`, not
 just by reading the kinematics code:**
+
 - `kinematics.azaltroll_to_theta()` called without an explicit `lastPos` silently returns
-  `(None, None, None)` for *every* row — its own default argument passes a literal `None`
-  through to `q_to_theta()`, which then fails internally and gets swallowed by the wrapper's
-  `except Exception`. Fixed by carrying one `LastPosition` across all rows (mirroring the
-  driver's own persistent `self._pid._lp`), advanced by `theta_pred` only after both
-  `theta_pred`/`theta_obs` are computed against it each row.
+    `(None, None, None)` for *every* row — its own default argument passes a literal `None`
+    through to `q_to_theta()`, which then fails internally and gets swallowed by the wrapper's
+    `except Exception`. Fixed by carrying one `LastPosition` across all rows (mirroring the
+    driver's own persistent `self._pid._lp`), advanced by `theta_pred` only after both
+    `theta_pred`/`theta_obs` are computed against it each row.
 - Near `kinematics.py`'s own `THETA2_MAX = 81.5` mechanical near-singularity, the IK's branch
-  selection can differ between the predicted and observed pose even though the true
-  positional difference is tiny — produced outliers up to ~345° before this was caught.
-  `derive_theta_ground_truth()` now excludes rows with `theta_pred_2`/`theta_obs_2` above 80°
-  (default, overridable), confirmed against both files: every extreme outlier found while
-  debugging clustered at `theta_pred_2` ≈ 81.49–81.52°, none survived the exclusion, and the
-  remaining largest residuals (a few hundred arcsec) show no such clustering — they range
-  across alt 34–77°, look like genuine amplified signal rather than a numerical artifact.
+    selection can differ between the predicted and observed pose even though the true
+    positional difference is tiny — produced outliers up to ~345° before this was caught.
+    `derive_theta_ground_truth()` now excludes rows with `theta_pred_2`/`theta_obs_2` above 80°
+    (default, overridable), confirmed against both files: every extreme outlier found while
+    debugging clustered at `theta_pred_2` ≈ 81.49–81.52°, none survived the exclusion, and the
+    remaining largest residuals (a few hundred arcsec) show no such clustering — they range
+    across alt 34–77°, look like genuine amplified signal rather than a numerical artifact.
 
 Also fixed in passing: `load_pec`/`load_kf_pid`/`find_tracking_segments`/`find_site_location`
 now open files with `errors="replace"`, not just `encoding="utf-8"` — `syncguide1.log` has a
@@ -294,19 +295,19 @@ cadence is irregular, which a standard FFT-based periodogram assumes away.
 any result, not by inspecting the numbers once and moving on:**
 
 - **No detrending, at first.** The very first real-data run showed power rising monotonically
-  all the way to `max_period` (the search cap, `span/2`) with no local peak at all, for every
-  motor/segment tried — a textbook slow-trend signature. Confirmed synthetically: adding a
-  linear trend to a clean known-period test signal reproduced the exact same failure (spurious
-  peak at the range edge, weak power) until `lombscargle_periodogram()` was given a
-  `detrend=True` default (matching `analyse_pec.ipynb`'s own existing periodogram cells).
+    all the way to `max_period` (the search cap, `span/2`) with no local peak at all, for every
+    motor/segment tried — a textbook slow-trend signature. Confirmed synthetically: adding a
+    linear trend to a clean known-period test signal reproduced the exact same failure (spurious
+    peak at the range edge, weak power) until `lombscargle_periodogram()` was given a
+    `detrend=True` default (matching `analyse_pec.ipynb`'s own existing periodogram cells).
 - **Raw peak power isn't comparable across different sample sizes.** Even after detrending,
-  results kept landing near suspiciously round cycle-counts across unrelated
-  motors/segments — a known small-sample periodogram bias (a long period has more freedom to
-  fit noise relative to how few independent cycles are actually observed). Fixed by adding
-  `periodogram_false_alarm_probability()` — a permutation test (shuffle `y`, x held fixed,
-  see how often noise alone beats the real peak) — validated against synthetic clean-signal
-  (FAP=0.000) and pure-noise (FAP=0.520, i.e. "not significant," exactly as it should be)
-  cases before trusting it on real data.
+    results kept landing near suspiciously round cycle-counts across unrelated
+    motors/segments — a known small-sample periodogram bias (a long period has more freedom to
+    fit noise relative to how few independent cycles are actually observed). Fixed by adding
+    `periodogram_false_alarm_probability()` — a permutation test (shuffle `y`, x held fixed,
+    see how often noise alone beats the real peak) — validated against synthetic clean-signal
+    (FAP=0.000) and pure-noise (FAP=0.520, i.e. "not significant," exactly as it should be)
+    cases before trusting it on real data.
 
 **Results so far, with FAP (lower = more trustworthy):**
 
@@ -337,20 +338,20 @@ against (avoids the exact `syncguide1`-vs-`08_02` mistake above). Sorting all FA
 by peak period reveals a real cross-session pattern:**
 
 - **M1**: three *independent, mutually-testable* sessions across two different nights (July 22
-  `syncguide1`, July 25 `tarantula1`'s two segments) all land at **6.44°–7.40°** — a tight
-  cluster given these are independent noisy estimates, and none of them are anywhere near
-  their own testable-range ceiling (7.95°/18.26°/30.61° vs peaks of 6.66°/7.40°/6.44° — not an
-  edge artifact this time). `08_02`'s headline 45.55° doesn't match this directly, **but its
-  own periodogram's second-strongest local peak, checked explicitly, is at 7.130°** (power
-  0.064, vs 0.083 for the 45.55° global max) — the ~7° signal is present in that session too,
-  just outcompeted by something stronger, not absent.
+    `syncguide1`, July 25 `tarantula1`'s two segments) all land at **6.44°–7.40°** — a tight
+    cluster given these are independent noisy estimates, and none of them are anywhere near
+    their own testable-range ceiling (7.95°/18.26°/30.61° vs peaks of 6.66°/7.40°/6.44° — not an
+    edge artifact this time). `08_02`'s headline 45.55° doesn't match this directly, **but its
+    own periodogram's second-strongest local peak, checked explicitly, is at 7.130°** (power
+    0.064, vs 0.083 for the 45.55° global max) — the ~7° signal is present in that session too,
+    just outcompeted by something stronger, not absent.
 - **M3**: four sessions cluster at **4.99°–7.16°** (`08_03`, `07_20`, `tarantula1`, and
-  `syncguide1` again, the last right at its own testable ceiling so weaker evidence on its
-  own). `08_02`'s M3 periodogram, checked the same way as M1's, does **not** show a
-  corresponding secondary peak near 5–7° (its top three local peaks are 34.63°/23.65°/10.28°)
-  — a genuine gap in the corroboration, not glossed over.
+    `syncguide1` again, the last right at its own testable ceiling so weaker evidence on its
+    own). `08_02`'s M3 periodogram, checked the same way as M1's, does **not** show a
+    corresponding secondary peak near 5–7° (its top three local peaks are 34.63°/23.65°/10.28°)
+    — a genuine gap in the corroboration, not glossed over.
 - **M2** stays scattered (0.57°, 0.78°, 5.94°, 13.47° — no cluster), consistent with the
-  earlier KFLOG shift finding that M2 looks mechanically different from M1/M3.
+    earlier KFLOG shift finding that M2 looks mechanically different from M1/M3.
 
 **Read on this at the time:** M1 and M3 both show a period in roughly the same 5–7.5° range,
 found independently across four sessions spanning three different nights, with testable ranges
@@ -425,12 +426,12 @@ which would settle whether that's session-specific noise or a second real compon
 Using the same log set:
 
 - Fit a candidate per-motor angle-domain model (constant + harmonics, same RLS/EMA machinery
-  conceptually) on one session, and check its **predictive** residual on a *different* session
-  (different orientation/target). Do the same for the existing RA/Dec model as the baseline.
+    conceptually) on one session, and check its **predictive** residual on a *different* session
+    (different orientation/target). Do the same for the existing RA/Dec model as the baseline.
 - **Pass criterion:** per-motor model's held-out residual RMS should be lower than the RA/Dec
-  model's held-out residual RMS, on a majority of held-out session pairs tried — the RA/Dec
-  model is expected to generalize poorly across orientation by the hypothesis above, so this is
-  the head-to-head test of whether that's actually true.
+    model's held-out residual RMS, on a majority of held-out session pairs tried — the RA/Dec
+    model is expected to generalize poorly across orientation by the hypothesis above, so this is
+    the head-to-head test of whether that's actually true.
 
 ### 0.4 Decision point
 
@@ -469,12 +470,12 @@ can analyze live driver output without rework.
 From the earlier investigation:
 
 - **FF** is simpler with a per-motor model: `omega_pec_B = [d_theta1, d_theta2, d_theta3] / dt`
-  directly — no `equatorial_axes_B` projection needed at all.
+    directly — no `equatorial_axes_B` projection needed at all.
 - **PV**: inject the per-motor correction *before* `motorQ_state = theta_to_q(*self._theta_state)`
-  in `polaris.py`, not as a patch to `theta_pv` after the fact — so `cameraQ_pv` and everything
-  downstream of it (Az/Alt/RA/Dec reporting, UI) stay consistent with what the PID's error
-  signal sees. Confirm nothing else reads `self._theta_state` between the KF and that point
-  expecting the uncorrected physical estimate, before finalizing this injection point.
+    in `polaris.py`, not as a patch to `theta_pv` after the fact — so `cameraQ_pv` and everything
+    downstream of it (Az/Alt/RA/Dec reporting, UI) stay consistent with what the PID's error
+    signal sees. Confirm nothing else reads `self._theta_state` between the KF and that point
+    expecting the uncorrected physical estimate, before finalizing this injection point.
 
 ### 1.4 Feature flag
 
@@ -494,16 +495,16 @@ new fields present.
 ## Phase 2 — Unit tests
 
 - Angle-domain model fitting: synthetic θᵢ(t) with a known injected periodic signal (including
-  a case where `ωᵢ(t)` varies over the test, unlike a constant-rate equatorial test would need)
-  — verify the fit recovers the known period/amplitude/phase, and that the FF rate conversion
-  (`f'(θᵢ)·ωᵢ`) matches a numerically-differentiated reference.
+    a case where `ωᵢ(t)` varies over the test, unlike a constant-rate equatorial test would need)
+    — verify the fit recovers the known period/amplitude/phase, and that the FF rate conversion
+    (`f'(θᵢ)·ωᵢ`) matches a numerically-differentiated reference.
 - Theta-space ground-truth derivation (Phase 1.2): unit test against known az/alt/roll + residual
-  inputs with a hand-computed expected `theta_observed`.
+    inputs with a hand-computed expected `theta_observed`.
 - PV/FF injection: verify the new theta-space path, with the feature flag off, produces
-  byte-for-byte identical `theta_pv`/`omega_pec_B` behavior to the current code — this is the
-  regression-safety test for anyone not opting in.
+    byte-for-byte identical `theta_pv`/`omega_pec_B` behavior to the current code — this is the
+    regression-safety test for anyone not opting in.
 - Edge cases: zero/near-zero `ωᵢ`, PEC model reset mid-session, axis with no detectable
-  periodicity (should behave gracefully, not force-fit noise).
+    periodicity (should behave gracefully, not force-fit noise).
 
 ---
 
@@ -520,13 +521,13 @@ any) are real, not simulated. So:
 ### 3.1 What's testable with existing `replay.py`, no new tooling
 
 - Run the existing `SYNCGUIDE_PE`/`PULSEGUIDE_PE` test files against a bench-connected mount
-  with the new theta-space model active (flag on) vs the current default (flag off), same
-  target, back-to-back or alternating runs. This validates the *control loop* end-to-end (PV/FF
-  hookup, logging, no crashes/instability) and gives a real — if not perfectly known-ground-truth
-  — A/B comparison, since the bench mount's own real per-motor PE (whatever it is) is being
-  fitted in both cases.
+    with the new theta-space model active (flag on) vs the current default (flag off), same
+    target, back-to-back or alternating runs. This validates the *control loop* end-to-end (PV/FF
+    hookup, logging, no crashes/instability) and gives a real — if not perfectly known-ground-truth
+    — A/B comparison, since the bench mount's own real per-motor PE (whatever it is) is being
+    fitted in both cases.
 - Compare resulting `resid`/theta-space-resid RMS trend between the two runs using the Phase 0
-  analysis tooling, extended to read the new log fields.
+    analysis tooling, extended to read the new log fields.
 
 ### 3.2 Open question: controlled, known-ground-truth per-motor PE injection
 
@@ -543,34 +544,34 @@ rather than discovering it mid-implementation.
 ## Phase 4 — Quantitative acceptance criteria (fix these before running Phase 3/5, not after)
 
 - **Phase 0 gate:** angular period consistency across sessions/axes (0.2) and better held-out
-  generalization than RA/Dec (0.3), both demonstrated with numbers, before Phase 1 starts.
+    generalization than RA/Dec (0.3), both demonstrated with numbers, before Phase 1 starts.
 - **Phase 3 (bench) gate:** theta-space model's resid RMS (first-fifth vs last-fifth of run, same
-  metric already used in `analyse_pec.ipynb`'s Outcome Overview) must not be worse than the
-  current model's on the same bench mount/target, and should show measurable improvement on
-  repeated runs (not a single lucky run).
+    metric already used in `analyse_pec.ipynb`'s Outcome Overview) must not be worse than the
+    current model's on the same bench mount/target, and should show measurable improvement on
+    repeated runs (not a single lucky run).
 - **No-regression gate:** with the feature flag off, unit tests (2) must show byte-identical
-  behavior to current code.
+    behavior to current code.
 - **Field gate (Phase 5):** resid RMS trend and KFLOG base-vs-corrected shift amplitude (per
-  motor) should be comparable-or-better than historical RA/Dec-mode sessions on similar
-  targets — ideally an explicit same-night or same-target A/B, given night-to-night seeing/wind
-  variability makes single-session comparisons noisy on their own.
+    motor) should be comparable-or-better than historical RA/Dec-mode sessions on similar
+    targets — ideally an explicit same-night or same-target A/B, given night-to-night seeing/wind
+    variability makes single-session comparisons noisy on their own.
 
 ---
 
 ## Phase 5 — Live field validation
 
 - A/B protocol: same night (or closely matched nights/targets) run old mode then new mode (or
-  alternate), via the `Config` flag, both `log_pec` and `log_position` on for full telemetry.
+    alternate), via the `Config` flag, both `log_pec` and `log_position` on for full telemetry.
 - **Strongly consider logging both models' residuals simultaneously** even when only one mode's
-  correction is actually applied — i.e. keep a "shadow" RA/Dec model fitting (not driving
-  anything) running alongside the live theta-space model, and vice versa on old-mode nights.
-  This turns every single session into its own A/B comparison instead of needing two separate
-  nights with matched conditions, which removes most of the night-to-night noise problem from
-  Phase 4's field gate. Worth deciding whether this is in scope for Phase 1 or deferred.
+    correction is actually applied — i.e. keep a "shadow" RA/Dec model fitting (not driving
+    anything) running alongside the live theta-space model, and vice versa on old-mode nights.
+    This turns every single session into its own A/B comparison instead of needing two separate
+    nights with matched conditions, which removes most of the night-to-night noise problem from
+    Phase 4's field gate. Worth deciding whether this is in scope for Phase 1 or deferred.
 - Repeat over multiple nights/targets before drawing a conclusion — a single night, however
-  good, isn't statistically conclusive given natural seeing/wind variability.
+    good, isn't statistically conclusive given natural seeing/wind variability.
 - Reuse the exact same notebook metrics from Phase 0 throughout, so every phase of this project
-  is judged by the same yardstick.
+    is judged by the same yardstick.
 
 ---
 
@@ -580,11 +581,11 @@ rather than discovering it mid-implementation.
 
 1. Confirm/refute "M1/M3 same motor+gearbox, M2 different" — Phase 0.2 answers this directly.
 2. Decide the Phase 3.2 ground-truth-injection gap before committing to a bench-test-only
-   validation story.
+    validation story.
 3. Decide whether "shadow" dual-model logging (Phase 5) is worth the extra complexity in Phase 1,
-   given how much it strengthens field validation.
+    given how much it strengthens field validation.
 4. Confirm the exact safe injection point for the PV correction (Phase 1.3) by tracing all
-   readers of `self._theta_state` between the KF and `theta_to_q(*self._theta_state)`.
+    readers of `self._theta_state` between the KF and `theta_to_q(*self._theta_state)`.
 
 ---
 
@@ -728,30 +729,31 @@ concatenating by filename silently interleaves events backwards).
 
 The reconstructed outage is **2026-09-01 00:21:52.445 → 00:51:43.158 (~29.8min)** — starting
 ~20 minutes earlier than previously documented, and ending ~5.5 minutes earlier too:
+
 1. `HIGH CPU LOAD breakdown` at 00:21:59 shows NINA.exe (38.5%) + the driver's own python.exe
-   (23.4%) pushing the host CPU near 100%, corroborated by escalating `Heartbeat lag
-   detected`/`Event loop lag detected` vitals warnings in the preceding ~10s (pulse lag
-   0.447s → 5.955s; event-loop sleep overrun up to 3.237s against a 500ms budget).
+    (23.4%) pushing the host CPU near 100%, corroborated by escalating `Heartbeat lag
+    detected`/`Event loop lag detected` vitals warnings in the preceding ~10s (pulse lag
+    0.447s → 5.955s; event-loop sleep overrun up to 3.237s against a 500ms budget).
 2. That starved the driver's asyncio event loop long enough that at 00:21:52.445,
-   `==DISCONNECT== Polaris socket error: [WinError 10054] An existing connection was forcibly
-   closed by the remote host` — the remote side (or the OS/network stack under load) reset the
-   connection. **Not** the driver's own 5s-no-518-telemetry watchdog (`age_518` was only
-   ~1.1s at the last position-update-lag warning immediately before this) — a harder failure
-   preempted it.
+    `==DISCONNECT== Polaris socket error: [WinError 10054] An existing connection was forcibly
+    closed by the remote host` — the remote side (or the OS/network stack under load) reset the
+    connection. **Not** the driver's own 5s-no-518-telemetry watchdog (`age_518` was only
+    ~1.1s at the last position-update-lag warning immediately before this) — a harder failure
+    preempted it.
 3. 110 `Connect timed out` reconnect attempts followed, all failing, for ~25 minutes.
 4. A WiFi rejoin was attempted via `Polaris:bleEnableWifi`/`Polaris:ConnectPolaris` REST
-   actions at 00:41:12–00:41:29 and failed (`Failed to join WiFi network 'polaris_b83c06':
-   netsh wlan connect failed: ... error 0x57`). The client also toggled `log_position` off at
-   00:41:43.836 mid-outage — **this, not the connection recovering, is what actually stopped
-   KFLOG/PIDLOG at 00:41:42** (the KF/PID control loop had kept ticking and being logged on
-   dead-reckoned predictions for the ~20 minutes since the real disconnect, past the point the
-   connection had already died).
+    actions at 00:41:12–00:41:29 and failed (`Failed to join WiFi network 'polaris_b83c06':
+    netsh wlan connect failed: ... error 0x57`). The client also toggled `log_position` off at
+    00:41:43.836 mid-outage — **this, not the connection recovering, is what actually stopped
+    KFLOG/PIDLOG at 00:41:42** (the KF/PID control loop had kept ticking and being logged on
+    dead-reckoned predictions for the ~20 minutes since the real disconnect, past the point the
+    connection had already died).
 5. A fresh driver process started at 00:47:07 (`==STARTUP==` — the miniPC/driver restart) but
-   still couldn't connect for another ~4.5 minutes.
+    still couldn't connect for another ~4.5 minutes.
 6. `Polaris:ConnectPolaris` at 00:51:42 finally succeeded; `Polaris communication init...
-   done` at 00:51:43.158 closes the outage. `log_position` wasn't turned back on until
-   00:57:12.543 — five and a half minutes *after* the connection was already back up — which
-   is what actually produced the 00:57:12 boundary in the original KFLOG-gap-based finding.
+    done` at 00:51:43.158 closes the outage. `log_position` wasn't turned back on until
+    00:57:12.543 — five and a half minutes *after* the connection was already back up — which
+    is what actually produced the 00:57:12 boundary in the original KFLOG-gap-based finding.
 
 **Net effect: the previously-reported 00:41:42→00:57:12 "gap" was never the outage's true
 start/end — it was a `log_position` logging toggle that happened to span part of a longer
@@ -782,9 +784,10 @@ millisecond. Zero corrections after that, simply because the session ended there
 re-arming failure — originally misread as one before the user clarified).
 
 **Net usable data: two segments**, not one continuous ~13.5h run:
+
 - **Segment 1**: 19:08:52 → 00:41:42 (~5.5h), 295 sync-guide residual events, 93756 KFLOG rows.
 - **Segment 2**: 00:57:12 → 03:30:21 (~2.5h), 135 residual events (87 usable after the theta2
-  guard — this window overlaps the earlier-noted noisier PID-error stretch), ~45418 KFLOG rows.
+    guard — this window overlaps the earlier-noted noisier PID-error stretch), ~45418 KFLOG rows.
 - Segment 3 (03:30→08:41): KFLOG exists but is not usable (no tracking, see above).
 
 **Methodological correction needed before analyzing Segments 1/2, found by reasoning through
@@ -848,31 +851,32 @@ already computes everything needed at the moment of each sync-guide correction, 
 being logged in structured form.
 
 **`driver/control.py` changes** (`process_guide_sync()`):
+
 - A new `SGLOG {dict}` line, logged unconditionally right after the existing plain-text
-  `"SYNC GUIDING ... Residuals"` line (same as PECLOG's own logging — independent of
-  `Config.log_pec`/`Config.log_position`, so it's available even with both off). Fields:
-  `resid` (this correction, arcmin, same convention as PECLOG's `resid`), `total_accum`
-  (cumsum since reset, arcmin), `theta_raw` ([M1,M2,M3] degrees, straight from
-  `self.polaris._theta_raw` — no more need to nearest-match against KFLOG to get a position),
-  `az`/`alt`/`roll` (topocentric PV, same convention as PECLOG), `interval_sec` (smoothed EMA
-  time between syncs), and `age_518` (telemetry staleness, same diagnostic PECLOG carries).
+    `"SYNC GUIDING ... Residuals"` line (same as PECLOG's own logging — independent of
+    `Config.log_pec`/`Config.log_position`, so it's available even with both off). Fields:
+    `resid` (this correction, arcmin, same convention as PECLOG's `resid`), `total_accum`
+    (cumsum since reset, arcmin), `theta_raw` ([M1,M2,M3] degrees, straight from
+    `self.polaris._theta_raw` — no more need to nearest-match against KFLOG to get a position),
+    `az`/`alt`/`roll` (topocentric PV, same convention as PECLOG), `interval_sec` (smoothed EMA
+    time between syncs), and `age_518` (telemetry staleness, same diagnostic PECLOG carries).
 - **`total_accum` reuses the existing `self.delta_guide_accum[0]`/`[1]` state, not a new
-  counter.** First cut of this added a dedicated `sg_accum_ra`/`sg_accum_dec` pair — caught in
-  review as redundant: `accumulate_sync_guiding_residuals()` (called right before the SGLOG
-  block, same as before) already does `delta_guide_accum[0] += ra_resid` /
-  `[1] += dec_resid`, the identical cumulative sum, just in degrees rather than arcmin
-  (scaled ×60 when logged). Tracing the reset call sites showed `delta_guide_accum`'s
-  semantics are actually *more* correct for this than a dedicated counter would have been: it
-  resets in `clear_sync_guiding()` (same as a dedicated counter would), but *also* in
-  `clear_guide_pulses()` — called from `optimize_alignQ_B2T()` whenever the QUEST `alignQ_B2T`
-  model is recomputed (only happens on the non-sync-guiding path through `sync_az_alt()`,
-  i.e. rare during steady guiding) — exactly the moment a stale cumulative total would
-  otherwise silently mean something different against the new alignment model. A separate
-  counter reset only by `clear_sync_guiding()` would have kept summing straight through an
-  alignment change. Removed the dedicated state entirely; SGLOG now just reads
-  `delta_guide_accum` after `accumulate_sync_guiding_residuals()` has updated it.
+    counter.** First cut of this added a dedicated `sg_accum_ra`/`sg_accum_dec` pair — caught in
+    review as redundant: `accumulate_sync_guiding_residuals()` (called right before the SGLOG
+    block, same as before) already does `delta_guide_accum[0] += ra_resid` /
+    `[1] += dec_resid`, the identical cumulative sum, just in degrees rather than arcmin
+    (scaled ×60 when logged). Tracing the reset call sites showed `delta_guide_accum`'s
+    semantics are actually *more* correct for this than a dedicated counter would have been: it
+    resets in `clear_sync_guiding()` (same as a dedicated counter would), but *also* in
+    `clear_guide_pulses()` — called from `optimize_alignQ_B2T()` whenever the QUEST `alignQ_B2T`
+    model is recomputed (only happens on the non-sync-guiding path through `sync_az_alt()`,
+    i.e. rare during steady guiding) — exactly the moment a stale cumulative total would
+    otherwise silently mean something different against the new alignment model. A separate
+    counter reset only by `clear_sync_guiding()` would have kept summing straight through an
+    alignment change. Removed the dedicated state entirely; SGLOG now just reads
+    `delta_guide_accum` after `accumulate_sync_guiding_residuals()` has updated it.
 - Verified with `compile()`; not yet exercised against a live driver run (no capture has used
-  it yet — it's brand new).
+    it yet — it's brand new).
 
 **`utility/analyse_helpers.py`**: added `load_sglog(log_filenames, log_dir='.')`, parsing
 `SGLOG {dict}` lines into a DataFrame with `resid_1/2`/`az`/`alt`/`roll`/`total_accum_1/2`/
@@ -927,41 +931,42 @@ out at 2026-09-01T00:21:52" with evidence, not a guess — see the correction ab
 notebook's tooling produced.
 
 **New parsers in `utility/analyse_helpers.py`:**
+
 - `load_vitals()` — moved from an inline notebook function, and extended to also catch `Event
-  loop lag detected` (polaris.py's own watchdog-cycle sleep-overrun check) alongside the
-  existing `Polaris position update`/`Heartbeat lag detected` kinds — a real gap in the
-  original inline version, which only matched two of the three `shr.system_vitals()` call
-  sites and so silently missed a warning kind that turned out to be directly relevant to the
-  08_31 incident.
+    loop lag detected` (polaris.py's own watchdog-cycle sleep-overrun check) alongside the
+    existing `Polaris position update`/`Heartbeat lag detected` kinds — a real gap in the
+    original inline version, which only matched two of the three `shr.system_vitals()` call
+    sites and so silently missed a warning kind that turned out to be directly relevant to the
+    08_31 incident.
 - `load_high_cpu_events()` — new. Parses `HIGH CPU LOAD breakdown: <Name X.X%, ...>` lines
-  (`shr.system_cpu()`, a one-shot top-5-process probe the driver triggers whenever it sees
-  CPU > 95%) into a long-form per-process DataFrame. This was the single most direct clue in
-  the 08_31 incident (NINA.exe + the driver's own python.exe near 100% CPU) and wasn't parsed
-  anywhere before.
+    (`shr.system_cpu()`, a one-shot top-5-process probe the driver triggers whenever it sees
+    CPU > 95%) into a long-form per-process DataFrame. This was the single most direct clue in
+    the 08_31 incident (NINA.exe + the driver's own python.exe near 100% CPU) and wasn't parsed
+    anywhere before.
 - `load_connection_events()` — new. Parses the full connection-lifecycle event stream
-  (`==STARTUP==`, `==DISCONNECT==`, both flavors of connect failure — `connect_attempt_failed`
-  vs `reconnect_error`, see the function's own docstring for the distinction and how each maps
-  to `_format_connection_error()` in `driver/polaris.py` — `Polaris communication init...
-  done`, WiFi interface/join events, and interesting client REST actions including
-  `Polaris:ConfigUpdate`, flattened to `param_*` columns) into one DataFrame, chronologically
-  sorted by each line's own embedded timestamp. **Sorting by embedded timestamp rather than
-  file order is not optional** — confirmed the hard way building this: this project's rotated
-  log naming runs newest-to-oldest (`..._aNN.log`, and default `alpaca.log`/`.1`/`.2`/...
-  rotation too), so the file holding the 08_31 disconnect (`...a12.log`) chronologically
-  *precedes* the file holding its resolution (`...a11.log`) — the opposite of filename order.
+    (`==STARTUP==`, `==DISCONNECT==`, both flavors of connect failure — `connect_attempt_failed`
+    vs `reconnect_error`, see the function's own docstring for the distinction and how each maps
+    to `_format_connection_error()` in `driver/polaris.py` — `Polaris communication init...
+    done`, WiFi interface/join events, and interesting client REST actions including
+    `Polaris:ConfigUpdate`, flattened to `param_*` columns) into one DataFrame, chronologically
+    sorted by each line's own embedded timestamp. **Sorting by embedded timestamp rather than
+    file order is not optional** — confirmed the hard way building this: this project's rotated
+    log naming runs newest-to-oldest (`..._aNN.log`, and default `alpaca.log`/`.1`/`.2`/...
+    rotation too), so the file holding the 08_31 disconnect (`...a12.log`) chronologically
+    *precedes* the file holding its resolution (`...a11.log`) — the opposite of filename order.
 - `reconstruct_outages()` — new. Collapses the connection-event stream into discrete outage
-  spans with full context (trigger, failed-retry count, whether a driver restart happened
-  mid-outage, WiFi rejoin failures, config changes mid-outage). Exists because neither a
-  single log line nor a raw KFLOG-gap estimate told the true story for 08_31: the KF/PID
-  control loop kept ticking and being logged on dead-reckoned predictions for ~20 minutes
-  *after* the real connection died, only actually stopping when a client happened to also
-  toggle `Config.log_position` off mid-outage — so trusting the KFLOG-visible gap alone
-  produced a materially wrong outage boundary (see the correction above). All four new
-  functions validated end-to-end against the real 08_31 capture (13 rotated files, ~500min),
-  including one bug caught by that testing: `high_cpu_df.rank` silently collided with
-  pandas' own `DataFrame.rank()` method in the first draft (same class of gotcha already
-  documented elsewhere in this codebase for `ev.axes` vs `Series.axes`) — fixed to bracket
-  access (`high_cpu_df['rank']`).
+    spans with full context (trigger, failed-retry count, whether a driver restart happened
+    mid-outage, WiFi rejoin failures, config changes mid-outage). Exists because neither a
+    single log line nor a raw KFLOG-gap estimate told the true story for 08_31: the KF/PID
+    control loop kept ticking and being logged on dead-reckoned predictions for ~20 minutes
+    *after* the real connection died, only actually stopping when a client happened to also
+    toggle `Config.log_position` off mid-outage — so trusting the KFLOG-visible gap alone
+    produced a materially wrong outage boundary (see the correction above). All four new
+    functions validated end-to-end against the real 08_31 capture (13 rotated files, ~500min),
+    including one bug caught by that testing: `high_cpu_df.rank` silently collided with
+    pandas' own `DataFrame.rank()` method in the first draft (same class of gotcha already
+    documented elsewhere in this codebase for `ev.axes` vs `Series.axes`) — fixed to bracket
+    access (`high_cpu_df['rank']`).
 
 **`utility/analyse_comms.ipynb`** covers: Driver vitals events, HIGH CPU LOAD breakdown
 (new), Telemetry gaps, Connection lifecycle events (new), Outage reconstruction (new, the key

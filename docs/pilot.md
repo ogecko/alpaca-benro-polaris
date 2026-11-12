@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Alpaca Pilot App
 [Purpose](#what-is-alpaca-pilot) | 
 [Launching](#i-launching-the-alpaca-pilot-application) | 
@@ -22,6 +20,7 @@ The **Alpaca Pilot App** is a responsive, single-page web application designed t
 The Pilot App is completely optional. You can continue using Stellarium, NINA and CCDCiel with the Alpaca Driver just as you did in version 1.0, no changes required. However, choosing not to use the Pilot App means missing out on a range of enhancements that are available to you. 
 
 The Pilot App was built to:
+
 - Simplify the Polaris connection and startup process, eliminating the need to use the official Benro Polaris app on startup
 - Make it easy to set the observing site’s latitude and longitude
 - Eliminate manual editing of the config.toml configuration file
@@ -50,6 +49,7 @@ The main menu of the **Alpaca Pilot** application provides centralized access to
 
 - **⑤ Settings:** Opens the configuration panel where you can set observing site latitude/longitude, define the park position, adjust preferences, and enable standard and advanced features.
 > Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#enable-https-in-alpaca-pilot).
+
 - **⑥ Search Entry:** A text input field for searching catalog entries and targets. Supports shorthand formats and intelligent parsing for quick access to celestial objects.
 
 - **⑦ Search Toggle:** Toggles the visibility of the search entry field. On narrow screens, it also expands the search input area for easier access. When a search term is present, this button acts as a quick-clear control to reset the entry.
@@ -84,9 +84,9 @@ You can access Alpaca Pilot from any browser on a device connected to the same n
 1. **Start Driver:** Make sure the driver is running on the Mini-PC.
 2. **Open Browser:** On your phone, tablet, or laptop, open any modern browser.
 3. **Open Alpaca Pilot:** Enter one of the following in the browser's address bar:
-   1.  **Recommended:** `http://ap.local` (or `http://ap.local:8080/` for Linux/Pi installations)
-   2.  **Hostname:** eg `http://hostname`
-   3.  **IP Address:** eg `http://192.168.10.250`
+    1.  **Recommended:** `http://ap.local` (or `http://ap.local:8080/` for Linux/Pi installations)
+    2.  **Hostname:** eg `http://hostname`
+    3.  **IP Address:** eg `http://192.168.10.250`
 4.  **Full Screen Feature:** On a phone, you can click on the battery icon to make the application go **full screen** to take up the full real estate available.
 
 ### Method C: Launching Multiple Instances
@@ -124,27 +124,27 @@ There are three ways to reach Alpaca Pilot:
 
 1. **Use mDNS**
 
-   On networks where mDNS is supported by both the network and the client device, use:
+    On networks where mDNS is supported by both the network and the client device, use:
 
-   ```text
-   http://ap.local
-   ```
+    ```text
+    http://ap.local
+    ```
 
 2. **Use the driver's hostname**
 
-   If the hostname can be resolved by the device running the browser, replace `<hostname>` with the driver's hostname and use:
+    If the hostname can be resolved by the device running the browser, replace `<hostname>` with the driver's hostname and use:
 
-   ```text
-   http://<hostname>
-   ```
+    ```text
+    http://<hostname>
+    ```
 
 3. **Use the driver's IP address**
 
-   If you know the IPv4 address allocated to the driver, replace `<ipaddress>` with the driver's IPv4 address and use:
+    If you know the IPv4 address allocated to the driver, replace `<ipaddress>` with the driver's IPv4 address and use:
 
-   ```text
-   http://<ipaddress>
-   ```
+    ```text
+    http://<ipaddress>
+    ```
 
    
 
@@ -154,60 +154,60 @@ There are several ways to find the driver's IP address.
 
 1. **Use the driver's log file**
 
-   The IP address is recorded in:
+    The IP address is recorded in:
 
-   ```text
-   alpaca-benro-polaris/logs/alpaca.log
-   ```
+    ```text
+    alpaca-benro-polaris/logs/alpaca.log
+    ```
 
-   Look for the `==STARTUP==` message containing the mDNS hostname. The address following the `->` characters is the IP address of the driver.
+    Look for the `==STARTUP==` message containing the mDNS hostname. The address following the `->` characters is the IP address of the driver.
 
-   In this example, the driver's IP address is `192.168.50.73`
+    In this example, the driver's IP address is `192.168.50.73`
 
-   ```text
-   2026-09-24T18:47:05.665 INFO ==STARTUP== Serving mDNS hostname [http://ap.local](http://ap.local) -> 192.168.50.73:80
-   ```
+    ```text
+    2026-09-24T18:47:05.665 INFO ==STARTUP== Serving mDNS hostname [http://ap.local](http://ap.local) -> 192.168.50.73:80
+    ```
 
   
 
 2. **Use your router**
 
-   Log in to your router's administration interface and look for a list of connected devices. Depending on the router, this may be called **Connected Devices**, **DHCP Clients**, **LAN Clients**, **Attached Devices**, or something similar.
+    Log in to your router's administration interface and look for a list of connected devices. Depending on the router, this may be called **Connected Devices**, **DHCP Clients**, **LAN Clients**, **Attached Devices**, or something similar.
 
-   Look for the hostname of the device running the Alpaca Driver. The router should display the IPv4 address assigned to it.
+    Look for the hostname of the device running the Alpaca Driver. The router should display the IPv4 address assigned to it.
 
 3. **Use Windows**
 
-   If the driver is running on Windows, open **Command Prompt** and run:
+    If the driver is running on Windows, open **Command Prompt** and run:
 
-   ```text
-   ipconfig
-   ```
+    ```text
+    ipconfig
+    ```
 
-   Find the network adapter that is currently connected to your local network and look for its **IPv4 Address**.
+    Find the network adapter that is currently connected to your local network and look for its **IPv4 Address**.
 
-   You can also use the following command to display the computer's hostname:
+    You can also use the following command to display the computer's hostname:
 
-   ```text
-   hostname
-   ```
+    ```text
+    hostname
+    ```
   
 
 4. **Use Raspberry Pi**
 
-   If the driver is running on a Raspberry Pi, open a terminal and run:
+    If the driver is running on a Raspberry Pi, open a terminal and run:
 
-   ```text
-   hostname -I
-   ```
+    ```text
+    hostname -I
+    ```
 
-   This displays the IP addresses currently assigned to the Raspberry Pi.
+    This displays the IP addresses currently assigned to the Raspberry Pi.
 
-   You can also use the following to display the Raspberry Pi's hostname:
+    You can also use the following to display the Raspberry Pi's hostname:
 
-   ```text
-   hostname
-   ```
+    ```text
+    hostname
+    ```
 
 ### Can you use a phone's hotspot as a network?
 
@@ -283,8 +283,8 @@ If a connection issue is detected, a warning banner will appear. You can then na
 - **③ Initiate Connection:**  Click this button to manually initiate or retry a connection to the Alpaca Driver.
 
 - **④ Driver Connection Checkbox:** Toggles the connection status with the Alpaca Driver.  
-   - When **disconnected**, it functions the same as the *Initiate Connection* button.  
-   - When **connected**, clicking this will disconnect the session.
+    - When **disconnected**, it functions the same as the *Initiate Connection* button.  
+    - When **connected**, clicking this will disconnect the session.
 
 
 ### C. Power-on the Polaris ane enable Wifi
@@ -293,21 +293,21 @@ If a connection issue is detected, a warning banner will appear. You can then na
 
 - **① Power On the Polaris:** The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.
 
-   *Note: Bluthooth is only used for discovery and enabling Wifi. It is entirely optional. It is not used in normal operation of the Polaris.*
+     *Note: Bluthooth is only used for discovery and enabling Wifi. It is entirely optional. It is not used in normal operation of the Polaris.*
 
 - **② Select a Device:**  Detected devices appear in the **Device** dropdown. The first discovered device is selected automatically. If multiple devices are listed, choose the one you wish to connect to.
 
 - **③ Enable Wi-Fi:** The Driver will attempt to enable the selected Polaris’s Wi-Fi hotspot automatically.  
-   - You can also manually trigger this by clicking the **Wi-Fi button** next to the device dropdown.  
-   - If the Blue LED on the Polaris does not illumunate after 30s, you may need to use the **Benro Polaris App** to discover nearby devices, and enable its Wifi. 
-   - Once Wi-Fi is successfully enabled, the Blue LED on the Polaris should illumunate.
-   - On Windows and Raspberry Pi, the Wi-Fi button also automatically joins the host itself to the Polaris hotspot once it's enabled — you shouldn't need to touch the OS's own Wi-Fi settings at all in the normal case. (macOS doesn't yet auto-join — see below.)
+    - You can also manually trigger this by clicking the **Wi-Fi button** next to the device dropdown.  
+    - If the Blue LED on the Polaris does not illumunate after 30s, you may need to use the **Benro Polaris App** to discover nearby devices, and enable its Wifi. 
+    - Once Wi-Fi is successfully enabled, the Blue LED on the Polaris should illumunate.
+    - On Windows and Raspberry Pi, the Wi-Fi button also automatically joins the host itself to the Polaris hotspot once it's enabled — you shouldn't need to touch the OS's own Wi-Fi settings at all in the normal case. (macOS doesn't yet auto-join — see below.)
 
 - **Confirm Wifi Connection:** If the drivers host hasn't joined automatically after step ③, check the Log page for a "Failed to join WiFi network" message. To join the Polaris network manually: 
-  - on Win11, monitor the systems Wifi List for a polaris_xxxxxx hotspot, click on it, enable automatic connection, and click Connect. Once the host has connected to the Polaris Wifi Hotspot, it should appear as follows:
-   ![alt text](images/abp-troubleshoot-wifi1.png)
+    - on Win11, monitor the systems Wifi List for a polaris_xxxxxx hotspot, click on it, enable automatic connection, and click Connect. Once the host has connected to the Polaris Wifi Hotspot, it should appear as follows:
+        ![alt text](images/abp-troubleshoot-wifi1.png)
 
-  - On Raspberry Pi, see [raspberrypi.md's network troubleshooting](./raspberrypi.md#p1---diagnosing-wifi-and-bluetooth-network-issues) to join manually via `join_wifi.py` or `nmcli`. 
+    - On Raspberry Pi, see [raspberrypi.md's network troubleshooting](./raspberrypi.md#p1---diagnosing-wifi-and-bluetooth-network-issues) to join manually via `join_wifi.py` or `nmcli`. 
 
 ### D. Connect to Polaris
 
@@ -318,15 +318,15 @@ Once Wifi network connectivity has been established to the Polaris, the Driver s
 
 
 - **① Polaris Host Name / IP Address:** This will typically remain as **192.168.0.1**. Enter the hostname or IP address of the Polaris Device.   
-   *Note: This is *not* the IP address of the Alpaca Driver.* 
+     *Note: This is *not* the IP address of the Alpaca Driver.* 
 
 - **② Polaris Port:** This will typically remain as **9090**. Specifies the port used by the Polaris. 
 
 - **③ Initiate Connection:**  Click this button to manually initiate or retry a connection to the Polaris. 
 
 - **④ Polaris Connection Checkbox:** Toggles the connection status with the Polaris.  
-   - When **disconnected**, it functions the same as the *Initiate Connection* button.  
-   - When **connected**, clicking this will disconnect from the Polaris.
+    - When **disconnected**, it functions the same as the *Initiate Connection* button.  
+    - When **connected**, clicking this will disconnect from the Polaris.
 
 <br>
 
@@ -345,34 +345,34 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 
 - **② Initiate Axis Reset:** Click the **Reset** button to command the Polaris to reset all three axes. This replicates the double-tap gesture on each joystick in the Benro Polaris App.
 
-   >**Wait for Reset Completion**  
-   Allow the mount to finish its reset sequence. Wait until all axes reach their final positions and all motion ceases.
+     >**Wait for Reset Completion**  
+     Allow the mount to finish its reset sequence. Wait until all axes reach their final positions and all motion ceases.
 
 - **③ Skip Compass Alignment:** Normally, entering Astro Mode requires a Compass Alignment via the Benro Polaris App. With Pilot, you can bypass this by pressing **Skip**.  
-   - The default Azimuth is **180°**
-   - You may adjust this to approximate the camera’s initial pointing direction, based on how the tripod is oriented.
-   - Note: This value represents *true Azimuth* and is different from the Compass Align direction used in the Benro app.
-   - Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West.
-   - Saving Alpaca Pilot Settings will store this value.
+    - The default Azimuth is **180°**
+    - You may adjust this to approximate the camera’s initial pointing direction, based on how the tripod is oriented.
+    - Note: This value represents *true Azimuth* and is different from the Compass Align direction used in the Benro app.
+    - Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West.
+    - Saving Alpaca Pilot Settings will store this value.
 
 - **④ Skip Single Star Alignment:** Astro Mode also typically requires a Single Star Alignment. You can skip this step in Pilot by pressing **Skip**.  
-   - The default Azimuth is **180°**, and Altitude is **45°**  
-   - You may adjust these to match the camera’s iniital pointing direction, based on how the tripod is oriented. 
-   - Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West. 
-   - Altitude reference: 0°=Horizontal, 10°=Slight upward tilt, 45°=Moderately upward, 82°=Near maximum upward tilt of Polaris.
-   - Saving Alpaca Pilot Settings will store these values.
+    - The default Azimuth is **180°**, and Altitude is **45°**  
+    - You may adjust these to match the camera’s iniital pointing direction, based on how the tripod is oriented. 
+    - Azimuth reference: 0°=North, 90°=East, 180°=South, 270°=West. 
+    - Altitude reference: 0°=Horizontal, 10°=Slight upward tilt, 45°=Moderately upward, 82°=Near maximum upward tilt of Polaris.
+    - Saving Alpaca Pilot Settings will store these values.
 
 
 
 - **⑤ Multi Point Alignment:** Click this Button to navigate to the Alignment Page. This will allow you to enable to Multi-Point Alignment and review model residuals. After 3 or more Sync Points are added to the model this indicator will turn green. If you are using Single Point Alignment, you can ignore this red indicator on the connect page.
 
 - **Set Observing Site Location:** If the app displays a warning that **latitude and longitude are unset**, go to **Settings** in the menu bar.  
-   - Use the map to locate your observing site and click to set it, or click **Locate** to use the browser's location.  
-   - The app will attempt to auto-fill altitude, pressure, and location name via a web service. Without internet, the location is named by its coordinates.
-   - **GPS receiver (optional):** at a dark site without internet, a USB GPS receiver plugged into the computer running the Alpaca Driver can set the site instead. Click the arrow beside **Locate** and choose **Use GPS Receiver**. Choose its **Serial Port** (GPS receivers are marked in the list), then click **OK** and **Locate (GPS)**. The button shows its progress while it waits for three matching GPS fixes, then sets latitude, longitude and elevation.
-   - If the GPS receiver can't get a fix, give it a clear view of the sky. Its first fix after being plugged in can take several minutes. Plug it directly into the computer rather than a USB hub, and keep it away from cameras and their cables, which can block GPS signals.
-   - Linux also offers **GPS Daemon (GPSD)**, and the [Raspberry Pi guide](./raspberrypi.md#optional-gps-receiver) has Pi-specific notes.
-   - Click **Save** at the top of Settings so the location and GPS settings are kept after a restart.
+    - Use the map to locate your observing site and click to set it, or click **Locate** to use the browser's location.  
+    - The app will attempt to auto-fill altitude, pressure, and location name via a web service. Without internet, the location is named by its coordinates.
+    - **GPS receiver (optional):** at a dark site without internet, a USB GPS receiver plugged into the computer running the Alpaca Driver can set the site instead. Click the arrow beside **Locate** and choose **Use GPS Receiver**. Choose its **Serial Port** (GPS receivers are marked in the list), then click **OK** and **Locate (GPS)**. The button shows its progress while it waits for three matching GPS fixes, then sets latitude, longitude and elevation.
+    - If the GPS receiver can't get a fix, give it a clear view of the sky. Its first fix after being plugged in can take several minutes. Plug it directly into the computer rather than a USB hub, and keep it away from cameras and their cables, which can block GPS signals.
+    - Linux also offers **GPS Daemon (GPSD)**, and the [Raspberry Pi guide](./raspberrypi.md#optional-gps-receiver) has Pi-specific notes.
+    - Click **Save** at the top of Settings so the location and GPS settings are kept after a restart.
 
 - **Begin Plate Solving:** With setup complete, you're ready to use the Driver and perform your first plate solve.
 
@@ -380,6 +380,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 The **Network Services Dialog** on the **Connect** page is optional, but provides advanced control over how the Alpaca Driver exposes its network services. You can selectively disable specific services or change the network port they use.
 
 This is primarily useful for:
+
 - Reducing the network surface area of the Driver for security or performance reasons  
 - Resolving port conflicts with other services running on the same system
 
@@ -434,10 +435,10 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
 * **Safari:** Fully close Safari (swipe it away from the App Switcher)
 * **Firefox:**
 
-  1. Open `about:config`
-  2. Search for `security.enterprise_roots.enabled`
-  3. Set the value to `true`
-  4. Restart Firefox
+    1. Open `about:config`
+    2. Search for `security.enterprise_roots.enabled`
+    3. Set the value to `true`
+    4. Restart Firefox
 
 #### Enable HTTPS in Alpaca Pilot
 
@@ -453,6 +454,7 @@ If you're upgrading from an earlier driver version and still see certificate war
 On Windows, do a full power-off rather than Restart. Windows 11 enables "Fast Startup" by default, which hibernates the session instead of fully reinitializing it on Restart. Leftover network state can persist across a restart; only a genuine power-off clears it. 
 
 On any device that connected to an earlier version of the driver, also clear that browser's site data
+
 * **Chrome/Edge**: Settings → Privacy and security → find the site under "All sites" and delete its data; 
 * **Safari on iOS/iPadOS**: Settings → Safari → Clear History and Website Data
 
@@ -498,6 +500,7 @@ The Status Indicator (a status chip in the top right-hand corner of the Dashboar
 ![Dashboard indicators part 2](images/dashboard-indicators2.png)
 
 These indicators reflect the mount’s current motion or tracking mode:
+
 -   **① Gotoing:** The mount is slewing to a target position following a GOTO command.
 -   **② Slewing:** The mount is executing a manual slew operation.
 -   **③ Rotating:** The mount is actively adjusting its rotation or position angle.
@@ -510,6 +513,7 @@ These indicators reflect the mount’s current motion or tracking mode:
 ![Dashboard indicators part 3](images/dashboard-indicators3.png)
 
 When tracking an orbital object, the motion deviates from sidereal tracking. The indicator will instead display the name of the object being tracked:
+
 -   **① Lunar:** Tracking the Moon’s motion.
 -   **② Solar:** Tracking the Sun’s motion.
 -   **③ Saturn:** Tracking a planetary target.
@@ -542,6 +546,7 @@ The dashboard shows any **activity on the motors** and the current **M1, M2, and
 The radial dials are a core part of the dashboard, designed to be flexible and interactive. They provide a quick representation of the current orientation of the mount, either in geographic or equatorial co-ordinates. 
 
 ![Dashboard radial dial](images/dashboard-dial1.png)
+
 -   **① Scale Label:** Displays the rounded numeric values associated with a major tick on the radial dial. Clicking or Tapping on the numeric label will change the Setpoint of that co-ordinate to the given value.
 -   **② Scale Bar:** The cyan arc indicates an angular scale, marked with 5 minor ticks of equal distance dividing the major ticks. Clicking or tapping on the scale bar will change the Setpoint to the exact value at that point. 
 -   **③ Warning Bar:** A orange arc that highlights regions of the scale where values exceed safe or expected limits. If a pointer enters this zone, it may indicate that the angle is not reachable.
@@ -563,30 +568,32 @@ When you hover your mouse or tap your finger on a radial dial, additional button
 - **③ Decrease Range:** Narrows the scale range to enhance resolution and visual precision. This is especially useful when movements are subtle and you want finer detail in the display.
 Scrolling the mouse wheel downward performs the same action as this control.
 - **④ Floating Action Buttons:** - Toggles the visibility of context-sensitive presets for quickly adjusting the Set Point. The available presets depend on the coordinate type of the active radial dial:
-   - Azimuth: North 0°, East 90°, South 180°, West 270°
-   - Altitude: 0°, 30°, 45°, 60°
-   - Roll: ZM2, –60°, –30°, 0°, +30°, +60°. **ZM2** (Zero M2) Rotates to the roll angle that minimises M2 movement over the next 2 hours of tracking, within the permitted roll limits. M2 supports the camera's weight off-axis, so a heavy lens can make it struggle to track smoothly at sidereal rates, causing regular dips in tracking performance. Use ZM2 to minimise M2 movement and reduce these disturbances.
+    - Azimuth: North 0°, East 90°, South 180°, West 270°
+    - Altitude: 0°, 30°, 45°, 60°
+    - Roll: ZM2, –60°, –30°, 0°, +30°, +60°. **ZM2** (Zero M2) Rotates to the roll angle that minimises M2 movement over the next 2 hours of tracking, within the permitted roll limits. M2 supports the camera's weight off-axis, so a heavy lens can make it struggle to track smoothly at sidereal rates, causing regular dips in tracking performance. Use ZM2 to minimise M2 movement and reduce these disturbances.
 - **⑤ SP Decrease**  
-  Decreases the current setpoint (SP) by a fixed increment, determined by the active Range setting. Use this to manually slew the target value downward.  
- *Note: The mount may take a moment to respond and align with the new setpoint.*
+    Decreases the current setpoint (SP) by a fixed increment, determined by the active Range setting. Use this to manually slew the target value downward.  
+    *Note: The mount may take a moment to respond and align with the new setpoint.*
 - **⑥ SP Increase**  
-  Increases the current setpoint (SP) by a fixed increment, based on the current Range. Use this to manually slew the target value upward.  
-  *Note: The mount may take a moment to respond and align with the new setpoint.*
+    Increases the current setpoint (SP) by a fixed increment, based on the current Range. Use this to manually slew the target value upward.  
+    *Note: The mount may take a moment to respond and align with the new setpoint.*
 - **⑦ SP Data Entry**  
-  Enables direct numeric input of the setpoint value. Ideal for precise adjustments or bypassing incremental steps. After entering the desired value, confirm to apply it. The input field supports a variety of formats:
+    Enables direct numeric input of the setpoint value. Ideal for precise adjustments or bypassing incremental steps. After entering the desired value, confirm to apply it. The input field supports a variety of formats:
 
-  **Absolute Setpoint Formats**
-  - `90.234` — Decimal degrees (or hours for Right Ascension)  
-  - `90:30` — Degrees and minutes  
-  - `90:30:25.2` — Degrees, arcminutes, and decimal arcseconds  
-  - `:30.5` — Decimal arcminutes  
-  - `-90` — Negative decimal degrees  
+    **Absolute Setpoint Formats**
 
-  **Relative Setpoint Formats**
-  - `d-2` — Decrease by 2 degrees (or hours for Right Ascension)  
-  - `d:30` — Increase by 30 arcminutes  
-  - `d::40` — Increase by 40 arcseconds  
-  - `d2.5` — Increase by 2.5 decimal degrees
+    - `90.234` — Decimal degrees (or hours for Right Ascension)  
+    - `90:30` — Degrees and minutes  
+    - `90:30:25.2` — Degrees, arcminutes, and decimal arcseconds  
+    - `:30.5` — Decimal arcminutes  
+    - `-90` — Negative decimal degrees  
+
+    **Relative Setpoint Formats**
+
+    - `d-2` — Decrease by 2 degrees (or hours for Right Ascension)  
+    - `d:30` — Increase by 30 arcminutes  
+    - `d::40` — Increase by 40 arcseconds  
+    - `d2.5` — Increase by 2.5 decimal degrees
 
 
 ## IV. Using the Catalog
@@ -620,16 +627,16 @@ Each target listing features three coloured chips that provide a quick visual su
 The search system is designed to be fast, intuitive, and efficient for target selection. You can find any object by simply **typing a few letters or numbers** of its name or catalogue reference.
 
 1. **Search by Name:**
-   Enter part of the object’s **common name**.
+    Enter part of the object’s **common name**.
 
-   * Example: **“rig”** →  *Rigil Kentaurus*.
-   * Example: **“pole”** →  *North Celestial Pole*.
+    * Example: **“rig”** →  *Rigil Kentaurus*.
+    * Example: **“pole”** →  *North Celestial Pole*.
 
 2. **Search by Reference:**
-   Enter part of the object’s **catalogue designation**.
+    Enter part of the object’s **catalogue designation**.
 
-   * Example: **“M8”** → *Lagoon Nebula*
-   * Example: **“NGC 5139”** → *Omega Centauri*
+    * Example: **“M8”** → *Lagoon Nebula*
+    * Example: **“NGC 5139”** → *Omega Centauri*
 
 Common catalogue prefixes include **M**, **NGC**, **IC**, **C (Caldwell)**, **Abell**, **Arp**, **H (Herschel)**, **LDN**, and others.
 For a full list of supported catalogues, see the **Reference Catalogues** section.

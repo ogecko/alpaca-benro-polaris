@@ -1,7 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
-
-
 # Docker Installation Guide
 
 Docker provides a portable and consistent way to run the driver across supported operating systems and hardware architectures. Instead of installing Python and the driver's dependencies directly on the host system, Docker packages the driver and its runtime environment into a container.
@@ -30,7 +26,7 @@ Install Docker Desktop from [Docker](https://www.docker.com/products/docker-desk
 
 The Windows setup uses WSL2, which provides a Linux environment for running Docker Engine. The additional networking configuration below allows the driver's network services to be reached from other devices on your local network, such as an iPad or another PC.
 
-   1. Install WSL2
+1. Install WSL2
 
       Open PowerShell **as Administrator** and run:
 
@@ -40,7 +36,7 @@ The Windows setup uses WSL2, which provides a Linux environment for running Dock
 
       Windows may prompt you to restart. If so, restart before continuing.
 
-   2. Enable WSL2 mirrored networking
+2. Enable WSL2 mirrored networking
 
       Mirrored networking shares your Windows host's network interfaces directly with your Linux environment. This will allow the Driver to communicate with the Benro Polaris and provide netork services to other devices eg. running Alpaca Pilot. 
       
@@ -59,7 +55,7 @@ The Windows setup uses WSL2, which provides a Linux environment for running Dock
       wsl --shutdown
       ```
 
-   3. Allow the driver through Windows Firewall
+3. Allow the driver through Windows Firewall
 
       Unlike a native Python installation, the Docker-based driver does not automatically prompt Windows to create firewall rules for its network services.
 
@@ -75,7 +71,7 @@ The Windows setup uses WSL2, which provides a Linux environment for running Dock
 
       The `-Profile Private` option is appropriate for most home LANs. Check your current network category under **Settings > Network & Internet > [your adapter]** and adjust the firewall rules if your network uses a different profile.
 
-   4. Install Docker Engine in WSL2
+4. Install Docker Engine in WSL2
 
       Open a WSL terminal by either running `wsl` from PowerShell or Command Prompt, or launching **Ubuntu** from the Start menu.
 

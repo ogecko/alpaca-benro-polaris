@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
 
 ---
@@ -41,6 +39,7 @@ A traditional equatorial mount aligns one axis (RA) to Earth’s rotation axis, 
 Standard pointing models with sync points (where the telescope is aimed at known coordinates, and the mount is “told” the corresponding true sky position) build up a transformation between the sky and the mount frame. Conventional alignments (1-star, 2-star, 3-star, n-star) fit for translation, rotation, and sometimes scale or skew. When these transformations are derived using least-squares (or quaternion) alignment, they minimize the overall misalignment between the predicted and measured directions—but may fail to prioritize minimal tracking error along the path traced by the desired object, especially in regions remote from the sync points or in the presence of field rotation.
 
 In the context of DSO astrophotography, priorities shift:
+
 - **Minimizing drift (centering error) over long exposures**
 - **Ensuring field rotation is negligible, or explicitly corrected**
 - **Guaranteeing optimal tracking even when reference or observed vectors are not evenly distributed over the area of interest**
@@ -56,6 +55,7 @@ The remainder of this report unpacks how to address these goals with both establ
 When the alt/az/roll mount has no axis physically aligned with Earth’s rotational axis, the instrument’s coordinated motion does not natively “follow the stars” by moving a single rotation axis at a uniform sidereal rate. Even a mathematically perfect quaternion best-fit between sync points’ predicted and measured vectors does not guarantee minimal tracking error—i.e., minimal drift of a target DSO over time—especially at regions not densely sampled by sync points.
 
 #### **Key Questions**
+
 - How does QUEST’s cost function relate to actual target tracking error?
 - What modifications or extensions can be made to prioritize minimal error along a specific object’s tracking arc, rather than over the entire set of sync points?
 - How can you tune the alignment and transformation for best tracking, not just “best average fit”?
@@ -97,15 +97,16 @@ with higher \(w_i\) along the DSO’s arc, and possibly a regularization term (w
 ### **Algorithmic Modifications for Tracking-Optimal Alignment**
 
 **Implementation Steps:**
+
 1. **Dense Sampling:** Generate a dense set of target vectors along the DSO’s sidereal path (across the planned exposure window), converting RA/Dec/PA to Az/Alt/Roll for each time point using standard astronomical coordinate transformations.
 2. **Augmented Sync Point Set:** Add these positions to the set of sync points, possibly with high weights.
 3. **Weighted QUEST Formulation:** In the construction of the attitude profile matrix \(B\), use the augmented and weighted set, i.e.,
    
-   $$
-   B = \sum_{k} a_k W_k V_k^T
-   $$
+    $$
+    B = \sum_{k} a_k W_k V_k^T
+    $$
    
-   where \(a_k\) is large for points on the DSO path, smaller otherwise, \(W_k\) are measured vectors (e.g., from hypothetical or actual mount positions), \(V_k\) are reference (catalog) sky directions.
+    where \(a_k\) is large for points on the DSO path, smaller otherwise, \(W_k\) are measured vectors (e.g., from hypothetical or actual mount positions), \(V_k\) are reference (catalog) sky directions.
    
 4. **Calculate the Attitude Quaternion:** Obtain the solution for \(K q = \lambda_{max} q\) using standard QUEST or, for better numerical performance in ill-conditioned cases, alternative formulations such as ESOQ2.
 5. **Validation:** Simulate the expected sky movement and verify that the mount’s transformation, when controlled via the estimated attitude and its derivatives, maintains sub-pixel drift across the exposure time at the target region.
@@ -130,6 +131,7 @@ with higher \(w_i\) along the DSO’s arc, and possibly a regularization term (w
 ### **Conclusion for (A):**
 
 **To minimize tracking error for a DSO with an alt/az/roll mount (without a polar axis):**
+
 - Transition from global least-squares (classic QUEST) to a *weighted or localized* optimization, prioritizing sync/data points along the DSO’s arc.
 - Consider augmenting sync points, using simulated or measured positions with high weights on the target path.
 - Optionally employ off axis guiding.
@@ -149,6 +151,7 @@ If sync points are purposely distributed along the apparent celestial track the 
 The accuracy and stability of any least-squares or QUEST-based fit depend strongly on both **the number and spatial distribution (geometry) of sync points**. This holds particularly true for alt/az/roll mounts, where field rotation and non-orthogonality magnify local model errors—especially remote from the “convex hull” formed by the sync points.
 
 **When all sync points lie along the DSO arc:**
+
 - The fit is highly accurate along that arc (i.e., tracking error near the DSO is minimized).
 - Off-arc accuracy may degrade.
 - For most DSO imaging, this is advantageous, as only the local (arc) tracking is critical.
@@ -160,16 +163,20 @@ The geometric principle is analogous to interpolation vs. extrapolation: QUEST (
 ### **Best Practices for Sync Point Placement**
 
 **1. Locally Clustered or Path-Following Sync Points:**
+
 - Place sync points at multiple future times along the DSO’s predicted sky track during the planned exposure(s).
 - For exposures of tens of minutes to hours, sample at intervals sufficient to capture any nonlinearity (e.g., every few degrees or every several minutes of time).
 
 **2. Multiple Objects for Large Mosaics or Surveys:**
+
 - If intending to image several nearby DSOs, use sync points along the arcs of each, balancing their respective weights as needed.
 
 **3. Avoid Overfitting:**
+
 - Do not over-constrain with excessive, closely clustered sync points with vastly different positional uncertainties; this can destabilize the solution (as in ill-conditioned configuration matrices in least squares).
 
 **4. Combined Global and Local Sync Points:**
+
 - For guiding the telescope across larger sky regions (e.g., for visual or survey use), maintain a small number of broadly spaced sync points in addition to arc-specific ones, with weights reflecting their intended importance.
 
 
@@ -200,6 +207,7 @@ When one motor axis of the alt/az/roll mount is manually aligned (via a wedge) w
 Physically aligning the azimuth axis of the mount with Earth’s rotational axis (i.e., “wedge mounting”) places the mount in an equatorial configuration, so that tracking in Right Ascension aligns with the sidereal motion—ideally eliminating field rotation and simplifying tracking to a single axis (plus residual corrections). In practice, this is the core principle behind equatorial mounts used in astrophotography.
 
 **Mathematically, this has several consequences:**
+
 - The transformation from celestial coordinates (RA/Dec) to mount axes is simplified; the mapping becomes predominantly a rotation about the polar axis, with Declination adjusting the secondary axis (as in classic German Equatorial or fork mounts).
 - If the mount’s encoder or transformation model “knows” its polar axis is correctly aligned, the attitude determination no longer needs to account for arbitrary coupling between all three mount axes and the inertial frame; only the (small) residual misalignments and orthogonality errors need to be corrected.
 
@@ -218,19 +226,23 @@ Physically aligning the azimuth axis of the mount with Earth’s rotational axis
 ### **Practical Steps and Recommendations**
 
 **1. After Wedge Alignment:**
-   - Use software or hand controller features to “set the mount to equatorial mode” wherever possible.
-   - Execute high-precision polar alignment using iterative or drift alignment (e.g., with plate solving, PHD2 drift align, or polar alignment routines in SharpCap or ASIAir Pro).
-   - If using sync points, place at least one at or near the celestial pole, and additional ones near the equator/meridian for best correction.
+
+- Use software or hand controller features to “set the mount to equatorial mode” wherever possible.
+- Execute high-precision polar alignment using iterative or drift alignment (e.g., with plate solving, PHD2 drift align, or polar alignment routines in SharpCap or ASIAir Pro).
+- If using sync points, place at least one at or near the celestial pole, and additional ones near the equator/meridian for best correction.
 
 **2. Insert Dummy Sync Points:** 
-   - Add sync points aligned with the polar axis; assign highest possible weights to these points to “force” the fit to preserve the alignment.
-   - Optionally, add a few more along the celestial equator to help constrain residual flexure or orthogonality errors.
+
+- Add sync points aligned with the polar axis; assign highest possible weights to these points to “force” the fit to preserve the alignment.
+- Optionally, add a few more along the celestial equator to help constrain residual flexure or orthogonality errors.
 
 **3. Recalibrate After Each Mechanical Reset:**
-   - Re-align and re-sync whenever the wedge or axes are adjusted, as even minor shifts can introduce arcminute-level errors.
+
+- Re-align and re-sync whenever the wedge or axes are adjusted, as even minor shifts can introduce arcminute-level errors.
 
 **4. Verify Field Rotation Correction:**
-   - Test for residual field rotation by imaging a star field at high Declination (near the pole) and low Declination (near the celestial equator), observing whether star shapes remain circular across the field during long exposures.
+
+- Test for residual field rotation by imaging a star field at high Declination (near the pole) and low Declination (near the celestial equator), observing whether star shapes remain circular across the field during long exposures.
 
 ---
 
@@ -293,6 +305,7 @@ For mounts that exhibit non-rigid errors (e.g., from mechanical flexure, tempera
 ### **Open-Source Implementations and Real-World Case Studies**
 
 Numerous open-source repositories implement advanced alignment and tracking models:
+
 - **telescope-sync (henrythasler):** n-point triangulation, affine models, and sync point selection.
 - **ESoQ2 (muzhig):** Python/Matlab/C++ implementations for fast, batch quaternion estimation.
 - **dobson (legourrierec):** Full-control pipeline for DIY dobsonian with equatorial table, solves, syncs, and tracks with embedded flexure correction.
@@ -333,6 +346,7 @@ Manual alignment of one axis (wedge mounting) simplifies the problem, but requir
 A broad set of alternatives—advanced rigid and affine batch estimators, adaptive filtering, machine learning, and real-time closed-loop correction—enable further improvements, at the cost of computational complexity or hardware augmentation. Field rotation can be addressed both in software (derotation models) and in hardware (rotators or OAG-based guiding).
 
 **In summary:**
+
 - Employ locally weighted or path-specific alignment for DSO tracking.
 - Optimize sync point geometry, prioritizing the imaging target’s arc.
 - Integrate wedge alignment physically and mathematically where appropriate.
@@ -361,67 +375,67 @@ With these strategies, alt/az/roll mounts can deliver the accuracy required for 
 ### Bibliography 
 
 - AHRS Documentation. (n.d.). *QUEST Filter*.  
-  [https://ahrs.readthedocs.io/en/latest/filters/quest.html](https://ahrs.readthedocs.io/en/latest/filters/quest.html)
+    [https://ahrs.readthedocs.io/en/latest/filters/quest.html](https://ahrs.readthedocs.io/en/latest/filters/quest.html)
 
 - Bidshahri, R. (2022). *Improve Your Images with an Off-Axis Guider (OAG)*. Cloudy Nights.  
-  Explains how OAG improves tracking accuracy by eliminating differential flexure.  
-  [https://www.cloudynights.com/articles/cat/astro-gear-today/more/how-to1701492819/improve-your-images-with-an-off-axis-guider-oag-steps-to-get-started-r4514](https://www.cloudynights.com/articles/cat/astro-gear-today/more/how-to1701492819/improve-your-images-with-an-off-axis-guider-oag-steps-to-get-started-r4514)
+    Explains how OAG improves tracking accuracy by eliminating differential flexure.  
+    [https://www.cloudynights.com/articles/cat/astro-gear-today/more/how-to1701492819/improve-your-images-with-an-off-axis-guider-oag-steps-to-get-started-r4514](https://www.cloudynights.com/articles/cat/astro-gear-today/more/how-to1701492819/improve-your-images-with-an-off-axis-guider-oag-steps-to-get-started-r4514)
 
 - Cheng, Y., & Shuster, M. D. (2007). *An improvement to the QUEST algorithm*. Journal of the Astronautical Sciences.  
-  [https://malcolmdshuster.com/Pubp_010_031z_J_JAS1290_cquest_MDS.pdf](https://malcolmdshuster.com/Pubp_010_031z_J_JAS1290_cquest_MDS.pdf)
+    [https://malcolmdshuster.com/Pubp_010_031z_J_JAS1290_cquest_MDS.pdf](https://malcolmdshuster.com/Pubp_010_031z_J_JAS1290_cquest_MDS.pdf)
 
 - Crassidis, J. L., & Junkins, J. L. (2011). *Optimal estimation of dynamic systems* (2nd ed.). CRC Press.  
-  — Chapter 5 covers Wahba’s problem and QUEST in depth.
+    — Chapter 5 covers Wahba’s problem and QUEST in depth.
 
 - Davenport, P. B. (1968). *A vector approach to attitude determination*. NASA Technical Report.  
-  The original formulation of the q-Method, solving Wahba’s problem via eigenvalue decomposition of the Davenport matrix.
+    The original formulation of the q-Method, solving Wahba’s problem via eigenvalue decomposition of the Davenport matrix.
 
 - GitHub Repository: ESOQ2 Implementation.  
-  Contains Python, MATLAB, and C++ implementations of ESOQ2 for spacecraft attitude estimation.  
-  [https://github.com/muzhig/ESOQ2](https://github.com/muzhig/ESOQ2)
+    Contains Python, MATLAB, and C++ implementations of ESOQ2 for spacecraft attitude estimation.  
+    [https://github.com/muzhig/ESOQ2](https://github.com/muzhig/ESOQ2)
 
 - Grech, G. (2023). *Mastering Off-Axis Guiding*. Optics Central.  
-  Covers equipment, calibration, and setup tips for high-precision guiding.  
-  [https://www.opticscentral.com.au/blog/mastering-off-axis-guiding/](https://www.opticscentral.com.au/blog/mastering-off-axis-guiding/)
+    Covers equipment, calibration, and setup tips for high-precision guiding.  
+    [https://www.opticscentral.com.au/blog/mastering-off-axis-guiding/](https://www.opticscentral.com.au/blog/mastering-off-axis-guiding/)
 
 - Lang, D., Hogg, D. W., Mierle, K., Blanton, M., & Roweis, S. (2010). *Astrometry.net: Blind astrometric calibration of arbitrary astronomical images*. The Astronomical Journal, 139(5), 1782–1800.
 
 - Markley, F. L. (2000). *Quaternion attitude estimation using vector observations*. Journal of the Astronautical Sciences, 48(2–3), 359–380.  
-  [https://gps.mae.cornell.edu/extended_quest.pdf](https://gps.mae.cornell.edu/extended_quest.pdf)
+    [https://gps.mae.cornell.edu/extended_quest.pdf](https://gps.mae.cornell.edu/extended_quest.pdf)
 
 - Markley, F. L. (2003). *Attitude estimation or quaternion estimation?* NASA Technical Report.  
-  [https://ntrs.nasa.gov/citations/20030093641](https://ntrs.nasa.gov/citations/20030093641)
+    [https://ntrs.nasa.gov/citations/20030093641](https://ntrs.nasa.gov/citations/20030093641)
 
 - Markley, F. L. (2015). *Equivalence of Two Solutions of Wahba’s Problem*.  
-  Shows that QUEST and ESOQ are mathematically equivalent to SVD-based solutions under certain conditions.  
-  [https://link.springer.com/content/pdf/10.1007/s40295-015-0049-x.pdf](https://link.springer.com/content/pdf/10.1007/s40295-015-0049-x.pdf)
+    Shows that QUEST and ESOQ are mathematically equivalent to SVD-based solutions under certain conditions.  
+    [https://link.springer.com/content/pdf/10.1007/s40295-015-0049-x.pdf](https://link.springer.com/content/pdf/10.1007/s40295-015-0049-x.pdf)
 
 - Markley, F. L. (2018). *Statistical attitude determination*. NASA Technical Report.  
-  [https://ntrs.nasa.gov/api/citations/20180000027/downloads/20180000027.pdf](https://ntrs.nasa.gov/api/citations/20180000027/downloads/20180000027.pdf)
+    [https://ntrs.nasa.gov/api/citations/20180000027/downloads/20180000027.pdf](https://ntrs.nasa.gov/api/citations/20180000027/downloads/20180000027.pdf)
 
 - Markley, F. L., & Mortari, D. (1999). *How to Estimate Attitude from Vector Observations*. AAS 99-427.  
-  Compares QUEST, ESOQ, and SVD methods for speed and robustness.  
-  [https://malcolmdshuster.com/FC_MarkleyMortari_Girdwood_1999_AAS.pdf](https://malcolmdshuster.com/FC_MarkleyMortari_Girdwood_1999_AAS.pdf)
+    Compares QUEST, ESOQ, and SVD methods for speed and robustness.  
+    [https://malcolmdshuster.com/FC_MarkleyMortari_Girdwood_1999_AAS.pdf](https://malcolmdshuster.com/FC_MarkleyMortari_Girdwood_1999_AAS.pdf)
 
 - Markley, F. L., & Mortari, D. (2000). *New developments in quaternion estimation from vector observations*. NASA Technical Report.  
-  Discusses enhancements to QUEST and ESOQ2, including robustness and computational efficiency.  
-  [https://ntrs.nasa.gov/api/citations/20000034107/downloads/20000034107.pdf](https://ntrs.nasa.gov/api/citations/20000034107/downloads/20000034107.pdf)
+    Discusses enhancements to QUEST and ESOQ2, including robustness and computational efficiency.  
+    [https://ntrs.nasa.gov/api/citations/20000034107/downloads/20000034107.pdf](https://ntrs.nasa.gov/api/citations/20000034107/downloads/20000034107.pdf)
 
 - Mortari, D. (2000). *ESOQ: A closed-form solution to the Wahba problem*. Journal of the Astronautical Sciences, 45(2), 195–209.  
-  Introduces ESOQ as a non-iterative, closed-form solution to Wahba’s problem using quaternion algebra.
+    Introduces ESOQ as a non-iterative, closed-form solution to Wahba’s problem using quaternion algebra.
 
 - NASA (2021). *Optical Navigation Attitude Estimation and Calibration Performance Improvement using Outlier Rejection*. NASA Technical Report.  
-  [https://ntrs.nasa.gov/api/citations/20210026612/downloads/OpNav_OutliersRejection_Final.pdf](https://ntrs.nasa.gov/api/citations/20210026612/downloads/OpNav_OutliersRejection_Final.pdf)
+    [https://ntrs.nasa.gov/api/citations/20210026612/downloads/OpNav_OutliersRejection_Final.pdf](https://ntrs.nasa.gov/api/citations/20210026612/downloads/OpNav_OutliersRejection_Final.pdf)
 
 - Shuster, M. D., & Oh, S. D. (1981). *Three-axis attitude determination from vector observations*. Journal of Guidance and Control, 4(1), 70–77.
 
 - Shuster, M. D. (1993). *A survey of attitude representations*. Journal of the Astronautical Sciences, 41(4), 439–517.  
-  Includes a detailed comparison of quaternion-based methods including the q-Method.
+    Includes a detailed comparison of quaternion-based methods including the q-Method.
 
 - Vallado, D. A. (2013). *Fundamentals of astrodynamics and applications* (4th ed.). Microcosm Press.  
-  — Includes sidereal time computation and coordinate transformations.
+    — Includes sidereal time computation and coordinate transformations.
 
 - Zanetti, R., et al. (2012). *Q-Method Extended Kalman Filter*. NASA/Draper Lab.  
-  Integrates Davenport’s q-Method with EKF for recursive attitude estimation.  
-  [https://ntrs.nasa.gov/api/citations/20120017927/downloads/20120017927.pdf](https://ntrs.nasa.gov/api/citations/20120017927/downloads/20120017927.pdf)
+    Integrates Davenport’s q-Method with EKF for recursive attitude estimation.  
+    [https://ntrs.nasa.gov/api/citations/20120017927/downloads/20120017927.pdf](https://ntrs.nasa.gov/api/citations/20120017927/downloads/20120017927.pdf)
 

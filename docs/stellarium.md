@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Using Stellarium and Sky Safari Pro
 [Applications Supported](#telescope-control-compatibility) | [Stellarium Mobile](#1-using-stellarium-mobile-plus) | [Stellarium Desktop](#2-using-stellarium-desktop) | [Sky Safari Pro](./installation.md#seting-up-sky-safari-pro-optional) | [Aiming Accuracy](./faq.md#b3---can-the-alpaca-project-improve-aiming-performance) 
 
@@ -34,6 +32,7 @@ Stellarium Mobile PLUS is ideal for use on a tablet or mobile phone, either Andr
 
 ### Connecting to the Driver
 Stellarium Plus connects to the driver over the network using SynScan protocol. It is the most straightforward setup; you only need to do this once. To connect Stellarium PLUS: 
+
 1. Select the Hamburger menu from the top left
 2. Select Observing Tools > Telescope Control
 3. Toggle it off/ and on to bring up the popup at the bottom left
@@ -97,6 +96,7 @@ It includes an extensive What's Up Tonight tool for planning imaging targets. It
 
 ### Connecting to the Driver on MacOS/Linux
 Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. We have implemented a simple External Software Binary Protocol that only allows GOTO functionality. You can add an External Software Telescope by using the following procedure:
+
 1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
 2.  Scroll down the list of plugins and find the `Telescope Control plugin`.
 3.  Check `Load at startup` on the Telescope Control Dialog.
@@ -111,6 +111,7 @@ Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. W
 
 ### Connecting to the Driver on Windows
 Unfortunately, Stellarium Desktop does not include native Alpaca support. You must install the ASCOM Platform if you haven't already done so. After the ASCOM platform has been installed, you can add an ASCOM Telescope by using the following procedure:
+
 1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
 2.  Scroll down the list of plugins and find the `Telescope Control plugin`.
 3.  Optionally, if you want to always use the Alpaca Driver telescope, check `Load at startup` on the Telescope Control Dialog. To browse Stellarium without Polaris, leave it unchecked, and just connect on demand from the `Ctrl+0` (Windows) or `Command+0` (MacOS) dialog.
@@ -143,6 +144,7 @@ Unfortunately, Stellarium Desktop does not include native Alpaca support. You mu
 Commanding the Benro Polaris to move is as simple as Selecting the Target Object and pressing `Ctrl+1` (Windows) or `Command+1` (MacOS).
 
 You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0` (Windows) or `Command+0` (MacOS). This dialog allows:
+
 * Manually enter the co-ordinates
 * Select the Current Object
 * Select the Center of the Screen
@@ -188,6 +190,7 @@ To restore Stellarium to its normal default state:
     ```text
     core.clear("natural")
     ```
+
 5. Press **G** to switch the ground on and off
 6. Press **A** to switch the atmosphere on and off
 3. Press **Q** to switch Cardinal Points on and off
@@ -200,25 +203,27 @@ This restores the standard **natural** view, including the Alt/Az orientation, h
 Stellarium Desktop allows you to create a custom Landscape to match your own observation site, including the image of the horizon overlaid into Stellarium.
 
 To create your own custom Landscape:
+
 * Create a 4096 x 2048 pixel image of your location's 360 degree horizon
-  * If you have an Insta360 X3 camera, take a 360 Photo from your tripod, with the screen facing. Open the image in Insta360Studio, change to a 2:1 FOV Ratio, and export the image.
-  * Take multiple images with a wide angle lens. Use Photoshop to merge the images into a 2:1 ratio image with the horizon in the middle and the 360 degrees spanning the width of the image.
+    * If you have an Insta360 X3 camera, take a 360 Photo from your tripod, with the screen facing. Open the image in Insta360Studio, change to a 2:1 FOV Ratio, and export the image.
+    * Take multiple images with a wide angle lens. Use Photoshop to merge the images into a 2:1 ratio image with the horizon in the middle and the 360 degrees spanning the width of the image.
 * Use Photoshop to edit the 4096 x 2048 pixel image and convert the background into a single layer. Select the Sky, modify the selection shrinking it 15 pixels, feathering it 15 pixels, then deleting the sky selection. Save the image as a transparent png called `horizon.png`.
 * Create a file called `location.ini` with the following contents, setting the name, latitude, longitude, altitude and timezone correctly.  
-  ```
-  [landscape]
-  name = Your Sites Observation Location
-  type = spherical
-  maptex = horizon.png
-  angle_rotatez = 0.0
+    ```
+    [landscape]
+    name = Your Sites Observation Location
+    type = spherical
+    maptex = horizon.png
+    angle_rotatez = 0.0
 
-  [location]
-  planet = Earth
-  latitude = -33.000
-  longitude = 151.000
-  altitude = 39
-  timezone = Australia/Sydney
-  ```
+    [location]
+    planet = Earth
+    latitude = -33.000
+    longitude = 151.000
+    altitude = 39
+    timezone = Australia/Sydney
+    ```
+
 * Using Windows Explorer, select both files `location.ini` and `horizon.png`, then Right Click and select Compress To... Zip File.
 * Using Stellarium, open the 'Sky and viewing options' window by clicking F4, select the Landscape tab, click the Add/remote Landscapes button, then install the zip file you just created.
 * Check the orientation of the image in Stellarium. You may need to fine tune the `angle_rotatez` value to correctly align the image with reality.
@@ -227,21 +232,23 @@ To create your own custom Landscape:
 ### Pulling Stellarium Desktop Targets into Nina
 You can use the Stellarium Desktop `Remote Control` Plug-in to further integrate Stellarium with Nina. Using this plug-in, Nina can pull any selected Stellarium Target into the Framing Tab on Nina. 
 To setup this integration:
+
 * Using Stellarium
-   * Press `F2` to callup the Configuration Dialog and navigate to the Plug-ins tab
-   * Scroll down to Remote Control Plug-in and enable Load at startup.
-   * Restart Stellarium navigate back to its Configuration Dialog.
-   * Enable the Server and Enable the Server on Startup.
-   * Restart Stellarium
+    * Press `F2` to callup the Configuration Dialog and navigate to the Plug-ins tab
+    * Scroll down to Remote Control Plug-in and enable Load at startup.
+    * Restart Stellarium navigate back to its Configuration Dialog.
+    * Enable the Server and Enable the Server on Startup.
+    * Restart Stellarium
 * Using Nina
-  * Navigate to the Options/Equipment tab
-  * Under the Planetarium, select Stellarium
-  * Enter the Host IP address of `localhost` or its remote IP address.
+    * Navigate to the Options/Equipment tab
+    * Under the Planetarium, select Stellarium
+    * Enter the Host IP address of `localhost` or its remote IP address.
 
 Now on the Framing tab you can click on a small pin icon next to the Coordinates Heading and Nina will ask Stellarium for the currently selected Target Co-ordinates. Much better than Nina's Sky Atlas.
   
 ### Sync Co-ordinates
 On Windows, you can help improve the aim of the Benro Polaris by Syncing with a known object in the sky. 
+
 1. Using the Benro Polaris App, aim the telescope with the known object in the center of the eyepiece or image
 2. Find the know object in Stellarium Desktop and select it.
 3. Press `Ctrl+0` (Windows) or `Command+0` (MacOS) to bring up the `Slew Telescope To` dialog and click `Sync`.

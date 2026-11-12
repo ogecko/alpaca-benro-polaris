@@ -4,7 +4,7 @@ Generate the home-page images in docs/images, in the charcoal-and-cyan style of 
   abp-hero.jpg      banner: an astrophoto with the Alpaca logo, wordmark and a photo of the Polaris
   abp-gallery.jpg   a grid of images captured with the Polaris, captioned with lens and sub-exposure length
 
-The feature icons are hand-editable SVGs in docs/images/icons/, laid out as an HTML table in README.md.
+The feature icons are hand-editable SVGs in docs/images/icons/, laid out as an HTML table in docs/index.md.
 
 The source photos are not in the repo. Pass the folder that holds them (see SOURCES below) and a folder
 of fonts containing Franklin Gothic Demi (FRADM.TTF) and Segoe UI (segoeui.ttf), e.g. C:\\Windows\\Fonts.

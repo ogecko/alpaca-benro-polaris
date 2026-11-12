@@ -1,5 +1,5 @@
 # Documentation site for https://ogecko.github.io/alpaca-benro-polaris/<docs_version>/
-# Pages are staged from README.md + docs/ by utility/docs/prepare.py -- run it before building.
+# Built straight from docs/ (home page: docs/index.md). Check list layout with utility/docs/check_docs.py.
 
 [project]
 site_name = "Alpaca Benro Polaris Driver"
@@ -9,7 +9,10 @@ site_url = "https://ogecko.github.io/alpaca-benro-polaris/"
 copyright = "Copyright &copy; 2024-2026 David Morrison"
 repo_url = "https://github.com/ogecko/alpaca-benro-polaris"
 repo_name = "ogecko/alpaca-benro-polaris"
-docs_dir = "build/site-src"
+docs_dir = "docs"
+exclude_docs = """
+todo.md
+"""
 site_dir = "site"
 extra_css = ["stylesheets/extra.css"]
 

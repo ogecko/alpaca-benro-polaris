@@ -1,8 +1,7 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
+
 * **Version:** 2.2.0 Release
 * **Release Date:** TBD
 * **Availability:** Download from [Alpaca Driver v2.2 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
@@ -10,6 +9,7 @@
 * **Current Branch:** releases/2_2_0
 
 ## Demonstration Videos
+
 * **YouTube Channel:** The Pilot sidebar's Videos link now points to the [full YouTube channel](https://www.youtube.com/@jdm5001/featured), including v2.2 videos:
 * **40 - Deep Dive Podcast:** Deep Dive Podcast on Alpaca Benro Polaris V2.2 at https://youtu.be/ouJ52WcTY2M
 * **41 - Installation on Win11:** Installation of Alpaca Driver v2.2 on Win11 at https://youtu.be/qXRiTLS2EaY
@@ -19,6 +19,7 @@
 * **45 - Less Drift and Better Tracking:** Less Drift and Better Tracking on the Benro Polaris at https://youtu.be/ugxQ13Z1Mu4
 
 ## Win11 Upgrade Instructions
+
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
 * Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.2.0. The new `setup.bat` installs Git, uv, Python and every pre-requisite package for you, so there is no need to install or upgrade Python or pip yourself.
@@ -99,6 +100,7 @@
 
 
 ### New Features (enabled by Nina)
+
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Device Actions]** Additional Device Actions added for Nina Advanced Sequencer
     - **Polaris:SlewRelative** Slews any axis relative to current setpoint. All Optional Parameters {"ra":h, "dec":d, "pa":d, "az":d, "alt":d, "roll":d, "l":d, "b":d, "gpa":d}
@@ -107,9 +109,11 @@
     - where: h=decimal hours, d=decimal degrees; h and d can also be strings with dms format eg "14:30:10" or "180d30m15s" or "90d30m"
 
 ### New Features (enabled by Stellarium)
+
 - **[Stellarium 26.2]** Improved ASCOM Telescope support, fixing stability, and improving ease of telescope selection. 
 
 ## Upgraded Win11 Requirements.txt Compatibility
+
 - **[Python 3.13.15]**: Upgraded Python support from 3.13.9.
 - **[Python 3.11]**: Minimum Python version supported.
 - **[starlette 1.3.1]**: Upgraded aiohttp support from 0.49.1.
@@ -122,6 +126,7 @@
 - **[numpy 2.3.5]**: Downgraded from 2.4.2. Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs. See issue #89.
 
 ## Documentation (Alpaca Driver)
+
 - **[CCDciel Guide]**: Add the CCDciel users guide for the Benro Polaris (ccdciel.md)
 - **[Rotator Alignment]**: Add a section on the importance of Rotator Alignment, and how to perform a manual Position Angle Sync (control.md)
 - **[Kinematics Reference]**: Defines Reference Frames, Kinematic Flows and Correction Algorithms
@@ -137,6 +142,7 @@
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
 ## Bug Fixes (from v2.1.0 version)
+
 - **[fix #84]**: Driver can get confused as to the state of the L-Bracket setting on connection
 - **[fix #82]**: Correct dashboard Scale Label interaction (allow click when near zoom buttons, dont double fire slew)
 - **[fix #81]**: Improve error message shown when trying to run multiple instances of Alpaca Driver
@@ -145,6 +151,7 @@
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
+
 * Benro Polaris Hw 1.4.1.4, Firmware V6.0.0.54, Astro V1.0.2.14 (JDM - Main Board replaced)
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.54, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.14
@@ -160,6 +167,7 @@
 * Pentax K1 150-450mm / Irix 45mm
 * ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
 ### Computing Equipment
+
 * MacBook Pro with Apple M1 Pro CPU (Driver and CCDCiel)
 * MacBook Pro 14” 2021 
 * MacBook Pro 13” 2013
@@ -172,11 +180,13 @@
 * Raspberry Pi Zero 2 W and up (Driver)
 * GPS Receivers: u-blox 7 UBX-G7020; G71 G-Mouse VK-172; BN-808 G-Mouse UBX-M8030-KT; M10 G-Mouse UBX-M10050-KB (u-blox SR1612U10)
 ### Portable/Mobile Equipment
+
 * iPhone 13 Max (Stellarium Mobile PLUS)
 * iPad Pro 3rd Generation
 * Samsung Galaxy S22 Ultra (Stellarium Mobile PLUS)
 * Microsoft Surface Laptop 2
 ### Applications
+
 * Sky Safari 7 Pro v7.3.6 iOS
 * Benro Connect Android App v3.0.30, iOS App v1.5.0
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4
@@ -204,6 +214,7 @@
 * Siril v1.2.5
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
+
 * Windows Remote Desktop v10.0.22621
 * ASCOM Platform 7.1.3 (Build 4851)
 * ASCOM Platform 7.1 (Build 4707)
@@ -211,6 +222,7 @@
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
 ### Operating Systems
+
 * Windows 11 Pro v24H2 
 * Windows 11 Pro v23H2 
 * Windows 10
@@ -221,6 +233,7 @@
 * Raspberry Pi OS (64-bit) Debian Trixie
 * Raspberry Pi OS Lite (64-bit) Debian Trixie
 ### Alpaca Pilot compatible Browsers
+
 * Firefox version 115+ 
 * Google Chrome version 115+
 * Microsoft Edge version 115+
@@ -228,18 +241,22 @@
 
 ## Untested New Features
 Please let us know if you can try any of these features.
+
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Known Issues
+
 - **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.15 instead.
 
 ## Potential Future Enhancements
+
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
 - **[Emedded Driver]**: The driver should be embedded on the Benro Polaris Device. Benro Change.
 
 ## Deprecations
+
 - **[RA 1.04]**: Special RA Axis move command in V1.0 has been replaced with Alpaca Pilot direct RA radial dial control.
 - **[N-Point Alignment]**: N-Point Alignment in V1.0 has been replaced with Multi-Point Alignment
   

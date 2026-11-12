@@ -7,19 +7,19 @@ Branch: to be created from `feature/pec_theta_v2`. Analysis: October 2026, from 
 Implemented on `feature/alignment_mac_v2`; user documentation in [kinematics.md §2.3](kinematics.md#23-mechanical-alignment-corrections-mac).
 
 * `driver/kinematics_mac.py`: the fit (numpy, analytic derivatives, Gauss–Newton from QUEST's rotation): 0.6 ms for 10
-  points on a desktop, against 20 ms for the study prototype. The control-tick correction is a closed form: about
-  6 µs per tick.
+    points on a desktop, against 20 ms for the study prototype. The control-tick correction is a closed form: about
+    6 µs per tick.
 * The **Mechanical Alignment Correction** switch (`advanced_align_mac`) is the A/B switch. On: the rotation and
-  d2, d3 refitted unweighted at every sync, with `align_m2_scale` (%, default 1.0). When the points can't separate
-  the offsets, they are held and the rotation is the existing weighted QUEST. Off: the existing QUEST, unchanged.
+    d2, d3 refitted unweighted at every sync, with `align_m2_scale` (%, default 1.0). When the points can't separate
+    the offsets, they are held and the rotation is the existing weighted QUEST. Off: the existing QUEST, unchanged.
 * The earlier MAC model has been retired (copy in `utility/legacy_mac.py` for `fits_extract.py`). Pilot's AutoTune
-  now calibrates the M2 scale from the current sync points. First calibration on jdm's mount: **+0.335%**.
+    now calibrates the M2 scale from the current sync points. First calibration on jdm's mount: **+0.335%**.
 * `utility/alignment_ab.py` replays the archived sync tables: goto accuracy (leave-one-out) median 59.2′ (MAC off)
-  → 9.6′ (on), better on 45 of 47 alignments. The two worse: 6 points at roll ~0 (greg, 9.4′ → 11.7′), and a
-  narrow-roll alignment both models fit poorly (86′ → 88′).
+    → 9.6′ (on), better on 45 of 47 alignments. The two worse: 6 points at roll ~0 (greg, 9.4′ → 11.7′), and a
+    narrow-roll alignment both models fit poorly (86′ → 88′).
 * Timed on the Pi Zero 2 W and nina01 (Cost, below): 15.8 ms and 2.7 ms per fit, 53 µs and 9 µs per tick.
 * Still to do: the live A/B on the sky (alignment RMS, first-goto error,
-  drift with MAC on and off from the same syncs); the scale-or-sag test with the 300 mm.
+    drift with MAC on and off from the same syncs); the scale-or-sag test with the 300 mm.
 
 ## Summary
 
@@ -27,9 +27,9 @@ Multi-Point Alignment has rarely reached a low RMS: 6–10 point alignments typi
 130′. The residuals are not noise. Across every archived log, three terms explain most of them:
 
 * **M2 and M3 zero offsets** (or, equivalently with this data, the camera tilted on the head), fitted at each
-  alignment: they change with the lens and between sessions.
+    alignment: they change with the lens and between sessions.
 * **An M2 scale of about +1–2%**, the same on every Polaris in the logs: M2 turns 1–2% further than its reported
-  angle says, over the altitudes used.
+    angle says, over the altitudes used.
 
 With these fitted together with QUEST's rotation, alignment residuals fall from a median of 36–95′ to 2–8′.
 
@@ -73,7 +73,7 @@ rotation.
 
 * M1 and M3 have no scale error. Axis tilts add nothing.
 * Zero offsets and camera tilt are indistinguishable here (same RMS, same sizes): either describes how the
-  camera sits relative to M2/M3.
+    camera sits relative to M2/M3.
 
 ### Per alignment, every mount (≥ 7 points, ≥ 20° of M2 span)
 
@@ -85,13 +85,13 @@ rotation.
 | jdm soak (Aug–Sep) | 9 | 60′ | 15.3′ | **7.7′** | +1.76% (±0.18) |
 
 * **The M2 scale is a Polaris property:** +1–2% on every mount, tightest on Mark's (0.6–1.3% over 11 nights).
-  With the 300 mm lens it was +2.0% against +1.0% for the 200 mm on the same mount, so it may be partly gravity
-  sag (an error growing towards the horizon, roughly cos(alt)), which over 20–70° looks like a scale and offset.
+    With the 300 mm lens it was +2.0% against +1.0% for the 200 mm on the same mount, so it may be partly gravity
+    sag (an error growing towards the horizon, roughly cos(alt)), which over 20–70° looks like a scale and offset.
 * **The offsets belong to the setup:** jdm 200 mm about +50′ / −53′ on three nights; 300 mm +110′ / −2′; Mark's
-  M3 offset −5°, +6° or ~0 on different nights (the M3 zero reference or the camera's rotation in its clamp
-  changing between sessions).
+    M3 offset −5°, +6° or ~0 on different nights (the M3 zero reference or the camera's rotation in its clamp
+    changing between sessions).
 * Terms fitted on the 200 mm nights help other setups (e.g. 300 mm: 113′ → 64′) but are not enough; the offsets
-  must be fitted per alignment.
+    must be fitted per alignment.
 
 ## Design
 
@@ -112,11 +112,11 @@ limits and the speed controller keep working in θ space, with one conversion at
 ### Fit
 
 * Joint least squares over the rotation and d2, d3 on the angular residual: unweighted (or robust, e.g. Huber),
-  not proximity-weighted. The current recency, proximity (σ 10°) and polar weights let a rotation-only model fit
-  locally around the target; with the physical terms that compensation should no longer be needed. Slew & Center
-  Correction and sync guiding stay for the remaining local error.
+    not proximity-weighted. The current recency, proximity (σ 10°) and polar weights let a rotation-only model fit
+    locally around the target; with the physical terms that compensation should no longer be needed. Slew & Center
+    Correction and sync guiding stay for the remaining local error.
 * Fewer than 3 points, or points without a spread in roll (both signs) and altitude: fit the rotation only, with
-  d2, d3 held at the last values (or a weak prior towards them), so a single sync cannot produce wild offsets.
+    d2, d3 held at the last values (or a weak prior towards them), so a single sync cannot produce wild offsets.
 * QUEST's closed form gives the starting rotation; a few Gauss–Newton steps refine all five parameters.
 
 ### Cost
@@ -158,23 +158,23 @@ instead of building the forward kinematics twice (63 µs on a desktop). Both mee
 
 1. **Offline replay** (done): archived alignments above.
 2. **Twin tests:** inject known d2, d3, s2 into the digital twin; the fit recovers them, and gotos and tracking
-   are unchanged with zero terms.
+    are unchanged with zero terms.
 3. **On the mount:**
-   * the alignment RMS on the standard 6 points, before and after;
-   * first-goto error on targets away from the sync points;
-   * PEC drift rate on a long track (expected to shrink with the alignment error);
-   * a scale or sag check: syncs at low and high altitude in one session, with the 200 mm and the 300 mm.
+    * the alignment RMS on the standard 6 points, before and after;
+    * first-goto error on targets away from the sync points;
+    * PEC drift rate on a long track (expected to shrink with the alignment error);
+    * a scale or sag check: syncs at low and high altitude in one session, with the 200 mm and the 300 mm.
 
 ## Open questions
 
 * **Scale or sag?** A scale is constant; sag depends on the load and grows towards the horizon. If it is sag,
-  model `cos(θ2)` instead and store it per lens.
+    model `cos(θ2)` instead and store it per lens.
 * **Mark's ±6° M3 offsets:** is the M3 zero reference re-set by the firmware at power-on, or was the camera
-  rotated? The 517 MCU angles (zeta) could tell, since they are logged with each point now.
+    rotated? The 517 MCU angles (zeta) could tell, since they are logged with each point now.
 * **Refraction:** check whether the observed Az/Alt are refracted; about 1–3′ below 30°, small next to the
-  terms above.
+    terms above.
 * **The remaining 2–8′:** plate-solve error, backlash at the sync, worm error at the sync (≤ 1.7′), M2 slips.
 * **Focuser pull and lens flexure:** a constant sideways pull on the lens (e.g. the focuser) is indistinguishable
-  from an M3 zero offset, since M3 turns the camera about its own up axis, so it is part of d3. If the pull comes
-  from the focuser's weight bending the lens, it depends on gravity (roll and altitude) and is flexure: test a
-  droop term along the gravity-down direction in the joint fit, and an alignment with the focuser removed.
+    from an M3 zero offset, since M3 turns the camera about its own up axis, so it is part of d3. If the pull comes
+    from the focuser's weight bending the lens, it depends on gravity (roll and altitude) and is flexure: test a
+    droop term along the gravity-down direction in the joint fit, and an alignment with the focuser removed.

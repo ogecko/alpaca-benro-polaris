@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Using CCDciel with Benro Polaris
 [Setup](#1-capturing-images) | [Main Window](#2-main-ccdciel-window) | [Autofocus](#3-auto-focus) | [Plate Solving](#4-plate-solving) | [Sync Guiding](#5-scripting) | [Pulse Guiding](#6-pulse-guiding) 
 
@@ -19,6 +17,7 @@ We are focusing on using CCDCiel, an alternate solution, due to its price (free)
 
 ### CCDciel Device Setup
 Upon opening CCDciel, the Devices Setup dialog will appear, allowing you to discover and connect to all your various astronomy equipment. Step through each of the device types and connect up your camera, mount, rotator, and optionally your filter wheel, focuser or other devices you may have. 
+
 * **Mount:** Select the ASCOM Alpaca tab, open the dropdown, then select **Alpaca Benro Polaris Telescope**.
 * **Rotator:** Select the ASCOM Alpaca tab, open the dropdown, then select **Alpaca Benro Polaris Rotator**.
 * **Camera:** For the MiniCAM8 you need to install the ASCOM Camera driver first.
@@ -30,6 +29,7 @@ Upon opening CCDciel, the Devices Setup dialog will appear, allowing you to disc
 
 ### Preferences Setup
 The **Preferences Dialog** can be accessed from the **Edit > Preferences** dropdown menu. It will allow you to make initial setup changes including
+
 * **Files:** Directory and filename format of captured images
 * **Observatory:** Your observing sites latitude and longitude
 * **Camera:** Camera temperature for Astro Cameras
@@ -55,12 +55,14 @@ On the main CCDciel window, in the upper-left corner, are controls for each of t
 ![Connect](images/ccd-control-01.png)
 
 The **Telescope Controls** allow you to control the Benro Polaris Mount.
+
 * **Track:** Enable and Disable Sidereal Tracking
 * **Park:** Park and Unpark the mount
 * **Handpad:** Opens a dialog with speed and joystick slewing
 * **Goto:** Opens a dialog to search for a target, enter RA/Dec co-ordinates and enable astrometry.
 
 The **Rotator Controls** allow you to control the Benro Polaris Mount as well.
+
 * **PA:** This field allows you to monior or control the equatorial Position Angle of the rotator directly.
 
 
@@ -82,6 +84,7 @@ CCDciel supports ASTAP, astrometry.net and PlateSolve2/3 to identify where your 
 The Alpaca Driver aligns the Benro Polaris to the solved coordinates whenever you perform a **Sync**. The more plate-solve syncs you perform, the more accurate the alignment. This can remove the need for a compass alignment or manually aligning a first star with the Benro app.
 
 ### Installing ASTAP
+
 * Download ASTAP from [hnsky.org/astap.htm](https://www.hnsky.org/astap.htm) and install the **G17** star database alongside it.
 * In **Edit > Preferences > Astrometry**, select **ASTAP** and set its program folder (typically `c:\Program Files\astap` on Windows, `/Applications/astap.app/Contents/MacOS` on macOS, `/opt/astap` on Linux).
 * Set the **Maximum search radius** large enough to cover how far off the mount may be pointing (above 180° solves blind, but slowly).
@@ -102,7 +105,7 @@ In a sequence, enable the target option **Use astrometry to refine the position*
 CCDciel scripts are written in Python. Enable the Script tool from the **Display** menu, then open the **Capture** tab on the right of the screen: under **Run Script** you can select a script and run it, or use **Edit**, **New** and **Copy** to open the script editor. Scripts can be run from there, or as part of a sequence: when a target starts, as a step of a plan, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's [Script reference](https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference).
 
 ### Alpaca Driver Scripts
-CCDciel has no instruction for sending an Alpaca [Device Action](./alpaca-api.md#device-actions), so the [`utility/ccdciel`](../utility/ccdciel) folder provides scripts that send the Alpaca Driver's most common ones:
+CCDciel has no instruction for sending an Alpaca [Device Action](./alpaca-api.md#device-actions), so the [`utility/ccdciel`](https://github.com/ogecko/alpaca-benro-polaris/blob/main/utility/ccdciel) folder provides scripts that send the Alpaca Driver's most common ones:
 
 | Script | Device Action | Arguments | What it does |
 |---|---|---|---|
@@ -111,7 +114,7 @@ CCDciel has no instruction for sending an Alpaca [Device Action](./alpaca-api.md
 | `PolarisSlewAbsolute` | `Polaris:SlewAbsolute` | `key=value` coordinates | Slews to the given coordinates, see [Slewing](#slewing) |
 | `PolarisSlewRelative` | `Polaris:SlewRelative` | `key=value` offsets | Moves by the given offsets, see [Slewing](#slewing) |
 
-**Installing on Windows:** double-click [`utility/ccdciel/install.bat`](../utility/ccdciel/install.bat). It copies the scripts into CCDciel's folder (`%LOCALAPPDATA%\ccdciel`) as `.script` files, replacing any older versions; start CCDciel once before running it, and restart CCDciel afterwards if it was running.
+**Installing on Windows:** double-click [`utility/ccdciel/install.bat`](https://github.com/ogecko/alpaca-benro-polaris/blob/main/utility/ccdciel/install.bat). It copies the scripts into CCDciel's folder (`%LOCALAPPDATA%\ccdciel`) as `.script` files, replacing any older versions; start CCDciel once before running it, and restart CCDciel afterwards if it was running.
 
 **Installing manually** (or on macOS/Linux): copy each `Polaris*.py` file into CCDciel's configuration folder, the folder holding `ccdciel.conf` and CCDciel's other `.script` files, renamed to end in `.script`, e.g. `PolarisSyncGuide.script`. Alternatively, click **New** under **Run Script**, give it the same name, replace the template with the file's contents and click **Save**.
 
@@ -121,6 +124,7 @@ The scripts read the Alpaca Driver's address from CCDciel's mount settings (**AS
 
 ### Sync Guiding
 The Alpaca Driver treats a plate-solve **sync without a slew** as a guiding correction rather than a new alignment point (see [Guiding](./guiding.md)). The recommended workflow is to solve and sync every 1 to 3 minutes during your imaging sequence.
+
 * In Alpaca Pilot, enable **Multi-Point Alignment** and **Sync Guiding (Plate-solve)**.
 * Add a `PolarisSyncGuide` step to your plan after the light frames, so it runs every 1 to 3 minutes of imaging. It solves the image just taken (no extra exposure) with CCDciel's `Astrometry_sync` command.
 * After a goto, the first sync adds an alignment point and turns sync guiding on; the following syncs are used as guiding corrections (if within 3 degrees).
@@ -158,6 +162,7 @@ To Slew to alternate coordinate reference frames supported by the Alpaca Driver,
 
 ### Other Device Actions
 To send a Device Action that has no script, such as `Polaris:TrackOrbital` or `Polaris:PanoGrid`, make your own script from `PolarisPanoSlew.py`:
+
 1. Copy `PolarisPanoSlew.py` to a new name, for example `PolarisTrackMoon.py`.
 2. In its `main()` function, replace the `Polaris:PanoSlew` call with the action and Parameters you want. The `alpaca_action()` function takes the action name and its Parameters, as listed in the [Device Actions reference](./alpaca-api.md#device-actions):
 
@@ -176,6 +181,7 @@ To send a Device Action that has no script, such as `Polaris:TrackOrbital` or `P
 CCDciel's **Internal guider** uses a guide camera to watch a guide star and sends pulse guide commands to the mount, which the Alpaca Driver turns into small corrections of the M1-M3 motor speeds. It has been tested with the Alpaca Driver.
 
 ### Setup
+
 * Connect the **Guide Camera** in the Devices Setup dialog.
 * In **Edit > Preferences > Auto-guiding**, choose **Internal guider** (or **PHD2**, with its host and port, if you guide with PHD2).
 * In Alpaca Pilot, **Sidereal Tracking** must be enabled, with the tracking rate set to **Sidereal**.
@@ -185,6 +191,7 @@ CCDciel's **Internal guider** uses a guide camera to watch a guide star and send
 Calibrate once before guiding. Set the guide exposure to 3-5 seconds with the stars in focus, point at least 45 degrees away from the celestial pole, and click **Calibration**. The guider sends pulses in four directions and measures how the star moves; this takes a few minutes. The results are shown on the **Advanced** tab, where the East/West and North/South values should match.
 
 For the Benro Polaris:
+
 * **Calibrate at your imaging target**, at the same position angle you will image at. RA/Dec guide pulses become a mix of motor movements that changes across the sky, so avoid large slews or position angle changes after calibrating.
 * **PEC can stay on while calibrating**: the driver recognises CCDciel's calibration pulses, and PEC Drift Correction ignores them (`pec_ignore_guider_calibration`, on by default). PEC Worm Gear Correction doesn't learn from guiding, so it can stay on too.
 

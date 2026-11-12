@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Alpaca API Reference
 [Discovery](#discovery) | [Management](#management) | [Telescope](#telescope) | [Rotator](#rotator) | [Device Actions](#device-actions)
 
@@ -77,6 +75,7 @@ curl -X PUT http://ap.local:5555/api/v1/rotator/0/moveabsolute \
 Device Actions are the ASCOM standard's way for a driver to offer features that the standard interfaces don't cover. The Alpaca Driver's Device Actions belong to the Telescope device and are named `Polaris:<action>`. Alpaca Pilot uses many of them internally; the ones documented here are those that are useful in your own sequences and scripts.
 
 Three approaches you can use Device Actions, include:
+
 1. From NINA's [Advanced Sequencer](./nina.md#5-advanced-sequence), install the **Device Actions and Commands** plug-in, then add a **Utility > Device Action** instruction, set the Device to `Telescope`, and choose the Action and its Parameters as shown in the tables below. 
 2. From CCDciel, run one of the Alpaca Driver's scripts as a step of a plan, see [Scripting](./ccdciel.md#5-scripting) in the CCDciel guide.
 3. Call them directly through the REST API, with the Parameters as a JSON object:

@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Polaris - Camera Controller Global Group
 
 ---
@@ -490,6 +488,7 @@ Reply
 
 Billy Bass
 Aside from maintaining state like others have mentioned, there are a few issues that I think would be game changers for making panoramas much better with the Polaris:
+
 1. Rotate the camera to maintain the same horizon for each panel;
 2. Allow users to control the sequence with which the panels are captured; and
 3. Control of tracking for the panels.
@@ -548,6 +547,7 @@ The daily panorama from almost the same position can be found in the COMMENTS.
 📷📷📷
 GEAR: Nikon d7200 astromod, Sigma Art 14 mm, SilenceCorner's Atoll ring, Benro Polaris tracker, EcoFlow River2Max, LowePro 450BP trekker
 EXIF:
+
 - sky - 8 panels x 5 photos x 1 min, f2.8, ISO 800
 - foreground - 8 panels x 3 photos x 1 min, f4.0, ISO 1250 (+10 sec selfie)— at Madeira Island.
 
@@ -597,6 +597,7 @@ The photo is dominated by the constellation Orion the Hunter, the ruler of the W
 I took the photo with two cameras at the same time, because it was frikking cold ☃️, but also to get to a few more nighttime Plitvice locations.
 I noticed the thin veil of clouds when I got home that made the stars appear haloed, but somehow I like that in this setting.
 GEAR: Nikon Z6II, Nikon Z8 astromod, Sigma Art 20mm, Sigma Art 40mm, SilenceCorner's Atoll rings, Benro Polaris tracker, EcoFlow River2Max, LowePro 450BP backpack
+
 - Focus on Stars mask: https://focusonstars.com/ref/bnastro/
 EXIF:
 - sky (Z8, 20mm) - 8 panels x 5 photos x 60 sec, ISO 640, f2.8
@@ -620,6 +621,7 @@ The constellations in photo no. 5 were drawn by my wonderful friend Tjaša Mađa
 https://www.nakladaslap.com/.../a9956aa49c7f5480db8092db2...
 GEAR: Nikon Z8 astromod, Sigma Art 20mm, SilenceCorner's Atoll D+ ring, Benro Polaris tracker, Astronomik L2 clip-in filter, EcoFlow River2Max, LowePro 450P trekker
 EXIF:
+
 - sky - 10 panels x 5 photos x 60 sec, f2.8, ISO 640 (plus meteors from a 3-hour timelapse)
 - foreground - 10 panels x 3 photos x 30 sec, f4.0, ISO 1250— at Lonjsko Polje Nature Par
 
@@ -923,6 +925,7 @@ The DESCRIPTION of this photo is taken from my newly published book "Croatia und
 www.nakladaslap.com
 📷📷📷
 GEAR:
+
 - Nikon d7200 astromod, Sigma Art 14mm, SilenceCorner's  Atoll Ring, Benro Polaris tracker, EcoFlow River2Max, LowePro BP 450 trekker
 EXIF:
 - sky - 2 rows x 9 panels x 5 photos x 60 sec, ISO 800, f2.5
@@ -993,6 +996,7 @@ See the planning with the Photopills application and the daily panorama from alm
 📷📷📷
 EQUIPMENT: Nikon d7200 astromod, Sigma Art 14 mm, SilenceCorner's Atoll ring, Benro Polaris tracker, EcoFlow River2Max, LowePro 450BP trekker
 EXIF: 
+
 - sky - 8 panels x 5 photos x 1 min, f2.8, ISO 800 
 - foreground - 8 panels x 3 photos x 1 min, f4.0, ISO 1250— in Madeira.
 

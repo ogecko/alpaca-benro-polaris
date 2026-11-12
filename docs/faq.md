@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Frequently Asked Questions
 
 ## Alpaca Driver and Mobile Devices
@@ -14,12 +12,14 @@ Not currently. The Driver runs on a separate device, like a mini-PC, Laptop, Mac
 Not directly. The Driver requires a Python runtime and continuous background processing, something mobile platforms like iOS and Android don’t reliably support due to battery-saving restrictions. Even the current Polaris app struggles with power drain during extended use.
 
 However, you can still use your phone or tablet to **control** the system remotely:
+
 - Use the **Alpaca Pilot App** via any modern browser (Chrome, Safari, Firefox, Edge) on mobile or tablet.
 - Use **Stellarium PLUS** (iOS/Android) to control the Polaris via SynScan protocol.
 - Use **Remote Desktop** apps to control your mini-PC from a phone or tablet and operate tools like NINA."
 
 ### A4 – Can I run the Alpaca Driver on macOS?
 Yes. The Alpaca Driver runs natively on macOS and is a fully supported platform. However, some companion applications have platform-specific limitations:
+
 - NINA (for plate-solving, sequencing, autofocus) is Windows-only. A similar application called CCDciel can be used on macOS.
 - Stellarium PLUS is available as a mobile app for iOS and Android
 
@@ -29,6 +29,7 @@ If you're using macOS, you can run the Driver directly and pair it with Stellari
 The Alpaca Driver maintains real-time communication with the Polaris and exposes multiple control interfaces, including Alpaca, SynScan, HTTP, WebSockets, and Bluetooth. It also supports advanced features including plate-solving (via Nina/ASTAP), extended image sequencing (via Nina), QUEST modeling, Orbital tracking, PID-based motion control.  
 
 These capabilities require:
+
 - Persistent background processing without interruption 
 - Concurrent handling of multiple communication stacks
 - Real-time processing for time critical tasks
@@ -39,6 +40,7 @@ Mobile devices, while convenient, aren’t designed for this kind of sustained w
 
 ### A5 – Will mobile support improve in the future?
 Possibly. There are promising directions:
+
 - Embedding the Driver into Polaris firmware 
 - Potentially exploring lightweight plate-solving on mobile devices
 
@@ -53,6 +55,7 @@ For now, the best experience comes from pairing the Polaris with a mini-PC and u
 Yes, you can definitely use the Benro Polaris for deep-sky photography, but there are limitations! As an Alt/Az mount without auto-guiding, you're limited to relatively short exposures to avoid star trails. However, by combining a good camera, a longer lens (up to 800mm), and the advanced features unlocked by the Alpaca Driver and software like Nina, you can capture stunning images of deep-sky objects. 
 
 Think of it this way: 
+
 * Shorter Exposures are Key: Because the Benro Polaris isn't an equatorial mount, you need to keep your exposures short to prevent star trails.
 * Stacking is Your Friend: To compensate for shorter exposures and capture fainter details, you'll use image stacking techniques. Nina can help you capture sequences of images that you'll combine later during processing.
 * Software Enhances Hardware: The Alpaca Driver unlocks features like plate-solving and precise target centering, significantly improving your results.
@@ -61,6 +64,7 @@ Think of it this way:
 The maximum focal length you can effectively use with the Benro Polaris for astrophotography depends on factors like your camera, lens, the accuracy of your polar alignment, and even environmental conditions.
 
 Here's some results from the Beta Testers:
+
 * 800mm with Success: One user successfully captured deep-sky images using an 800mm lens and exposures up to 15 seconds. Stacking around 240 images resulted in a high-quality, hour-long exposure. 
 * 1750mm Equivalent Focal Length Achieved: Another user, Vladimir, pushed the limits further, achieving impressive results at an equivalent focal length of 1750mm by combining a Sigma 120-400mm lens with a 1.4x extender and a ZWO ASI585MC camera. This demonstrates the Benro Polaris's potential for longer focal lengths with the right equipment and settings. 
   
@@ -71,6 +75,7 @@ Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially
 
 ### B4 - Can the Alpaca Project improve tracking performance?
 Yes, significantly. Alpaca V2.0 introduces major improvements to tracking precision and capabilities. Key improvements include
+
 - **PID Motion Control:** The Driver features a real-time PID-based motion controller that replaces the native Polaris firmware, delivering smoother tracking, faster recovery from disturbances.
 - **Plate-Solving:** By integrating with tools like ASTAP and NINA, the Driver enables precise target acquisition and automatic centering, correcting for mount misalignment.
 - **Multi-Point Alignment:** The Driver supports QUEST modeling, allowing users to build a multi-point sky model that compensates for polar misalignment, cone error, and mount flexure.
@@ -79,6 +84,7 @@ Yes, significantly. Alpaca V2.0 introduces major improvements to tracking precis
 
 ### B5 - What is the heaviest load the Polaris can handle?
 The Benro USA website claims that the Astro version of the Polaris can support a **payload of 7 kg** (15.4 lb). An impressive capacity for such a compact mount, especially without a counterweight. Benro’s Polaris marketing brochure also specifies a torsional capacity of 70 kgf·cm. This is a measure of torque, equivalent to the following loads at different distances from the axis of rotation:
+
 - **70 kgf at 1 cm**
 - **7 kgf at 10 cm**
 - **1.75 kgf at 40 cm**
@@ -90,6 +96,7 @@ I have tested the performance of the Polaris with my rig up to around 4.4kg (Can
 ## Nina Capability Questions
 ### N1 - How can I connect both Nina and BP App to my Camera via USB?
 You don't need to connect your camera to both Nina and the Benro Polaris App simultaneously. Choose one or the other. Once you've set up your mount, Nina can handle all imaging functions, including:
+
 * Autofocus
 * Plate Solving
 * Framing
@@ -106,6 +113,7 @@ Nina takes over. Focusing: Using your camera's lens autofocus motor or an extern
 No, Nina doesn't directly access the images stored on your camera's SD card. Instead, it communicates directly with the camera through the USB cable using either a native camera driver (for supported Canon and Nikon cameras) or an ASCOM camera driver (for Sony and other camera models). 
 
 This direct communication allows Nina to 
+
 * Control camera settings
 * Capture images
 * Download images directly to your mini-PC's hard drive

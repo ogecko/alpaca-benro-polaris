@@ -1,8 +1,7 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
+
 * **Version:** 2.1.0
 * **Release Date:** 28-Feb-2026 
 * **Availability:** Download from [Alpaca Driver v2.1.0 Download ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.1.0.zip)
@@ -10,6 +9,7 @@
 * **Current Branch:** releases/2_1_0
 
 ## Demonstration Videos
+
 * **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
 * **21 - Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc
 * **22 - Starting and Using:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
@@ -24,6 +24,7 @@
 * **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
 
 ## Win11 Upgrade Instructions
+
 * Upgrade Python to 3.13.12 by downloading Windows Installer (64 bit) for Python 3.13.12 and running the install program.
 * Upgrade pip using the command `python -m pip install --upgrade pip`
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
@@ -36,6 +37,7 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.1.0
+
 - **[Panorama Settings]** Add flexible Panorama Grid for Landscape (untracked), Sky (Horizon-Locked), Sky (tracked), that can be revisted, reordered and reused.
 - **[Panorama Flexibility]** Add First Panel setting to define which corner of the grid is used for Panel 1.
 - **[Panorama Calculator]** Use the Panel Spacing Calculator to determine your sensor’s field of view (FOV) and the recommended panel step for a desired image overlap.
@@ -59,6 +61,7 @@
 ## New Features (enabled by Stellarium)
 
 ## Upgraded Win11 Requirements.txt Compatibility
+
 - **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
 - **[Falcon 4.2.0]**: Upgraded Falcon support from 4.0.2.
 - **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
@@ -69,6 +72,7 @@
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
 ## Documentation (Alpaca Driver)
+
 - **[Nina Advanced Sequencer]**: Add documentation on using Nina's advanced sequencer with Alpaca Driver
 - **[Auto Guiding]**: Add documentation on using PHD2 for auto-guiding 
 - **[Raspberry Pi]**: Major revision of Raspberry Pi installation documentation
@@ -78,6 +82,7 @@
 - **[Troubleshooting P1-6]**: Add a troubleshooting section to the Raspberry Pi docs
 
 ## Bug Fixes (from v2.0.0 version)
+
 - **[fix #62]**: Alpaca Driver SupportedActions method incorrectly lists "Polaris:J2000GotoPolaris:Ack" as a single action.
 - **[fix #67]**: Reduce CPU load by refactoring Motor Control to be event based rather than polling every 1ms for work.
 - **[fix #68]**: Setting an Az/Alt/Roll target may intermittently be ignored due to race condition from the tracking loop
@@ -91,6 +96,7 @@
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
+
 * Benro Polaris Hw 1.4.1.4, Firmware V6.0.0.54, Astro V1.0.2.14 (JDM - Main Board replaced)
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.54, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.14
@@ -106,6 +112,7 @@
 * Pentax K1 150-450mm / Irix 45mm
 * ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
 ### Computing Equipment
+
 * MacBook Pro with Apple M1 Pro CPU (Driver and CCDCiel)
 * MacBook Pro 14” 2021 
 * MacBook Pro 13” 2013
@@ -117,11 +124,13 @@
 * Desktop PC, AMD Ryzen 5 3600
 * Raspberry Pi Zero 2 W and up (Driver)
 ### Portable/Mobile Equipment
+
 * iPhone 13 Max (Stellarium Mobile PLUS)
 * iPad Pro 3rd Generation
 * Samsung Galaxy S22 Ultra (Stellarium Mobile PLUS)
 * Microsoft Surface Laptop 2
 ### Applications
+
 * Sky Safari 7 Pro v7.3.6 iOS
 * Benro Connect Android App v3.0.30, iOS App v1.5.0
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4
@@ -142,6 +151,7 @@
 * Siril v1.2.5
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
+
 * Windows Remote Desktop v10.0.22621
 * ASCOM Platform 7.1.3 (Build 4851)
 * ASCOM Platform 7.1 (Build 4707)
@@ -149,6 +159,7 @@
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
 ### Operating Systems
+
 * Windows 11 Pro v24H2 
 * Windows 11 Pro v23H2 
 * Windows 10
@@ -159,6 +170,7 @@
 * Raspberry Pi OS (64-bit) Debian Trixie
 * Raspberry Pi OS Lite (64-bit) Debian Trixie
 ### Alpaca Pilot compatible Browsers
+
 * Firefox version 115+ 
 * Google Chrome version 115+
 * Microsoft Edge version 115+
@@ -166,18 +178,22 @@
 
 ## Untested New Features
 Please let us know if you can try any of these features.
+
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Known Issues
+
 - **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.12 instead.
 
 ## Potential Future Enhancements
+
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
 - **[Emedded Driver]**: The driver should be embedded on the Benro Polaris Device. Benro Change.
 
 ## Deprecations
+
 - **[RA 1.04]**: Special RA Axis move command in V1.0 has been replaced with Alpaca Pilot direct RA radial dial control.
 - **[N-Point Alignment]**: N-Point Alignment in V1.0 has been replaced with Multi-Point Alignment
   

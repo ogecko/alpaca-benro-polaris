@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Troubleshooting
 [Alpaca Install](#alpaca-install-troubleshooting) | [Benro Problems](#benro-polaris-troubleshooting) | [Comms Problems](#alpaca-communications-troubleshooting) | [Nina Problems](#nina-troubleshooting) | [Stellarium Problems](#stellarium-troubleshooting) 
 
@@ -66,14 +64,17 @@ To turn off Smart App Control
 This may be caused by HTTP.sys, a kernel-mode HTTP listener built into Windows that prevents the Driver from binding to port 80. There are two approaches to resolving this conflict
 
 To change the Port used by Alpaca Pilot:
+
 * You can change the port used by Alpaca Pilot by changing config.toml line
-  ```
-  alpaca_pilot_http_port = 80                     
-  ```
+    ```
+    alpaca_pilot_http_port = 80                     
+    ```
+
 * Choose a free port like 8081. 
 * When using a browser to navigate to Alpaca pilot you will need to pass the new port number. For Example: http://hostname:8081
 
 To disable the http.sys driver if you dont need it:
+
 * Disable the HTTP Service (Recommended). This prevents the kernel-mode driver from claiming port 80 upon startup.
 * Open Registry Editor: Press Win + R, type regedit, and press Enter.
 * Navigate to: HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\HTTP.
@@ -99,9 +100,10 @@ If Alpaca Pilot suddenly won't load in your normal browser window — even thoug
 **How to tell it's this issue:** the page loads fine in an Incognito/Private window, but not in your normal one.
 
 **Fix, in your normal (non-Incognito) browser window:**
+
 1. Clear that site's cached data:
-   * **Chrome/Edge**: Settings → Privacy and security → Site settings → search for the address (e.g. `192.168.50.161` or `ap.local`) → click it → **Delete data**.
-   * **Safari on iOS/iPadOS**: Settings → Safari → Clear History and Website Data.
+    * **Chrome/Edge**: Settings → Privacy and security → Site settings → search for the address (e.g. `192.168.50.161` or `ap.local`) → click it → **Delete data**.
+    * **Safari on iOS/iPadOS**: Settings → Safari → Clear History and Website Data.
 2. Check Chrome/Edge's secure-connections setting: Settings → Privacy and security → Security → **"Always use secure connections"** (sometimes shown as *"Warns you before connecting to sites that don't use a secure connection"*). If this is on, the browser can silently try to upgrade a plain HTTP address to HTTPS and fail — since the Driver may not be running HTTPS, this makes the page look completely unreachable. Turn it off, or add an exception for the Driver's address.
 3. Always type the address with its scheme explicitly, e.g. `http://192.168.50.161:8080` rather than just `192.168.50.161:8080` — some browsers default an unscoped address to `https://`.
 4. Close and fully reopen the browser afterwards.
@@ -111,15 +113,17 @@ If Alpaca Pilot suddenly won't load in your normal browser window — even thoug
 `setup.bat` registers a Task Scheduler task named `StartupAlpacaDriver`. If the driver is not running after the PC starts:
 
 1. Check the task's last result. `0` means it ran without error.
-   ```
-   schtasks /Query /TN StartupAlpacaDriver /V /FO LIST
-   ```
+    ```
+    schtasks /Query /TN StartupAlpacaDriver /V /FO LIST
+    ```
+
 2. **If the result mentions a user name or password** (for example `0x8007052E`), you have changed your Windows password since running `setup.bat`. Run `setup.bat` again and enter the new password.
 3. **If the task is missing**, you skipped it (`-s`) or pressed Enter at the password prompt. Run `setup.bat` again and enter your password. Blank passwords are not supported by Task Scheduler.
 4. Start the driver by hand to see any error message. From the `alpaca-benro-polaris` folder run:
-   ```
-   .venv\Scripts\python.exe driver\main.py
-   ```
+    ```
+    .venv\Scripts\python.exe driver\main.py
+    ```
+
 5. Read the end of `alpaca-benro-polaris\logs\alpaca.log`. A line such as `port 80 is already in use` means another program, for example IIS or a web server, is using a port the driver needs. Stop that program, or choose different ports in Alpaca Pilot Network Settings.
 6. To see Task Scheduler's own history, open **Task Scheduler** (`Win + R`, `taskschd.msc`), select `StartupAlpacaDriver`, and use **Enable All Tasks History** in the right-hand Actions panel.
 
@@ -133,14 +137,15 @@ then Git could not connect to GitHub, even though `setup.bat` tried twice. The c
 * **Security software is blocking Git.** Antivirus suites with their own firewall (Norton, McAfee, ESET, Kaspersky, Bitdefender and others) often block a newly installed program without asking. In that software, allow `C:\Program Files\Git\mingw64\libexec\git-core\git-remote-https.exe` and `C:\Program Files\Git\cmd\git.exe`, or temporarily turn its firewall off, then run `setup.bat` again.
 * **No internet, or a VPN is in the way.** Check that https://github.com opens in a browser, disconnect any VPN, and run `setup.bat` again.
 * **A proxy that needs a login.** Set it for Git yourself, then run `setup.bat` again:
-  ```
-  git config --global http.proxy http://user:password@proxyhost:port
-  ```
+    ```
+    git config --global http.proxy http://user:password@proxyhost:port
+    ```
 
 ## Benro Polaris Troubleshooting
 
 ### B1 - Cannot start the Benro Polaris Device.
 There is a known issue with the recommended Benro Polaris device startup procedure. "Power On. In the off state, double press and hold the [Power Button], and release it after hearing “beep beep beep” three times to turn on the device. ".  Its worse than an old lawnmower at starting. If your device doesnt start, try the following:
+
 1. Remove Power cable - Dont have the Benro Polaris charging, while trying to start.
 2. Send to Park - use a Long Press to send the Benro Polaris to the parked position and ensure Power LED is off.
 3. Short Press - Every second or so (but no faster), until Power LED is illuminated.
@@ -150,12 +155,14 @@ Another word of caution. Do not travel with the Astro USB cable or Camera USB Ca
 
 ### B2 - Cannot connect BP App to the Benro Polaris Device
 Sometimes the BP App cannot search and connect to the BP over Bluetooth or Wifi. The Searching for device might list your device in white but it never turns green or connects or shows a green check-mark.
+
 * Fully exit close the BP App on your phone.
 * Reset all Bluetooth and Wifi communications on your phone. Easiest way to do this is to toggle `Airplane/Flight Mode`  on and off. 
 * Restart the BP App and it should find and connect to your BP.
 
 ### B3 - Polaris has poor quality Sidereal Tracking
 As an Alt/Az mount, the leveling of the Benro Polaris Tripod Head is a critical factor in the accuracy of your star tracking. To adjust the Polaris so it is as level as possible：
+
 * Double-tap both virtual joysticks on the BP app to center the Polaris axes.
 * Place a circular spirit level on top of the Astro Kit's quick-release plate and adjust the tripod to achieve a level of ±0.3 degrees or better.
 * A [HACCURY Luminous 1° Round level bubble](https://www.aliexpress.com/item/4000457838875.html) can help you achieve accurate leveling. 
@@ -169,6 +176,7 @@ This is no longer a limitation. The Alpaca Driver can serve as a proxy for the P
 
 ### B5 - The Polaris is at 1% Battery and wont charge
 The Polaris may have a design flaw that causes it to reject high-speed or smart chargers when the battery is in a low 1% state. It requires a slow, steady 5V source to restore sufficient power for the charging circuit to work correctly. Once it gets past that initial threshold, you can switch to a faster charger if needed. To fix the issue:
+
 - Use a basic 5V 2.4A charger or an old battery pack via USB-A.
 - Avoid smart or high-speed USB-C PD chargers initially.
 - Let it charge without interruptions.
@@ -177,6 +185,7 @@ The Polaris may have a design flaw that causes it to reject high-speed or smart 
 
 ### B6 - How can you reset the Benro Polaris password?
 To reset the password of your Benro Polaris
+
 1. Download the [Password Resetting Package](https://www.benro.com/en/downloads/page/polaris-reset-password.html) and place on to your SD card; 
 2. Insert your SD card into Polaris, and power cycle the Polaris. 
 3. When the Polaris powers up, it will read the SD card and reset your password.
@@ -188,6 +197,7 @@ The user manual can be found at the following link - [Polaris User Manual Englis
 
 ### B8 - Single Star Alignment Will Not Complete
 If the **Single Star Alignment** does not complete successfully, the Polaris may be stuck in an unknown connection state. You can identify this by using the Alpaca Pilot Connect Page. Click on the **Skip** button next to **Single Star Alignment**. If the status momentarily turns green, then turns back to red, it is likely you have this problem. The following recovery steps may help clear the connection:
+
 1. Power-cycle the Polaris
     * Turn the Polaris off.
     * Wait at least 2 minutes.
@@ -206,6 +216,7 @@ This forces the Polaris to establish a new clean connection, which may clear the
 There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
 
 You can use the Benro Polaris App to change the Band used by the Polaris to communicate. We recommend changing this to the 5Ghz band if you are using a MiniPC, and 2.4Ghz if you are using a Raspberry Pi Zero2.
+
 1. Open the Benro Polaris App
 2. Click on **Nearby Devices** and Connect to your Polaris
 3. Click on the Mode button in the top right hand corner of the screen
@@ -216,6 +227,7 @@ You can use the Benro Polaris App to change the Band used by the Polaris to comm
 8. Choose **5G** for MiniPC, or **2.4G** for Raspberry Pi Zero2.
 
 You can also change the TP-Link USB Wifi Adapter to only use the 5Ghz or 2.4GHz bands with the following procedure
+
 1. Open **Windows Device Manager**
 2. Under **Network Adapters**, double click on the **TP-Link Wireless USB Adapter**
 3. Change to the **Advanced** Tab
@@ -227,17 +239,20 @@ You can also change the TP-Link USB Wifi Adapter to only use the 5Ghz or 2.4GHz 
 Forcing the TP-Link Adapter to only use the 5GHz or 2.4Ghz bands, can reduce a periodic network latency spike that is caused by WLAN AutoConfig Background Scanning. This is when Windows 11 momentarily diverts the adapter to scan for other frequencies, completely halting normal data communications and interfering with the Driver.
 
 ### C1a - Cannot see "`communications init... done`" in the log (Wi-Fi 2 not connected).
+
 * Use the Alpaca Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.
 * Confirm the mini-PC has connected with the polaris-XXXXX hotspot using the second `Wi-Fi 2` or `Wi-Fi USB` adapter. It should look like the following:
 <img style="display: block; margin: auto;" width="362" height="222" src="images/abp-troubleshoot-wifi1.png"> 
 
 ### C1b - Cannot see "`communications init... done`" in the log (network conflict).
 If you see the `polaris_xxxxxx`, `No internet, open` message on the Wi-Fi 2 adapter, you may have a network issue or conflict. Check each of these steps to see if it can resolve the issue.
+
 * Click `Disconnect`, wait 15s, then Choose `Connect Automatically` and click `Connect` to re-establish connection. Wait 30s for the Driver to attempt reconnection.
 * Check that your home network does not conflict with the Polaris IP address of `192.168.0.1`. Some home network routers may default to also using the IP address of `192.168.0.1`. We recommend that you change your home network to an address range of say `192.168.50.xxx`, so that it doesnt conflict with various IP devices that commonly use the address `192.168.0.1`.
 
 ### C1c - Cannot see "`communications init... done`" in the log (IPv6 rather than IPv4).
 When Windows connects to the Benro Polaris network, sometimes it only sets up an IPv6 network. You can manually set the network settings to help speed up connection and force an IPv4 network. To manually set the network properties.
+
 * From the polaris-XXXXX hotspot dialog, click the i circle for more information
 * Under IP Assignment, Automatic (DHCP), Click Edit
 * Click the Edit network IP setttings dropdown and choose Manual
@@ -251,6 +266,7 @@ When Windows connects to the Benro Polaris network, sometimes it only sets up an
 <img style="display: block; margin: auto;"  src="images/abp-troubleshoot-wifi4.png"> 
 
 ### C2 - Cannot see any log message except two `INFO ==STARTUP==` lines
+
 * Check your device doesnt have any IT policy to not allow connecting to an open WIFI like the Polaris Hotspot.
 * Check which Wifi adapter is being used. There is a known issue with the Mele Quieter 4C not being able to connect to the Polaris Wifi. Do not use the MediaTek RZ616 Wi-Fi 6E 160MHz (Driver version 3.3.0.595) built in Wifi Adapter. Use the [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) instead.
 * Check your IP Configuration using a Command Prompt to run `ipconfig.exe`. Ensure your Mini-PC has a valid IP Address from the Benro Polaris DHCP server. It should look like the following:
@@ -353,7 +369,7 @@ Windows aggressively powers down USB Wi-Fi adapters, especially “nano” style
 * Network Adapters → TP-Link adapter → Properties
 * Power Management tab:
 
-  * Uncheck: “Allow the computer to turn off this device to save power”
+    * Uncheck: “Allow the computer to turn off this device to save power”
 
 * Using **Advanced Power Settings**
 
@@ -454,6 +470,7 @@ This can come from either side of the connection:
 To further help diagnose communication problems between the Alpaca Driver and the Polaris, you can use `Telnet` or `PuTTY` to directly connect to the Polaris. This will isolate whether the problem is related to the Alpaca Driver or not.
 
 On Win11:
+
 * Use the following link to [Download PuTTY](https://www.putty.org/) (a telnet client) to your device running the Driver.
 * Select the 64-bit x86 version for the Windows installer.
 * Double click on the file you downloaded to install PuTTY.
@@ -478,6 +495,7 @@ The PuTTY application should show a window with the raw communications from the 
 
 ### C5 - No Telnet/PuTTY communications with Polaris Wifi
 If you cannot see the raw communications scrolling in PuTTY from Troubleshooting Step C4, then there is a problem communicating with your device that is independent of the Alpaca Driver.
+
 * Check the Signal Strength of the Polaris WiFi hotspot at your Alpaca Driver device. You may need to move the device running the Alpaca Driver closer to the Benro Polaris.
 * Check you are not running AntiVirus Software that may block open Wifi Connections
 * Check you do not have an IT or Windows policy blocking open Wifi Connections.
@@ -496,10 +514,12 @@ Approximate round trip times in milli-seconds:
     Minimum = 1ms, Maximum = 2ms, Average = 1ms
 C:\Users\Astro> 
 ```
+
 * If the ping does not respond within a few milliseconds, go back through C1-C3 to double check the setup. 
 
 ### C6 - Powershell commands to check the Network setup
 You can use the following commands from a PowerShell window, to check the status of your TP-Link adapter and Wifi connection to the Polaris. 
+
 1. To open PowerShell, from the Run menu type `PowerShell` and click the `Windows PowerShell` App
 2. To list all interfaces, including MAC Address and current status
     ```
@@ -620,6 +640,7 @@ You can use the following commands from a PowerShell window, to check the status
         QoS Map Allowed by Policy   : 0
 
     ```
+
 4. To show more detailed info on network interfaces, IP addresses (IPv4/IPv6), MAC address, and status.
     ```
     PS C:\> Get-NetIPConfiguration
@@ -672,6 +693,7 @@ You can use the following commands from a PowerShell window, to check the status
 
 
     ```
+
 5. To show routing table (default gateway + network routes).
     ```
     PS C:\> Get-NetRoute
@@ -737,22 +759,25 @@ You can use the following commands from a PowerShell window, to check the status
 ## Nina Troubleshooting
 
 ### N1 - Cannot Remote Desktop to MiniPC running Nina
+
 * There are a range of remote desktop applications avalable which you might want to try:
-  * Microsoft Remote Desktop - Free with Windows 11 Pro. Some testers have had issues connecting via MS Remote desktop. I've been using it quite successfully.
-  * AnyDesk - "Best remote desktop solution for occasional users" - Techradar. 
-   Successfully used by a beta tester.
-  * Splashtop - "Powerful remote desktop with impressive features" - Techradar. I've used this on my home network successfully.
-  * TeamViewer - "Best remote PC software for cross-platform compatibility" - Techradar.
-  * RemotePC - Short free trial.
-  * LogMeIn - Lacks a free trial.
-  * Zoho Assist - Free tier very limited.
+    * Microsoft Remote Desktop - Free with Windows 11 Pro. Some testers have had issues connecting via MS Remote desktop. I've been using it quite successfully.
+    * AnyDesk - "Best remote desktop solution for occasional users" - Techradar. 
+        Successfully used by a beta tester.
+    * Splashtop - "Powerful remote desktop with impressive features" - Techradar. I've used this on my home network successfully.
+    * TeamViewer - "Best remote PC software for cross-platform compatibility" - Techradar.
+    * RemotePC - Short free trial.
+    * LogMeIn - Lacks a free trial.
+    * Zoho Assist - Free tier very limited.
 * When using AnyDesk and certain other programs, you might need to use an [HDMI Dummy Plug](https://www.amazon.com/dp/B0CKKLTWMN) to get video output from the mini PC if a monitor is not connected. Microsoft Remote Desktop Client does not require this, but it may not be available for some mobile devices.
 
 ### N2 - I still cannot remotely connect to the MiniPC running Nina
+
 * Windows Updates can be delivered every month that may effect the state of the device.
 * Check Mini-PC state. Reconnect a monitor and Keyboard to the Mini-PC and check that it is up and running. 
 
 ### N3 - I have a Mini-PC running without internet access. I cannot remotely connect to it.
+
 * This type of configuration is more challenging and can be confusing, but it is possible.
 * There are two Wifi Hotspots in this configuration, the BP Hotspot and the Mini-PC Hotspot. 
 * Check that your laptop has not dropped connection to the Mini-PCs hotspot.
@@ -762,6 +787,7 @@ You can use the following commands from a PowerShell window, to check the status
 * Once you have connected to the Mini-PC via Remote Desktop, then re-plug in the TPLink, to allow the Alpaca Driver to use it to connect with the BP Hotspot.
 
 ### N4 - Which Mount should I select in Nina's Equipment Tab, it lists 8 Benro Polaris Mounts?
+
 * The Alpaca Driver defaults to broadcasting `ASCOM Alpaca` services on all network interfaces on the MiniPC. 
 * If you have the ASCOM Platform installed, Nina will also detect all the `ASCOM direct` interfaces to the Alpaca Driver. 
 * We recommend connecting to the Alpaca Driver via `ASCOM Alpaca` services rather than `ASCOM`. Choose one of the Mounts under `ASCOM Alpaca`.
@@ -772,6 +798,7 @@ alpaca_restapi_ip_address = '127.0.0.1'
 ```
 
 ### N5 - Cannot obtain a good autofocus run with Nina?
+
 * Check your Lens Stabilisation is off. This interfers with sidereal tracking.
 * Check you Lens AutoFocus is off on the Lens and Camera Body. If left on this may cause the camera focusing system to hunt interering with the image capture process.
 * Check for Lens Cap not removed. Not kidding.
@@ -781,6 +808,7 @@ alpaca_restapi_ip_address = '127.0.0.1'
 * Check for that you are close to focus before starting a Nina Focus run.
 
 ### N6 - Cannot plate solve with Nina and ASTAP?
+
 * Check you are in Focus
 * Check to make sure you Camera Pixel Size and Telescope Focal Length is set correctly in Nina's Options > Equipment tab, including any reducer or extender. Plate solving wants an approximately correct field of view as input and frequently fails if not set to the right values. 
 * The focal_length and focal_ratio in config.toml are provided because of the ASCOM standard, but are not used by Nina. You do not need to update these when you change lenses.
@@ -791,9 +819,11 @@ alpaca_restapi_ip_address = '127.0.0.1'
 ### N7 - Cannot Connect Sony Camera with Nina
 Some later models of Sony cameras (e.g., Sony Alpha 7R IV) are not recognized by the Sony Plug-in that is included with Nina. 
 To resolve this:
+
 * You can download more up to date ASCOM Sony drivers from  the [ASCOMSonyCameraDriver GitHub repository](https://github.com/dougfor.../ASCOMSonyCameraDriver/releases).
 
 Alternatively, you can use the following procedure to try and get the Nina Driver to recognise your camera:
+
 * Attach your camera via USB. Configure as you would to connect to the Polaris.
 * Turn on your camera.
 * Enter Device Manager in the Windows desktop search bar.
@@ -801,13 +831,13 @@ Alternatively, you can use the following procedure to try and get the Nina Drive
 * Check for the linr `libusbK Usb Devices`.
 * If the line does not exist, close the Device Manager. You are correctly configured.
 * If the line `libusbK Usb Devices` exists:
-  * Left-click on the entry to expand the entry. You should now see Sony Remote Control Devices.
-  * Right-click on `Sony Remote Control Devices` and select `Update Driver`.
-  * Select `Browse my computer for drivers`.
-  * Select `Let me pick from a list of available drivers on my computer`.
-  * Left-click on `MTP USB Device`.
-  * Your driver should now update.  NOTE: Your camera is now listed under `Portable device`. Other software may not function correctly with the Device Manager configured this way. 
-  * You can change back to the original setting by following these steps and selecting `libusbK Usb Devices` as the new driver instead of `MTP USB Device`.
+    * Left-click on the entry to expand the entry. You should now see Sony Remote Control Devices.
+    * Right-click on `Sony Remote Control Devices` and select `Update Driver`.
+    * Select `Browse my computer for drivers`.
+    * Select `Let me pick from a list of available drivers on my computer`.
+    * Left-click on `MTP USB Device`.
+    * Your driver should now update.  NOTE: Your camera is now listed under `Portable device`. Other software may not function correctly with the Device Manager configured this way. 
+    * You can change back to the original setting by following these steps and selecting `libusbK Usb Devices` as the new driver instead of `MTP USB Device`.
 
 Hopefully, Nina will now connect to your camera.
 
@@ -825,6 +855,7 @@ The Remote Control Plug-in defaults to port 8090. This port can conflict with ot
 
 ### S1 - StellariumPLUS Cannot Connect to the Alpaca Driver
 There are three approaches to connect StellariumPLUS to the Alpaca Driver, depending on your setup scenario.
+
 * Scenario A: The Alpaca Driver device connects to Polaris Hotspot only.
     * Connect your phone to the Polaris Hotspot.
     * In Stellarium's Observing Tools Setup, enter a Network Host of `192.168.0.3` 
@@ -843,17 +874,20 @@ There are three approaches to connect StellariumPLUS to the Alpaca Driver, depen
     * This address needs to match the IP address of your Alpaca Driver machine on your NinaAir Wifi.
 
 ### S2 - Still Cannot Connect StellariumPLUS to the Alpaca Driver
+
 * Check IP connectivity. You must run StellariumPLUS on a mobile device that can communicate with the Alpaca Driver. Use a free mobile Ping app to check that you can ping the Alpaca Driver device. If you cannot ping, then check that you are not using the phone's mobile data, that you are within range of your router's Wi-Fi signal, and that your phone is connected to your home Wi-Fi.
 * Check the StellariumPLUS Host field on the Observing Tools settings popup. This needs to be set to the Alpaca Driver's IP address. Do not use 127.0.0.1 Loopback. 
 * Check stellarium_telescope_ip_address in config.toml. This can be left as its default '' to make the Driver serve the SynScan protocol on any network adapter it can find. If you want to limit the IP address servered by the Driver, you can set this to the IP address of the Mini-PC on your home network. 
 
 ### S3 - Stellarium Desktop has greyed out ASCOM option
+
 * Stellarium Desktop v24.3 for Windows has two installable versions depending on a third party library it uses, called Qt. 
 * The Stellarium Desktop v24.3 Qt6 version no longer has ASCOM drivers enabled. 
 * We recommend you install Stellarium Desktop v24.3 Windows x86_64 **Qt5** Windows 7+ version.
 * If you installed the incorrect version, simply uninstall it and reinstall the version mentioned above.
   
 ### S4 - Stellarium Desktop freezes with Remote Desktop
+
 * Check fps settings. Stellarium's default is a crazy 10000 fps. We suggest reducing the default settings in the following file `C:\Users\Nina\AppData\Roaming\Stellarium\config.ini`, where Nina is replaced with your User name.
     ```
     [video]

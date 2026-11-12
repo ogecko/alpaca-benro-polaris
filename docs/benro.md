@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Benro Sponsorship
 
 ## Original outreach email (2-Sep-2024)
@@ -67,6 +65,7 @@ We, the undersigned users of the Benro Polaris, wish to bring to your immediate 
 ## Benro Australia (31-Oct-2025) - No Response
 Hi Benro Australia, 
 I have a Benro Polaris that has two hardware issues.
+
 1. When the battery falls to 1% I cannot get the device to recharge. I've tried every type of USB-C connected powerbank and power supply. Cannot use the device at all while in this state.
 2. I have one of the early Benro Polaris devices, as it can be tough to turn on with the double press of the power button. I've followed the Global Facebook Forum comments but it can be very challenging sometimes to even power the device on.
 Could you put me in contact with someone from Benro who can support me?
@@ -78,6 +77,7 @@ Problem: Polaris has become unresponsive and does not power up.
 Description: Unable to power Polaris device or connect via the Benro Connect App. The Green LED only illuminates when USB power is supplied. The Blue LED never illuminates. When I attempt to power on the device, I hear the 3 beeps, but no blue LED. It does not appear to be advertising on Bluetooth either, as the Connect App cannot see it on the Nearby Devices page. When I hold the Power Button the Polaris Beeps once, moves slightly, but does not proceed to the storage position.
 
 Recovery: I have attempted the following steps to recover the device.
+
 1. Power on the device multiple times; double-pressing the power button is usually successful.
 2. Disconnect the charging cable and repeat 1.
 3. Charged the device overnight with a 5V/2A Power supply.

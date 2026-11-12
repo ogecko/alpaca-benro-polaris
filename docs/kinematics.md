@@ -1,7 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
-
-
 # Alpaca Driver — Kinematics Reference
 [Overview](#1-overview) | 
 [QUEST](#21-quest-alignment-optimisation) |
@@ -62,12 +58,14 @@ The Alpaca Driver achieves superior tracking performance through a multi-layered
 **QUEST (QUaternion ESTimator)** is an advanced mathematical framework used in Multi-Point Alignment (MPA) to calculate the most accurate relationship between your Polaris mount and the night sky. In the context of the Alpaca Driver, it is a **closed-form, quaternion-based solution** designed to solve "Wahba’s problem": determining the optimal rotation that aligns a set of predicted sensor vectors with observed "ground-truth" vectors from plate solving.
 
 Because the Benro Polaris is an **Alt/Az/Roll mount**, it lacks a physical axis naturally aligned with Earth’s rotation. This makes tracking complex, as all three motors must coordinate perfectly to follow a target. QUEST solves several critical hardware and environmental challenges that standard software cannot:
+
 *   **Mechanical Imperfections:** It compensates for **cone error, polar misalignment, and general mechanical offsets**.
 *   **Tripod Tilt:** A major advantage of QUEST is that **users no longer need to obsess over leveling their tripod**, as the model mathematically detects and corrects for tilt.
 *   **Tracking Accuracy:** It minimizes the angular residuals (errors) between where the mount *thinks* it is pointing and where it *actually* is, leading to superior sidereal tracking for long-exposure deep-sky photography.
 
 #### **II. Integration with Single Point Alignment (SPA)**
 The Alpaca Driver supports two distinct modes: **Single-Point Alignment (SPA)** and **Multi-Point Alignment (QUEST/MPA)**. 
+
 *   **SPA (The Foundation):** This mirrors the standard Polaris method by syncing to one known celestial position. While simple, it relies on **precise tripod leveling** and is highly susceptible to drift because it cannot account for complex geometric errors.
 *   **QUEST (The Advanced Layer):** QUEST fits "on top" of the basic alignment by utilizing **three or more sync points** to build a detailed 3D correction model. Instead of a single global offset, QUEST finds the **optimal rotation (alignQ_B2T)** that transforms the mount's "Base Frame" into the true "Topocentric Frame" (the actual sky). 
 
@@ -75,6 +73,7 @@ By using QUEST, the driver can correct for the fact that a sync point taken in t
 
 #### **III. The Mathematics of the Model (Briefly)**
 QUEST operates by minimizing a **quadratic loss function**, which is essentially the sum of the squared differences between pairs of reference vectors (stars) and measured vectors (mount sensors). 
+
 1.  **Vector Pairing:** Each sync point provides a pair of vectors: the **predicted direction** from the mount's internal sensors and the **observed direction** from a plate solve.
 2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs. With **Mechanical Alignment Correction** on, the rotation is instead fitted together with the M2/M3 offsets, unweighted (see [2.3](#23-mechanical-alignment-corrections-mac)).
 3.  **Eigenvector Solution:** The "optimal" alignment is found by identifying the **eigenvector with the largest eigenvalue** of that matrix. This provides a **unit quaternion** that represents the best-fit rotation for the entire system.
@@ -115,6 +114,7 @@ The Alpaca Driver utilizes three distinct strategies to handle these residuals, 
 
 3.  **Sync Guiding Adjustment (SGA):** (Recommended)
     SGA leaves the QUEST model unchanged and instead **offsets the pointing by the error left at the last sync**. After each alignment sync, the residual at that point becomes a correction applied to everything the mount does, so a corrective slew lands where the plate solve says it should.
+
     * **It does not need Sync Guiding.** The name comes from the correction it uses, which it shares with Sync Guiding; it works the same with Sync Guiding on or off, with pulse guiding (PHD2's corrections are applied on top, separately), or with no guiding at all.
     * **It builds on itself.** With Sync Guiding on, further syncs on the same target refine this same correction instead of adding alignment points, and PEC Drift Correction folds its corrections into it too.
     * **It lasts until it is replaced.** The next alignment sync sets a new offset; a goto or slew keeps it (so the next Slew & Center benefits); turning tracking off or changing the alignment or Slew & Center settings clears it.
@@ -135,6 +135,7 @@ The formula for the weight is:
 *   **Beyond 45°:** The weight is less than 0.05, meaning the LGA is effectively inactive and the mount relies solely on the QUEST model.
 
 #### **V. Operational Benefits**
+
 *   **Faster Centering:** By eliminating the local residual at the target, the first "corrective slew" issued by imaging software is more accurate.
 
 
@@ -236,12 +237,14 @@ Instead, the driver interprets the resulting residual error as a **guiding corre
 
 #### **III. Integration with QUEST and PID Control**
 This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to function at its highest potential. 
+
 *   **Dynamic Refinement:** By feeding the model fresh "ground-truth" data every few minutes, any local errors can be corrected for dynamically. 
 *   **Drift Reduction:** The residual data is fed into the **PID Controller**, which automatically adjusts motor speeds to "kill" the drift. 
 *   **Reduced Star Trails:** By proactively correcting for the worm gear error and inherent drift, exposures remain sharp even during lengthy imaging sessions.
 
 #### **IV. Recommended Workflow: The Plate-Solve/Sync Guiding**
 To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
+
 1.  **Reset Multi-Point-Alignment** - To reset MPA, clear all old Sync points, or toggle MPA off then back on (this will clear all sync points). Enable Tracking.
 2.  **Perform Multi-Point-Alignment** - Slew and capture at least three sync-points. Ideally, at your celestial pole and along the future path of your DSO Target.
 3.  **Slew and Center on your target** - Use Nina to Slew and Center on your target.
@@ -251,6 +254,7 @@ To get the best results and maintain perfect centering without manual interventi
 > **Note:** Don't use Sync Guiding at the same time as Pulse Guiding. The guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back, and the target drifts off center anyway (e.g. from flexure between guide scope and main scope). To keep the target centered during a long Pulse Guided session, use Nina's **Center After Drift** trigger instead. When the plate solve drifts past the threshold (about 0.3–0.5 arcmin), Nina stops guiding, re-centers the target, and restarts guiding with a new lock position. Each re-center is a slew, which resets the driver's PEC model, so avoid setting the threshold too tight.
 
 #### **V. Primary Benefits**
+
 *   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
 *   **Superior Accuracy:** Plate-solves provide significantly more information and higher resolution than traditional guide star pulses.
 *   **Streamlined Operations:** No more repetitive "Slew and Center" iterations are needed; the guiding happens "in-place" as part of the normal imaging sequence.
@@ -270,17 +274,20 @@ The driver interprets this input as a **corrected position change**. In the PID 
 
 #### **III. The Mathematical Model (Briefly)**
 Starting with version 2.2, the driver utilizes a refined mathematical approach to ensure these pulses are executed with extreme fidelity:
+
 *   **PID Feed-Forward Control:** The driver incorporates feed-forward logic specifically for pulses, allowing the motors to reach the required correction velocity almost instantaneously.
 *   **Integral Suspension:** To prevent "overshoot"—where the mount continues moving after a pulse ends—the driver **temporarily suspends the integration of the error term** (KI) during an active pulse. This ensures the correction is crisp and does not introduce new oscillations.
 
 #### **IV. How to Use and Get the Best Results**
 For a comprehensive guide on hardware selection and software configuration, please refer to the **Guiding Users Guide** (`guiding.md`). To optimize the kinematic response of pulse guiding:
+
 *   **Set the Guide Rate:** A guide rate of **0.75x to 1.0x sidereal** is recommended. If the mount appears to "hunt" or oscillate, lowering this rate in the Alpaca Pilot settings can smooth the response.
 *   **Multi-Star Guiding:** Always enable "Use Multiple Stars" in your guiding software. This averages out atmospheric turbulence (seeing), providing the PID controller with a cleaner signal that represents true mechanical drift rather than "chasing the wind".
 *   **Monitor the PID Loop:** You can visualize pulse commands in real-time on the **PID Tuning page** in Alpaca Pilot, where they appear as dynamic shifts in the RA and Dec setpoints.
 *   **Don't Combine with Sync Guiding:** The guider pulls each sync correction straight back to its lock position. To keep the target centered during a long session, use Nina's **Center After Drift** trigger instead (see the note in section 2.4, Recommended Workflow).
 
 #### **V. Primary Benefits**
+
 *   **Sub-Exposure Correction:** The main benefit of pulse guiding is the ability to correct tracking errors **within a single exposure**. This prevents small drifts from turning stars into "footballs" or trails before the frame is completed.
 *   **Longer Exposures:** By eliminating cumulative drift, pulse guiding enables the Benro Polaris to maintain pinpoint stars over much longer imaging sessions than would be possible unguided.
 *   **Reduced RMS Error:** With a well-tuned PID loop and proper calibration, pulse guiding can reduce the mount's tracking error to an **RMS of 1.5 to 3.0 arc-seconds**, meeting the requirements for high-resolution deep-sky imaging.
@@ -322,14 +329,14 @@ PEC does not immediately apply drift correction. As guiding corrections arrive, 
 Incoming data used in the estimate is filtered, and the model must first demonstrate that it has converged.
 
 * **Filtering Logic:** Corrections not relevant for PEC are filtered out
-  * large corrections **greater than 10 arc minutes** are ignored. This prevents bad guiding measurements from "poisoning" the model.
-  * Pulse Guiding calibration corrections are also ignored. The driver detects when **PHD2** or **CCDciel** are performing calibration steps and purposefully ignores them.
+    * large corrections **greater than 10 arc minutes** are ignored. This prevents bad guiding measurements from "poisoning" the model.
+    * Pulse Guiding calibration corrections are also ignored. The driver detects when **PHD2** or **CCDciel** are performing calibration steps and purposefully ignores them.
 
 * **Convergence Requirements:** PEC begins applying drift corrections to sidereal tracking only when all three conditions are met:
 
-  1. **Observations:** At least **3 corrections** have been received.
-  2. **Accuracy:** The root mean square error (RMSE) is below **6 arc minutes**.
-  3. **Reliability:** The R-squared (R²) value is greater than **0.500**.
+    1. **Observations:** At least **3 corrections** have been received.
+    2. **Accuracy:** The root mean square error (RMSE) is below **6 arc minutes**.
+    3. **Reliability:** The R-squared (R²) value is greater than **0.500**.
 
 > Note: Drift Correction applies only when PEC Drift Correction is switched on.
 
@@ -369,13 +376,13 @@ For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° fiel
 2. Point the mount at a patch of sky **30-45° above the horizon** in the **eastern or western sky: Azimuth roughly 45-135° (east) or 225-315° (west)**, as shown in Pilot. Avoid due north or south and the area around the celestial pole. Choose a field with plenty of stars and about ±9° of clear sky around it (no trees or buildings), as the test moves the mount up to 7.5° each way.
 
 3. In NINA (or similar), create a looping sequence of around 60 iterations. 
-   * On the equipment tab, connect the Camera, then connect the Mount to the Alpaca Driver
-   * On the options/plate-solve tab, set your plate-solve exposure time to 1s
-   * Using the Advanced Sequencer create a Squential Instruction Set
-   * Set the Loop condition to "Loop for Iterations", 60 times
-   * Within the loop add instructions
-     * Run a repeating **Solve and Sync** using the short exposures. 
-     * Add a **Wait for Time Span** of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.
+    * On the equipment tab, connect the Camera, then connect the Mount to the Alpaca Driver
+    * On the options/plate-solve tab, set your plate-solve exposure time to 1s
+    * Using the Advanced Sequencer create a Squential Instruction Set
+    * Set the Loop condition to "Loop for Iterations", 60 times
+    * Within the loop add instructions
+        * Run a repeating **Solve and Sync** using the short exposures. 
+        * Add a **Wait for Time Span** of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.
       
     ![Worm Gear Corrections](images/abp-nina-worm-profile.png)
 
@@ -419,26 +426,26 @@ The results are displayed in columns, with one line per motor under each heading
 
 * **Test Stdev:** Shows how well the worm gear model fits the measurements and how precisely each motor's wobble has been estimated.
 
-  For example, a pooled result might show: `pooled 19.4" rms`, then `M1 ±3.9" 5.4σ`, `M2 ±3.7" 23.2σ`, `M3 ±3.1" 27.4σ`. These values describe the Test Result, not the Baseline.
+    For example, a pooled result might show: `pooled 19.4" rms`, then `M1 ±3.9" 5.4σ`, `M2 ±3.7" 23.2σ`, `M3 ±3.1" 27.4σ`. These values describe the Test Result, not the Baseline.
 
-  * `pooled 19.4" rms` is the root-mean-square (RMS) residual: how far the individual plate-solve measurements typically fall from the fitted model. Seeing, wind and small pointing errors all contribute. The pooled fit allows an RMS of up to 25".
-  * Individual test quality: Each test must have an RMS below 20" to contribute to the pooled result. If the latest test exceeds this threshold, it remains in the history but is excluded from the pool. For example: `⚠ last test left out: 24.1" rms`
-  * Single-test results: When only one test is available, the first line shows its RMS, such as `last test 11.9" rms`. If the test stopped before completing all 50 measurement positions, the line also shows how many were measured, such as `31 positions`. At least 16 positions are required for a test to be used.
-  * `±3.1"` is the estimated uncertainty in the motor's wobble amplitude. For example, 85" ±3.1" means the estimated wobble is 85 arcseconds, with an uncertainty of approximately 3.1".
+    * `pooled 19.4" rms` is the root-mean-square (RMS) residual: how far the individual plate-solve measurements typically fall from the fitted model. Seeing, wind and small pointing errors all contribute. The pooled fit allows an RMS of up to 25".
+    * Individual test quality: Each test must have an RMS below 20" to contribute to the pooled result. If the latest test exceeds this threshold, it remains in the history but is excluded from the pool. For example: `⚠ last test left out: 24.1" rms`
+    * Single-test results: When only one test is available, the first line shows its RMS, such as `last test 11.9" rms`. If the test stopped before completing all 50 measurement positions, the line also shows how many were measured, such as `31 positions`. At least 16 positions are required for a test to be used.
+    * `±3.1"` is the estimated uncertainty in the motor's wobble amplitude. For example, 85" ±3.1" means the estimated wobble is 85 arcseconds, with an uncertainty of approximately 3.1".
 
-    **Why is the wobble uncertainty smaller than the plate-solve RMS?** The RMS measures the typical residual error of individual plate solves. The ± value estimates how precisely the wobble amplitude has been determined from all the measurements. Combining measurements helps random noise average out, so the amplitude can be estimated more precisely than the residual error of an individual measurement. With up to 250 positions across five tests, the uncertainty can be substantially smaller than the RMS.
+        **Why is the wobble uncertainty smaller than the plate-solve RMS?** The RMS measures the typical residual error of individual plate solves. The ± value estimates how precisely the wobble amplitude has been determined from all the measurements. Combining measurements helps random noise average out, so the amplitude can be estimated more precisely than the residual error of an individual measurement. With up to 250 positions across five tests, the uncertainty can be substantially smaller than the RMS.
 
-  * `σ` (sigma) indicates how clearly the measured wobble stands out from its uncertainty. It is the estimated amplitude divided by its uncertainty. For example, M3 at 85" ±3.1" has a significance of approximately 27.4σ, strong evidence that the wobble is real.
+    * `σ` (sigma) indicates how clearly the measured wobble stands out from its uncertainty. It is the estimated amplitude divided by its uncertainty. For example, M3 at 85" ±3.1" has a significance of approximately 27.4σ, strong evidence that the wobble is real.
     
-    A motor receives a correction only if its measured wobble reaches 4σ or higher. Below this threshold, the wobble cannot be distinguished reliably from noise, so the Test Result shows `off`.
+        A motor receives a correction only if its measured wobble reaches 4σ or higher. Below this threshold, the wobble cannot be distinguished reliably from noise, so the Test Result shows `off`.
 
-    Higher sigma values indicate greater confidence in the measurement. A motor just above the threshold, such as M1 at 5.4σ, has a measurable wobble, but its estimate is less robust. Additional tests or a test at a different mount position may improve confidence.
+        Higher sigma values indicate greater confidence in the measurement. A motor just above the threshold, such as M1 at 5.4σ, has a measurable wobble, but its estimate is less robust. Additional tests or a test at a different mount position may improve confidence.
 
 * **Status:**
 
-  * `COMPLETED` — the measurements fitted cleanly and at least one motor's wobble was measured clearly (pooled over the recent tests).
-  * `POOR FIT` — no wobble could be distinguished reliably from noise, or the measurements scattered too much (e.g. wind, backlash).
-  * `NO DATA` or `STOPPED` — too few plate solves were received.
+    * `COMPLETED` — the measurements fitted cleanly and at least one motor's wobble was measured clearly (pooled over the recent tests).
+    * `POOR FIT` — no wobble could be distinguished reliably from noise, or the measurements scattered too much (e.g. wind, backlash).
+    * `NO DATA` or `STOPPED` — too few plate solves were received.
 
 Running the test again at a different pose reduces the effect of measurement noise.
 
@@ -536,58 +543,58 @@ With PEC Worm Gear Correction on, the driver writes these lines each time it rea
 * `WORMPROFILE IN USE:` is the profile each motor is using, also logged whenever a motor's choice changes (it reverses): `200mm F4: M1 duplex, M2 fwd, M3 rev`. The label is the lens profile chosen, or `generic` for the generic profile (pooled over every lens's approved tests). For each motor, `fwd`/`rev` is its split profile for the way it is turning, `duplex` is one profile for both directions (or a split motor that hasn't moved yet), and `off` is no correction.
 * `WORMPROFILE SUMMARY:` is the profile in a readable form, in the same format as the worm profile test's `WORM PROFILE TEST: END` line. Each motor shows its amplitude ± uncertainty @ peak angle and significance (σ), with `off` for a motor left uncorrected.
 * `WORMPROFILE {...}` is the profile itself as a Python dict (read it with `ast.literal_eval`):
-  * `motors` gives each motor's coefficients in arcsec (sin and cos for each harmonic);
-  * `worm_theta` and `harmonics` give the worm period and which harmonics are fitted;
-  * `angle_reference` gives which angle each motor's coefficients use (`zeta`: the 517 MCU angles);
-  * `direction_motors` gives the forward and reverse coefficients of the motors split by direction (absent when none is);
-  * `setup` gives the lens whose profile is in use (`None`: the generic profile);
-  * `applied` gives when the profile was last rebuilt (an Approve or Reject).
+    * `motors` gives each motor's coefficients in arcsec (sin and cos for each harmonic);
+    * `worm_theta` and `harmonics` give the worm period and which harmonics are fitted;
+    * `angle_reference` gives which angle each motor's coefficients use (`zeta`: the 517 MCU angles);
+    * `direction_motors` gives the forward and reverse coefficients of the motors split by direction (absent when none is);
+    * `setup` gives the lens whose profile is in use (`None`: the generic profile);
+    * `applied` gives when the profile was last rebuilt (an Approve or Reject).
 
-  The profile file changes whenever a test is approved or rejected, so this line keeps a record of the coefficients the session actually ran with. Match it with `WORMPROFILE {`, since the summary line also starts with `WORMPROFILE`.
+    The profile file changes whenever a test is approved or rejected, so this line keeps a record of the coefficients the session actually ran with. Match it with `WORMPROFILE {`, since the summary line also starts with `WORMPROFILE`.
 
 Each `PECLOG` entry is a Python dict. Read it with `ast.literal_eval`. Paired RA/Dec values are represented as `[ra, dec]`.
 
 * `inhibit` is the status of each axis:
 
-  `TOO_FEW_OBS` → `LOW_R2`/`HIGH_RMSE` → `VALID`
+    `TOO_FEW_OBS` → `LOW_R2`/`HIGH_RMSE` → `VALID`
 
-  `r2` and `rmse` (arcmin) describe the fit quality that determines the status.
+    `r2` and `rmse` (arcmin) describe the fit quality that determines the status.
 
-  `pec_active` is `true` when *either* axis is `VALID`. Whether an individual axis is corrected is determined by that axis's own `inhibit` state.
+    `pec_active` is `true` when *either* axis is `VALID`. Whether an individual axis is corrected is determined by that axis's own `inhibit` state.
 
 * `fit_rate` is PEC's estimated drift rate at the time of the update.
 
-  `applied_rate` is the rate most recently applied to the motors (arcmin/hr).
+    `applied_rate` is the rate most recently applied to the motors (arcmin/hr).
 
-  When an axis first becomes `VALID`, `applied_rate` is zero for that entry. The rate is applied from the next tick.
+    When an axis first becomes `VALID`, `applied_rate` is zero for that entry. The rate is applied from the next tick.
 
 * `resid` is the guide correction for this update (arcmin). This value should decrease as PEC improves.
 
-  `pec_accum` is the correction applied by PEC since the previous entry.
+    `pec_accum` is the correction applied by PEC since the previous entry.
 
-  `total_accum` is `resid` + `pec_accum`, accumulated since PEC was last reset by a goto, rotate, jog, tracking off, or settings change.
+    `total_accum` is `resid` + `pec_accum`, accumulated since PEC was last reset by a goto, rotate, jog, tracking off, or settings change.
 
-  `total_accum` represents the drift that PEC would have left without correction, so it does not decrease as PEC improves.
+    `total_accum` represents the drift that PEC would have left without correction, so it does not decrease as PEC improves.
 
 * `wff` is the worm gear correction currently being applied, split between RA and Dec (arcmin, using the same convention).
 
-  The guide corrections no longer contain the component corrected by `wff`. Therefore, the mount's remaining drift is:
+    The guide corrections no longer contain the component corrected by `wff`. Therefore, the mount's remaining drift is:
 
-  `total_accum + wff`
+    `total_accum + wff`
 
 * `theta_raw` is the motor angles `[M1, M2, M3]` from 518. M1 includes the session's compass / Single Point Alignment heading.
 
-  `zeta` is the MCU's motor angles from the most recent 517.
+    `zeta` is the MCU's motor angles from the most recent 517.
 
-  `zeta_offset` = `theta_raw - zeta` at that 517.
+    `zeta_offset` = `theta_raw - zeta` at that 517.
 
-  `zeta_age` is the age of that reference (s).
+    `zeta_age` is the age of that reference (s).
 
-  Therefore, `theta_raw - zeta_offset` gives each motor's angle using the same reference throughout the session. This is the reference used by per-motor worm analysis.
+    Therefore, `theta_raw - zeta_offset` gives each motor's angle using the same reference throughout the session. This is the reference used by per-motor worm analysis.
 
 * `az`/`alt`/`roll` are the current pose (degrees).
 
-  `age_518` is the number of seconds since the last 518 message. A large value indicates that the entry occurred during a telemetry gap.
+    `age_518` is the number of seconds since the last 518 message. A large value indicates that the entry occurred during a telemetry gap.
 
 To start a test from a clean PEC state, toggle Tracking off and on. This resets PEC and the sync guide correction.
 
@@ -615,6 +622,7 @@ The Polaris firmware measures motor angle before the gearbox, so it cannot direc
 
 
 Backlash can cause:
+
 - **Slew & Center errors:** A goto may finish with the gears unloaded in the tracking direction, causing the camera to shift as tracking takes up the slack.
 - **Drift during tracking reversals:** When a motor reverses direction, the camera may temporarily stop moving, causing tracking to drift as the slack is taken up.
 - **Low-speed guiding oscillations:** Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see [Guiding §6.4](./guiding.md)).
@@ -882,9 +890,10 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 
 
 Conventions:
- - Positive RA rotation: boresight moves eastward along celestrial equator (increasing RA)
- - Positive Dec rotation: boresight moves toward north celestial pole (increasing Dec)
- - Positive PA rotation: camera rotates counter-clockwise (increasing PA)
+
+- Positive RA rotation: boresight moves eastward along celestrial equator (increasing RA)
+- Positive Dec rotation: boresight moves toward north celestial pole (increasing Dec)
+- Positive PA rotation: camera rotates counter-clockwise (increasing PA)
 
 Conversion between T and E frames is handled by `pyephem` using the observer's site
 coordinates and time. Angles are always used in practice for the E frame.

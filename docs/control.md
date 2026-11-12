@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Advanced Motion Control Guide
 [Challenges](#challenges-with-existing-control) | 
 [Rotator](#alpaca-rotator) | 
@@ -19,6 +17,7 @@
 The Benro Polaris mount, especially with its Astro Attachment, is popular among amateur astrophotographers for its compact design and app-driven interface. But while the hardware is excellent, the software can leave many users frustrated.
 
 When version 1.0 of the Alpaca Driver was launched, it allowed advanced imaging and planetarium software to work with the Polaris. As more people used these applications, limitations quickly surfaced:
+
 - Tracking drift was noticeable during long imaging sessions
 - Promised features like three-star alignment never materialized
 - Users lacked the precision tools needed for serious deep sky work
@@ -220,6 +219,7 @@ The Multi-Point Alignment model is built by performing synchronization (`SYNC`) 
 ### C. Polar Alignment
 
 To assist the multi-point model to be as polar aligned as possible, we recommend performing a plate-solve at your Celestrial Pole. This will ensure a point for the Celestrial Pole is in the model and help reduce residual error at that location. Use the following procedure:
+
 1. **Launch Alpaca Pilot**: from a web browser or via Nina Equipment setup cogs.
 2. **Search the catalog**: By typing 'pole' into the search bar
 3. **Initiate Navigation**: Once a target is selected, click the appropriate GOTO button to immediately navigate to that location. 
@@ -229,6 +229,7 @@ To assist the multi-point model to be as polar aligned as possible, we recommend
 ### D. Target Trajectory Alignment
 
 Any remaining points in the model should be placed along the trajectory of your imaging target. You can perform just one plate-solve at your target, or if you are performing a long imaging session you may want to perform a couple of plate-solves along its trajectory. 
+
 1. **Navigate to your target**: Use Alpaca Pilot, Stellarium or Nina to select and navigate to the current location of your target
 2. **Optionally Naviagate along target trajectory**: 
     1. **Decrease Right Ascenscion** Use Alpaca Pilot to decrease the Right Ascension position by an hour or two. Enter 'd-2' into the Right Ascension setpoint field.
@@ -257,6 +258,7 @@ A very good multi-point alignment model will have all sync points with residuals
 From Alpaca Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. You can now restart the driver or reboot the MiniPC mid-session and resume imaging without losing your alignment.
 
 However, if you physically move or re-level the tripod, the saved model will no longer match your new setup and must be reset. To clear all sync points:
+
 1. Open Alpaca Pilot and navigate to the Alignment page.
 2. Switch to Single-Point Alignment. This clears all saved sync points.
 3. Switch back to Multi-Point Alignment.
@@ -285,6 +287,7 @@ You can manually add a sync point by specifying a known celestial target using *
 - Benefit: Useful when plate solving isn’t available or for quick calibration
 
 Nina does not sync the plate-solved Position Angle with the Alpaca Driver. We recommend that you do this manually at least once per imaging session.
+
 - Perform a plate-solve and note the Roll Angle reported.
 - Using Pilot, open the Alignment Page. 
 - On the Methods to add SYNC Points panel, open the RA/DEC/PA tab.
@@ -295,6 +298,7 @@ Nina does not sync the plate-solved Position Angle with the Alpaca Driver. We re
 ![Alignment Sync](images/control-sync3.png)
 
 The Alpaca Driver now supports syncing using **azimuth and altitude**, which means you can align to visible landmarks, even during the day or without a star field.  At your observing site, you might have a visible landmark like a high-tension power line or surveyers mark. If you point your camera directly at it:
+
 - Use the **Pilot app** to click on the landmark on the map in the Alignment page.
 - The Alpaca Driver draws a line from your site to the landmark and calculates its azimuth and altitude
 - Click **Sync** to add it to the model
@@ -317,22 +321,22 @@ The Alpaca Driver now supports syncing using **azimuth and altitude**, which mea
 If you connect to the Polaris and notice that the **Azimuth, Altitude, or Roll coordinates** appear incorrect even when the mount is in the home position, you can reset the alignment to a known state using the following steps:
 
 1. **Clear Sync Points**  
-   - Open the **Alignment Page**  
-   - Switch to **Multi‑Point Alignment**  
-   - Delete all existing sync points in the model  
+    - Open the **Alignment Page**  
+    - Switch to **Multi‑Point Alignment**  
+    - Delete all existing sync points in the model  
 
 2. **Switch to Single‑Point Alignment**  
-   - Change the alignment mode to **Single Point**  
+    - Change the alignment mode to **Single Point**  
 
 3. **Reset Axes**  
-   - Open the **Connect Page**  
-   - Click **Reset Axes** to reset each of the Polaris axes  
+    - Open the **Connect Page**  
+    - Click **Reset Axes** to reset each of the Polaris axes  
 
 4. **Compass Align**  
-   - On the compass alignment step, click **SKIP**  
+    - On the compass alignment step, click **SKIP**  
 
 5. **Single Star Align**  
-   - On the single star alignment step, click **SKIP**  
+    - On the single star alignment step, click **SKIP**  
 
 This procedure resets the single‑star alignment model in Polaris to the coordinates defined under the **Single Star SKIP** button. From here, you can:
 
@@ -358,13 +362,13 @@ Version 2.0 of the Alpaca Driver introduces essential safety mechanisms to prote
 To prevent these issues, the driver now includes:
 
 - **Motor Angle Limits**  
-  These define safe rotation boundaries for each axis, ensuring the mount never turns far enough to cause cable strain or collision. You can customize these limits based on your setup.
+    These define safe rotation boundaries for each axis, ensuring the mount never turns far enough to cause cable strain or collision. You can customize these limits based on your setup.
 
 - **Revised Find Home Behavior**  
-  The updated Find Home routine uses sensor feedback to return the mount to a known, safe orientation, without taking shortcuts and over-rotating cables.
+    The updated Find Home routine uses sensor feedback to return the mount to a known, safe orientation, without taking shortcuts and over-rotating cables.
   
 - **Improved Park Functionality**  
-  The Park feature now respects motor limit, allowing you to safely stow the mount at a custom location, again without risking cable wrap or tripod collisions.
+    The Park feature now respects motor limit, allowing you to safely stow the mount at a custom location, again without risking cable wrap or tripod collisions.
 
 ### A. Motor Angle Limits
 
@@ -430,14 +434,15 @@ The **Kalman Filter** is a core component of the motion control system introduce
 The Kalman Filter is designed to solve a fundamental problem: **sensor noise**. The Polaris mount reports its orientation every 200 milliseconds, but these readings can fluctuate significantly — especially at arcsecond-level precision. The key benefits of the Kalman Filter include:
 
 - **Noise Reduction**  
-  Raw telemetry from the mount is often jittery. The Kalman Filter smooths out these fluctuations, removing spikes and inconsistencies that would otherwise degrade tracking accuracy.
+    Raw telemetry from the mount is often jittery. The Kalman Filter smooths out these fluctuations, removing spikes and inconsistencies that would otherwise degrade tracking accuracy.
 
 - **State Estimation**  
-  Rather than relying solely on raw data, the filter combines:
-  - **Measured telemetry** (what the mount says it's doing)
-  - **Predicted motion** (what the system expects based on recent behavior)  
+    Rather than relying solely on raw data, the filter combines:
 
-  This fusion produces a more reliable estimate of the mount’s true position and velocity.
+    - **Measured telemetry** (what the mount says it's doing)
+    - **Predicted motion** (what the system expects based on recent behavior)  
+
+    This fusion produces a more reliable estimate of the mount’s true position and velocity.
 
 
 ## II. Analogy: A Stabilizer in the Fog
@@ -445,6 +450,7 @@ The Kalman Filter is designed to solve a fundamental problem: **sensor noise**. 
 Imagine trying to track a fast-moving object while standing on a rocking boat in thick fog. Your view is shaky, your footing unstable, and your guesses are rough at best.
 
 The **Kalman Filter** is like a digital stabilizer:
+
 - It predicts where the object should be
 - It compares that prediction to your noisy observations
 - It fuses both into a much clearer, more stable estimate
@@ -458,17 +464,20 @@ This is particularly important for M3, whose position updates less frequently th
 While the default settings are well-optimized, the **Kalman Filter Tuning** page in the Alpaca Pilot App allow deeper insight and control. To access the Kalman Filter Tuning Page, Open the **Alpaca Pilot App** and naigate to  **KF Tuning** under the Performance Tuning in the Side Menu
 
 ### A. What You Can Do
+
 - **Visualize performance** using real-time charts showing:
-  - Blue line: raw sensor data
-  - White line: filtered estimate
+    - Blue line: raw sensor data
+    - White line: filtered estimate
 - **Adjust filter parameters** to control how much trust is placed in raw telemetry vs predicted motion
 - **Test slow movement** to observe how the filter responds to subtle tracking changes
 
 ### B. Example Parameters Explained
+
 - **Angular Position Measurement Error**  
-  This setting tells the filter how noisy you believe the raw data is.  
-  - Set it **low** (e.g. near zero) if you trust the sensor readings completely — but expect a jittery output  
-  - Set it **higher** to smooth out fluctuations and get a more stable estimate
+    This setting tells the filter how noisy you believe the raw data is.  
+
+    - Set it **low** (e.g. near zero) if you trust the sensor readings completely — but expect a jittery output  
+    - Set it **higher** to smooth out fluctuations and get a more stable estimate
 
 - **Kalman Gain**  
 This value is a key parameter in the Kalman Filter algorithm that determines how much weight to give to new measurements versus the filter’s internal prediction. It controls how much the system “trusts” the incoming sensor data compared to its own estimate of what should be happening.
@@ -476,7 +485,7 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
     - A **high Kalman Gain** means the filter relies heavily on the latest measurement — making it more responsive but potentially noisier.
     - A **low Kalman Gain** means the filter favors its prediction — resulting in smoother output but slower reaction to changes.
 
-  - If you increase the measurement error, make sure the **Kalman Gain stays above 0.15**. A typical stable value is around **0.15** to **0.25**, which balances responsiveness with smoothness
+    - If you increase the measurement error, make sure the **Kalman Gain stays above 0.15**. A typical stable value is around **0.15** to **0.25**, which balances responsiveness with smoothness
 
 
 
@@ -501,6 +510,7 @@ You can access the Motor Speed Calibration Tool by opening Alpaca Pilot and navi
 ## A. Preparing for the Test
 
 Before running a motor speed calibration test:
+
 - Ensure the **Polaris mount can move freely**
 - **Remove any camera or payload** to avoid strain
 - You can perform this test **during the day**
@@ -509,35 +519,38 @@ Before running a motor speed calibration test:
 ## B. Running the Calibration
 
 1. **Select an Axis**  
-   Choose which motor axis to test:
-   - **M1** – Azimuth
-   - **M2** – Altitude
-   - **M3** – Rotation (Astro Axis)
+    Choose which motor axis to test:
+
+    - **M1** – Azimuth
+    - **M2** – Altitude
+    - **M3** – Rotation (Astro Axis)
 
 2. **Start the Test**  
-   - Click **Test** to begin
-   - If no specific test is selected, the driver will test **all available speeds**
-   - The mount will move through a series of commands, measuring actual speed at each step
+    - Click **Test** to begin
+    - If no specific test is selected, the driver will test **all available speeds**
+    - The mount will move through a series of commands, measuring actual speed at each step
 
 3. **Monitor Test Progress**  
-   - Monitor the completion of each test in the table view.
-   - You can ABORT and stop the tests at any time.
+    - Monitor the completion of each test in the table view.
+    - You can ABORT and stop the tests at any time.
    
 ## D. Reviewing Results
 
 After testing:
-- View the **Results Table** showing:
-  - Commanded speed
-  - Measured speed
-  - % Change from baseline
-  - Standard deviation
 
- - **A Low %Change and Low Test Stdev** indicate a reliable test  
+- View the **Results Table** showing:
+    - Commanded speed
+    - Measured speed
+    - % Change from baseline
+    - Standard deviation
+
+- **A Low %Change and Low Test Stdev** indicate a reliable test  
 > **WARNING:** If a test shows high standard deviation or unexpected large change, you can and should **retest that speed individually**. Select the test in the table and click Test again.
 
 ## E. Approving Results
 
 Once satisfied with the results of the Motor Speed Calibration tests:
+
 - **Select individual tests** to approve, or leave all unselected to approve everything
 - Click **Approve** to apply the new calibration
 - The driver will now use these values instead of defaults
@@ -548,6 +561,7 @@ Once satisfied with the results of the Motor Speed Calibration tests:
 ## D. Final Thoughts
 
 Calibrating your motor speed controller ensures:
+
 - More accurate slews
 - Smoother tracking
 - Better guiding performance
@@ -570,9 +584,9 @@ Calibrating your motor speed controller ensures:
 
 - **Tracking:** Holds all three axes at their required speeds at the same time, which markedly improves tracking at low altitudes and near zero roll. It also responds faster to guiding corrections.
 - **Gotos:** Each goto is planned at the start, with a speed profile the motors can follow:
-  - **Long gotos** (the pointing moving more than 15°) prioritise speed and move in motor-angle space: each motor moves directly to its target position, with all motors arriving as quickly as possible. If multiple motor-angle solutions can achieve the target, the driver selects the fastest solution that respects motor limits and avoids cable wrap.
-  - **Short gotos** (15° or less) follow a path that moves the pointing smoothly and naturally towards the target. Changes in M3 are coordinated with M1 and M2 to maintain the pointing direction throughout the move. This allows the system to perform rolls while preserving the current pointing, rather than swinging away from the target.
-  - **Gotos while tracking** go straight in motor angles to where the target will be when the mount arrives. Very small moves, such as dithers and Slew & Center corrections, are executed at the slower, more precise speeds to ensure accurate positioning.
+    - **Long gotos** (the pointing moving more than 15°) prioritise speed and move in motor-angle space: each motor moves directly to its target position, with all motors arriving as quickly as possible. If multiple motor-angle solutions can achieve the target, the driver selects the fastest solution that respects motor limits and avoids cable wrap.
+    - **Short gotos** (15° or less) follow a path that moves the pointing smoothly and naturally towards the target. Changes in M3 are coordinated with M1 and M2 to maintain the pointing direction throughout the move. This allows the system to perform rolls while preserving the current pointing, rather than swinging away from the target.
+    - **Gotos while tracking** go straight in motor angles to where the target will be when the mount arrives. Very small moves, such as dithers and Slew & Center corrections, are executed at the slower, more precise speeds to ensure accurate positioning.
 - **Roll and Position Angle Changes:** The mount maintains the same Az/Alt when not tracking, or the same RA/Dec when tracking, while rotating the camera. The rotation runs at the motors' full speed. The pointing wanders a little during it, more when M1 and M3 don't yet have approved fast-speed [calibration](#motor-speed-calibration) tests (a motor running off its baseline speed pulls the pointing further off), and ends on target. At low altitudes, M1 and M3 must rotate further to achieve the same camera rotation, so large changes take longer. A rotation past what the motors can reach at that altitude goes to the nearest one they can reach, keeping the pointing.
 - **Jogging near Altitude 0:** On a level mount, jogging Az/Alt through M2 = 0 (where M1 and M3 turn about the same axis) moves the pointing and lets the camera rotation follow, instead of swinging M1 and M3 to hold it.
 - **Flips:** Some gotos, such as those crossing from negative to positive altitude, require a mount flip, with M1 and M3 each rotating by about 180°. The driver determines this at the start of the goto and moves directly to the target in motor-angle space. Where motor limits permit, M1 and M3 rotate in opposite directions to minimise cable wrap. The two flip solutions overlap by about 8°, allowing moves from positive altitude down to approximately −8°, or from negative altitude up to approximately +8°, without a flip.
@@ -695,6 +709,7 @@ The driver supports the standard ASCOM tracking rates, which deviate from the de
 |
 
 The driver is capable of tracking 
+
 - the **Sun**, all the solar system **Planets**, and the larger **Planetary moons**.
 - over **32,000 artificial satellites**, including man made satellites, rocket bodies, space stations, and space debris.
 - over **1 million heliocentric objects**, such as comets, asteriods and near Earth objects.
@@ -923,23 +938,23 @@ on hardware.
 ## Two test types
 
 - **`steady`** -- high importance case. Undisturbed sidereal tracking at a fixed orientation; no
-  injected disturbance. Measures steady-state RMS/max/mean position error per axis (M1/RA,
-  M2/Dec, M3/PA).
+    injected disturbance. Measures steady-state RMS/max/mean position error per axis (M1/RA,
+    M2/Dec, M3/PA).
 
 - **`disturbance`** -- disturbance rejection. Injects a train of events and measures, per axis per event:
-  peak overshoot and settling time (how long until the error outside a threshold
-  band). This is disturbance *rejection* is distinct from steady-state quality. A pid gain set
-  can be excellent at one and mediocre at the other. Three kinds of disturbances are supported:
+    peak overshoot and settling time (how long until the error outside a threshold
+    band). This is disturbance *rejection* is distinct from steady-state quality. A pid gain set
+    can be excellent at one and mediocre at the other. Three kinds of disturbances are supported:
   
-  - **`step`** (default) -- `Polaris:SlewRelative`. Moves the PID setpoint directly, an instant hard step. 
-    Does not effect `sync_history`/alignment, so it's safe to fire repeatedly during a tuning
-    sweep. This is the standard choice for general Kp/Ki/Kd characterization.
-  - **`pulseguide`** -- the real ASCOM `PulseGuide` REST API (`--pulseguide-direction`,
-    `--pulseguide-duration-ms`). What autoguiders like PHD2 actually send. This steps the PID preset value and causes the controller to drive the mount back to its target setpoint.
-  - **`sync`** -- a real `synctocoordinates` call. Typically follows a plate-solve in normal operation. 
-    Is used to feed the live QUEST/MPA fit (if `advanced_alignment` enabled). 
-    Alternately can be used to drive sync-guiding (if `advanced_sync_guiding` enabled, and no Goto since last sync).
-    Finally, can also be used to train PEC (if `advanced_sync_guiding` and `advanced_pec_drift` are enabled).
+    - **`step`** (default) -- `Polaris:SlewRelative`. Moves the PID setpoint directly, an instant hard step. 
+        Does not effect `sync_history`/alignment, so it's safe to fire repeatedly during a tuning
+        sweep. This is the standard choice for general Kp/Ki/Kd characterization.
+    - **`pulseguide`** -- the real ASCOM `PulseGuide` REST API (`--pulseguide-direction`,
+        `--pulseguide-duration-ms`). What autoguiders like PHD2 actually send. This steps the PID preset value and causes the controller to drive the mount back to its target setpoint.
+    - **`sync`** -- a real `synctocoordinates` call. Typically follows a plate-solve in normal operation. 
+        Is used to feed the live QUEST/MPA fit (if `advanced_alignment` enabled). 
+        Alternately can be used to drive sync-guiding (if `advanced_sync_guiding` enabled, and no Goto since last sync).
+        Finally, can also be used to train PEC (if `advanced_sync_guiding` and `advanced_pec_drift` are enabled).
 
 Every run: slews to the requested Az/Alt/Roll, resets the Multi-Point Alignment model
 (`advanced_alignment` off/on -- **wipes `sync_history`**, see below), then clears
@@ -1087,21 +1102,21 @@ underlying motor axes (M1/M2/M3) and Dec all look completely normal.
 raw `captures/*.jsonl` are gitignored/local-only and were not committed):
 
 - Steady-state RMS at Az178/Alt51/Roll0: RA=3.75", PA=3.68" -- vs. RA=0.6-1.1", PA=0.4-0.75"
-  at every other orientation tested that session (Az240/Alt45/Roll0, Az280/Alt30/Roll15,
-  Az292/Alt30/Roll-40). Dec (0.54") and all three motors (M1=0.77", M2=0.55", M3=1.18")
-  were normal at Az178 too -- only the RA/PA *combination* is affected.
+    at every other orientation tested that session (Az240/Alt45/Roll0, Az280/Alt30/Roll15,
+    Az292/Alt30/Roll-40). Dec (0.54") and all three motors (M1=0.77", M2=0.55", M3=1.18")
+    were normal at Az178 too -- only the RA/PA *combination* is affected.
 - A 20" step disturbance at the same orientation recovers fast and cleanly at first
-  (RA back near zero by ~3.2s), but RA/PA then settle into a **continuous, ongoing
-  oscillation** for the rest of the window -- not a disturbance-recovery tail. Roughly
-  4-5s period, ±3-5" amplitude, RA and PA moving as near-exact mirror images of each other
-  (e.g. one sample pair: RA=+5.27", PA=-5.09"). M1/M2/M3 stay quiet (<1.5") throughout this
-  same window. Because "settled" requires staying inside a threshold band continuously, every
-  RA/PA event in that run showed as never settling (n_unsettled=5/5), while M1/M2/Dec showed
-  n_unsettled=0.
+    (RA back near zero by ~3.2s), but RA/PA then settle into a **continuous, ongoing
+    oscillation** for the rest of the window -- not a disturbance-recovery tail. Roughly
+    4-5s period, ±3-5" amplitude, RA and PA moving as near-exact mirror images of each other
+    (e.g. one sample pair: RA=+5.27", PA=-5.09"). M1/M2/M3 stay quiet (<1.5") throughout this
+    same window. Because "settled" requires staying inside a threshold band continuously, every
+    RA/PA event in that run showed as never settling (n_unsettled=5/5), while M1/M2/Dec showed
+    n_unsettled=0.
 - Ruled out as a telemetry artifact: checked both captures for gaps in the `t` field (the
-  kind of 518-dropout gap that produced a separate, unrelated false-positive at
-  Az292/Alt30/Roll-40 that session -- see below) and found none in either Az178 capture.
-  This is real data.
+    kind of 518-dropout gap that produced a separate, unrelated false-positive at
+    Az292/Alt30/Roll-40 that session -- see below) and found none in either Az178 capture.
+    This is real data.
 
 **Leading hypothesis (not yet confirmed):** a geometric/kinematic sensitivity specific to
 near-meridian transit. RA and PA being anti-correlated while Dec stays clean suggests a
@@ -1113,15 +1128,16 @@ transit. This has **not** been traced into the kinematics code yet -- it's infer
 from the telemetry symmetry (Dec unaffected, RA/PA mirrored, motors clean).
 
 **Suggested next steps:**
+
 1. Futher tests using PID Tuning and Telemetry monitoring at different orientations to reproduce oscillation and confirm it is meridian related.
 1. Bracket the effect: repeat the steady/disturbance pair from
-   `utility/pid_tuning/run_experiment.py` (see Usage above) at a few Az values either side of
-   178° (e.g. 160, 170, 190, 200) at the same Alt/Roll, to see how localized to the meridian
-   it is.
+    `utility/pid_tuning/run_experiment.py` (see Usage above) at a few Az values either side of
+    178° (e.g. 160, 170, 190, 200) at the same Alt/Roll, to see how localized to the meridian
+    it is.
 2. Vary Alt/Roll at Az≈178° to check whether the effect is purely Az-driven or also
-   Alt/Roll-dependent.
+    Alt/Roll-dependent.
 3. Read through the kinematics transform functions listed above looking for a term that goes
-   through zero or a local extremum near Az=180° (a classic sign of this kind of amplification).
+    through zero or a local extremum near Az=180° (a classic sign of this kind of amplification).
 
 **Separately, an intermittent, unrelated hardware/comms issue was also confirmed this
 session:** the Polaris sometimes stops sending 518 telemetry messages for a few seconds,

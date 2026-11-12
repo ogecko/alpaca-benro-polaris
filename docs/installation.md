@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Installation Guide 
 [Microsoft Win11](#to-install-on-windows-1011) | [Apple MacOS](./installation_macos.md) | [Raspberry Pi](./raspberrypi.md) | 
 [Startup](#starting-the-alpaca-pilot-app) | 
@@ -23,88 +21,88 @@ The `setup.bat` script installs and configures the Alpaca Driver. It uses [uv](h
 
 1. **Logon to Windows with an administrator account**
 
-   Use an administrator account so `setup.bat` can offer to start the driver automatically at Windows startup (see Step 4).
+    Use an administrator account so `setup.bat` can offer to start the driver automatically at Windows startup (see Step 4).
 
-   Before continuing, enable Windows Location permissions. The driver needs Location access to scan for and connect to the Polaris Wi-Fi network. Without it, Windows may block the Wi-Fi scan and the driver may report "No Wi-Fi interfaces found".
+    Before continuing, enable Windows Location permissions. The driver needs Location access to scan for and connect to the Polaris Wi-Fi network. Without it, Windows may block the Wi-Fi scan and the driver may report "No Wi-Fi interfaces found".
    
-   Open **Settings > Privacy & security > Location** <br>
-   Enable **Location services**, as well as **Let apps access your location**, and **Let desktop apps access your location**.
+    Open **Settings > Privacy & security > Location** <br>
+    Enable **Location services**, as well as **Let apps access your location**, and **Let desktop apps access your location**.
    
 2. **Open a Command Prompt**
 
-   Press **Windows + R**, type `cmd`, and press **Enter**.
+    Press **Windows + R**, type `cmd`, and press **Enter**.
 
 3. **Download the setup script**
    
-   Copy and paste the following command into the Command Prompt, then press **Enter**: 
+    Copy and paste the following command into the Command Prompt, then press **Enter**: 
 
-   ```text
-   curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/main/platforms/win/setup.bat
-   ```
+    ```text
+    curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/main/platforms/win/setup.bat
+    ```
 
 4. **Run the setup script**
 
-   ```text
-   setup.bat
-   ```
-   You can optionally specify the version or Git branch to install. In this example, `dev2_2` selects the v2.2 development branch:
+    ```text
+    setup.bat
+    ```
+    You can optionally specify the version or Git branch to install. In this example, `dev2_2` selects the v2.2 development branch:
 
-   ```text
-   setup.bat dev2_2
-   ```
+    ```text
+    setup.bat dev2_2
+    ```
 
-   During installation:
+    During installation:
 
-   * You will be asked **Start the Alpaca Driver automatically when Windows starts? [N/y]**. Press Enter (the default) to start the driver manually from the desktop shortcut. Type **y** and press Enter to start it automatically; you will then need to enter your **Windows password**.
-   * If you chose automatic startup, also accept the **User Account Control** prompt. It is needed to set up the startup task and to open the Windows Firewall for the driver.
-   * Wait a few minutes while the required files and software are downloaded and installed.
+    * You will be asked **Start the Alpaca Driver automatically when Windows starts? [N/y]**. Press Enter (the default) to start the driver manually from the desktop shortcut. Type **y** and press Enter to start it automatically; you will then need to enter your **Windows password**.
+    * If you chose automatic startup, also accept the **User Account Control** prompt. It is needed to set up the startup task and to open the Windows Firewall for the driver.
+    * Wait a few minutes while the required files and software are downloaded and installed.
 
-   When installation is complete, the driver should be up and running, and the script displays the address of the Alpaca Pilot App.
+    When installation is complete, the driver should be up and running, and the script displays the address of the Alpaca Pilot App.
 
-   By default, the driver is installed in `C:\Users\<Username>\alpaca-benro-polaris`
+    By default, the driver is installed in `C:\Users\<Username>\alpaca-benro-polaris`
 
-   If the driver does not start automatically, see [Troubleshooting A8](./troubleshooting.md#a8---the-driver-does-not-start-at-boot).
+    If the driver does not start automatically, see [Troubleshooting A8](./troubleshooting.md#a8---the-driver-does-not-start-at-boot).
 
-   <details>
-   <summary>Advanced options</summary>
+    <details>
+    <summary>Advanced options</summary>
 
-   You can provide additional options when running `setup.bat`. For example:
+    You can provide additional options when running `setup.bat`. For example:
 
-   ```text
-   setup.bat -d D:\Astro\Bin\alpaca-benro-polaris dev2_2
-   ```
+    ```text
+    setup.bat -d D:\Astro\Bin\alpaca-benro-polaris dev2_2
+    ```
 
-   | Option        | Description                                                                        |
-   | ------------- | ---------------------------------------------------------------------------------- |
-   | `-d folder`   | Install the driver in the specified folder instead of the default location. The folder is remembered, so later runs use it again without `-d`. |
-   | `-p password` | Specify the Windows password on the command line instead of being prompted for it. |
-   | `-s`          | Do not configure the driver to start automatically at Windows startup.             |
-   | `-y`          | Run unattended and do not pause when the installation finishes.                    |
-   | `-v`          | Show every detail on screen. Without it only the steps and any errors are shown, and the details are saved to `%TEMP%\alpaca-setup.log`. |
-   | `-h`          | Display the built-in help.                                                         |
+    | Option        | Description                                                                        |
+    | ------------- | ---------------------------------------------------------------------------------- |
+    | `-d folder`   | Install the driver in the specified folder instead of the default location. The folder is remembered, so later runs use it again without `-d`. |
+    | `-p password` | Specify the Windows password on the command line instead of being prompted for it. |
+    | `-s`          | Do not configure the driver to start automatically at Windows startup.             |
+    | `-y`          | Run unattended and do not pause when the installation finishes.                    |
+    | `-v`          | Show every detail on screen. Without it only the steps and any errors are shown, and the details are saved to `%TEMP%\alpaca-setup.log`. |
+    | `-h`          | Display the built-in help.                                                         |
 
-   **Starting the driver manually**
+    **Starting the driver manually**
 
-   If you skipped automatic startup by using `-s` or by pressing **Enter** at the password prompt, you can start the driver manually in either of the following ways.
+    If you skipped automatic startup by using `-s` or by pressing **Enter** at the password prompt, you can start the driver manually in either of the following ways.
 
-   - **Using the desktop shortcut**
+    - **Using the desktop shortcut**
 
-      Double-click the **Alpaca Benro Polaris Driver** shortcut that `setup.bat` placed on your desktop.
+         Double-click the **Alpaca Benro Polaris Driver** shortcut that `setup.bat` placed on your desktop.
 
-   - **Using a Command Prompt**
+    - **Using a Command Prompt**
 
-      Run the following command:
+         Run the following command:
 
-      ```text
-      cd %USERPROFILE%\alpaca-benro-polaris
-      .venv\Scripts\python.exe driver\main.py
-      ```
+         ```text
+         cd %USERPROFILE%\alpaca-benro-polaris
+         .venv\Scripts\python.exe driver\main.py
+         ```
 
-      A console window will remain open while the driver is running.
+         A console window will remain open while the driver is running.
 
-      The first time the driver runs, Windows may ask whether to allow it through the firewall. Click **Allow access**.
+         The first time the driver runs, Windows may ask whether to allow it through the firewall. Click **Allow access**.
 
-   </details>
+    </details>
 
 ### Starting the Alpaca Pilot App
 
@@ -112,25 +110,25 @@ Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any 
 
 5. **Open a web browser**
 
-   Open **Chrome**, **Edge**, **Firefox**, or another supported web browser.
+    Open **Chrome**, **Edge**, **Firefox**, or another supported web browser.
 
 6. **Open the Alpaca Pilot App**
 
-   Enter the following address in the browser's address bar:
+    Enter the following address in the browser's address bar:
 
-   ```text
-   http://ap.local
-   ```
+    ```text
+    http://ap.local
+    ```
 
 7. **Verify that the app opens**
 
-   The Alpaca Pilot App should display the startup screen and switch to the dashboard shown below.
+    The Alpaca Pilot App should display the startup screen and switch to the dashboard shown below.
 
-   ![Pilot Startup](images/pilot-startup.png)
+    ![Pilot Startup](images/pilot-startup.png)
 
 8. **(Optional) Enable HTTPS**
 
-   Browser features like Location and Clipboard access only work over a secure (HTTPS) connection. If you need them, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#g-using-alpaca-pilot-over-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
+    Browser features like Location and Clipboard access only work over a secure (HTTPS) connection. If you need them, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#g-using-alpaca-pilot-over-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
 
 ### Connecting the Driver to Polaris
 
@@ -138,7 +136,7 @@ Before you can use the Polaris, complete the following steps.
 
 9. **Open the Connect page**
 
-   Click **Connect** in the top toolbar of the Alpaca Pilot window. The Connect page guides you through the steps required to connect the driver to your Benro Polaris device.
+    Click **Connect** in the top toolbar of the Alpaca Pilot window. The Connect page guides you through the steps required to connect the driver to your Benro Polaris device.
 
 10. **Set up and power on the Polaris**
 
@@ -191,60 +189,67 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
 ### Setup and Initialization
 
 1. **Start Alpaca Driver**  
-   The driver starts by itself when the PC starts. If you skipped that during installation, launch it by double-clicking the desktop shortcut.
+    The driver starts by itself when the PC starts. If you skipped that during installation, launch it by double-clicking the desktop shortcut.
 
 2. **Open Alpaca Pilot**  
-   In your browser, navigate to the Alpaca Pilot App.
+    In your browser, navigate to the Alpaca Pilot App.
 
 3. **Power On Polaris**  
-   Use a short press followed by a long press to power on the mount.
+    Use a short press followed by a long press to power on the mount.
 
 4. **Confirm Wi-Fi Connectivity**  
-   Monitor your Mini-PC wifi and confirm it maintains a stable connection to Polaris.
+    Monitor your Mini-PC wifi and confirm it maintains a stable connection to Polaris.
 
 5. **Connect and Configure Polaris**  
-   In the Pilot Connect page:
-   - Set **Astro Mode**
-   - **Reset all axes** and wait for completion
-   - **Skip compass alignment**
-   - **Skip single-star alignment**
+    In the Pilot Connect page:
+
+    - Set **Astro Mode**
+    - **Reset all axes** and wait for completion
+    - **Skip compass alignment**
+    - **Skip single-star alignment**
 
 ### Focusing, Alignment and Targeting
 
 6. **Point to Celestrial Polar Area**  
-   Using Pilot Alpaca or Nina:
-   - Slew the mount to approximately point towards your Celestrial Pole (either North or South)
-   - This initial orientation does not need to be accurate
-   - Having a high or low Declination reduces star movement for the next step
+    Using Pilot Alpaca or Nina:
+
+    - Slew the mount to approximately point towards your Celestrial Pole (either North or South)
+    - This initial orientation does not need to be accurate
+    - Having a high or low Declination reduces star movement for the next step
 
 7. **Initial Focus**  
-   - Use your **Camera and lens** to achieve a rough focus
-   - Run **NINA’s Autofocus** process for a precise focus.
-   - Optionally, if you are using guiding, focus and align your Guide Scope as well.
+    - Use your **Camera and lens** to achieve a rough focus
+    - Run **NINA’s Autofocus** process for a precise focus.
+    - Optionally, if you are using guiding, focus and align your Guide Scope as well.
 
 8. **First Plate Solve (anywhere for Single Point Alignment)**  
-   In NINA’s Image tab, 
-   - Click on **Start Tracking**
-   - Open the Plate Solving panel
-   - Manually plate-solve and sync to achieve intial alignment.
+    In NINA’s Image tab, 
+
+    - Click on **Start Tracking**
+    - Open the Plate Solving panel
+    - Manually plate-solve and sync to achieve intial alignment.
    
 9. **Second Plate Solve (at Pole for Multi Point Alignment)**  
-   In Alpaca Pilot:
-   - Enable **Multi-Point Alignment**
-   - Search for 'pole' in the Alpaca Pilot Catalog
-   - GOTO your local Celestrial Pole and wait for the mount to settle.
+    In Alpaca Pilot:
+
+    - Enable **Multi-Point Alignment**
+    - Search for 'pole' in the Alpaca Pilot Catalog
+    - GOTO your local Celestrial Pole and wait for the mount to settle.
    
-   Using Nina:
-   - Initiate a second plate solve at the Celestrial Pole
+    Using Nina:
+
+    - Initiate a second plate solve at the Celestrial Pole
 
 10. **Third Plate Solve (at Future Target for Multi-Point Alignment)**  
-   In Alpaca Pilot:
+    In Alpaca Pilot:
+
     - GOTO your imaging target from the catalog
     - Decrease the Right Ascensian axis by 1 or 2 hours 
     - Once settled, run a third plate-solve in NINA
 
 11. **Fourth Plate Solve (framing Your Target)**  
     Use NINA’s Sky Atlas or Stellarium to locate your target.  
+
     - Send it to **Framing Assistant**, and view it on Nina's **Offline Sky Map**
     - Use **Slew and Center** to refine positioning via iterative plate-solves.
     - Select **Add Target to Sequence**, **Legacy Sequencer**
@@ -253,6 +258,7 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
 
 12. **Create a Sequence**  
     In NINA’s Legacy Sequencer:
+
     - Define image count (e.g., 150) and exposure time (e.g., 30 s)  
     - If not guiding, enable **Slew and Center Target** every 20–30 frames (manually or via Advanced Scheduler)
 
@@ -282,6 +288,7 @@ I'd recommend using the desktop version as it is full-featured and has been
 tested with the Alpaca Driver.
 
 #### To install the desktop version of Stellarium
+
 1. Download the relevant desktop version from https://stellarium.org/en/
 2. The remaining instructions assume you are using v24.2 of the Windows x86 64bit version for Windows 10+
 3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
@@ -294,13 +301,14 @@ tested with the Alpaca Driver.
 10. Check `Launch Stellarium` and click `Finish`.
 
 #### To Setup Stellarium for initial use
+
 1. Press `F11` to exit full-screen mode.
 2. Press `A` to remove the Atmosphere. Press `D`to see Deep Sky Objects.
 3. Press `F2` to open the Configuration Dialog.
 4. Select the `Extras` tab on the Configuration Dialog menu bar.
 5. Click `Get Catalog 5 of 9` and repeat for `6`,`7`,`8` and `9 of 9`.
 6. If you are copying Oculars settings, duplicate the following file:
-   `C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini`
+    `C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini`
 
 ### Seting up Sky Safari Pro (OPTIONAL)
 The following screen captures show the settings you need to use for Sky Safari Pro to work with the Alpaca Driver. Choose an Mount as Alt-Az , Brand as Celestron NexStar 5i/i8 , IP Address 192.168.0.3, Port 10001, Preset Name as Polaris and Save Preset.

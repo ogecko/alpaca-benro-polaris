@@ -1,8 +1,7 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
+
 * **Version:** 2.0.0
 * **Release Date:** 11-Dec-2025   
 * **Availability:** Download from [Alpaca Driver v2.0.0 Download ZIP](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/tags/v2.0.0.zip)
@@ -10,6 +9,7 @@
 * **Current Branch:** releases/2_0_0
 
 ## Demonstration Videos
+
 * **20 - Podcast Video:** Podcast Video at https://youtu.be/KUBCTnEsnlE
 * **21 - Preview Demo:** Demonstration Video at https://youtu.be/0QSKD1GCzOc
 * **22 - Starting and Using:** Demonstration Video at https://youtu.be/Wv_ZvBtZZ4Q
@@ -22,6 +22,7 @@
 * **33 - PID Tuning:** Demonstration Video at https://youtu.be/6vJbSb0gl3M
 
 ## Win11 Upgrade Instructions
+
 * Uninstall Python 3.12.7
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
 * Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
@@ -31,6 +32,7 @@
     * Nina does not need to change, as it reads the correct settings from the Alpaca Driver
 
 ## What's new in v2.0.0 (over RC1)
+
 - **[Installation Docs]** Refresh for V2.0 to include steps to start Alpaca Driver and Alpaca Pilot, referring to Pilot Users Guide for details
 - **[python compatibility]** Confirmed compatibility with Python 3.13.9, updating installation documentation. See Known Issues for Python 3.14.0.
 - **[Raspberry Pi]** Add support for Raspberry Pi Zero 2, Pi 3, Pi 4 and Pi 5
@@ -45,6 +47,7 @@
 
 
 ## What's new in RC1
+
 - **[pip requirements]** Please ensure you do a `pip install -r requirements.txt` to ensure aiohttp=3.13.2 is installed with beta5
 - **[Planets and Moons]** Add solar system orbitals to the catalog, including Sun, Moon, Planets and Planetary Moons. 
 - **[Artificial Satellites]** Search for over 35k objects to track, including Space Stations, Sattelites, Rocket Bodies and Space Debris. 
@@ -64,6 +67,7 @@
 - **[Readme Docs]** Refresh for V2.0
 
 ## What's new in beta4
+
 - **[Documentation Menu]** Add Documentation menu for Pilot, Control, Troubleshooting, Videos, FAQ and About
 - **[Documentation Contents]** Add Documentation content Pilot User Guide and Control User Guide
 - **[Video Demos]** Add links to Video Demonstrations throughout documentation topics and Playlist to side-menu
@@ -89,6 +93,7 @@
 
 
 ## What's new in beta3
+
 - **[Epoch Change]** Default epoch for live coordinates changed from J2000 to JNow (ASCOM-recommended)
 - **[PID Integral]** Improved reliability of PID integral term: preloads with offset to cancel derivative, clamps to 3× sidereal rate
 - **[PID Tuning]** Updated default PID parameters to improve responsiveness: increased Kp to 1.0, Ki to 0.05, and reduced Kd to 0.5
@@ -112,6 +117,7 @@
 
 
 ## What’s new in beta2
+
 - **[PID Integral]** Corrected integral component calculation for better error convergence to zero
 - **[PID Acceleration]** Increased default max acceleration from 3 to 5°/s² for quicker response
 - **[PID Tuning]** Added a full PID Tuning page with support for goto, slew, pulse tests, and full parameter exposure
@@ -130,6 +136,7 @@
 
 
 ## New Features (Alpaca Pilot)
+
 - **[Modern App]**: Alpaca Pilot offers an elegant, adaptive UI for control and management of Alpaca Drivers
 - **[Responsive UI]**: Adapts seamlessly to phones, tablets, and desktops for a consistent experience across devices
 - **[Live Dashboard]**: Real-time telemetry of current Azimuth, Altitude, Roll, Right Ascension, Declination, Position Angle, and Local Sidereal Time
@@ -156,6 +163,7 @@
 - **[Imaging Enhancements]**: Long exposure stabilization, auto-leveling, Zenith imaging, drift suppression, and dithering support
 
 ## New Features (Alpaca Driver)
+
 - **[Alpaca Actions]**: Expose extended ASCOM Actions for Driver Restart, Config Service Control
 - **[Task Orchestration]**: Streamlined task lifecycle management with coordinated creation and teardown
 - **[Configuration Service]**: Enhanced config handling with support for saving overrides and restoring defaults
@@ -171,18 +179,21 @@
 - **[Performance Enhancements]**: Improved tracking precision, Kalman Filter tuning, and motor calibration persistence
 
 ## New Features (ASCOM Alpaca Rotator support)
+
 - **[ASCOM Rotator]** Implement the ASCOM Alpaca Rotator device standard
 - **[Nina Integration]** Support Nina Equipment tab and Rotator Control
 - **[Paralactic Angle]** Parallactic Angle, Position Angle and Roll Angle Targeting
 - **[Direct Slew]** Direct Slew to Defined Angular Pose
 
 ## New Features (ASCOM Alpaca FindHome, SetPark, Park, UnPark support, using Telescope v4 standard)
+
 - **[Find Home]** Returns mount to true Home position, unwinding cables. 
 - **[Set Park]** Ability to customise the Park location.
 - **[Advanced Park]** Rewrite of Benro Polaris Park from V1.0 to be more ASCOM compliant. Uses PID controller, smoother Park, interruptable, unwinds, custom locations.
 - **[Nina Support]** Find Home, Set Park, Park and UnPark are accessable from any Alpaca Client, including Nina, Alpaca Pilot and others.
 
 ## New Features (Advanced Position Control Algorithm)
+
 - **[Kinematic Solver]** Quaternion-based kinematics and inverse solutions
 - **[PID Tuning]** Optimised PID Control for mount orientation control from Alpaca Driver
 - **[Motor Control]** Independant Motor Speed Control
@@ -195,6 +206,7 @@
 - **[Motor Limits]** Add Motor Angle Limit for anti-windup protection
 
 # New Features (Ephem Position Calculation)
+
 - **[Orbital Positioning]** Accurate Orbital Positioning of Earth and Target Body
 - **[Light Compensation]** Light Travel Time Compensation for Apparent Position
 - **[Epoch Alignment]** Epoch-Based Coordinate Precession Alignment
@@ -208,6 +220,7 @@
 - **[Topocentric Output]** Topocentric Apparent Coordinate Output (RA, Dec, PA | Alt, Az, Roll)
 
 # New Features (Precision Goto Control)
+
 - **[Trajectory Planning]** Kinematically Optimised Mount Trajectory
 - **[Loop Accuracy]** Improved Goto accuracy through closed loop control
 - **[Roll Targeting]** Goto allows specifying a roll angle for precise orientation
@@ -217,6 +230,7 @@
 - **[Backlash Removal]** Benro Polaris backlash removal process eliminated
 
 ## New Features (Precision Slew Control)
+
 - **[Roll Stability]** Improved roll movement (Azimuth and Altitude are maintained during roll movement)
 - **[Vertical Stability]** Improved vertical movement (Altitude axis now moves directly upward, even when the mount is tilted)
 - **[Speed Boost]** Increased Maximum Alpaca Axis Speed to 8.4 degrees/s
@@ -225,6 +239,7 @@
 - **[RA/Dec/PA Skew]** Slew by Right Ascension, Declination and Polar Angle (when tracking enabled)
 
 ## New Features (Precision Tracking Control)
+
 - **[Tracking Rates]** Support ASCOM Alpaca Drive Rate Config (0=Sidereal, 1=Lunar, 2=Solar, 3=King)
 - **[Reduced Drift]** PID Control of Target position for zero drift and closed loop tracking
 - **[Feed Forward]** Feedforward control anticipates motion and tracking sidereal velocities
@@ -232,12 +247,15 @@
 - **[Pulse Guiding]**: ASCOM Pulse Guide API support; Nina Dithering and PHD2 integration
 
 ## New Features (enabled by Nina)
+
 - **[Nina and Nikon Z8]**: Nina v3.2 now supports Nikon Z8 cameras 
 
 ## New Features (enabled by Stellarium)
+
 - **[Qt6 Support ]**: Latest Stellarium verision is supported (Qt6 UI library works with ASCOM Platform 7)
 
 ## Upgraded Win11 Requirements.txt Compatibility
+
 - **[Python 3.13.9]**: Upgraded Python support from 3.13.5.
 - **[Python 3.13.5]**: Upgraded Python support from 3.13.1.
 - **[Uvicorn 0.35.0]**: Upgraded Uvicorn support from 0.33.0.
@@ -246,6 +264,7 @@
 - **[scipy 1.16.1]**: Upgraded scipy support from 1.16.0.
 
 ## Documentation (Alpaca Driver)
+
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 - **[Troublshooting B7]**: Add link to Polaris User Manual
 - **[Troubleshoot C1b]**: Describe how to define Manual Network settings to force IPv4 setup
@@ -254,10 +273,12 @@
 
 ## Untested New Features
 Please let us know if you can try any of these features.
+
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
 ## Bug Fixes (from v1.0.0 version)
+
 - **[Fix #024]**: First GOTO after a PlateSolve and SYNC, may overcorrect the offset by 2x the right amount.
 - **[Fix #023]**: Docker build process is now working.
 - **[Fix #018]**: Explicitly check for 'NaN' on all float inputs on REST API.
@@ -267,6 +288,7 @@ Please let us know if you can try any of these features.
 
 ## Tested Compatible Hardware and Software
 ### Photography Equipment
+
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.54, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.14
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
@@ -280,6 +302,7 @@ Please let us know if you can try any of these features.
 * Pentax K1 150-450mm / Irix 45mm
 * ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
 ### Computing Equipment
+
 * MacBook Pro with Apple M1 Pro CPU (Driver and CCDCiel)
 * MacBook Pro 14” 2021 
 * MacBook Pro 13” 2013
@@ -291,11 +314,13 @@ Please let us know if you can try any of these features.
 * Desktop PC, AMD Ryzen 5 3600
 * Raspberry Pi Zero 2 W and up (Driver)
 ### Portable/Mobile Equipment
+
 * iPhone 13 Max (Stellarium Mobile PLUS)
 * iPad Pro 3rd Generation
 * Samsung Galaxy S22 Ultra (Stellarium Mobile PLUS)
 * Microsoft Surface Laptop 2
 ### Applications
+
 * Sky Safari 7 Pro v7.3.6 iOS
 * Benro Connect Android App v3.0.30, iOS App v1.5.0
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4
@@ -309,12 +334,14 @@ Please let us know if you can try any of these features.
 * CCDciel Version beta 0.9.87-3346 Windows
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
+
 * Windows Remote Desktop v10.0.22621
 * ASCOM Platform 7.1 (Build 4707)
 * ASCOM Platform 7 Update 3 RC7 (not Update 2 version)
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
 ### Operating Systems
+
 * Windows 11 Pro v24H2 
 * Windows 11 Pro v23H2 
 * Windows 10
@@ -325,23 +352,27 @@ Please let us know if you can try any of these features.
 * Raspberry Pi OS (64-bit) Debian Trixie
 * Raspberry Pi OS Lite (64-bit) Debian Trixie
 ### Alpaca Pilot compatible Browsers
+
 * Firefox version 115+ 
 * Google Chrome version 115+
 * Microsoft Edge version 115+
 * Apple Safari 14+
 
 ## Known Issues
+
 - **[Gimbal Lock]**: There is potential gimbal lock at low or negative altitudes. Especially at Azimuth ≈ 0°, Altitude ≈ 0°, Roll ≠ 0°. Please watch mount at all times.
 - **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.9 instead.
 
 
 ## Potential Future Enhancements
+
 - **[Stellarium MacOS]**: Add position update support to the Stellarium Binary protocol.
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
 - **[Emedded Driver]**: The driver should be embedded on the Benro Polaris Device. Benro Change.
 
 ## Deprecations
+
 - **[RA 1.04]**: Special RA Axis move command in V1.0 has been replaced with Alpaca Pilot direct RA radial dial control.
 - **[N-Point Alignment]**: N-Point Alignment in V1.0 has been replaced with Multi-Point Alignment
   

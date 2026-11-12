@@ -1,6 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
-
 # Recommended Hardware Platform
 [Laptop](#using-a-laptop-with-stellarium-desktop) | 
 [Raspberry Pi](#using-a-raspberry-pi-for-the-driver) | 
@@ -68,6 +65,7 @@ The folllowing steps are a high level summary of the required setup for the Nina
 You can set the Mele PC to automatically boot when it is powered on. This can save you from having to manually press the Power button to boot the device.
 
 To set the Mele PC BIOS to auto power on:
+
 1. Reboot MelePC, pressing the **Del key** until it enters BIOS settings
 2. From the BIOS, navigate to the **Advanced**, then **Customer Exclusive Functions**
 3. Enable **Auto Power On**
@@ -78,6 +76,7 @@ To set the Mele PC BIOS to auto power on:
 Use a local account with administrative privellages to set everything up. Using a Microsoft Account may have implications on the need for internet connectivity. 
 
 To create a local account:
+
 1. In the Settings app select Accounts > Other users 
 2. Under Add other user, select Add account
 4. Select the option Add a user without a Microsoft account
@@ -87,6 +86,7 @@ To create a local account:
 8. Select Account Type `Administrator` then click `OK`
 
 To enable autologin:  
+
 1. Open `regedit` from the start menu
 2. When prompted with *“Do you want to allow this app to make changes to your device?”*, click **Yes**  
 3. Copy and past the following into the regedit address bar `Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device`
@@ -104,6 +104,7 @@ Recent versions of Windows increasingly encourage the use of a Microsoft account
 This behavior can interfere with the Wi-Fi configuration on the MiniPC. To prevent Windows from sharing the MiniPC’s settings with other devices, disable settings sync:
 
 To isolate the MiniPC’s Windows settings:
+
 1. Open Settings
 2. Go to Accounts
 3. Select Windows backup
@@ -116,9 +117,10 @@ Make sure that your power saver functions are set so that your computer will not
 You need to set the Power Management to High Power.
 
 To disable hybernation:   
+
 1. Open the **Command Prompt** as Administrator:  
-   - Type `cmd` in the Start menu search.  
-   - Right‑click **Command Prompt** and select **Run as Administrator**.  
+    - Type `cmd` in the Start menu search.  
+    - Right‑click **Command Prompt** and select **Run as Administrator**.  
 
 2. When prompted with *“Do you want to allow this app to make changes to your device?”*, click **Yes**.  
 
@@ -128,6 +130,7 @@ To disable hybernation:
 Microsoft Defender can temporarily consume most of a Mini PC's CPU resources during an imaging session, causing the Alpaca Driver to become unresponsive for several seconds.
 
 There are three potential sources of activity:
+
 * **Real-time scanning:** Defender scans each new image as NINA saves it and scans the driver's log files as they are written.
 * **Scheduled scans:** Defender's scheduled scan may run during the night depending on your configuration.
 * **Automatic maintenance:** Windows can perform maintenance tasks overnight, including security scans, updates and disk optimisation.
@@ -143,20 +146,20 @@ Windows automatic maintenance commonly uses 2:00 AM as its default start time. I
 2. Go to **Virus & threat protection**, then **Manage settings** under *Virus & threat protection settings*
 3. Scroll to **Exclusions** and click **Add or remove exclusions**
 4. Click **Add an exclusion**, choose **Folder**, and select:
-   * **Alpaca Driver folder:** For example, `C:\Users\<you>\alpaca-benro-polaris`. This contains the driver, its Python environment, and its logs and data folders.
-   * **NINA image folder:** Use the location configured in NINA under Options > Imaging > Image file path, for example, `D:\Astro\Images\`.
+    * **Alpaca Driver folder:** For example, `C:\Users\<you>\alpaca-benro-polaris`. This contains the driver, its Python environment, and its logs and data folders.
+    * **NINA image folder:** Use the location configured in NINA under Options > Imaging > Image file path, for example, `D:\Astro\Images\`.
   
-   Only exclude folders you trust. Defender will no longer scan files in these locations as part of its real-time and scheduled scanning, which reduces protection for those files.
+    Only exclude folders you trust. Defender will no longer scan files in these locations as part of its real-time and scheduled scanning, which reduces protection for those files.
 
 **Schedule Defender's scan for the daytime:**
 
 1. To move Defender's scheduled scan to noon, open Windows PowerShell as Administrator and run:
 
-   ```
-   Set-MpPreference -ScanScheduleTime 12:00:00
-   ```
+    ```
+    Set-MpPreference -ScanScheduleTime 12:00:00
+    ```
 
-   This sets the scheduled scan time to 12:00 PM. The actual schedule can also depend on other Defender settings and Windows policies.
+    This sets the scheduled scan time to 12:00 PM. The actual schedule can also depend on other Defender settings and Windows policies.
 
 **Move Windows automatic maintenance to the daytime.** 
 
@@ -171,16 +174,17 @@ Windows automatic maintenance commonly uses 2:00 AM as its default start time. I
 
 1. Open **PowerShell** as Administrator and run::
 
-   ```
-   Get-MpPreference | Select-Object ExclusionPath, ScanScheduleDay, ScanScheduleTime
-   ```
+    ```
+    Get-MpPreference | Select-Object ExclusionPath, ScanScheduleDay, ScanScheduleTime
+    ```
 
-   Check that the driver and image folders appear under ExclusionPath and that ScanScheduleTime is set to the intended time. ScanScheduleDay indicates the configured scan day; a value of 0 means every day.
+    Check that the driver and image folders appear under ExclusionPath and that ScanScheduleTime is set to the intended time. ScanScheduleDay indicates the configured scan day; a value of 0 means every day.
 
 **Check the driver log on the next imaging night:**
-   1. After applying these changes, check the driver's log for the **HIGH CPU LOAD** breakdown entries.
 
-   2. If Defender was responsible for the CPU spikes, you should see fewer instances of **MsMpEng.exe** dominating CPU usage and fewer event-loop lag warnings. Other background processes can still cause CPU spikes, so use the log to confirm whether the problem has improved.
+1. After applying these changes, check the driver's log for the **HIGH CPU LOAD** breakdown entries.
+
+2. If Defender was responsible for the CPU spikes, you should see fewer instances of **MsMpEng.exe** dominating CPU usage and fewer event-loop lag warnings. Other background processes can still cause CPU spikes, so use the log to confirm whether the problem has improved.
 
 ### Remote Desktop Server
 Enable Remote Desktop Server to allow access from your laptop.
@@ -220,7 +224,7 @@ Because you will want this to run headless and won't have a way to start it manu
 4. Change trigger to "At system Startup"
 5. Change action to "Start a program" linking to 
 
-   `alpaca-benro-polaris\platforms\win\StartMobileHotspot.cmd`
+    `alpaca-benro-polaris\platforms\win\StartMobileHotspot.cmd`
 
 6. Change conditions to uncheck only start if on AC power
 
@@ -274,6 +278,7 @@ ASCOM stands for Astronomy Common Object Model. It is a universal standard for A
 You may need to install the ASCOM Platform software for compatibility with some astronomry equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the NinaAir. 
 
 #### To install the ASCOM Platform. 
+
 1. Download the ASCOM Platform from https://ascom-standards.org/ (Download buttton on the top-right-hand side of the home page).
 2. The remaining instructions assume you are using ASCOM Platform 7.1.3 
 3. Open the installation .exe file and click `Yes` on the User Account Control dialog.
@@ -290,6 +295,7 @@ The Canon RF 2x and 1.4x Extenders do not appear to work with Nina and the LensA
 to manually adjust the focus of an attatched Canon Lens. A cheap EAF available from AliExpress is the [Gemini EAF Product](https://www.aliexpress.com/item/1005006731851010.html). You can connect a simple timing belt and pulley to the focuser so that it can move the manual focus ring of any lens. The following timing belt worked fine for me [2GT-6 Timing Belt](https://www.amazon.com.au/VGOL-Printer-Timing-Closed-Rubber/dp/B0CB8BFRCX)
 
 Use the following instructions to setup the Gemini EAF driver on your Mini-PC
+
 1. Download and install the Ascom Platform as described.
 2. Download the Gemini EAF Driver files from [Google Drive](https://drive.google.com/drive/mobile/folders/1-12XzPuiMEo5033jg36qKqBsfmllL0Zl).
 3. Run the installation program 'CH341SER.EXE'
@@ -336,5 +342,6 @@ Secure mounting is critical to avoid flexure between the guide scope and main im
 - **YUEOCT Metal Finder Scope Mount Adapter AT-05** mounts the guidescope via the cameras flash hot/coldshoe.
 
 **Example Setup:**
+
 - Touptek GPM462M camera + SVBony 50mm guide scope mounted via QR-50B clamps to a 220mm Arca Swiss plate.
 

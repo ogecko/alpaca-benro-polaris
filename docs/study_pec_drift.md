@@ -14,16 +14,16 @@ Code: `driver/control_pec.py` (`PecMixin`, `PecAxis`, `GuiderCalibrationDetector
 ## Terms
 
 * **Drift**: the slowly varying rate at which the sky moves against the mount after the worm feed-forward, per axis
-  (RA, Dec). PEC learns it from the running total of guide corrections, y(t) = pulse guiding + sync guiding + PEC
-  applied (`correction_breakdown`), as an EMA of the rate over `pec_tau_sec` (450 s).
+    (RA, Dec). PEC learns it from the running total of guide corrections, y(t) = pulse guiding + sync guiding + PEC
+    applied (`correction_breakdown`), as an EMA of the rate over `pec_tau_sec` (450 s).
 * **Learn**: fold a guide correction into the rate. **Ignore** = take the correction into the total (it really was a
-  correction) but not into the rate, keep applying the rate already learnt, and restart the rate's differencing
-  afterwards (`PecAxis.hold`). An ignore case says why a correction isn't evidence of drift; it can last for one
-  correction (`STEP`) or for a span of them (`REVERSAL`, `ACQUIRE`).
+    correction) but not into the rate, keep applying the rate already learnt, and restart the rate's differencing
+    afterwards (`PecAxis.hold`). An ignore case says why a correction isn't evidence of drift; it can last for one
+    correction (`STEP`) or for a span of them (`REVERSAL`, `ACQUIRE`).
 * **Discard** = drop the correction altogether, not even into the total (`OUTLIER` today). Kept for corrections that
-  can't be real; dropping a real one leaves the total short by it from then on.
+    can't be real; dropping a real one leaves the total short by it from then on.
 * **Apply**: feed the learnt rate forward to the PID every tick. **Inhibit** = don't apply it (the axis's rate isn't
-  trusted yet, or no longer). An inhibit case says why.
+    trusted yet, or no longer). An inhibit case says why.
 * **Reset**: throw the model away (a new pointing). Not an ignore: nothing learnt before it is kept.
 
 The two lists below are the names logged in PECLOG: `inhibit` (per axis, today) and, proposed, `ignore` (the ignore
@@ -35,24 +35,24 @@ slack crossing, e.g. `'M2'` — the notebooks read both, for older logs).
 ## Requirements
 
 * **R1 Learn only drift.** A correction that measures anything else (a re-centre, a guider's deliberate move, a
-  mechanical transient, a stale position) is ignored, whichever guider sent it.
+    mechanical transient, a stale position) is ignored, whichever guider sent it.
 * **R2 One design for sync and pulse guiding.** Both reduce to y(t) per axis. Thresholds are rates (correction ÷ update
-  interval) or are scaled by each axis's own update interval: a 5 min sync gap with a 60" residual and a 2 s pulse of
-  1" are the same 12"/min.
+    interval) or are scaled by each axis's own update interval: a 5 min sync gap with a 60" residual and a 2 s pulse of
+    1" are the same 12"/min.
 * **R3 Use what the driver knows.** Events the driver sees exactly (tracking on, goto/rotate complete, a pulse it
-  rejected, a motor reversal, BLC acting, stale 518 data) start an ignore case directly, without waiting for the signal.
+    rejected, a motor reversal, BLC acting, stale 518 data) start an ignore case directly, without waiting for the signal.
 * **R4 Judge bursts over time, not per update.** A catch-up, a dither or a slack crossing spans many pulses; a rule
-  that sees one update at a time either misses it or, after a few in a row, learns it.
+    that sees one update at a time either misses it or, after a few in a row, learns it.
 * **R5 Bounded damage.** Whatever the ignore cases miss moves the rate only so far per update (robust update), so one missed
-  case can't fit -30"/min.
+    case can't fit -30"/min.
 * **R6 Undo what was learnt in hindsight.** A case recognised only after it started (a calibration on its 3rd pulse,
-  a burst once it is clear) rolls the model back to where the case began.
+    a burst once it is clear) rolls the model back to where the case began.
 * **R7 Don't hide real drift.** A genuine change of drift (a flip, a new target, cable drag) is still learnt within
-  about τ; corrections ignored on clean guiding cost little learning time.
+    about τ; corrections ignored on clean guiding cost little learning time.
 * **R8 Apply only a trustworthy rate.** The rate is applied once it rests on enough time and corrections, not merely
-  enough corrections (3 pulses arrive in 4 s).
+    enough corrections (3 pulses arrive in 4 s).
 * **R9 Explain itself.** Each ignore and inhibit is logged with its case name (PECLOG `ignore`, `inhibit`) and drawn by
-  the analysis notebooks.
+    the analysis notebooks.
 * **R10 Testable offline and closed loop.** Every case has archived examples and a digital twin scenario.
 
 ---
@@ -110,17 +110,17 @@ followed by `ACQUIRE`.
 Three layers, applied per axis to y(t):
 
 1. **Event gates** (R3). The driver's events start ignore cases directly: `ACQUIRE`, `CATCHUP`, `GAP`, `REVERSAL`,
-   `SLACK`, `SLIP`, `BLC`, `STALL`, `NONSIDEREAL`, `WORMTEST`, `JOG`. Each has a minimum time; release also needs the
-   burst test to report the axis settled. Cheap and exact, and they cover the cases seen so far that matter most.
+    `SLACK`, `SLIP`, `BLC`, `STALL`, `NONSIDEREAL`, `WORMTEST`, `JOG`. Each has a minimum time; release also needs the
+    burst test to report the axis settled. Cheap and exact, and they cover the cases seen so far that matter most.
 2. **Signal tests** (R2, R4), all on rates scaled by the axis's own update interval:
-   * **burst test**: the rate over a short window (3 updates or 30 s, whichever is longer) against the model's rate
-     and its σ; one-sided and beyond kσ is `BURST`, and its "back within kσ" is the settled signal for every case that spans corrections;
-   * **saturation** (PG): `SATURATED`;
-   * **calibration**, per axis: `CALIBRATEPHD2`, `CALIBRATECCD`;
-   * **step** and **outlier**, as rates: `STEP`, `OUTLIER`.
+    * **burst test**: the rate over a short window (3 updates or 30 s, whichever is longer) against the model's rate
+        and its σ; one-sided and beyond kσ is `BURST`, and its "back within kσ" is the settled signal for every case that spans corrections;
+    * **saturation** (PG): `SATURATED`;
+    * **calibration**, per axis: `CALIBRATEPHD2`, `CALIBRATECCD`;
+    * **step** and **outlier**, as rates: `STEP`, `OUTLIER`.
 3. **Robust update** (R5). Before each update's observed rate enters the EMA it is clipped to the model's rate ± kσ
-   (Huber-style). A missed case can then move the rate by at most kσ x α per update; a real change of drift still gets
-   through over a few updates (R7).
+    (Huber-style). A missed case can then move the rate by at most kσ x α per update; a real change of drift still gets
+    through over a few updates (R7).
 
 **Rollback** (R6): each ignore case that is recognised late snapshots the model at its start (as the calibration
 detector does today with `run_start`) and restores it when confirmed: `CATCHUP` from the first rejected pulse,
@@ -139,36 +139,36 @@ learning paused` / `resumed`). The notebook shades each case in section 3, readi
 ### Data we have
 
 * **76 archived sessions** (`utility/sessions.toml`): 45 sync guiding, 11 pulse guiding (PHD2), 12 both, 8 unguided.
-  PECLOG on all of them; KFLOG/PIDLOG (`log_position`) on some (2026-10-20 the first with BLC state).
+    PECLOG on all of them; KFLOG/PIDLOG (`log_position`) on some (2026-10-20 the first with BLC state).
 * **PHD2 guide logs** for most pulse-guided sessions (`load_phd2_guidelog`): calibrations, dithers, star lost, the
-  guider's own error and pulses.
+    guider's own error and pulses.
 * **The mount-drift total is nearly independent of PEC**: y(t) includes what PEC applied, so the same drift is seen
-  whatever PEC did. Gate designs can therefore be replayed open loop on the logged y(t) (`pe_analysis.replay_pec_rate`).
+    whatever PEC did. Gate designs can therefore be replayed open loop on the logged y(t) (`pe_analysis.replay_pec_rate`).
 * **Ground truth** for replay: the centred ±5 min drift rate (`pe_analysis.true_rate`), with windows around known
-  events left out.
+    events left out.
 * **Digital twin, closed loop**: `tests/sim_guider.py` — `SimGuider` (PG, PHD2-like: frame time, aggression, guide
-  rate) and `SimPlateSolver` (SG: interval, solve noise), with drift and worm, already used by
-  `tests/test_pec_twin_drift.py` and `test_pec_twin_worm_ff.py`. The only place the PEC-vs-guider fight itself shows.
+    rate) and `SimPlateSolver` (SG: interval, solve noise), with drift and worm, already used by
+    `tests/test_pec_twin_drift.py` and `test_pec_twin_worm_ff.py`. The only place the PEC-vs-guider fight itself shows.
 * **Live**: `utility/replay/replay.py` replays a recorded request sequence against the driver on nina01.
 
 ### Plan
 
 1. **Event catalogue** (read-only): from the archive, every instance of each ignore case — driver log lines (goto,
-   tracking, rotate, `Cannot pulse guide`, BACKLASH, reversals, PECLOG `step`/`stale`, lag warnings, restarts), PHD2
-   events (calibration, dither, star lost), `m2_slips`. Gives each case's frequency, a test set per case, and the
-   clean stretches for measuring corrections ignored needlessly.
+    tracking, rotate, `Cannot pulse guide`, BACKLASH, reversals, PECLOG `step`/`stale`, lag warnings, restarts), PHD2
+    events (calibration, dither, star lost), `m2_slips`. Gives each case's frequency, a test set per case, and the
+    clean stretches for measuring corrections ignored needlessly.
 2. **Baseline score** of today's PEC on the catalogue: replay and score (below).
 3. **Add the layers one at a time** (events, signal tests, robust update), each scored on the replay and given a twin
-   scenario: guiding before tracking (`CATCHUP`), a PHD2 calibration (`CALIBRATEPHD2`), dithers every 2 min
-   (`BURST`), star lost for 60 s (`GAP`), bad solves (`STEP`), an M2 slip (`SLIP`), a reversal (`REVERSAL`), a goto
-   then sync guiding (`ACQUIRE`), and a genuine step change of drift (R7).
+    scenario: guiding before tracking (`CATCHUP`), a PHD2 calibration (`CALIBRATEPHD2`), dithers every 2 min
+    (`BURST`), star lost for 60 s (`GAP`), bad solves (`STEP`), an M2 slip (`SLIP`), a reversal (`REVERSAL`), a goto
+    then sync guiding (`ACQUIRE`), and a genuine step change of drift (R7).
 4. **Live check** on nina01 for the cases the twin can't model well (`CATCHUP` with PHD2, `SATURATED`).
 
 ### Scores and acceptance criteria (proposed)
 
 * **Rate error after a case**: the learnt rate within 2"/min of the truth throughout and after each case instance.
 * **No fight**: over any 10 min, the guider's and PEC's totals don't oppose each other by more than 30" (today's
-  `PEC undone by guider %` in the notebook, windowed).
+    `PEC undone by guider %` in the notebook, windowed).
 * **Needless ignores**: on clean stretches, ≤ 5% of learning time lost.
 * **Real drift still learnt** (R7): a step change of drift reaches 63% of its new value within 1.5 τ (twin).
 * **No regression**: on every session class, replay rate error rms no worse than today's.
@@ -178,19 +178,19 @@ learning paused` / `resumed`). The notebook shades each case in section 3, readi
 ## Evidence so far
 
 * **2026-09-29** PHD2 calibration learnt as an RA drift of -785"/h, guiding then fought it at +363"/min →
-  `CALIBRATEPHD2` (built).
+    `CALIBRATEPHD2` (built).
 * **2026-10-11** SMC: M2's reversal at 21:19, the guider's pull-back learnt as drift → `REVERSAL` (built).
 * **2026-10-17 22:42** PHD2 stopped with the rate at -12.8"/min, applied for 12.6 min (-161" RA) → `STALE` (built);
-  the restart after it → `GAP` (proposed).
+    the restart after it → `GAP` (proposed).
 * **2026-10-17 23:27** a +165" Dec sync then -185": +22"/min learnt → `STEP` (built).
 * **2026-10-18 20:36** M2 at 0.24"/s crossing its 432" slack after a goto under 6 s syncs: 50'/h learnt, fought for
-  30 min → `SLACK` (built).
+    30 min → `SLACK` (built).
 * **2026-10-19 20:37-20:43** M3's reversal under PHD2 with BLC latched: 5-15" kicks at each push, Dec to 22" →
-  `REVERSAL` ignored the corrections; BLC no longer compensates reversals (d9f53c5a).
+    `REVERSAL` ignored the corrections; BLC no longer compensates reversals (d9f53c5a).
 * **2026-10-20 20:45** PHD2 guiding before tracking: 36 pulses rejected, then -37.5" Dec pulses every 3-5 s; VALID
-  after 10 s at R² 1.0, -30"/min learnt, -165" applied by 20:58 while PHD2 pulsed from -239" back to +48" →
-  `CATCHUP`, `SATURATED`, `MIN_SPAN` (proposed). The calibration detector missed the repeated pulses: RA pulses in
-  between reset its run (→ per-axis runs).
+    after 10 s at R² 1.0, -30"/min learnt, -165" applied by 20:58 while PHD2 pulsed from -239" back to +48" →
+    `CATCHUP`, `SATURATED`, `MIN_SPAN` (proposed). The calibration detector missed the repeated pulses: RA pulses in
+    between reset its run (→ per-axis runs).
 
 ---
 
@@ -200,7 +200,7 @@ learning paused` / `resumed`). The notebook shades each case in section 3, readi
 * `SLIP` live: can the driver see a slip in time from the 518 angles alone (`m2_slips` works offline on PECLOG)?
 * `NONSIDEREAL`: are pulses learnt while tracking an orbital today?
 * Rollback depth: how far back can `CATCHUP` safely restore (the model before the rejected pulses may itself be from a
-  previous target)?
+    previous target)?
 * Should `ACQUIRE` also cover the first minutes after a driver restart with tracking restored?
 * `OUTLIER`: discard (today) or ignore? Discarding a real correction leaves the total short by it from then on;
-  ignoring keeps the total right but needs the threshold to be sure it isn't drift.
+    ignoring keeps the total right but needs the threshold to be sure it isn't drift.

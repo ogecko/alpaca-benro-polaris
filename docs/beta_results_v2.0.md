@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Beta test results
 ## Result Summary
 |Tester|Platform|Results|Summary|
@@ -22,6 +20,7 @@
 Notes: feedback on MacOS and Raspberry Pi 4
 
 ### Platform & Environment
+
 * Applications: CCDCiel beta 0.9.92-3846, IndiStarter 2.4.2-220, Stellarium 25.2
 * Platform: MacOS Tahoe 26.1, Raspios Trixie (2025-10-01-raspios-trixie-arm64-full.img), Firefox v145
 * Hardware: MacBook Air M4 13" 32Go SSD 2To, Raspberry Pi 4 4Go VILROS 802.11n wifi dongle.
@@ -29,6 +28,7 @@ Notes: feedback on MacOS and Raspberry Pi 4
 * Tripod: Manfrotto 190XPROB, precise hardware level
 
 ### Test Areas
+
 * Sofware setup and running on MacOS
 * Polaris setup only using ABP 2.0 (without the Benro Polaris phone app) using multi point alignment
 * Polaris motor speed calibration
@@ -41,6 +41,7 @@ Notes: feedback on MacOS and Raspberry Pi 4
 * Shooting some deep sky objects using CCDCiel with Alpaca Pilot running on MacBook and ABP driver running on Raspberry Pi 4 
 
 ### Results
+
 * I started testing ABP 2.0 Alpha1 on my MacBook Air and found some issues when trying to start the python code. The MacOS Python package requirement list had to be updated, and some Python errors had to be fixed to support the older Python version (Python 3.9.6) pre-installed on recent MacOS.
 * I tried to avoid using Benro Polaris phone app, using ABP 2.0 only to setup the Polaris. With the Alpha1 release there were some issues with the Bluetooth discovery of the Polaris, mainly errors in the logs but this has been fixed in Beta1. The discovery process did wake up the Polaris WIFI allowing the MacBook to connect to it. At home where my MacBook is seeing both the home and Polaris WIFI, I have to manually switch to the Polaris one, but when no other known WIFI is in range, the computer automatically connect to the Polaris.
 Sometimes, the Alpaca Pilot auto connection and the use of the connection button ("Connect Driver to Benro Polaris" in Connect tab) delays the proper connection, a race condition seems to arise and we could see in the logs several connection / de-connection in a row.
@@ -59,6 +60,7 @@ In the first beta versions I saw that the process was not working like in ABP 1.
 (Dis: Bakermanz; GH: bakermanz; FB: Real Bread Aotearoa)
 Notes: connect ok, tracking pulsing, top 360
 ### Platform & Environment
+
 * Location: Auckland, New Zealand
 * Optics: Z 6II (Astro Modified) and Z8, Nikkor Z 100-400mm f/4.5-5.6 VR S
 * Mount: Benro Polaris (latest device version 6.0.0.54 and astro kit version 1.0.2.14)
@@ -74,10 +76,12 @@ Notes: connect ok, tracking pulsing, top 360
     * Windows 11 Pro version 24H2
 * TP-link travel router (AC750 Wi-Fi TL-WR902AC) connected via ethernet - provides wifi to allow iPad Pro (M4) iPadOS 26.0.1 to control mini PC via ‘Windows App Mobile’ (version 11.2.1)
 ### Test Areas
+
 * iPhone 15 Pro Max (iOS 26.0.1) with Stellarium PLUS (version 1.15.0)
 * MacBook Pro (Windows) with Stellarium (version ) using ASCOM 7
 * Mini PC (Windows) with Stellarium (version ) using ASCOM 7 
 ### Results
+
 1. Stellarium PLUS (iPhone) communicates perfectly with ABP 2.0 on Mini PC, giving
 GoTo functionality beyond Benro Polaris basic star catalogue.
 
@@ -89,6 +93,7 @@ testing, the ABP driver was able to successfully slew the Benro Polaris to a com
 3. Benro Polaris tracks well with ABP 2.0 using ‘Slew and centre’ in N.I.N.A. and plate
 solving with ASTAP
 ### Beta1 Feedback
+
 * Bluetooth on startup
 
     On start up, ABP 2.0 seems to be looking for bluetooth? From the log;
@@ -100,6 +105,7 @@ solving with ASTAP
     raise BleakError("Failed to start scanner. Is Bluetooth turned on?")
     bleak.exc.BleakError: Failed to start scanner. Is Bluetooth turned on?
     ```
+
 * Site Location on startup
 
     APB 2.0 also reports a site latitude /longitude warning, still displaying the Sydney coordinates. Checking the config.toml file, shows both the amended (New Zealand)
@@ -170,6 +176,7 @@ solving with ASTAP
     understand Pilot has such a feature (somewhere?)
 
 ### Beta 2 Feedback
+
 * Background 
 
     Due to continued cloudy conditions, all previous testing (connectivity with Stellarium etc) was only conducted during the day - so plate solving could not be undertaken (for both BETA 1 and 2). However, I was able to successfully image using BETA 2, over the weekend:
@@ -186,9 +193,10 @@ solving with ASTAP
 * Workflow - Night 1 and Night 2
 
     Results for BETA 2 using both ‘systems’ was exactly the same and the issues I encountered, could be down to user error and unfamiliarity with set up.
+
     1. Connect to Pilot through N.I.N.A. (gear icon) and park
     2. Focus (LensAF), take image and plate solve (so mount knows where it is pointing in
-    the sky)
+        the sky)
     3. At this point, the camera and Polaris was pointing directly at Orion in the sky
     4. In N.I.N.A, unpack and set sidereal tracking
     5. Use the framing assistant to select target (e.g. Horsehead Nebula)
@@ -215,6 +223,7 @@ Multi-Point Alignment (06 Nov 25)
 Background - The sky was clear and although there was a full moon (not ideal), I was aiming in the opposite direction. The tripod and Benro Polaris were pointing South East towards the Large Magellanic Cloud (LMC)
 
 Workflow
+
 1. Start ABP driver, open N.I.N.A., connect to Pilot through N.I.N.A. (gear icon) and
 ensure location details are correct in Pilot (-36.730621 / 174.742580)
 (NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. both
@@ -261,52 +270,53 @@ I suspect user error but struggling to work out the error of my ways
 
 ### Beta 3 Feedback
 Multi-Point Alignment (07 Nov 25)
+
 *  Background
     - Using the iPhone compass app (set to true north), the tripod and Benro Polaris were set up to perfectly face South
     - Bubble level (0.1°) and Leofoto “Tripod Leveler Stand with +/-5 Degree Precision Adjustment Bracket, to ensure as level as possible Although neither of these steps should actually be necessary (with plate solving), I wanted to eliminate every possible element, that could possibly impact on the alignment. At the time, (23:00) there was a full moon starting to rise (NE), so imaging of the LMC was taken from the opposite direction (SE) of the Bortle 5 sky. 
 * Workflow
     1. During the Pilot connection stage, I selected the ’Reset all Polaris Axes’ and ensured that the ‘Observing Site Information’ location details were correct (xx / xx) and at this point (NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. skipped)
     2. Pilot Dashboard - showing these figures;
-    Azimuth +184° M1 0.2°
-    Altitude +79° M2 -0.1°
-    Roll -5° M3 1.1°
+        Azimuth +184° M1 0.2°
+        Altitude +79° M2 -0.1°
+        Roll -5° M3 1.1°
     3. Pilot Dashboard - after selecting ‘Park’ it was now showing these figures;
-    Azimuth +178° M1 -0.0°
-    Altitude +79° M2 0.0°
-    Roll -0° M3 -0.0°
-    (slight change in Azimuth Roll and ‘M’, compared to the initial set up using ‘Reset all Polaris Axes’)
+        Azimuth +178° M1 -0.0°
+        Altitude +79° M2 0.0°
+        Roll -0° M3 -0.0°
+        (slight change in Azimuth Roll and ‘M’, compared to the initial set up using ‘Reset all Polaris Axes’)
     4. Pilot Dashboard - Unpark and toggle tracking on (in order to sync)
     5. N.I.N.A. - initiate manual plate solve via image>plate solving (using play button)
-    (this first result was now displayed in the Pilot Telescope Alignment Model)
+        (this first result was now displayed in the Pilot Telescope Alignment Model)
     6. Pilot Catolg - used for “Goto” and then plate solved using N.I.N.A.
-    First - South Celestrial Pole
-    Second - LMC +2 hours in future (EQ mode used to enter d-2)
-    Third - LMC (real time)
+        First - South Celestrial Pole
+        Second - LMC +2 hours in future (EQ mode used to enter d-2)
+        Third - LMC (real time)
     7. Multi-Point Alignment - results showing;
-    (a) Telescope Alignment Model - great residuals (the highest being only 2.2°)
-    (b) Correction Summary - results showing;
-    Az Correction 17.0°
-    Tilt Correction 31.5°
-    Highest Tilt Az 322.9°
+        (a) Telescope Alignment Model - great residuals (the highest being only 2.2°)
+        (b) Correction Summary - results showing;
+        Az Correction 17.0°
+        Tilt Correction 31.5°
+        Highest Tilt Az 322.9°
     8. Pilot Dashboard - showing these figures;
-    Azimuth +151° M1 -52.1°
-    Altitude +41° M2 -3.5°
-    Roll -10° M3 7.3
+        Azimuth +151° M1 -52.1°
+        Altitude +41° M2 -3.5°
+        Roll -10° M3 7.3
     9. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (LMC) in Coordinates box and Load Image
     10. N.I.N.A. Framing Assistant - select ‘Slew and centre’ … which initiates plate solving
-    and once completed (telescope within tolerance), use ‘Add target to Sequence’ etc
+        and once completed (telescope within tolerance), use ‘Add target to Sequence’ etc
     11. N.I.N.A. Legacy Sequencer - set to 20 images (20 sec exposure) and cycle repeated,
-    so that plate solving between every 20 images (‘slew to target and centre target’ both
-    set to ON)
+        so that plate solving between every 20 images (‘slew to target and centre target’ both
+        set to ON)
     12. PROBLEM - on checking the images, all showed elongation of stars and trailing.
-    There were also strange shapes (squiggles) on some images - despite no movement
-    of tripod whatsoever and there was zero wind. I was beginning to wonder if the Benro
-    Polaris unit itself, had developed a fault.
+        There were also strange shapes (squiggles) on some images - despite no movement
+        of tripod whatsoever and there was zero wind. I was beginning to wonder if the Benro
+        Polaris unit itself, had developed a fault.
     13. Restart imaging without using Multi-Point Alignment - reverting back to just using N.I.N.A. with ABP Beta 3 - Sidereal tracking was set in N.I.N.A.
-    This resulted in pin point stars for every image on the same target (LMC) and so this eliminates the possibility of any potential fault, with the Benro Polaris unit 
+        This resulted in pin point stars for every image on the same target (LMC) and so this eliminates the possibility of any potential fault, with the Benro Polaris unit 
 *  Observations
     * Multi-Point Alignment had good residuals from the 3 sync points but the ‘Correction Summary’ shows high levels of correction (tilt etc) … despite the meticulous set up
-    with bubble level etc
+        with bubble level etc
     * Could there be a difference between the sidereal tracking used in Pilot, compared to when it was set using N.I.N.A ? (star streaks and squiggles on images)
     * There seems to be a difference with the ‘Park’ position in Pilot compared to the Benro Connect App (joysticks) and N.I.N.A.
 
@@ -332,108 +342,110 @@ The tracking problem looks like a bad multi-point alignment model, the more deta
 
 ### Beta 3 Feedback
 Day Time Testing  (08 Nov 25)
+
 * Background
     * I followed your advice regarding waiting between the three steps (Reset all axes, skip compass alignment and skip single star alignment) As a result, the weird initial Altitude 79° that I previously reported, has now gone and shows 45° User Error - Previously, I had simply gone down the ‘list’ and ticked one-by-one (without waiting)
 * Observations
     1. Despite not waiting, the ‘Connect’ display in Pilot immediately gave green ticks for
-    all three steps- so naturally, I had assumed all was well …. when in fact it wasn’t
+        all three steps- so naturally, I had assumed all was well …. when in fact it wasn’t
     2. During my previous image testing (07 Nov 25), I had also experienced a possible
-    conflict between the ‘GoTo’ in Pilot and the ’Slew and centre’ in N.I.N.A.
-    This was where the target (LMC) had been selected from the Pilot Catalog and used
-    for the third Multi-Point Alignment sync point. The target details (LMC), were then
-    entered into the N.I.N.A. Framing Assistant.
-    N.I.N.A - Once the target was entered (followed by ‘Load Image’), the ‘Slew and
-    centre’ would result in the Benro Polaris moving away from its current position.
-    NB - Pilot and N.I.N.A. were identifying the target at different position….. conflict
+        conflict between the ‘GoTo’ in Pilot and the ’Slew and centre’ in N.I.N.A.
+        This was where the target (LMC) had been selected from the Pilot Catalog and used
+        for the third Multi-Point Alignment sync point. The target details (LMC), were then
+        entered into the N.I.N.A. Framing Assistant.
+        N.I.N.A - Once the target was entered (followed by ‘Load Image’), the ‘Slew and
+        centre’ would result in the Benro Polaris moving away from its current position.
+        NB - Pilot and N.I.N.A. were identifying the target at different position….. conflict
     3. Test (daytime)
-    (i) Pilot Catalog - select LMC and ‘GoTo’ - Polaris moves to target
-    (ii) N.I.N.A. - enter LMC in the Faming Assistant, ‘Load Image’ followed by ‘Slew and
-    centre’ ….. Polaris no longer moves away from its position
-    This appears to fix my Multi-Point Alignment issues, which will now need to be confirmed
-    at night- where plate solving can be used.
-    Further Testing
-    Driver Log will be enabled with “Log Multi-Point Sync”.
-    There may be a delay (forecast cloudy conditions in New Zealand for next week) and Beta
+        (i) Pilot Catalog - select LMC and ‘GoTo’ - Polaris moves to target
+        (ii) N.I.N.A. - enter LMC in the Faming Assistant, ‘Load Image’ followed by ‘Slew and
+        centre’ ….. Polaris no longer moves away from its position
+        This appears to fix my Multi-Point Alignment issues, which will now need to be confirmed
+        at night- where plate solving can be used.
+        Further Testing
+        Driver Log will be enabled with “Log Multi-Point Sync”.
+        There may be a delay (forecast cloudy conditions in New Zealand for next week) and Beta
     4. will most likely be used for further testing.
 
 
 ### Beta4 with Multi-Point Alignment (16 Nov 25)
+
 * Background
     - Using the iPhone compass app (set to true north), the tripod and Benro Polaris were
-    set up to perfectly face South (180°)
+        set up to perfectly face South (180°)
     - Bubble level (0.1°) and Leofoto “Tripod Leveler Stand with +/-5 Degree Precision
-    Adjustment Bracket, to ensure as level as possible
-    Although neither of these steps should actually be necessary (with plate solving), I wanted
-    to eliminate every ‘potential failure point’, that could may impact on the alignment etc.
+        Adjustment Bracket, to ensure as level as possible
+        Although neither of these steps should actually be necessary (with plate solving), I wanted
+        to eliminate every ‘potential failure point’, that could may impact on the alignment etc.
     - At the time, (22:30) there was no Moon in the Bortle 5 sky. However, wind and cloud was
-    forecast, for the early hours - which inevitably caused issues.
+        forecast, for the early hours - which inevitably caused issues.
 * Workflow
     1. During the Pilot connection stage, I selected the ’Reset all Polaris Axes’ and ensured
-    that the ‘Observing Site Information’ location details were correct (-36.730621 /
-    174.742580) and at this point
-    (NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. both
-    steps skipped)
+        that the ‘Observing Site Information’ location details were correct (-36.730621 /
+        174.742580) and at this point
+        (NB - ‘Compass Alignment’ is set to Az 180 and ‘Single Star Alignment’ set at Az 180 Alt 45) .. both
+        steps skipped)
     2. Pilot Dashboard - showing these figures;
-    Azimuth +180° M1 0.3°
-    Altitude +45° M2 -0.1°
-    Roll -1° M3 1.1°
+        Azimuth +180° M1 0.3°
+        Altitude +45° M2 -0.1°
+        Roll -1° M3 1.1°
     3. Pilot Dashboard - after selecting ‘Park’ it was now showing these figures;
-    Azimuth +178° M1 -0.0°
-    Altitude +45° M2 0.0°
-    Roll +0° M3 -0.0°
+        Azimuth +178° M1 -0.0°
+        Altitude +45° M2 0.0°
+        Roll +0° M3 -0.0°
     - slight change of in Azimuth (-2°), Roll (now zero) and all three ‘M’ (now all zero), from the initial set up
-    using ‘Reset all Polaris Axes’)
+        using ‘Reset all Polaris Axes’)
     4. N.I.N.A. - Start Autofocus
     5. Pilot Dashboard - Unpark and toggle tracking on (in order to sync) and perform an
-    initial manual plate solve (N.I.N.A. - image>plate solving - play button) … so that
-    Polaris would know exactly where it was pointing in the sky.
-    This was using the new default Pilot setting for “Single Star Alignment” and was to
-    ensure that the first “GoTo” (using Catalog) for the South Celestrial Pole was accurate.
+        initial manual plate solve (N.I.N.A. - image>plate solving - play button) … so that
+        Polaris would know exactly where it was pointing in the sky.
+        This was using the new default Pilot setting for “Single Star Alignment” and was to
+        ensure that the first “GoTo” (using Catalog) for the South Celestrial Pole was accurate.
     6. Pilot - change to Multi-Point Alignment for subsequent N.I.N.A sync plate solves:
-    First “Go To”- South Celestrial Pole
-    Second “Go To”- Horsehead Nebula
-    Third “Go To” - select EQ mode and enter d-2) for position 2 hours into the future
-    Fourth “Go To” - Horsehead Nebula (real time)
+        First “Go To”- South Celestrial Pole
+        Second “Go To”- Horsehead Nebula
+        Third “Go To” - select EQ mode and enter d-2) for position 2 hours into the future
+        Fourth “Go To” - Horsehead Nebula (real time)
     7. Pilot Multi-Point Alignment - results showing;
-    (a) Telescope Alignment Model residuals ( 23.1’ 30.1’ 0.0°)
-    (b) Correction Summary - results showing;
-    Az Correction -10.3’
-    Tilt Correction 23.6’
-    Highest Tilt Az 130.5°
-    (Screen shot available)
+        (a) Telescope Alignment Model residuals ( 23.1’ 30.1’ 0.0°)
+        (b) Correction Summary - results showing;
+        Az Correction -10.3’
+        Tilt Correction 23.6’
+        Highest Tilt Az 130.5°
+        (Screen shot available)
     8. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (Horsehead
-    Nebula) in Coordinates box and Load Image
+        Nebula) in Coordinates box and Load Image
     9. N.I.N.A. Framing Assistant - select ‘Slew and centre’ … which initiates plate solving
-    and once completed, use ‘Add target to Sequence’ etc
+        and once completed, use ‘Add target to Sequence’ etc
     10. Pilot Multi-Point Alignment - results (after N.I.N.A. slew and centre) now showing;
-    (a) Telescope Alignment Model residuals ( 32.2’ 20.2’ 9.4’ 0.0°)
-    (b) Correction Summary - results showing;
-    Az Correction -9.6’
-    Tilt Correction 27.9’
-    Highest Tilt Az 108.7°
-    (Screen shot available)
+        (a) Telescope Alignment Model residuals ( 32.2’ 20.2’ 9.4’ 0.0°)
+        (b) Correction Summary - results showing;
+        Az Correction -9.6’
+        Tilt Correction 27.9’
+        Highest Tilt Az 108.7°
+        (Screen shot available)
     11. N.I.N.A. Legacy Sequencer - set to 20 images (30sec exposure) and cycle repeated,
-    so that plate solving between every 20 images (‘slew to target and centre target’ both
-    set to ON)
+        so that plate solving between every 20 images (‘slew to target and centre target’ both
+        set to ON)
     12. Although 240 images set in the Sequencer, 165 failed due to increase in wind and
-    clouds
+        clouds
 * Observations
     1. Multi-Point Alignment - shows high residuals for the sync points and the ‘Correction
-    Summary’ shows high levels of correction (tilt etc) … all despite the meticulous set up
-    with bubble level and compass alignment to the South etc
+        Summary’ shows high levels of correction (tilt etc) … all despite the meticulous set up
+        with bubble level and compass alignment to the South etc
     2. The target used for the imaging session (Horsehead Nebula) was located North East,
-    but the initial set was undertaken with the equipment facing South ….. to facilitate
-    using the South Celestrial Pole for one of the the sync points etc.
-    As such, this may have caused the high residuals (due to imaging in the opposite
-    direction) ???????
+        but the initial set was undertaken with the equipment facing South ….. to facilitate
+        using the South Celestrial Pole for one of the the sync points etc.
+        As such, this may have caused the high residuals (due to imaging in the opposite
+        direction) ???????
     3. Despite using 30 sec exposures at 400mm, with wind and high residuals in the
-    pointing model ….. the results were actually excellent …. Producing sharp stars and
-    no tracking errors. All the image failures (165) can be attributed to the wind causing
-    movement.
+        pointing model ….. the results were actually excellent …. Producing sharp stars and
+        no tracking errors. All the image failures (165) can be attributed to the wind causing
+        movement.
     4. Summary - at 400mm using the original ABP v1.01, I would not have been able to use
-    30 sec exposures, without introducing star trailing - NB. previously kept ‘safe’ by
-    using a cautious 15 sec exposure, to ensure the stars kept sharp.
-    As such, even without guiding, v.2.0 is a revolution.
+        30 sec exposures, without introducing star trailing - NB. previously kept ‘safe’ by
+        using a cautious 15 sec exposure, to ensure the stars kept sharp.
+        As such, even without guiding, v.2.0 is a revolution.
 
 ### BETA 5 - RC1 Testing - Multi-Point Alignment (21 Nov 25) 
 
@@ -451,15 +463,15 @@ Day Time Testing  (08 Nov 25)
     3. N.I.N.A. - First plate solve.
     4. Pilot - change to Multi-Point Alignment for subsequent N.I.N.A sync plate solves:
     5. Pilot - Catalog
-    “Go To” - South Celestrial Pole (second plate solve)
+        “Go To” - South Celestrial Pole (second plate solve)
     6. Pilot - Catalog
-    “Go To” - Horsehead Nebula - select EQ mode and enter d-2 (third plate solve)
+        “Go To” - Horsehead Nebula - select EQ mode and enter d-2 (third plate solve)
     7. N.I.N.A. Framing Assistant - using Offline Sky Map, enter target details (Horsehead
-    Nebula) in Coordinates box and Load Image
+        Nebula) in Coordinates box and Load Image
     8. N.I.N.A. Framing Assistant - select ‘Slew and centre’ (initiates fourth plate solve)
     9. N.I.N.A. Legacy Sequencer - set to 20 images (30sec exposure) and cycle repeated,
-    so that plate solving between every 20 images (‘slew to target and centre target’ both
-    set to ON)
+        so that plate solving between every 20 images (‘slew to target and centre target’ both
+        set to ON)
     10. Pilot Multi-Point Alignment - results showing;
         1. Telescope Alignment Model residuals (42.3’ 28.1’ 0.0°)
         2. Correction Summary - results showing;
@@ -478,6 +490,7 @@ I would say that it’s absolutely brilliant and an amazing achievement. Really 
 ## Beta Tester: Paul
 (Dis: Paul C)
 ### Platform & Environment
+
 * Platform: Win11?, cheap mini PC, iOptron carbon fibre tripod
 * Applications: Nina, PHD2
 * Optics: astro modified Z7 with the 150-600 zoom set to 352mm, Dew Bands
@@ -499,6 +512,7 @@ I used the Guiding Assistant and Calibration Assistant in PHD2 and used 1s expos
 ## Beta Tester: Daniel
 (FB: Daniel Michaud; Dis: Dmich39; GH: Dmich39)
 ### Platform & Environment
+
 - Mini PC : Nipogi GKIII Alder Lake N97 ,  16 GB memory 1 GB on disc  Win Pro 11, very similar to Mele. Built in Wifi port + external USB one, ( TP Link  ) 
 - Benro Polaris Astro in latest firmware & Benro app version
 - Solid tripod weighted with  5 kg mass , levelled carefully with 2 digital levelling tools (< 0.1 degree error in any direction)
@@ -528,27 +542,28 @@ I wanted to check : End to end setup from Benro Polaris ignition to pointing tar
         - JDM - My understanding is that Nina will only try to rotate on a target if you select Rotate Target in the Target options of the Sequence. Normally the Driver will aim to preserve the current roll angle on any GOTO, unless instructed otherwise.
 
 - Plate Solve :
-    -	Single plate Solve did not  create any specific issue , it was already the process under  V1 Alpaca driver. I only had to increase tolerance in pointing, but this was  due to my local sky environment , correct ?  ( with  a 280 mm lens, f4 ) 
+    -   Single plate Solve did not  create any specific issue , it was already the process under  V1 Alpaca driver. I only had to increase tolerance in pointing, but this was  due to my local sky environment , correct ?  ( with  a 280 mm lens, f4 ) 
         - JDM - V2.0 Single Point Alignment should be the same as V1.0
 
-    -	Multi Plate Solve is a bit different : easy to understand, easy to run several celestial plate solve,  all was  really a no brainer. Only a few minutes needed to point & solve specific objects, with no additional complexity compared to single point. The only point is sort of frustration because the process is a pure black box, we can’t see how Pilot Alpaca treats this volume of single plate solve data . Any way, it works in the end, as we will see later ( but I’m an engineer by nature  I like to understand all details … 😊 )
+    -   Multi Plate Solve is a bit different : easy to understand, easy to run several celestial plate solve,  all was  really a no brainer. Only a few minutes needed to point & solve specific objects, with no additional complexity compared to single point. The only point is sort of frustration because the process is a pure black box, we can’t see how Pilot Alpaca treats this volume of single plate solve data . Any way, it works in the end, as we will see later ( but I’m an engineer by nature  I like to understand all details … 😊 )
         - JDM - the details of the multi-point alignment model can be seen on the Alpaca Pilot Alignment Page. Did you see the SYNC point list and residuals for each sync point? Have you watched the video? Is there something else you are looking for?
 
 - Real case end2end V2 Beta 4 initial testing :
 
-    -	Setup in real conditions being done applying all lessons learnt, I decided to target  Caldwell 31 ( Frame Nebula ) , for a series of 100 + lights, 60 seconds each, never done before such duration with Benro Polaris alone or under V1.
-    -	Multiple Plate Solve was ok, even so, as said, I was a bit surprising to observe all the movements ordered by … Pilot Alpaca ?, Stellarium ? .. ) until correct positioning. It looked hectic and random based as visible in Nina framing screen, more than the result of a computation ( see a  video  made by me, available if you wish ) , but in the end, it worked.
+    -   Setup in real conditions being done applying all lessons learnt, I decided to target  Caldwell 31 ( Frame Nebula ) , for a series of 100 + lights, 60 seconds each, never done before such duration with Benro Polaris alone or under V1.
+    -   Multiple Plate Solve was ok, even so, as said, I was a bit surprising to observe all the movements ordered by … Pilot Alpaca ?, Stellarium ? .. ) until correct positioning. It looked hectic and random based as visible in Nina framing screen, more than the result of a computation ( see a  video  made by me, available if you wish ) , but in the end, it worked.
 
 - Overall:
     - It worked ! and well 
 
-    -	After more than 3 hours of testing, inclusive of some hesitation in the above mentioned directions,  it worked very well  !!!! ; I didn’t have to change anything or intervene, once sequencer  started to operate : 100 lights, 1 minute each, target rather high in sky, no single deviation observed through Imaging Tab, and pin points stars everywhere. No single deviation observed in positioning after 100 lights capture compared to initial Multiple plate solve.  GREAT !!
+    -   After more than 3 hours of testing, inclusive of some hesitation in the above mentioned directions,  it worked very well  !!!! ; I didn’t have to change anything or intervene, once sequencer  started to operate : 100 lights, 1 minute each, target rather high in sky, no single deviation observed through Imaging Tab, and pin points stars everywhere. No single deviation observed in positioning after 100 lights capture compared to initial Multiple plate solve.  GREAT !!
     - I still would like to  test additional options , but clear sky will decide : 
-        -	Rotating
-        -	Nina Mosaic
+        -   Rotating
+        -   Nina Mosaic
 
 ### Feedback Summary
 At the end of this initial test, very successful let me say despite little unclarities, I will essentially share a few thoughts  & observations :
+
 - Multiple platforms testing : 
     - I have also reviewed, in house , the entire control tower with 1 laptop/Alpaca Pilot, 1 miniPC/Nina, one IpadPro/ Stellarium mobile…  : It seems all components work well together, even if Stellarium/ Ipad setup is less intuitive compared to Stellarium/Windows. Appreciate any recommendation on this , thanks !
 
@@ -556,19 +571,22 @@ At the end of this initial test, very successful let me say despite little uncla
     - At beginning of test, my understanding is that we must essentially secure a perfect Benro Polaris hardware Setup ( perfect levelling, squaring arca swiss plate, weighting tripod ) , followed by Benro Polaris ignition , until BenroPolaris is visible as a Wifi network on Windows. 
 
     - In real life, I understand that we have to complete the entire hardware & Benroconnect APP setup  (calibration with phone attached to Polaris, .. Astro mode,   BenroConnect targeting a calibration space object, good enough focus with Bahtinov mask….  ) before giving control to windows driver .
-    Lesson learnt is that if we neglect any of upfront steps, the subsequent actions  ( instellarium, Nina, Hocus Focus ) .. will be more painful .
-    Is this a correct understanding ? 
+        Lesson learnt is that if we neglect any of upfront steps, the subsequent actions  ( instellarium, Nina, Hocus Focus ) .. will be more painful .
+        Is this a correct understanding ? 
+
         - JDM - The V2.0 Driver can eliminate the need to use the Benro Polaris App to do Compass Align, Single Star Align. Also Multi-Point alignment eliminates the need to perfectly level your tripod.
         
 
     - Cable management : 
-    It’ is critical to secure cable connection  from camera to MiniPC :   Not having a long enough cable. I have initially destroyed a cable and blocked Benro Polaris motors, fortunately without severe consequence.  And by the way, software changes applied to Alpaca Pilot now totally secure the cable mismatch risk… bravo !
+        It’ is critical to secure cable connection  from camera to MiniPC :   Not having a long enough cable. I have initially destroyed a cable and blocked Benro Polaris motors, fortunately without severe consequence.  And by the way, software changes applied to Alpaca Pilot now totally secure the cable mismatch risk… bravo !
 
     - Multiple targets in one night: 
-    I have observed that under Pilot Alpaca control tower we can’t move from one target to an other without performing first a HOME / PARK / UNPARK series of orders. Doing so will ensure the second target will be properly aimed. Is this correct interpretation ?
+        I have observed that under Pilot Alpaca control tower we can’t move from one target to an other without performing first a HOME / PARK / UNPARK series of orders. Doing so will ensure the second target will be properly aimed. Is this correct interpretation ?
+
         - JDM - Not really. You do not need to Home/Park/Unpark after each GOTO. You can perform a GOTO from Alpaca and the mount move to the co-ordinates as per the current alignment. You can then do a plate-solve by Nina at that location to correct any slight misalignment or improve the Multi-point alignment model. Gotoing the same target again should be more accurate with the imrpved model.   
 
 ### Conclusion  
+
 - Warm congrats again to the entire team under David leadership : What was achieved these last months for the price of 2 KickStarter investments is rather  unbelievable.
 
 - Which also means that, despite lack of support from Benro, Benro Polaris is fantastic machine, but this, we all knew already…  Let’s hope that Benro won’t release any new firmware ruining all these efforts … how can we control this ?
@@ -588,6 +606,7 @@ At the end of this initial test, very successful let me say despite little uncla
 (FB: John Harrison; GH: 5x5Stuido)
 Notes: Ireland Week43, New 5nm filters.
 ### Platform & Environment
+
 * Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
 * Platform: OS Version, Browser Version, etc.
 * Hardware: MiniPC model, Tablet model, Phone model.
@@ -606,14 +625,17 @@ Notes: Ireland Week43, New 5nm filters.
 (FB: William Siers; GH: Spiderx01, Dis: williamsiers)
 Notes: Phoenix Week43
 ### Platform & Environment
+
 * Applications: Alpaca Pilot 
 * Platform: OS Version Win11, Chrome Browser.
 * Hardware: Mele 4C Mini-PC
 * Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
 
 ### Test Areas
+
 * Testing setup of Driver RC1 on last weekend of Beta test program
 ### Results
+
 * **Setup**  
     * I’m stuck, reading thru the last set of links and installation directions. Is some of this based on having a V1 installed, I’m doing a clean install on a new one. Things like the desktop shortcut, when double clicked it flashes a terminal window and fails to open the option for target etc. I’ll hack on it tomorrow. I downloaded loaded the 2.0 rc1 version - JDM - I've updated installation instructions to be more V2 oriented.
     * Cannot find path C:\documents, c:\users\xxxx\documents\alpaca-benro\polaris-2_0_rc1
@@ -647,15 +669,18 @@ Polaris also shows in BT, but no connection, which is what I’ve always seen. P
 (Dis: Alex; FB: Alexander M...; GH: ..)
 Notes: help with producing tutorial/overview and beta testing
 ### Platform & Environment
+
 * Applications: Nina 
 * Platform: Win10, Python v3.12.7, Ascom platform 7.1
 * Hardware: Intel MacBook pro that is running win10 via bootcamp. it is a shame it won’t run on windows for ARM… I’d love to use my M1 MacBook for this
 * Optics: Nikon Z6, 135mm/300mm Lens, Filters, Guidescope, etc
 
 ### Test Areas
+
 * Setup and PHD Guiding
 
 ### Results
+
 * **Setup**  
     * I had to revert to Python v3.12.7, the driver failed to launch on v3.13.5 as I am on windows 10. otherwise, smooth sailing
 * **PHD2 Setup**
@@ -679,6 +704,7 @@ Notes: help with producing tutorial/overview and beta testing
 
 
 ### Feedback Summary
+
 * A world first!! Guiding with the Benro Polaris
 * This image is 100 x 60 second (that’s right, 60 second!) exposures at 300mm, taken with the Benro Polaris from the Bortle 8 CBD. This will be wicked under some better skies.
 Testing & experimenting has been promising, I have guiding sitting around ~2.5RMS - clearly enough to resolve this 300mm lens! Plenty of tips & tricks to come.
@@ -688,6 +714,7 @@ I’ll piece together some YouTube videos on the outside our sphere YouTube chan
 (Dis: LanzaSteve; FB: Steve E...; GH: SteveE..)
 Notes: Tried BP Dither
 ### Platform & Environment
+
 * Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
 * Platform: OS Version, Browser Version, etc.
 * Hardware: MiniPC model, Tablet model, Phone model.
@@ -743,14 +770,17 @@ Notes: Tried BP Dither
 Notes: I do have a relationship with the MAC Group the nation-wide distributors of the Benro product line here in the USA.  
 ### Platform & Environment
 Hardware: 
+
 * MeLE Quieter 4C, MackBook Pro 14inch M3 Pro with 18GB memory, MAC Studio with 64GB Memory, IPad and the iPhone 16 Pro
 
 Optics: 
+
 * As a Panasonic Lumix Ambassador, I have: Full frame - Panasonic Lumix S1R II, S5 II, S5 IIX and all their lenses
 * MFT - GH6, G9 II and all the MFT Lenses
 * Sony A7R V, Sony A6500 (Astro Modified) - 20MM, 24, MM, 50mm, 16-35, 24 - 70mm, 70-200mm, 200-600mm
 
 Platform: 
+
 * Windows 11 Pro on the MeLE, Mac OS 26.0.1 on both Macs and on the iPad
 * Stellarium Desktop, NiNA, with related SW and drivers
 
@@ -766,6 +796,7 @@ Platform:
 (Dis: AstroPolo?; FB: Mauricio Salazar; GH: MauriSalazar, KS: )
 Notes: Last week RC1 tester.
 ### Platform & Environment
+
 * Applications: Application Versions (Nina/Stellarium/PHD2, etc), 
 * Platform: OS Version, Browser Version, etc.
 * Hardware: MiniPC model, Tablet model, Phone model.
@@ -774,6 +805,7 @@ Notes: Last week RC1 tester.
 ### Test Areas
 ...
 ### Results
+
 * I was able to install and did little testing. Still trying to learn Nina
 * But haven’t found any issues
 

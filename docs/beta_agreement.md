@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Alpha and Beta Testing Agreement
 
 Please review the following agreement before using any Alpha or Beta version of this software.
@@ -15,6 +13,7 @@ If you don’t already have a GitHub account, please create one and let me know 
 ### 2. Document your test environment
 
 Can you please let me know the details about the equipment you are testing with. Include details on 
+
 * Hardware: MiniPC or Apple model, Tablet model, Phone model, Benro Polaris versions
 * Optics: Camera Model, Sensor, Lens Model and Focal length, Filters, Guidescope, etc
 * Platform: OS Version, Application Versions (Nina/Stellarium, etc), Browser Version, etc. 
@@ -31,6 +30,7 @@ Otherwise, just send me a note on Discord and I’ll add it for you.
 Break down your assessment into a series of tests with clear goals and expected outcomes. Take small steps, confirming each along the way. Include real-world use cases, as well as load and performance tests where possible.
 
 Example of tests may be
+
 * Install and connect V2.2 driver to Polaris, confirming communications
 * Conduct DSO imaging session with new Driver, observing any perculiarities
 * Test usage of Mechanical Alignment Correction

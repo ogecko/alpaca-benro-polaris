@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Guiding Users Guide
 [Sync-Guiding](#approach-1-plate-solvesync-guiding-hardware-free) | 
 [Pulse-Guiding](#approach-2-pulse-guiding-hardware-based) | 
@@ -18,6 +16,7 @@ Guiding is a general concept that refers to any method used to correct tracking 
 **Auto-Guiding** is a broad term for any method used to automatically correct for tracking errors. While the Alpaca Driver’s Multi-Point-Alignment model (QUEST) provides an excellent foundation for tracking, physical factors like **periodic error**, **mechanical error**, and **polar mis-alignment**, can still cause star trailing and drift. 
 
 The Benro Polaris has a **periodic error** measured at **over 14 arc minutes**, with a repeating **35-minute** cycle. To achieve improved results, the driver supports two distinct auto-guiding approaches:
+
 1.  **Sync Guiding:** A hardware-free, software-based approach using your main imaging camera.
 2.  **Pulse Guiding:** A traditional hardware-based approach using a dedicated guide scope and camera.
 
@@ -92,11 +91,13 @@ For the Benro Polaris, the **primary benefit of pulse-guiding is eliminating dri
 
 ### How does Pulse-guiding work?
 Pulse-guiding is controlled by a separate guiding application that connects to the guiding camera as well as the Alpaca Driver. The guiding application operates by:
+
 * Continuously monitoring a selected guide star (or stars) from the guide camera
 * Measuring small deviations from the star’s expected position
 * Sending **pulse-guiding correction commands** to the Alpaca Driver
 
 The Alpaca Driver then:
+
 * Refines the target's equatorial setpoints
 * Translates these corrections into motor-level adjustments
 * Sends the updated motion commands to the Benro Polaris mount
@@ -116,12 +117,14 @@ The remainder of this secion will focus on the second solution, using **PHD2**.
 
 ### 2.1 Hardware Purchases and Software Installation
 To perform auto-guiding you will need some additional equipment, including the following. See [Hardware Pulse-Guiding Equipment](./hardware.md#guiding-scope-and-camera-optional) for more details.
+
 * A **Guide scope** (eg SVBony SV106 Guide Scope), or an off-axis guider (OAG)
 * A **Guide camera** (e.g. ToupTek GPM462M, ZWO ASI120MM, ZWO ASI220MM, etc.)
 * Suitable **Mounting equipment** (e.g. iShoot 220mm Quick Release Plate, with 3 x QR 50B Quick Release Clamps for a. MiniPC/Focuser, b. Main Lens/Camera, c. Guide Scope)
 
 
 You will also need to download and install the following software onto the Mini-PC.
+
 * **ASCOM Platform** - Download latest ASCOM Platform from the [ASCOM Home page](https://ascom-standards.org/index.htm)
 * **PHD2 Guiding Application** - Download free PHD2 application from the [PHD2 Download page](https://openphdguiding.org/downloads/)
 
@@ -133,31 +136,31 @@ Once the ASCOM Platform is been installed, you need to use the **ASCOM Diagnosti
 1. Launch **ASCOM Diagnostics App**
 2. Select **Choose and Connect to Device** from **Choose Device** menu
 3. Select **Telescope** from the dropdown, then click **Choose**
-   * On the **ASCOM Telescope Chooser** dialog, click **Alpaca** from the menubar
-   * Click **Discovery Enabled** until it is green
-   * Click **Discover Now**
-   * Using the dropdown, choose each **NEW ALPACA DEVICE**, Clicking **Ok** twice on each one, until no more new alpaca devices are present in the dropdown.
-   * On the **ASCOM Telescope Chooser** dialog, click **Alpaca** again
-   * Click **Manage Devices** to list all the new alpaca devices you added.
-   * Review the **IP Address** of each Telescope driver listed, and remove all unwanted drivers.
-   * Aim to leave only one Telescope driver so it is easier to choose the correct one from PHD2. 
-   * Click **Close** when complete.
-   * Using the dropdown, choose the **Alpaca Benro Polaris Telescope** you kept
-   * Click **Ok**
-   * Click **Connect** to confirm the Alpaca Driver Telescope is setup. 
+    * On the **ASCOM Telescope Chooser** dialog, click **Alpaca** from the menubar
+    * Click **Discovery Enabled** until it is green
+    * Click **Discover Now**
+    * Using the dropdown, choose each **NEW ALPACA DEVICE**, Clicking **Ok** twice on each one, until no more new alpaca devices are present in the dropdown.
+    * On the **ASCOM Telescope Chooser** dialog, click **Alpaca** again
+    * Click **Manage Devices** to list all the new alpaca devices you added.
+    * Review the **IP Address** of each Telescope driver listed, and remove all unwanted drivers.
+    * Aim to leave only one Telescope driver so it is easier to choose the correct one from PHD2. 
+    * Click **Close** when complete.
+    * Using the dropdown, choose the **Alpaca Benro Polaris Telescope** you kept
+    * Click **Ok**
+    * Click **Connect** to confirm the Alpaca Driver Telescope is setup. 
 4. Select **Rotator** from the dropdown, then click **Choose**
-   * On the **ASCOM Rotator Chooser** dialog, click **Alpaca** from the menubar
-   * Click **Discovery Enabled** until it is green
-   * Click **Discover Now**
-   * Using the dropdown, choose each **NEW ALPACA DEVICE**, Clicking **Ok** twice on each one, until no more new alpaca devices are present in the dropdown.
-   * On the **ASCOM Rotator Chooser** dialog, click **Alpaca** again
-   * Click **Manage Devices** to list all the new alpaca devices you added.
-   * Review the **IP Address** of each Rotator driver listed, and remove all unwanted drivers.
-   * Aim to leave only one Rotator driver AND one Telescope so it is easier to choose the correct one from PHD2. 
-   * Click **Close** when complete.
-   * Using the dropdown, choose the **Alpaca Benro Polaris Rotator** you kept
-   * Click **Ok**
-   * Click **Connect** to confirm the Alpaca Driver Rotator is setup. 
+    * On the **ASCOM Rotator Chooser** dialog, click **Alpaca** from the menubar
+    * Click **Discovery Enabled** until it is green
+    * Click **Discover Now**
+    * Using the dropdown, choose each **NEW ALPACA DEVICE**, Clicking **Ok** twice on each one, until no more new alpaca devices are present in the dropdown.
+    * On the **ASCOM Rotator Chooser** dialog, click **Alpaca** again
+    * Click **Manage Devices** to list all the new alpaca devices you added.
+    * Review the **IP Address** of each Rotator driver listed, and remove all unwanted drivers.
+    * Aim to leave only one Rotator driver AND one Telescope so it is easier to choose the correct one from PHD2. 
+    * Click **Close** when complete.
+    * Using the dropdown, choose the **Alpaca Benro Polaris Rotator** you kept
+    * Click **Ok**
+    * Click **Connect** to confirm the Alpaca Driver Rotator is setup. 
 5. Close the **Device Connection Tester** dialog box
 6. Close the **ASCOM Diagnostics App**
 
@@ -166,6 +169,7 @@ Once PHD2 has been installed, you need to perform some initial setup. This inclu
 
 ### 3.1 PHD2 Connecting Equipment
 Connecting PHD2 to the guide camera and Alpaca Driver (one time setup)
+
 1. Ensure your **guide camera** is physically connected and power it on.
 2. Ensure the **Alpaca Driver** is running and connected to the Polaris.
 3. Launch **PHD2**
@@ -188,6 +192,7 @@ Connecting PHD2 to the guide camera and Alpaca Driver (one time setup)
 
 ### 3.2 Guide Scope and Camera setup
 Focusing, Rotating and Aligning the guide camera (one time setup)
+
 1. Ensure your **main camera** is centered on a recognisable landmark, like a powerline tower, tall building, or tall fixed object, as far away as possible. This can be done during twilight hours or even during daytime.
 2. Ensure you have a laptop, tablet or phone, near the guide camera. This will allow you to remote into the Mini-PC running PHD2, make guide camera focus and alignment adjustments, and see the effect immediately.
 3. Using **PHD2**, connect to all equipment
@@ -248,6 +253,7 @@ We recommend not using Dithering with the Alpaca Driver as we have not seen any 
 
 * **PEC can stay on during calibration** - 
 We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. The Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC with an autoguider:
+
     * Leave PEC on while you calibrate. The driver recognises PHD2's (and CCDciel's) calibration pulses, and PEC Drift Correction ignores them, rolling back anything it learnt during the calibration (`pec_ignore_guider_calibration`, on by default).
     * PEC Worm Gear Correction doesn't learn from guiding, so it can stay on too; calibrating with it on means PHD2 measures a mount with its worm gear error already removed.
     * Avoid switching PEC Drift Correction off and on around calibration: switching it restarts the drift model, which then has to learn the drift again.
@@ -256,19 +262,20 @@ We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own
 On the Benro Polaris the Position Angle (PA) changes from target to target, and PHD2's calibration is only valid at the PA it was made at. If PHD2 is connected to the **Alpaca Benro Polaris Rotator** with **Reverse the sign of Angle** enabled (see [4.3 Re-Calibration](#43-re-calibration)), PHD2 adjusts its calibration to each new PA itself, so you can calibrate once and slew to other targets. Without the Rotator, calibrate at your imaging target so the PA is the same for calibration and imaging: slew to the target, ignore PHD2's calibration location warning, and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration.
 
 * **Close to the intended imaging target** - 
-  RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. 
+    RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. 
 
 * **Within ±20° of the celestial equator (Dec ≈ 0°)** - 
-  Near the celestial equator, guide pulses produce the largest and most measurable star movement, resulting in more accurate calibration data.
+    Near the celestial equator, guide pulses produce the largest and most measurable star movement, resulting in more accurate calibration data.
 
 * **Within one hour of the celestial meridian** - 
-  Calibrating near the meridian minimizes atmospheric refraction and mechanical flexure effects, providing a more stable and representative measurement of mount behavior.
+    Calibrating near the meridian minimizes atmospheric refraction and mechanical flexure effects, providing a more stable and representative measurement of mount behavior.
 
 
 Following these guidelines ensures calibration is accurate, reliable, and representative of actual guiding conditions.
 
 ### 4.1 Calibration Process
 To Calibrate **PHD2**, use the Calibration Assistant:
+
 1. Following the guidelines above, slew the Polaris close to your intended imaging target using NINA, Stellarium, or Alpaca Pilot.
 2. Enable **Sidereal Tracking**.
 3. In **PHD2**, connect to all required equipment.
@@ -313,6 +320,7 @@ PHD2 assumes that the relationship between RA/Dec guide pulses and pixel motion 
 When PHD2 is connected to the **Alpaca Benro Polaris Rotator**, it can automatically adjust its calibration as the Position Angle changes. This means you do not need to recalibrate after slewing to a new target or changing the roll angle, provided the rotator is configured correctly.
 
 To enable this, change the following PHD2 setting:
+
 1. Click the **Brain Button** or choose **Advanced Settings** from the **Guide** menu
 2. Select the **Other Devices** tab
 3. Under **Rotator Settings**, enable **Reverse the sign of Angle**
@@ -326,12 +334,14 @@ Note: If you use a separate ZWO rotator that rotates only the main imaging camer
 ##  5. Pulse-Guiding with PHD2
 
 Once you have calibrated PHD2, auto-guiding with PHD2 is relatively simple. If you have configured Nina to use PHD2, it will automatically run through steps 1 through 4 for you. 
+
 1. Start **PHD2** and **Connect All Equipment**
 2. Click **Begin Looping Exposures** to start the guide camera
 3. Click **Auto-Select Star** to select a guide star
 4. Click **Begin Guiding** to start the auto-guiding process
 
 To monitor the guiding performance, use the **View** menu in PHD2
+
 1. Click **Display Graph** to show the auto-guiding history.
 2. Click **Display Target** to show spread of motion of the guide star.
 3. Click **Display Star Profile** to show the expanded guide star pixel profile.
@@ -359,12 +369,12 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 * **Cause:** The alignment model (QUEST) is never perfect, so the mount's idea of the sky is slightly off. The resulting drift rate changes slowly as the mount moves across the sky and as the night progresses.
 * **Solution:** Switch on **PEC Drift Correction** in Pilot's settings. The driver learns the drift rate from the guide corrections (Pulse Guiding or Sync Guiding), averaged over about 7.5 minutes, and applies it every 200 ms, leaving the guider only what remains. It starts once it has enough corrections to be confident (see [Kinematics 2.6](./kinematics.md#26-periodic-error-correction-pec)).
 * **Tips:**
-  * It ignores PHD2 and CCDciel guider calibration pulses, so it can stay on while calibrating.
-  * It pauses learning while a motor reverses its tracking direction, for example M2 as a target passes its highest point. The motor first turns through its gear backlash before the lens follows, so the star drifts for several minutes and the guider pulls it back. PEC keeps applying the rate it had learned, but doesn't learn that drift, so it doesn't keep correcting it after the gear has caught up. The driver log shows when learning pauses and resumes.
-  * It stops applying the rate if the guide corrections stop, for example clouds pass preventing plate solving: after about 5 minutes, or three times the usual time between corrections if that is longer. It carries on from the next correction.
-  * A single correction far larger than usual, such as a bad plate solve or the mount slipping, is treated as a one-off jump rather than drift, so it doesn't throw the rate off. Several large corrections in a row are taken as a real change in drift and learned.
-  * Switch it **off** if you dither: dither steps look like drift, and PEC would learn them.
-  * A good Multi-Point Alignment (and Mechanical Alignment Correction) reduces the drift in the first place.
+    * It ignores PHD2 and CCDciel guider calibration pulses, so it can stay on while calibrating.
+    * It pauses learning while a motor reverses its tracking direction, for example M2 as a target passes its highest point. The motor first turns through its gear backlash before the lens follows, so the star drifts for several minutes and the guider pulls it back. PEC keeps applying the rate it had learned, but doesn't learn that drift, so it doesn't keep correcting it after the gear has caught up. The driver log shows when learning pauses and resumes.
+    * It stops applying the rate if the guide corrections stop, for example clouds pass preventing plate solving: after about 5 minutes, or three times the usual time between corrections if that is longer. It carries on from the next correction.
+    * A single correction far larger than usual, such as a bad plate solve or the mount slipping, is treated as a one-off jump rather than drift, so it doesn't throw the rate off. Several large corrections in a row are taken as a real change in drift and learned.
+    * Switch it **off** if you dither: dither steps look like drift, and PEC would learn them.
+    * A good Multi-Point Alignment (and Mechanical Alignment Correction) reduces the drift in the first place.
 
 ### 6.2 Worm Gear Wobble: PEC Worm Gear Correction
 
@@ -372,8 +382,8 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 * **Cause:** Each motor drives its axis through a worm gear (6°, 60 teeth). Small irregularities in the gear make each axis wobble by about 30-150 arc seconds, repeating every 6° of that motor's rotation. Because the wobble is tied to the motor angles, it repeats in the same way night after night.
 * **Solution:** Measure each motor's worm once with the **M1-M2-M3-WORM-PROFILE** test on Pilot's Speed Calibration page (about 20 minutes, using plate solves), approve the result, then switch on **PEC Worm Gear Correction**. The driver then removes the wobble before it happens, with or without guiding. See [Kinematics 2.6 V](./kinematics.md#v-worm-gear-correction---profile-calibration) for the test.
 * **Tips:**
-  * PEC Drift Correction and PEC Worm Gear Correction work together: the worm correction removes the wave, and the drift correction learns what is left. The PEC button on Pilot's status panel switches both.
-  * The PEC switches are live settings. Press **Save** on the Config page to keep them after the driver restarts.
+    * PEC Drift Correction and PEC Worm Gear Correction work together: the worm correction removes the wave, and the drift correction learns what is left. The PEC button on Pilot's status panel switches both.
+    * The PEC switches are live settings. Press **Save** on the Config page to keep them after the driver restarts.
 
 ### 6.3 Payload Slip on M2: Zero M2 Roll (ZM2)
 
@@ -381,29 +391,29 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 * **Cause:** M2 carries the camera, the lens and the M3 Astro Module off its axis, and this is hard to balance (a guide camera crossbar adds more). When M2 has to lift a heavy payload slowly while tracking, it creeps ahead and then slips back about 20 arc seconds, over and over. With a 300 mm f/2.8 (2.4 kg) this gave 8" RMS guiding; the same target at a different roll gave 2.4".
 * **Solution:** On the Dashboard's **Roll** dial, open the presets and choose **ZM2**. The driver rotates the camera to the roll that keeps M2 almost still while tracking the target for the next 2 hours, within the mount's roll limits. Ensure you have the rotator connected to PHD2 (otherwise you will need to recalibrate the guider after changing the roll angle). The framing rotates, but the target stays centred.
 * **Tips:**
-  * Balance what you can: slide the lens back in its clamp so its balance point is as close as possible to the tilt pivot.
-  * M1 is never affected (its axis is vertical, so the payload's weight can't turn it).
-  * If the kicks come back later in the night (the roll drifts as the target crosses the sky), choose ZM2 again.
+    * Balance what you can: slide the lens back in its clamp so its balance point is as close as possible to the tilt pivot.
+    * M1 is never affected (its axis is vertical, so the payload's weight can't turn it).
+    * If the kicks come back later in the night (the roll drifts as the target crosses the sky), choose ZM2 again.
 
 ### 6.4 Gear Backlash: a Motor Reversing or Barely Moving
 
 * **What you see:** Two distinct patterns, occurring at particular points in the sky rather than throughout the night:
-  * **Increased drift lasting several minutes:** The star suddenly requires much larger guiding corrections, sometimes reaching PHD2's maximum pulse duration. After 5–15 minutes, guiding settles again.
-  * **A steady back-and-forth every 8-10 seconds,** The star moves back and forth, usually in Dec, with a noticeable increase in guiding RMS Error.
+    * **Increased drift lasting several minutes:** The star suddenly requires much larger guiding corrections, sometimes reaching PHD2's maximum pulse duration. After 5–15 minutes, guiding settles again.
+    * **A steady back-and-forth every 8-10 seconds,** The star moves back and forth, usually in Dec, with a noticeable increase in guiding RMS Error.
 
 * **Cause:** Each motor drives its axis through gears with some mechanical slack, known as backlash. On the Polaris, this can amount to 150–620 arcseconds. While a motor takes up this slack, the motor turns but the axis doesn't move as expected, even though the driver assumes it does.
-  * **When a motor reverses:** During tracking, a motor sometimes needs to change direction. For example, M2 as a target passes its highest point, or M1 as a target near the pole changes direction. The motor must first take up the gear slack before the axis responds, allowing the star to drift by as much as the backlash. 
-  * **When a motor barely moves:** At very low tracking speeds (below approximately 4" per second), guiding corrections can repeatedly push the motor back and forth through the gear slack. Each correction takes effect late, causing overshoot and a repeating 8–10-second oscillation in the guiding loop.
+    * **When a motor reverses:** During tracking, a motor sometimes needs to change direction. For example, M2 as a target passes its highest point, or M1 as a target near the pole changes direction. The motor must first take up the gear slack before the axis responds, allowing the star to drift by as much as the backlash. 
+    * **When a motor barely moves:** At very low tracking speeds (below approximately 4" per second), guiding corrections can repeatedly push the motor back and forth through the gear slack. Each correction takes effect late, causing overshoot and a repeating 8–10-second oscillation in the guiding loop.
 
 * **What the driver does and what you can do:**
-  * **PEC pauses learning during backlash:** PEC Drift Correction automatically pauses learning around a motor reversal. This prevents it from learning the temporary corrections needed to compensate for backlash and then mistakenly applying them as ongoing drift corrections after the gears re-engage.
-  * **Recognise an approaching reversal** The driver logs each tracking-direction reversal several minutes in advance, whether guiding is enabled or not. For example:
+    * **PEC pauses learning during backlash:** PEC Drift Correction automatically pauses learning around a motor reversal. This prevents it from learning the temporary corrections needed to compensate for backlash and then mistakenly applying them as ongoing drift corrections after the gears re-engage.
+    * **Recognise an approaching reversal** The driver logs each tracking-direction reversal several minutes in advance, whether guiding is enabled or not. For example:
 
-    `->> Polaris: M2 reverses its tracking direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min`
+        `->> Polaris: M2 reverses its tracking direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min`
 
-  * **Watch for oscillation with ZM2:** The ZM2 roll strategy (6.3) keeps M2 nearly stationary, which can help with a heavy payload but may leave the motor operating at very low speeds. If you see 8–10 second oscillations after selecting ZM2, try reducing RA and/or Dec aggressiveness.
-  * **Distinguish guiding errors from goto errors:** Backlash can also leave Slew & Center corrections a few arcminutes short or past the target, requiring another iteration. This is a separate effect from the guiding symptoms described above.
-  * **Backlash Compensation (needs Coordinated Speed Control):** When enabled, the driver compensates for each motor's gear slack at the end of every goto, helping Slew & Center corrections reach the target more accurately on the first attempt. Backlash compensation does not attempt to correct slack due to motor reversals during guiding. At the very low motor speeds involved, guide corrections can repeatedly reverse direction without fully taking up the gear slack, leaving the guider to compensate. You may still see the motor oscillate over an 8–10 second cycle; reducing guiding aggressiveness can help.
+    * **Watch for oscillation with ZM2:** The ZM2 roll strategy (6.3) keeps M2 nearly stationary, which can help with a heavy payload but may leave the motor operating at very low speeds. If you see 8–10 second oscillations after selecting ZM2, try reducing RA and/or Dec aggressiveness.
+    * **Distinguish guiding errors from goto errors:** Backlash can also leave Slew & Center corrections a few arcminutes short or past the target, requiring another iteration. This is a separate effect from the guiding symptoms described above.
+    * **Backlash Compensation (needs Coordinated Speed Control):** When enabled, the driver compensates for each motor's gear slack at the end of every goto, helping Slew & Center corrections reach the target more accurately on the first attempt. Backlash compensation does not attempt to correct slack due to motor reversals during guiding. At the very low motor speeds involved, guide corrections can repeatedly reverse direction without fully taking up the gear slack, leaving the guider to compensate. You may still see the motor oscillate over an 8–10 second cycle; reducing guiding aggressiveness can help.
   
 
 ### 6.5 Computer Stalls

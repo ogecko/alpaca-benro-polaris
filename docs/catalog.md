@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # Catalog Reference
 [Extending the Catalog](#extending-the-catalog) | [Field Enumerations](#catalog-field-enumerations) | [Reference Catalogs](#reference-catalogs)
 
@@ -36,7 +34,7 @@ Your custom **`catalog.json`** file must follow standard JSON rules:
 ### Catalog Entry Structure
 
 Each entry in `catalog.json` must follow the structure below.
-All fields are optional except `MainID`, `Name`, and one set of co-ordinates (see [Choosing a Co-ordinate System](#choosing-a-co-ordinate-system)). Adding the other fields provides richer detail and better UI integration.
+All fields are optional except `MainID`, `Name`, and one set of co-ordinates (see [Co-ordinate Systems](#co-ordinate-systems)). Adding the other fields provides richer detail and better UI integration.
 
 ```jsonc
 {
@@ -316,12 +314,14 @@ Objects in the standard catalog may include a **Class** field as an Object Class
 For emission nebulae, the **Class** field indicates the narrowband emission types present and their relative signal strengths. For example, the Eagle Nebula (M16) has a Class of `SHO-.2/1/.3`
 
 This means the nebula emits **Sulphur II (SII)**, **Hydrogen-alpha (Hα)**, and **Oxygen III (OIII)** in an approximate **20% / 100% / 30%** ratio. In practical terms, to balance the channels, weaker signals require **more integration time**:
+
 * If you collect **10 minutes of Hα**
 * You would need approximately:
-  * **50 minutes of SII** (1 / 0.2 × 10)
-  * **33 minutes of OIII** (1 / 0.3 × 10)
+    * **50 minutes of SII** (1 / 0.2 × 10)
+    * **33 minutes of OIII** (1 / 0.3 × 10)
 
 These ratios are **guidelines**, not strict rules. Actual exposure balance will depend on:
+
 * Optical speed (f-ratio)
 * Sensor quantum efficiency per wavelength
 * Sky conditions and light pollution
@@ -334,25 +334,28 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `a/b`, where:
 
 `a` **Galaxy Type**
+
 * **S** — Spiral
 * **SB** — Barred Spiral
 * **S0** — Lenticular
 * **SB0** — Barred Lenticular
 * **E** — Elliptical
-  * *E0* (nearly spherical) to *E7* (highly elongated)
+    * *E0* (nearly spherical) to *E7* (highly elongated)
 * Spiral Subtypes
-   * **a** — Large bulge, tightly wrapped smooth arms
-   * **b** — Medium bulge, moderately open arms
-   * **c** — Small bulge, open or patchy arms
+    * **a** — Large bulge, tightly wrapped smooth arms
+    * **b** — Medium bulge, moderately open arms
+    * **c** — Small bulge, open or patchy arms
 
 `b` **Galaxy Features**
 
 **Core**
+
 * **l** — Barlens
 * **p** — Peanut-shaped (X-shaped)
 * **z** — Barred
 
 **Disk**
+
 * **d** — Edge-on
 * **f** — Face-on
 * **g** — Grand design (two strong symmetric arms)
@@ -361,12 +364,14 @@ The full definition of the Class field depends on the C2 SubType of the target a
 * **w** — Warped
 
 **Rings**
+
 * **m** — Ring (concentric)
 * **n** — Nuclear ring
 * **o** — Outer ring
 * **r** — Inner ring (mid-region)
 
 **Star Streams**
+
 * **h** — Shells
 * **j** — Loops
 * **u** — Single tail
@@ -380,6 +385,7 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `a`, where:
 
 `a` **Number / Arrangement**
+
 * **Cluster** — More than 12 galaxies
 * **Group** — 12 or fewer galaxies
 * **Chain** — More than 3 galaxies aligned along the line of sight
@@ -391,6 +397,7 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `a/b`, where:
 
 `a` **Merger Type**
+
 * **I** — Long bridge (> 1 galaxy diameter)
 * **II** — Short bridge (< 1 galaxy diameter, disks not touching)
 * **III** — Two close cores, disks touching
@@ -398,6 +405,7 @@ The full definition of the Class field depends on the C2 SubType of the target a
 * **V** — Single core, no visible tails
 
 `b` **Galaxy Features**
+
 * Uses the same feature codes listed under *Individual Galaxies*.
 
 ---
@@ -407,6 +415,7 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `abc/d`, where:
 
 `a` **Shape**
+
 * **A** — Ancient
 * **B** — Bipolar
 * **E** — Elliptical
@@ -416,16 +425,19 @@ The full definition of the Class field depends on the C2 SubType of the target a
 * **X** — Stellar (≤ 0.2 arcmin diameter)
 
 `b` **Signal**
+
 * **O** — OIII dominant (cyan)
 * **H** — Hα dominant (red)
 * **C** — OIII and Hα comparable (gray)
 * **R** — Hα rim with OIII interior
 
 `c` **Progenitor Visibility**
+
 * **Y** — Visible
 * **N** — Not visible
 
 `d` **PN Features**
+
 * **c** — Bipolar lobes broken through
 * **f** — Bright filaments
 * **h** — Hexagonal shape
@@ -444,12 +456,14 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `a/b`, where:
 
 `a` **Emission Type**
+
 * **SHO** — All narrowband channels present
 * **HII** — Hα dominant
 * **SS** — Strömgren sphere
 * **WR** — Wolf–Rayet nebula
 
 `b` **Signal Strengths**
+
 * Comparative strengths of SHO channels, normalized to the strongest signal
 
 ---
@@ -459,6 +473,7 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `a`, where:
 
 `a` **Opacity Rating**
+
 * **1** — Lightest
 * **6** — Darkest
 * **0** — Extremely faint
@@ -470,6 +485,7 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `a`, where:
 
 `a` **Shapley–Sawyer Concentration**
+
 * **I** — Highly concentrated core
 * **XII** — Very loose concentration
 
@@ -480,13 +496,14 @@ The full definition of the Class field depends on the C2 SubType of the target a
 **Format:** `a-b-c-d`, where:
 
 **Trumpler Classification**
+
 * **a** — Concentration
-  * **I** (strong) to **IV** (none)
+    * **I** (strong) to **IV** (none)
 * **b** — Brightness Range
-  * **1** (uniform brightness) to **3** (wide brightness range)
+    * **1** (uniform brightness) to **3** (wide brightness range)
 * **c** — Number of stars
 * **d** — Additional designations
-  * **a** — Asterism
+    * **a** — Asterism
 
 <br>
 <br>

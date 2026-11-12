@@ -12,8 +12,8 @@ def main():
     runpy.run_path(str(driver_dir / "main.py"), run_name="__main__")
 
 def docs():
-    """`uv run docs` stages the docs and runs the live Zensical preview (utility/docs/prepare.py --serve)."""
+    """`uv run docs` runs the live Zensical preview of the documentation site (zensical serve)."""
     project_root = Path(__file__).resolve().parents[2]
     os.chdir(project_root)
-    sys.argv = [sys.argv[0], *(sys.argv[1:] or ["--serve"])]
-    runpy.run_path(str(project_root / "utility" / "docs" / "prepare.py"), run_name="__main__")
+    sys.argv = ["zensical", *(sys.argv[1:] or ["serve"])]
+    runpy.run_module("zensical", run_name="__main__")
