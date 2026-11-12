@@ -1,0 +1,11 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+// Widen Midnight's fixed 650px column for the wide tables and screenshots in the docs
+.wrapper,
+#header nav,
+section {
+  max-width: 1100px;
+}
