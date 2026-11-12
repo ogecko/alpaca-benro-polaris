@@ -1,8 +1,5 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
-The Alpaca Driver runs on a device separate from the Benro Polaris. You can use a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
-
-If you want to run the Alpaca Driver on a mobile device or iPad, please read  [FAQ A3](./faq.md#a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad).
 
 # Recommended Hardware Platform
 [Laptop](#using-a-laptop-with-stellarium-desktop) | 
@@ -14,6 +11,10 @@ If you want to run the Alpaca Driver on a mobile device or iPad, please read  [F
 [Setup NinaAir](#setting-up-the-ninaair-platform) |
 [Gemini Focuser](#gemini-eaf-driver-installation-optional) |
 [Guiding](#guiding-scope-and-camera-optional)
+
+The Alpaca Driver runs on a device separate from the Benro Polaris. You can use a mini-PC, Laptop, MacBook, Raspberry Pi, or Desktop, that connects to the Polaris via Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility.
+
+If you want to run the Alpaca Driver on a mobile device or iPad, please read  [FAQ A3](./faq.md#a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad).
 
 ## Using a Laptop with Stellarium Desktop
 ![Hardware Architecture](images/abp-hardware1.png)

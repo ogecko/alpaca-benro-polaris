@@ -1,0 +1,133 @@
+# Documentation site for https://ogecko.github.io/alpaca-benro-polaris/
+# Pages are staged from README.md + docs/ by utility/docs/prepare.py -- run it before building.
+
+[project]
+site_name = "Alpaca Benro Polaris Driver"
+site_description = "Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount"
+site_author = "David Morrison"
+site_url = "https://ogecko.github.io/alpaca-benro-polaris/"
+copyright = "Copyright &copy; 2024-2026 David Morrison"
+repo_url = "https://github.com/ogecko/alpaca-benro-polaris"
+repo_name = "ogecko/alpaca-benro-polaris"
+docs_dir = "build/site-src"
+site_dir = "site"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Getting Started" = [
+    "beginners.md",
+    "hardware.md",
+    { "Installation (Windows)" = "installation.md" },
+    { "Installation (macOS)" = "installation_macos.md" },
+    "raspberrypi.md",
+    "docker.md",
+  ] },
+  { "Using the Driver" = [
+    "pilot.md",
+    "stellarium.md",
+    "nina.md",
+    "ccdciel.md",
+    "guiding.md",
+  ] },
+  { "Help" = [
+    "troubleshooting.md",
+    "faq.md",
+  ] },
+  { "Release Notes" = [
+    { "v2.2.0" = "release-notes-v2.2.0.md" },
+    { "v2.1.0" = "release-notes-v2.1.0.md" },
+    { "v2.0.0" = "release-notes-v2.0.0.md" },
+    { "v1.0.1" = "release-notes-v1.0.1.md" },
+    { "v1.0.0" = "release-notes-v1.0.0.md" },
+  ] },
+  { "Technical" = [
+    "control.md",
+    "kinematics.md",
+    "quest_paper.md",
+    "study_alignment_mac_v2.md",
+    "study_goto_response.md",
+    "study_pec_drift.md",
+    "study_pec_motor_space_v2.md",
+  ] },
+  { "Project" = [
+    { "Beta Results v2.2" = "beta_results_v2.2.md" },
+    { "Beta Results v2.0" = "beta_results_v2.0.md" },
+    { "Beta Results v1" = "beta_results_v1.md" },
+    { "Beta Agreement" = "beta_agreement.md" },
+    { "PCCGG Feedback v2" = "facebook_pccgg_v2.md" },
+    { "PCCGG Feedback v1" = "facebook_pccgg_v1.md" },
+    { "Podcast Oct 2024" = "podcast_2024_oct.md" },
+    { "MLAstro SAL-33" = "ML_Astro_SAL-33.md" },
+    { "Benro Sponsorship" = "benro.md" },
+  ] },
+]
+
+[project.theme]
+language = "en"
+logo = "images/abp-logo.png"
+favicon = "images/abp-icon.png"
+features = [
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.tabs",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+  "toc.follow",
+]
+
+# Dark by default (astronomers at night), with a toggle to light
+[[project.theme.palette]]
+scheme = "slate"
+primary = "indigo"
+accent = "amber"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "indigo"
+accent = "amber"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to dark mode"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+toc.slugify = { object = "pymdownx.slugs.slugify", kwds = { case = "lower" } }
+pymdownx.arithmatex.generic = true
+pymdownx.betterem = {}
+pymdownx.caret = {}
+pymdownx.details = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.magiclink = {}
+pymdownx.mark = {}
+pymdownx.smartsymbols = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+pymdownx.tasklist.custom_checkbox = true
+pymdownx.tilde = {}

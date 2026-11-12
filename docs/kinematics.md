@@ -76,7 +76,7 @@ By using QUEST, the driver can correct for the fact that a sync point taken in t
 #### **III. The Mathematics of the Model (Briefly)**
 QUEST operates by minimizing a **quadratic loss function**, which is essentially the sum of the squared differences between pairs of reference vectors (stars) and measured vectors (mount sensors). 
 1.  **Vector Pairing:** Each sync point provides a pair of vectors: the **predicted direction** from the mount's internal sensors and the **observed direction** from a plate solve.
-2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs. With **Mechanical Alignment Correction** on, the rotation is instead fitted together with the M2/M3 offsets, unweighted (see [2.3](#23-mechanical-alignment-corrections)).
+2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs. With **Mechanical Alignment Correction** on, the rotation is instead fitted together with the M2/M3 offsets, unweighted (see [2.3](#23-mechanical-alignment-corrections-mac)).
 3.  **Eigenvector Solution:** The "optimal" alignment is found by identifying the **eigenvector with the largest eigenvalue** of that matrix. This provides a **unit quaternion** that represents the best-fit rotation for the entire system.
 
 #### **IV. How to Use QUEST and Get the Best Results**

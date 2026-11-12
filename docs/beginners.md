@@ -1,6 +1,6 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
-# Benro Polaris and Alpaca: A Beginner's Guide to Astrophotography
+# A Beginner's Guide
 So you've just got your hands on the Benro Polaris, congratulations! This guide will take you through the basics of astrophotography with the Polaris and introduce you to the world of Alpaca, a powerful tool that can elevate your astrophotography experience. Use it as a learning guide on the various topics to master to become better at astrophotography.
 ## Getting Started with the Benro Polaris
 The Benro Polaris is a fantastic tool for getting started with astrophotography. It's portable, easy to use, is great for astro panaramas and can track the stars for short exposures. We recommend learning how to use the Benro Polaris stand alone initially. Become familiar with its capabilities and limitations. Here's a simplified breakdown of how to use it:
@@ -115,12 +115,8 @@ To learn Siril, you can consider these resources:
 * YouTube Tutorials: Many astrophotographers create tutorials demonstrating Siril's functionalities and workflows. Searching for "Siril tutorials" on YouTube should yield helpful results.
 * Online Communities and Forums: Astrophotography communities like Cloudy Nights (https://www.cloudynights.com/) and Stargazers Lounge (https://stargazerslounge.com/) have sections dedicated to Siril, where users share their experiences, tips, and troubleshooting advice.
 
-## Resources for planning imaging sessions:
-* [Light Polution Map](https://lightpollutionmap.app/): Find the best Dark Sky locations for astrophotography
-* [Clear Outside](https://clearoutside.com/forecast/45.45/9.11): 7-day hourly cloud & weather forecasts. Designed by astronomers for astronomers.
 
-
-## Resources for Further Learning include:
+## Further Learning
 * Alpaca Benro Polaris Project Documentation: This is the go-to resource for detailed instructions, troubleshooting tips, and information on specific features. The documentation can be found at [Home](../README.md) . 
 * Nina User Manual and Tutorials: Nina has extensive documentation and numerous video tutorials available online to guide you through its features and workflows. The Alpaca Benro Polaris documentation points you to a number of specific Nina resources.
 * Stellarium User Guide: Stellarium's website and user forum offer valuable information on using the software for astrophotography planning and telescope control. The Alpaca Benro Polaris documentation points you to a specific Stellarium resource at the University of Western Australia.

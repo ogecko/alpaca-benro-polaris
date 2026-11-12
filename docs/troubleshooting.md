@@ -1,7 +1,7 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Troubleshooting
-[Alpaca Install](#alpaca-install-troubleshooting) | [Benro Problems](#benro-polaris-troubleshooting) | [Comms Problems](#alpaca-communications--troubleshooting) | [Nina Problems](#nina-troubleshooting) | [Stellarium Problems](#stellarium-troubleshooting) 
+[Alpaca Install](#alpaca-install-troubleshooting) | [Benro Problems](#benro-polaris-troubleshooting) | [Comms Problems](#alpaca-communications-troubleshooting) | [Nina Problems](#nina-troubleshooting) | [Stellarium Problems](#stellarium-troubleshooting) 
 
 ## Alpaca Install Troubleshooting
 
@@ -201,7 +201,7 @@ If the **Single Star Alignment** does not complete successfully, the Polaris may
 
 This forces the Polaris to establish a new clean connection, which may clear the stuck state.
 
-## Alpaca Communications  Troubleshooting
+## Alpaca Communications Troubleshooting
 ### C0 - Cannot connect Win11 Computer or Laptop to Benro Polaris Wifi
 There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
 

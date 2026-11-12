@@ -2,9 +2,9 @@
 
 # Raspberry Pi Setup Guide
 [Versions](#which-pi-should-i-buy) | 
-[Image Creation](#install-the-raspberry-pi-os-image) | 
+[Image Creation](#install-the-raspberry-pi-os-lite-image) | 
 [Alpaca Installation](#install-pre-requisites-and-the-alpaca-driver) | 
-[Optional GPS](#optional-gps) |
+[Optional GPS](#optional-gps-receiver) |
 [Setup.sh Reference](#setupsh-command-reference) | 
 [Troubleshooting](#troubleshooting-the-raspberry-pi)
 

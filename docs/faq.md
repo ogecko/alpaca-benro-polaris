@@ -1,5 +1,7 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
+# Frequently Asked Questions
+
 ## Alpaca Driver and Mobile Devices
 
 ### A1 – Is Alpaca a physical device?
@@ -45,7 +47,7 @@ There is an open feature request to patch the Polaris firmware and embed the Dri
 For now, the best experience comes from pairing the Polaris with a mini-PC and using mobile devices as remote interfaces.
 
 
-# Benro Polaris Capability Questions
+## Benro Polaris Capability Questions
 
 ### B1 - Can the Benro Polaris really be used for Deep Sky Photography?
 Yes, you can definitely use the Benro Polaris for deep-sky photography, but there are limitations! As an Alt/Az mount without auto-guiding, you're limited to relatively short exposures to avoid star trails. However, by combining a good camera, a longer lens (up to 800mm), and the advanced features unlocked by the Alpaca Benro Polaris Driver and software like Nina, you can capture stunning images of deep-sky objects. 
@@ -85,7 +87,7 @@ These figures illustrate how the same torque can be produced by different loads 
 
 I have tested the performance of the Polaris with my rig up to around 4.4kg (Canon R5, RF 800mm lens, Dew Heater, Mini-PC, Gemini Focuser, ArcaSwiss Mounting Bar, Svbony 50mm Guide Scope, Touptek GPM462M Guide Camera). The Polaris seems to easily handle this load and performs sidereal tracking well. 
 
-# Nina Capability Questions
+## Nina Capability Questions
 ### N1 - How can I connect both Nina and BP App to my Camera via USB?
 You don't need to connect your camera to both Nina and the Benro Polaris App simultaneously. Choose one or the other. Once you've set up your mount, Nina can handle all imaging functions, including:
 * Autofocus
@@ -124,7 +126,7 @@ Yes, Nina can do this! It has a handy plug-in called Session Manager that can re
 This information is saved in CSV files, making it easy to import and use in other astrophotography software.
 
 
-# Stellarium Usage Questions
+## Stellarium Usage Questions
 ### S1 - Will Stellarium work via Wifi or is a cable necessary?
 Stellarium doesn't require a USB connection to work with the Alpaca Benro Polaris Driver. It can connect wirelessly through your Wi-Fi network. This means you can use Stellarium on various devices:
 

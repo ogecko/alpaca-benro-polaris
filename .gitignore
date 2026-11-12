@@ -192,3 +192,6 @@ cython_debug/
 # version-controlled test scripts (see utility/replay/README.md), not ephemeral output.
 !utility/replay/logs/
 !utility/replay/logs/*.log
+
+# Zensical documentation site output (see zensical.toml)
+site/

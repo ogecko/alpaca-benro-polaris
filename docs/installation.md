@@ -1,7 +1,7 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
 # Installation Guide 
-[Microsoft Win11](#installing-alpaca-benro-polaris-and-its-pre-requisites) | [Apple MacOS](./installation_macos.md) | [Raspberry Pi](./raspberrypi.md) | 
+[Microsoft Win11](#to-install-on-windows-1011) | [Apple MacOS](./installation_macos.md) | [Raspberry Pi](./raspberrypi.md) | 
 [Startup](#starting-the-alpaca-pilot-app) | 
 [Workflow](#imaging-with-alpaca-driver-v20-and-nina) | 
 [Stellarium](#installing-stellarium-optional) | 

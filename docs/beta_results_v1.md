@@ -27,7 +27,7 @@ The beta testing involved a diverse group of individuals, each bringing their un
 The beta testing phase provided invaluable feedback, shaping the ABP Driver's development and highlighting its strengths and areas needing attention. The overall sentiment suggests that the driver successfully delivers on its promise of unlocking greater potential from the Benro Polaris. However, addressing the identified areas for improvement and acknowledging the persistent challenges will be crucial for wider adoption and ensuring user satisfaction.
 
 # Beta Testing Guidelines
-* Document the test environment, focus areas annd results in [docs/betatest.md](./betatest.md).
+* Document the test environment, focus areas annd results in [docs/beta_results_v1.md](./beta_results_v1.md).
 * Try to perform real world use case tests as well as load and performance tests.
 * Keep a record of what tests you perform and the results
 * Report any issues noticed as issues in Github

@@ -371,7 +371,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
    - The app will attempt to auto-fill altitude, pressure, and location name via a web service. Without internet, the location is named by its coordinates.
    - **GPS receiver (optional):** at a dark site without internet, a USB GPS receiver plugged into the computer running the Alpaca Driver can set the site instead. Click the arrow beside **Locate** and choose **Use GPS Receiver**. Choose its **Serial Port** (GPS receivers are marked in the list), then click **OK** and **Locate (GPS)**. The button shows its progress while it waits for three matching GPS fixes, then sets latitude, longitude and elevation.
    - If the GPS receiver can't get a fix, give it a clear view of the sky. Its first fix after being plugged in can take several minutes. Plug it directly into the computer rather than a USB hub, and keep it away from cameras and their cables, which can block GPS signals.
-   - Linux also offers **GPS Daemon (GPSD)**, and the [Raspberry Pi guide](./raspberrypi.md#optional-gps) has Pi-specific notes.
+   - Linux also offers **GPS Daemon (GPSD)**, and the [Raspberry Pi guide](./raspberrypi.md#optional-gps-receiver) has Pi-specific notes.
    - Click **Save** at the top of Settings so the location and GPS settings are kept after a restart.
 
 - **Begin Plate Solving:** With setup complete, you're ready to use the Driver and perform your first plate solve.
