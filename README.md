@@ -141,6 +141,8 @@ If something goes wrong, the [Troubleshooting Guide](./docs/troubleshooting.md) 
 
 ## Documentation
 
+These guides are also published as the [official documentation site](https://ogecko.github.io/alpaca-benro-polaris/), which adds full-text search, side navigation and light and dark themes.
+
 | Guide | What's inside |
 |---|---|
 | [Release Notes v2.2](./docs/release-notes-v2.2.0.md) | New features, compatible hardware and software, bug fixes and known issues |

@@ -22,12 +22,14 @@ Usage (from the repo root):
     uv run --group docs zensical build                            # static site in site/
     uv run --group docs python utility/docs/prepare.py --serve    # stage, watch docs/ + README.md,
         # and run the live preview at http://localhost:8000/alpaca-benro-polaris/
+    uv run --group docs python utility/docs/prepare.py --version  # print docs_version from zensical.toml
 """
 import re
 import shutil
 import subprocess
 import sys
 import time
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,6 +37,7 @@ SRC = ROOT / 'docs'
 README = ROOT / 'README.md'
 DEST = ROOT / 'build' / 'site-src'
 REPO_BLOB = 'https://github.com/ogecko/alpaca-benro-polaris/blob/main/'
+DOCS_VERSION = tomllib.loads((ROOT / 'zensical.toml').read_text(encoding='utf-8'))['project']['extra']['docs_version']
 
 EXCLUDE = {'todo.md'}
 POLL_SECONDS = 0.5
@@ -184,6 +187,9 @@ def serve() -> None:
 
 
 def main() -> None:
+    if '--version' in sys.argv:
+        print(DOCS_VERSION)
+        return
     changed = sync()
     print(f'Staged {len(changed)} changed files in {DEST.relative_to(ROOT)}')
     if '--serve' in sys.argv:

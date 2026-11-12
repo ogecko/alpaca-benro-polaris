@@ -1,4 +1,4 @@
-# Documentation site for https://ogecko.github.io/alpaca-benro-polaris/
+# Documentation site for https://ogecko.github.io/alpaca-benro-polaris/<docs_version>/
 # Pages are staged from README.md + docs/ by utility/docs/prepare.py -- run it before building.
 
 [project]
@@ -132,3 +132,12 @@ pymdownx.tabbed.alternate_style = true
 pymdownx.tabbed.combine_header_slug = true
 pymdownx.tasklist.custom_checkbox = true
 pymdownx.tilde = {}
+
+# Each release's docs are published under their own folder, e.g. .../alpaca-benro-polaris/v2.2/
+# (see utility/docs/publish_version.py). Bump docs_version on a new release branch, along with
+# the docs links in the Pilot app (pilot/src), which point at this version of the site.
+[project.extra]
+docs_version = "v2.2"
+
+[project.extra.version]
+provider = "mike"

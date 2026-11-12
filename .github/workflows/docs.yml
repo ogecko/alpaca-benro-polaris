@@ -1,5 +1,9 @@
 # Builds the Zensical documentation site and publishes it to GitHub Pages.
 # Requires Settings > Pages > Build and deployment > Source = "GitHub Actions".
+#
+# Each release's docs live in their own folder (e.g. /v2.2/, from docs_version in zensical.toml).
+# The published tree is kept on the gh-pages branch so older versions survive: this build
+# replaces only its own version's folder, then deploys the whole tree.
 name: Documentation
 on:
   push:
@@ -8,12 +12,12 @@ on:
       - dev2_2
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   deploy:
     environment:
@@ -26,9 +30,29 @@ jobs:
       - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked --only-group docs
       - run: uv run --no-sync python utility/docs/prepare.py
+      - id: version
+        run: echo "docs_version=$(uv run --no-sync python utility/docs/prepare.py --version)" >> "$GITHUB_OUTPUT"
       - run: uv run --no-sync zensical build --clean
+        env:
+          MIKE_DOCS_VERSION: ${{ steps.version.outputs.docs_version }}
+      - name: Check out the gh-pages branch
+        run: |
+          if git fetch --depth 1 origin gh-pages; then
+            git worktree add -B gh-pages pages FETCH_HEAD
+          else
+            git worktree add --orphan -b gh-pages pages
+          fi
+      - run: python utility/docs/publish_version.py site pages ${{ steps.version.outputs.docs_version }}
+      - name: Commit and push the gh-pages branch
+        working-directory: pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898111+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --quiet || git commit -m "docs: publish ${{ steps.version.outputs.docs_version }} from ${GITHUB_REF_NAME} ${GITHUB_SHA::8}"
+          git push origin gh-pages
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site
+          path: pages
       - uses: actions/deploy-pages@v5
         id: deployment

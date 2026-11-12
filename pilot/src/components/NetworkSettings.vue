@@ -9,7 +9,7 @@
             The Alpaca Driver provides several network services for external aplications to use the Benro Polaris. Changes to Network Services require saving to take effect. 
             <span>
                 <br>For HTTPS, <a href="/alpaca_pilot_ca.crt">Download CA Certificate</a>, 
-                and install using <a target="_blank" rel="noopener" href="https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/pilot.md#g-using-alpaca-pilot-over-https">Documentation</a>.           
+                and install using <a target="_blank" rel="noopener" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/pilot/#g-using-alpaca-pilot-over-https">Documentation</a>.           
             </span>
             </div>
             <div class="q-gutter-md flex justify-end q-mr-md">
