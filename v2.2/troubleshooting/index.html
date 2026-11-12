@@ -1809,10 +1809,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#s1---stellariumplus-cannot-connect-to-abp" class="md-nav__link">
+  <a href="#s1---stellariumplus-cannot-connect-to-the-alpaca-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        S1 - StellariumPLUS Cannot Connect to ABP
+        S1 - StellariumPLUS Cannot Connect to the Alpaca Driver
       </span>
     </span>
   </a>
@@ -1820,10 +1820,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#s2---still-cannot-connect-stellariumplus-to-abp" class="md-nav__link">
+  <a href="#s2---still-cannot-connect-stellariumplus-to-the-alpaca-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        S2 - Still Cannot Connect StellariumPLUS to ABP
+        S2 - Still Cannot Connect StellariumPLUS to the Alpaca Driver
       </span>
     </span>
   </a>
@@ -2211,7 +2211,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Benro Polaris Driver — Kinematics Reference
+  Alpaca Driver — Kinematics Reference
 
     
   </span>
@@ -3472,10 +3472,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#s1---stellariumplus-cannot-connect-to-abp" class="md-nav__link">
+  <a href="#s1---stellariumplus-cannot-connect-to-the-alpaca-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        S1 - StellariumPLUS Cannot Connect to ABP
+        S1 - StellariumPLUS Cannot Connect to the Alpaca Driver
       </span>
     </span>
   </a>
@@ -3483,10 +3483,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#s2---still-cannot-connect-stellariumplus-to-abp" class="md-nav__link">
+  <a href="#s2---still-cannot-connect-stellariumplus-to-the-alpaca-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        S2 - Still Cannot Connect StellariumPLUS to ABP
+        S2 - Still Cannot Connect StellariumPLUS to the Alpaca Driver
       </span>
     </span>
   </a>
@@ -3755,7 +3755,7 @@ QS-50K 50mm Quick Link Set</a> can ease the leveling process AND as act as a sta
 </ul>
 <h3 id="b4---the-polaris-cannot-connect-to-my-home-wifi">B4 - The Polaris cannot connect to my Home Wifi<a class="headerlink" href="#b4---the-polaris-cannot-connect-to-my-home-wifi" title="Permanent link">&para;</a></h3>
 <p>The current firmware of the Benro Polaris does not allow connection to other WiFi networks. It can only host its own Wi-Fi hotspot.</p>
-<p>This is no longer a limitation. The Alpaca Benro Polaris Driver can serve as a proxy for the Polaris. It is capable of connecting to both the Polaris Wi-Fi Hotspot and your home Wi-Fi network. This allows you to manage the Polaris from any device connected to your home Wi-Fi, including an iPad, a phone, a desktop, or a laptop.</p>
+<p>This is no longer a limitation. The Alpaca Driver can serve as a proxy for the Polaris. It is capable of connecting to both the Polaris Wi-Fi Hotspot and your home Wi-Fi network. This allows you to manage the Polaris from any device connected to your home Wi-Fi, including an iPad, a phone, a desktop, or a laptop.</p>
 <h3 id="b5---the-polaris-is-at-1-battery-and-wont-charge">B5 - The Polaris is at 1% Battery and wont charge<a class="headerlink" href="#b5---the-polaris-is-at-1-battery-and-wont-charge" title="Permanent link">&para;</a></h3>
 <p>The Polaris may have a design flaw that causes it to reject high-speed or smart chargers when the battery is in a low 1% state. It requires a slow, steady 5V source to restore sufficient power for the charging circuit to work correctly. Once it gets past that initial threshold, you can switch to a faster charger if needed. To fix the issue:</p>
 <ul>
@@ -3821,7 +3821,7 @@ QS-50K 50mm Quick Link Set</a> can ease the leveling process AND as act as a sta
 <p>Forcing the TP-Link Adapter to only use the 5GHz or 2.4Ghz bands, can reduce a periodic network latency spike that is caused by WLAN AutoConfig Background Scanning. This is when Windows 11 momentarily diverts the adapter to scan for other frequencies, completely halting normal data communications and interfering with the Driver.</p>
 <h3 id="c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected">C1a - Cannot see "<code>communications init... done</code>" in the log (Wi-Fi 2 not connected).<a class="headerlink" href="#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Use the Alpaca Benro Polaris Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.</li>
+<li>Use the Alpaca Driver log window to help diagnose your problem. The messages aim to help point you in the right direction. The driver will continue to retry connecting until you have resolved any issues.</li>
 <li>Confirm the mini-PC has connected with the polaris-XXXXX hotspot using the second <code>Wi-Fi 2</code> or <code>Wi-Fi USB</code> adapter. It should look like the following:
 <img style="display: block; margin: auto;" width="362" height="222" src="../images/abp-troubleshoot-wifi1.png"> </li>
 </ul>
@@ -4015,14 +4015,14 @@ QS-50K 50mm Quick Link Set</a> can ease the leveling process AND as act as a sta
 </ul>
 <hr />
 <h2 id="c4---still-cannot-get-communications-with-polaris-wifi">C4 - Still cannot get communications with Polaris Wifi<a class="headerlink" href="#c4---still-cannot-get-communications-with-polaris-wifi" title="Permanent link">&para;</a></h2>
-<p>To further help diagnose communication problems between ABP and the Polaris, you can use <code>Telnet</code> or <code>PuTTY</code> to directly connect to the Polaris. This will isolate whether the problem is ABP related or not.</p>
+<p>To further help diagnose communication problems between the Alpaca Driver and the Polaris, you can use <code>Telnet</code> or <code>PuTTY</code> to directly connect to the Polaris. This will isolate whether the problem is related to the Alpaca Driver or not.</p>
 <p>On Win11:</p>
 <ul>
 <li>Use the following link to <a href="https://www.putty.org/">Download PuTTY</a> (a telnet client) to your device running the Driver.</li>
 <li>Select the 64-bit x86 version for the Windows installer.</li>
 <li>Double click on the file you downloaded to install PuTTY.</li>
 <li>Perf the normal BP App setup (a) Search for Device (b) Connect to polaris_xxxxxx &copy; Select Atro Mode (d) Align Compass (e) Align Star (f) Confirm.</li>
-<li>Connect the Device running ABP to the Polaris Wifi Hotspot.</li>
+<li>Connect the device running the Alpaca Driver to the Polaris Wifi Hotspot.</li>
 </ul>
 <p><img style="display: block; margin: auto;" width="362" height="222" src="../images/abp-troubleshoot-wifi1.png"> </p>
 <ul>
@@ -4039,9 +4039,9 @@ QS-50K 50mm Quick Link Set</a> can ease the leveling process AND as act as a sta
 <p>The PuTTY application should show a window with the raw communications from the Benro Polaris. If your connection is working it should look like the following, constantly scrolling.</p>
 <p><img alt="PuTTY Setup" src="../images/abp-putty2.png" /></p>
 <h3 id="c5---no-telnetputty-communications-with-polaris-wifi">C5 - No Telnet/PuTTY communications with Polaris Wifi<a class="headerlink" href="#c5---no-telnetputty-communications-with-polaris-wifi" title="Permanent link">&para;</a></h3>
-<p>If you cannot see the raw communications scrolling in PuTTY from Troubleshooting Step C4, then there is a problem communicating with your device that is independant of Alpaca Benro Polaris Software.</p>
+<p>If you cannot see the raw communications scrolling in PuTTY from Troubleshooting Step C4, then there is a problem communicating with your device that is independent of the Alpaca Driver.</p>
 <ul>
-<li>Check the Signal Strength of the Polaris WiFi hotspot at your ABP device. You may need to move the device running ABP closer to the Benro Polaris.</li>
+<li>Check the Signal Strength of the Polaris WiFi hotspot at your Alpaca Driver device. You may need to move the device running the Alpaca Driver closer to the Benro Polaris.</li>
 <li>Check you are not running AntiVirus Software that may block open Wifi Connections</li>
 <li>Check you do not have an IT or Windows policy blocking open Wifi Connections.</li>
 <li>Check you do not have a Virtual Private Network (VPN) enabled.</li>
@@ -4327,13 +4327,13 @@ QS-50K 50mm Quick Link Set</a> can ease the leveling process AND as act as a sta
 <li>Check IP connectivity. From a command prompt, use <code>ping &lt;hostname&gt;</code> to ensure you have IP connectivity and DNS lookup to your Mini-PC. </li>
 <li>You may find using the Mini-PC's <code>IP4-address</code> in Remote Desktop rather than <code>&lt;hostname&gt;</code> may make it easier to connect.</li>
 <li>Check that the MiniPC Hotspot is not using the TPLink. You can unplug the TPlink to force the MiniPC hotspot to use the embedded Wifi of the Mele. </li>
-<li>Once you have connected to the Mini-PC via Remote Desktop, then re-plug in the TPLink, to allow ABP to use it to connect with the BP Hotspot.</li>
+<li>Once you have connected to the Mini-PC via Remote Desktop, then re-plug in the TPLink, to allow the Alpaca Driver to use it to connect with the BP Hotspot.</li>
 </ul>
 <h3 id="n4---which-mount-should-i-select-in-ninas-equipment-tab-it-lists-8-benro-polaris-mounts">N4 - Which Mount should I select in Nina's Equipment Tab, it lists 8 Benro Polaris Mounts?<a class="headerlink" href="#n4---which-mount-should-i-select-in-ninas-equipment-tab-it-lists-8-benro-polaris-mounts" title="Permanent link">&para;</a></h3>
 <ul>
-<li>The ABP defaults to broadcasing <code>ASCOM Alpaca</code> services on all network interfaces on the MiniPC. </li>
-<li>If you have the ASCOM Platform installed, Nina will also detect all the <code>ASCOM direct</code> interfaces to the ABP. </li>
-<li>We recommend connecting to the ABP via <code>ASCOM Apaca</code> services rather than <code>ASCOM</code>. Choose one of the Mounts under <code>ASCOM Alpaca</code>.</li>
+<li>The Alpaca Driver defaults to broadcasting <code>ASCOM Alpaca</code> services on all network interfaces on the MiniPC. </li>
+<li>If you have the ASCOM Platform installed, Nina will also detect all the <code>ASCOM direct</code> interfaces to the Alpaca Driver. </li>
+<li>We recommend connecting to the Alpaca Driver via <code>ASCOM Alpaca</code> services rather than <code>ASCOM</code>. Choose one of the Mounts under <code>ASCOM Alpaca</code>.</li>
 <li>You can limit what IP Address the driver exposes the <code>ASCOM Alpaca</code> Service on, by setting the field <code>alpaca_restapi_ip_address</code> in <code>driver/config.toml</code>. </li>
 <li>To limit the Alpaca Service only to applications that are running on the Mini-PC (ie no remote applications), set it the following.
 <div class="language-text highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>alpaca_restapi_ip_address = '127.0.0.1' 
@@ -4391,36 +4391,36 @@ To resolve this:</p>
 <p>You need to configure Stellarium, adding the Remote Control Plug-in, enabling it to run at startup. Restarting Stellarium allows you to configure the plug-in to automatically enable the server on startup. </p>
 <p>The Remote Control Plug-in defaults to port 8090. This port can conflict with other software you may have on your computer eg Wonderware RecoverIt. If you cannot get Nina to retreive the coordinates from Stellarium try setting the port number to 8091 in both Stellarium and Nina. This may fix the integration between Nina and Stellarium.</p>
 <h2 id="stellarium-troubleshooting">Stellarium Troubleshooting<a class="headerlink" href="#stellarium-troubleshooting" title="Permanent link">&para;</a></h2>
-<h3 id="s1---stellariumplus-cannot-connect-to-abp">S1 - StellariumPLUS Cannot Connect to ABP<a class="headerlink" href="#s1---stellariumplus-cannot-connect-to-abp" title="Permanent link">&para;</a></h3>
-<p>There are three approaches to connect StellariiumPLUS to the ABP, depending on your setup scenario.</p>
+<h3 id="s1---stellariumplus-cannot-connect-to-the-alpaca-driver">S1 - StellariumPLUS Cannot Connect to the Alpaca Driver<a class="headerlink" href="#s1---stellariumplus-cannot-connect-to-the-alpaca-driver" title="Permanent link">&para;</a></h3>
+<p>There are three approaches to connect StellariumPLUS to the Alpaca Driver, depending on your setup scenario.</p>
 <ul>
-<li>Scenario A: The ABP device conencts to Polaris Hotspot only.<ul>
+<li>Scenario A: The Alpaca Driver device connects to Polaris Hotspot only.<ul>
 <li>Connect your phone to the Polaris Hotspot.</li>
 <li>In Stellarium's Observing Tools Setup, enter a Network Host of <code>192.168.0.3</code> </li>
 <li>You may need to disable Mobile Data on your phone to get this to work.</li>
 </ul>
 </li>
-<li>Scenario B: The ABP device connects to Polaris Hotspot and your Home Wifi.<ul>
+<li>Scenario B: The Alpaca Driver device connects to Polaris Hotspot and your Home Wifi.<ul>
 <li>Check that the BP App is closed. This frees the phones Wifi from the Polaris Wifi. </li>
 <li>Check that your phone does not autoconnect to the Polaris Wifi.</li>
 <li>Connect your phone to your Home Wifi.</li>
 <li>In Stellarium's Observing Tools Setup, enter a Network Host of <code>192.168.X.XXX</code></li>
-<li>This address needs to match the IP address of your ABP machine on your Home Wifi.</li>
+<li>This address needs to match the IP address of your Alpaca Driver machine on your Home Wifi.</li>
 </ul>
 </li>
-<li>Scenario C: The ABP device connects to Polaris Hotspot and has its own NinaAir Hotspot.<ul>
+<li>Scenario C: The Alpaca Driver device connects to Polaris Hotspot and has its own NinaAir Hotspot.<ul>
 <li>Check that the BP App is closed. This frees the phones Wifi from the Polaris Wifi.</li>
 <li>Check that your phone does not autoconnect to the Polaris Wifi.</li>
 <li>Connect your phone to the NinaAir Hotspot.</li>
 <li>In Stellarium's Observing Tools Setup, enter a Network Host of <code>192.168.X.XXX</code></li>
-<li>This address needs to match the IP address of your ABP machine on your NinaAir Wifi.</li>
+<li>This address needs to match the IP address of your Alpaca Driver machine on your NinaAir Wifi.</li>
 </ul>
 </li>
 </ul>
-<h3 id="s2---still-cannot-connect-stellariumplus-to-abp">S2 - Still Cannot Connect StellariumPLUS to ABP<a class="headerlink" href="#s2---still-cannot-connect-stellariumplus-to-abp" title="Permanent link">&para;</a></h3>
+<h3 id="s2---still-cannot-connect-stellariumplus-to-the-alpaca-driver">S2 - Still Cannot Connect StellariumPLUS to the Alpaca Driver<a class="headerlink" href="#s2---still-cannot-connect-stellariumplus-to-the-alpaca-driver" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Check IP connectivity. You must run StellariumPLUS on a mobile device that can communicate with the ABP driver. Use a free mobile Ping app to check that you can ping the ABP driver device. If you cannot ping, then check that you are not using the phone's mobile data, that you are within range of your router's Wi-Fi signal, and that your phone is connected to your home Wi-Fi.</li>
-<li>Check the StellariumPLUS Host field on the Observing Tools settings popup. This needs to be set to the ABP Driver's IP address. Do not use 127.0.0.1 Loopback. </li>
+<li>Check IP connectivity. You must run StellariumPLUS on a mobile device that can communicate with the Alpaca Driver. Use a free mobile Ping app to check that you can ping the Alpaca Driver device. If you cannot ping, then check that you are not using the phone's mobile data, that you are within range of your router's Wi-Fi signal, and that your phone is connected to your home Wi-Fi.</li>
+<li>Check the StellariumPLUS Host field on the Observing Tools settings popup. This needs to be set to the Alpaca Driver's IP address. Do not use 127.0.0.1 Loopback. </li>
 <li>Check stellarium_telescope_ip_address in config.toml. This can be left as its default '' to make the Driver serve the SynScan protocol on any network adapter it can find. If you want to limit the IP address servered by the Driver, you can set this to the IP address of the Mini-PC on your home network. </li>
 </ul>
 <h3 id="s3---stellarium-desktop-has-greyed-out-ascom-option">S3 - Stellarium Desktop has greyed out ASCOM option<a class="headerlink" href="#s3---stellarium-desktop-has-greyed-out-ascom-option" title="Permanent link">&para;</a></h3>

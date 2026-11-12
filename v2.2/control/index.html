@@ -1381,7 +1381,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Benro Polaris Driver — Kinematics Reference
+  Alpaca Driver — Kinematics Reference
 
     
   </span>
@@ -2023,7 +2023,7 @@
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/_Swd-jIyQis">23 - Alpaca Rotator Framing in Nina and Stellarium</a></p>
 </blockquote>
-<p>The Alpaca Rotator feature is an advanced capability within the Alpaca Benro Polaris (ABP) Driver, specifically designed to enhance precision framing and complex imaging sequences for deep-sky astrophotography.</p>
+<p>The Alpaca Rotator feature is an advanced capability within the Alpaca Driver, specifically designed to enhance precision framing and complex imaging sequences for deep-sky astrophotography.</p>
 <p>This guide outlines the purpose, setup, control concepts, and practical usage of the Alpaca Rotator, drawing on the capabilities introduced in the version 2.0 driver.</p>
 <hr />
 <h2 id="i-introduction-and-core-function">I. Introduction and Core Function<a class="headerlink" href="#i-introduction-and-core-function" title="Permanent link">&para;</a></h2>
@@ -2032,11 +2032,11 @@
 <li><strong>Primary Purpose:</strong> The main goal of the Alpaca Rotator is to help achieve <strong>better framing of deep sky objects</strong> and assist significantly with <strong>mosaics and panoramas</strong>.</li>
 <li><strong>ASCOM Standard:</strong> The feature is implemented by supporting the <strong>ASCOM Alpaca Rotator Interface v3</strong> standard.</li>
 <li><strong>Co-ordinate independance:</strong> The rotator enables rotation around the camera’s boresight while <strong>maintaining the existing Azimuth/Altitude (Az/Alt) or Right Ascension/Declination (RA/Dec) coordinates</strong>.</li>
-<li><strong>Roll Angle Preservation:</strong> Unlike the standard Polaris firmware, the ABP Driver’s new <strong>GOTO commands preserve the roll angle</strong> instead of automatically resetting it to zero after every GOTO operation.</li>
+<li><strong>Roll Angle Preservation:</strong> Unlike the standard Polaris firmware, the Alpaca Driver’s new <strong>GOTO commands preserve the roll angle</strong> instead of automatically resetting it to zero after every GOTO operation.</li>
 </ul>
 <hr />
 <h2 id="ii-key-concepts-roll-angle-vs-position-angle">II. Key Concepts: Roll Angle vs. Position Angle<a class="headerlink" href="#ii-key-concepts-roll-angle-vs-position-angle" title="Permanent link">&para;</a></h2>
-<p>The ABP Driver allows control over rotation using two coordinate systems: Roll Angle (in the geographic system) and Position Angle (in the equatorial system).</p>
+<p>The Alpaca Driver allows control over rotation using two coordinate systems: Roll Angle (in the geographic system) and Position Angle (in the equatorial system).</p>
 <h3 id="roll-angle-azaltroll">Roll Angle (Az/Alt/Roll)<a class="headerlink" href="#roll-angle-azaltroll" title="Permanent link">&para;</a></h3>
 <p>The roll angle is generally considered <strong>intuitive</strong>.</p>
 <ul>
@@ -2130,7 +2130,7 @@
 <p>Here is the procedure for performing Multi-Point Alignment and information regarding the necessary synchronization points, based on the version 2.0 driver and its integration with applications like NINA (Nighttime Imaging 'N' Astronomy).</p>
 <h2 id="iii-performing-multi-point-alignment">III. Performing Multi-Point Alignment<a class="headerlink" href="#iii-performing-multi-point-alignment" title="Permanent link">&para;</a></h2>
 <h3 id="a-initial-mount-setup">A. Initial Mount Setup<a class="headerlink" href="#a-initial-mount-setup" title="Permanent link">&para;</a></h3>
-<p>Before starting the alignment process, ensure the mount is prepared and connected to the ABP Driver:</p>
+<p>Before starting the alignment process, ensure the mount is prepared and connected to the Alpaca Driver:</p>
 <ol>
 <li><strong>Polaris Mode:</strong> Power on the Benro Polaris (BP) mount and use the BP App to switch it to <strong>Astro Mode</strong>.</li>
 <li><strong>Skip Standard Alignment:</strong> You can <strong>skip</strong> the standard Benro Polaris <strong>Compass Align</strong> and <strong>Star Align</strong> steps, as the driver will use default values (assuming the device is pointing South at 45 degrees altitude).</li>
@@ -2144,7 +2144,7 @@
 <li><strong>Enable Multi-Point Alignment:</strong> Use Alpaca Pilot App to enable MPA from either the Settings page or the Alignment page.</li>
 <li><strong>Manual Plate Solve and Sync:</strong> Perform a <strong>manually initiated plate-solve and sync</strong>.<ul>
 <li>Plate solving uses the camera image to identify the star patterns and precisely determine the mount’s orientation.</li>
-<li>The ABP Driver automatically aligns the Benro Polaris with the resolved coordinates whenever a <code>Sync</code> command is performed.</li>
+<li>The Alpaca Driver automatically aligns the Benro Polaris with the resolved coordinates whenever a <code>Sync</code> command is performed.</li>
 </ul>
 </li>
 <li><strong>Alignment Confirmation:</strong> Once this first plate-solve and sync is successful, the Polaris is now considered aligned.</li>
@@ -2180,7 +2180,7 @@
 <p>Delete a sync point by clicking on the cross next to the point. Note that if tracking is enabled when you delete a sync point, the model will adjust, and the mount will shift the head to its new understanding of where the current target is located. If this varies from its current location, then perform another manually initiated plate-solve and sync.</p>
 <p>A very good multi-point alignment model will have all sync points with residuals of arc-seconds, and none with arc-minutes or whole degrees of residuals.</p>
 <h3 id="f-reseting-multi-point-alignment-on-re-setup">F. Reseting Multi-Point Alignment on Re-Setup<a class="headerlink" href="#f-reseting-multi-point-alignment-on-re-setup" title="Permanent link">&para;</a></h3>
-<p>From ABP Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. You can now restart the driver or reboot the MiniPC mid-session and resume imaging without losing your alignment.</p>
+<p>From Alpaca Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. You can now restart the driver or reboot the MiniPC mid-session and resume imaging without losing your alignment.</p>
 <p>However, if you physically move or re-level the tripod, the saved model will no longer match your new setup and must be reset. To clear all sync points:</p>
 <ol>
 <li>Open Alpaca Pilot and navigate to the Alignment page.</li>
@@ -2192,10 +2192,10 @@
 <p>By adding sync points, you help the Driver build a geometric model of your mount’s orientation relative to the sky. There are three approaches to adding sync points to the model.</p>
 <h4 id="method-1-sync-via-plate-solve">Method 1: Sync via Plate Solve<a class="headerlink" href="#method-1-sync-via-plate-solve" title="Permanent link">&para;</a></h4>
 <p><img alt="Alignment Sync" src="../images/control-sync1.png" /></p>
-<p>This is the most automated and accurate method. When your imaging software performs a <strong>plate solve</strong>, it determines the exact celestial coordinates your camera is pointing at. ABP uses this data to add a sync point to the alignment model.</p>
+<p>This is the most automated and accurate method. When your imaging software performs a <strong>plate solve</strong>, it determines the exact celestial coordinates your camera is pointing at. The Alpaca Driver uses this data to add a sync point to the alignment model.</p>
 <ul>
 <li>Best for: Astrophotographers using tools like NINA and ASTAP</li>
-<li>How: After a successful plate solve, ABP automatically adds the sync point</li>
+<li>How: After a successful plate solve, the Alpaca Driver automatically adds the sync point</li>
 <li>Benefit: High-precision alignment with minimal manual input</li>
 </ul>
 <h4 id="method-2-sync-via-radecpa-coordinates">Method 2: Sync via RA/Dec/PA Coordinates<a class="headerlink" href="#method-2-sync-via-radecpa-coordinates" title="Permanent link">&para;</a></h4>
@@ -2216,10 +2216,10 @@
 </ul>
 <h4 id="method-3-sync-via-geographic-landmark-azimuth-and-altitude">Method 3: Sync via Geographic Landmark (Azimuth and Altitude)<a class="headerlink" href="#method-3-sync-via-geographic-landmark-azimuth-and-altitude" title="Permanent link">&para;</a></h4>
 <p><img alt="Alignment Sync" src="../images/control-sync3.png" /></p>
-<p>ABP now supports syncing using <strong>azimuth and altitude</strong>, which means you can align to visible landmarks, even during the day or without a star field.  At your observing site, you might have a visible landmark like a high-tension power line or surveyers mark. If you point your camera directly at it:</p>
+<p>The Alpaca Driver now supports syncing using <strong>azimuth and altitude</strong>, which means you can align to visible landmarks, even during the day or without a star field.  At your observing site, you might have a visible landmark like a high-tension power line or surveyers mark. If you point your camera directly at it:</p>
 <ul>
 <li>Use the <strong>Pilot app</strong> to click on the landmark on the map in the Alignment page.</li>
-<li>ABP draws a line from your site to the landmark and calculates its azimuth and altitude</li>
+<li>The Alpaca Driver draws a line from your site to the landmark and calculates its azimuth and altitude</li>
 <li>Click <strong>Sync</strong> to add it to the model</li>
 </ul>
 <hr />
@@ -2305,7 +2305,7 @@
 </blockquote>
 <p>The Benro Polaris mount, while compact and powerful, has a known issue: it can rotate far enough to <strong>wrap cables tightly around the tripod</strong>, risking damage to cables, camera and mount. This kind of entanglement can lead to costly repairs or interrupted imaging sessions.</p>
 <p><img alt="Equipment Safety" src="../images/control-safety.png" /></p>
-<p>Version 2.0 of the Alpaca Benro Polaris (ABP) Driver introduces essential safety mechanisms to protect your gear and simplify your setup workflow. These updates address real-world risks and frustrations reported by users — especially around cable management and unexpected mount behavior.</p>
+<p>Version 2.0 of the Alpaca Driver introduces essential safety mechanisms to protect your gear and simplify your setup workflow. These updates address real-world risks and frustrations reported by users — especially around cable management and unexpected mount behavior.</p>
 <p>To prevent these issues, the driver now includes:</p>
 <ul>
 <li>
@@ -2370,7 +2370,7 @@
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/aDFKAWBNQHU">31 - Setting Overrides, Kalman Filtering and PWM</a></p>
 </blockquote>
-<p>The <strong>Kalman Filter</strong> is a core component of the motion control system introduced in <strong>ABP Driver v2.0</strong>. It plays a critical role in improving the <strong>accuracy, stability, and responsiveness</strong> of the Polaris mount by filtering noisy sensor data and enhancing the system’s understanding of its own motion.</p>
+<p>The <strong>Kalman Filter</strong> is a core component of the motion control system introduced in <strong>Alpaca Driver v2.0</strong>. It plays a critical role in improving the <strong>accuracy, stability, and responsiveness</strong> of the Polaris mount by filtering noisy sensor data and enhancing the system’s understanding of its own motion.</p>
 <blockquote>
 <p><strong>Note:</strong> Kalman Filter Tuning is optional. You can skip this step if you're not ready to dive in.</p>
 </blockquote>
@@ -2400,7 +2400,7 @@
 <li>It compares that prediction to your noisy observations</li>
 <li>It fuses both into a much clearer, more stable estimate</li>
 </ul>
-<p>This is exactly what the ABP driver does; giving your mount a steadier, smarter sense of where it’s pointing, even when the raw data is unreliable.</p>
+<p>This is exactly what the Alpaca Driver does; giving your mount a steadier, smarter sense of where it’s pointing, even when the raw data is unreliable.</p>
 <p>This is particularly important for M3, whose position updates less frequently than the other motors. The Kalman Filter uses M3's velocity to predict its position between updates, helping maintain accurate pointing estimates during fast movements such as rolls and polar-alignment changes.</p>
 <h2 id="ii-tuning-and-diagnostics">II. Tuning and Diagnostics<a class="headerlink" href="#ii-tuning-and-diagnostics" title="Permanent link">&para;</a></h2>
 <p>While the default settings are well-optimized, the <strong>Kalman Filter Tuning</strong> page in the Alpaca Pilot App allow deeper insight and control. To access the Kalman Filter Tuning Page, Open the <strong>Alpaca Pilot App</strong> and naigate to  <strong>KF Tuning</strong> under the Performance Tuning in the Side Menu</p>
@@ -2445,7 +2445,7 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/U_0-mBDuTjE">32 - Calibrating Speed Control for your Polaris</a></p>
 </blockquote>
-<p>The <strong>Motor Speed Controller Calibration</strong> feature in ABP v2.0 allows advanced users to fine-tune motor behavior for their specific Polaris mount. While the system works well with default values, calibration can improve tracking precision, especially for long-exposure astrophotography.</p>
+<p>The <strong>Motor Speed Controller Calibration</strong> feature in Alpaca Driver v2.0 allows advanced users to fine-tune motor behavior for their specific Polaris mount. While the system works well with default values, calibration can improve tracking precision, especially for long-exposure astrophotography.</p>
 <p>You can access the Motor Speed Calibration Tool by opening Alpaca Pilot and navigating to <strong>Calibration</strong> under <strong>Performance Tuning</strong> in the side menu  </p>
 <blockquote>
 <p><strong>Note:</strong> Calibration is optional. You can skip this step if you're not ready to dive in.</p>
@@ -2559,7 +2559,7 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/6vJbSb0gl3M">33 - PID Control and Kinematics</a></p>
 </blockquote>
-<p>The Proportional-Integral-Derivative (PID) Controller is the core component of the revised motion control system in the Alpaca Benro Polaris Driver Version 2.0. While the system works well with the default parameters, this section is designed for advanced users who wish to <strong>diagnose poor tracking</strong> or fine-tune the controller’s performance.</p>
+<p>The Proportional-Integral-Derivative (PID) Controller is the core component of the revised motion control system in the Alpaca Driver version 2.0. While the system works well with the default parameters, this section is designed for advanced users who wish to <strong>diagnose poor tracking</strong> or fine-tune the controller’s performance.</p>
 <h2 id="1-purpose-and-role-of-the-pid-controller">1. Purpose and Role of the PID Controller<a class="headerlink" href="#1-purpose-and-role-of-the-pid-controller" title="Permanent link">&para;</a></h2>
 <p>The PID Controller is responsible for <strong>closed-loop speed regulation</strong> and is essential for achieving stable tracking. It works by measuring the error between where the mount <em>should</em> be (the Set Point) and where it <em>actually</em> is (the Present Value).</p>
 <p>The driver utilizes a <strong>3-axis PID controller</strong> for closed-loop motor positioning and explicitly handles <strong>zero crossover</strong> to eliminate the need for traditional backlash correction. The PID controller sums up the proportional, integral, derivative, and feed-forward values to determine the precise <strong>motor speed</strong> required to drive each of the three motors in the Polaris head.</p>
@@ -2675,7 +2675,7 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 <blockquote>
 <p>VIDEO DEMO - <a href="https://youtu.be/no47ZNagEDk">26 - Tracking Orbitals</a></p>
 </blockquote>
-<p>The Alpaca Benro Polaris Driver Version 2.0 introduces comprehensive support for non-sidereal tracking, allowing the mount to precisely follow objects whose equatorial coordinates change constantly with time. This capability is achieved through the implementation of the <strong>full ASCOM tracking rates</strong> and real-time calculation of target positions.</p>
+<p>The Alpaca Driver version 2.0 introduces comprehensive support for non-sidereal tracking, allowing the mount to precisely follow objects whose equatorial coordinates change constantly with time. This capability is achieved through the implementation of the <strong>full ASCOM tracking rates</strong> and real-time calculation of target positions.</p>
 <h2 id="1-supported-tracking-rates">1. Supported Tracking Rates<a class="headerlink" href="#1-supported-tracking-rates" title="Permanent link">&para;</a></h2>
 <p>The driver supports the standard ASCOM tracking rates, which deviate from the default sidereal motion required for fixed stars.</p>
 <table>
@@ -3158,13 +3158,13 @@ capture's <code>t</code> field before trusting any one run's "huge" overshoot nu
         
         
           
-          <a href="../kinematics/" class="md-footer__link md-footer__link--next" aria-label="Next: Alpaca Benro Polaris Driver — Kinematics Reference">
+          <a href="../kinematics/" class="md-footer__link md-footer__link--next" aria-label="Next: Alpaca Driver — Kinematics Reference">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Alpaca Benro Polaris Driver — Kinematics Reference
+                Alpaca Driver — Kinematics Reference
               </div>
             </div>
             <div class="md-footer__button md-icon">
