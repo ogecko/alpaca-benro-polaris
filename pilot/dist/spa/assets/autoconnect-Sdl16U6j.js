@@ -1,0 +1,1 @@
+import{i as e,t}from"./device-DOEZcUP2.js";var n=async()=>{e.appVisible=!document.hidden,await t().connectRestAPI()};export{n as default};
