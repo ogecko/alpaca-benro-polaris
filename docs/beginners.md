@@ -1,8 +1,20 @@
 [Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 
-# A Beginner's Guide
+# Getting Started
+
+## Quick Start
+
+1. **Back the project.** The driver is distributed to backers of the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o). See the [LICENSE](../LICENSE) for terms.
+2. **Choose your hardware.** Read the [Hardware Guide](./hardware.md).
+3. **Install the driver.** Follow the guide for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) or [Docker](./docker.md).
+4. **Connect with Alpaca Pilot.** The [Alpaca Pilot Guide](./pilot.md) takes you from first connection through alignment to your first goto.
+5. **Add your imaging app.** Set up [NINA](./nina.md), [Stellarium](./stellarium.md), [CCDciel](./ccdciel.md) or [PHD2](./guiding.md).
+
+If something goes wrong, the [Troubleshooting Guide](./troubleshooting.md) and [FAQ](./faq.md) cover the most common issues.
+
+## A Beginner's Guide
 So you've just got your hands on the Benro Polaris, congratulations! This guide will take you through the basics of astrophotography with the Polaris and introduce you to the world of Alpaca, a powerful tool that can elevate your astrophotography experience. Use it as a learning guide on the various topics to master to become better at astrophotography.
-## Getting Started with the Benro Polaris
+### Learning the Benro Polaris
 The Benro Polaris is a fantastic tool for getting started with astrophotography. It's portable, easy to use, is great for astro panaramas and can track the stars for short exposures. We recommend learning how to use the Benro Polaris stand alone initially. Become familiar with its capabilities and limitations. Here's a simplified breakdown of how to use it:
 1. Level the Base: Accurate levelling is crucial for precise tracking. Use the built-in bubble level or a separate spirit level, aiming for ±0.3 degrees or better.
 2. Power On: The Polaris has a specific power-on sequence: double press and hold the power button until you hear three beeps.
@@ -14,7 +26,7 @@ The Benro Polaris is a fantastic tool for getting started with astrophotography.
 8. Compose and Focus: Use your camera's live view to compose your shot and achieve focus. A Bahtinov mask can be helpful for precise focusing.
 9. Start Shooting: Set your camera to manual mode, adjust your exposure settings, and start capturing some night sky panaramas!
 
-## Understanding Alpaca and How It Fits In
+### Understanding Alpaca and How It Fits In
 ASCOM Alpaca is a software standard that enables communication between different astronomy devices and applications. The Alpaca Benro Polaris Driver (ABP) is a softare driver that implements the ASCOM Alpaca standard. It will help you get more out of you Benro Polaris and allow you to build more advanced skills in astrophotography. 
 
 The Alpaca Benro Polaris Driver (ABP) is installed on a separate device (like a mini-PC or laptop) that connects to your Polaris via WiFi. Why use Alpaca? The ABP Driver unlocks the Polaris's potential by enabling:
@@ -26,7 +38,7 @@ The Alpaca Benro Polaris Driver (ABP) is installed on a separate device (like a 
 
 A great summary video which shows how Alpaca fits into a typical imaging session can be found in [Using the Benro Polaris with NINA - a game changer!](https://www.youtube.com/watch?v=D3JZOp0TFbk)
 
-## Choosing the Right Imaging Equipment
+### Choosing the Right Imaging Equipment
 When selecting a camera and lens for astrophotography, what you currently have is probably your best option. If you are purchasing new equipment consider your target and desired outcome. For panoramas, wider focal lengths like 16mm, 24mm, or even 50mm are suitable, capturing a broader view of the Milky Way or nightscapes. For deep-sky objects like nebulae and galaxies, longer focal lengths, such as 135mm, 200mm, 400mm, or even 800mm, are necessary to magnify distant objects.
 
 Faster lenses (with lower f-numbers like f/1.4, f/2.8) are beneficial because they allow more light to reach the camera sensor in a shorter time. This is crucial in astrophotography, as you're often dealing with dim objects. A faster lens allows you to use shorter exposure times while maintaining good image brightness, reducing the impact of tracking errors and capturing more detail. 
@@ -39,7 +51,7 @@ Various camera options are available for astrophotography, each with its pros an
 
 As you become more familiar with Nina, you may want to explore using a dedicated imaging telescope, filters, monochrome cameras, focusers, and other equipment. The choice depends on your budget, experience, and desired level of image quality. 
 
-## Choosing Your Alpaca Setup
+### Choosing Your Alpaca Setup
 We recommend starting out by installing Alpaca Benro Polaris on a laptop with Stellarium. 
 * Install the ABP Driver, Python, and Stellarium on your laptop. This setup allows you to control the Polaris, find deep-sky objects, and watch its position update in real-time. 
 
@@ -48,21 +60,21 @@ Once this is successful you may want to consider getting a Mini-PC and installin
 
 More information on the Alpaca Setup can be found in the [Hardware Guide](./hardware.md).
   
-### Installing the Alpaca Benro Polaris Driver
+#### Installing the Alpaca Benro Polaris Driver
 The installation process varies slightly depending on your chosen platform (Windows, MacOS, Raspberry Pi). Detailed instructions can be found in the ABP project's documentation, but here's a simplified overview:
 1. Install Python: Make sure you have Python 3+ installed on your device.
 2. Download the Driver: Get the latest ABP Driver zip file from the Github repository.
 3. Extract and Install: Extract the zip file to a convenient location. Follow the platform-specific instructions to install the driver and its dependencies.
 4. Configure Settings: You'll need to adjust some settings in a configuration file (config.toml), like your location coordinates and other preferences.
 
-### Connecting the Driver to Your Polaris
+#### Connecting the Driver to Your Polaris
 1. Initial Setup with the Benro App: Follow the steps mentioned earlier to level, power on, calibrate, and align your Polaris using the Benro app.
 2. Connect Your Device: Connect your laptop/mini-PC to the Polaris's WiFi hotspot (usually named "polaris-######").
 3. Start the Driver: Run the ABP Driver on your device. Check the driver's log window for confirmation messages.
 
 More information on installing Alpaca can be found in the [Installation Guide](./installation.md). The physical connection of a typical mini-PC setup is shown in the 
 
-## Learning Stellarium
+### Learning Stellarium
 Become familiar with using Stellarium to identify targets in the night sky and commanding the Polaris to point your camera to them. Some of the benefits you will get from using Stellarium include:
 * Extensive Catalogue: Stellarium boasts an expansive catalogue of celestial objects, exceeding what's available in the Benro Polaris App. This allows you to explore a wider range of targets for your astrophotography sessions.
 * Telescope Control: Stellarium offers comprehensive control over the Benro Polaris through both the Alpaca ASCOM and SynScan protocols. This means you can use Stellarium to slew to targets, adjust tracking, and synchronise coordinates with the Polaris.
@@ -77,7 +89,7 @@ To enhance your understanding of Stellarium, consider exploring the following re
 
 These resources, combined with the insights from the sources, can help you learn Stellarium effectively and leverage its capabilities to enhance your astrophotography experience with the Benro Polaris. 
 
-## Learning NINA
+### Learning NINA
 Nina can be overwhelming at first, but start by simply connecting a camera and learning how to take images. As you become more familiar you can integrate other equipment and learn its more advanced features such as sequencing, autofocus, plate solving, polar alignment. 
 
 The Alpaca Documentation on [Using Nina](./nina.md) will guide you through: 
@@ -101,7 +113,7 @@ Chris Woodhouse’s NINA 17-part series covers everything
 
 By utilising these resources, you can gain a strong foundation in using NINA for astrophotography with the Benro Polaris. 
 
-## Learning Siril
+### Learning Siril
 Siril is a powerful, open-source image processing software widely used in astrophotography for tasks like stacking, calibration, and enhancing astrophotography images. Once you have a set of images, you can use image stacking like Siril, to combine multiple images of the same target. This image stacking can improve the signal-to-noise ratio, revealing fainter details and reducing noise. Siril is a free and powerful software for astrophotography image processing, including stacking.
 
 Learning to use stacking software like Siril is another deep area to develop skills in. Key areas to learn include 
@@ -116,7 +128,7 @@ To learn Siril, you can consider these resources:
 * Online Communities and Forums: Astrophotography communities like Cloudy Nights (https://www.cloudynights.com/) and Stargazers Lounge (https://stargazerslounge.com/) have sections dedicated to Siril, where users share their experiences, tips, and troubleshooting advice.
 
 
-## Further Learning
+### Further Learning
 * Alpaca Benro Polaris Project Documentation: This is the go-to resource for detailed instructions, troubleshooting tips, and information on specific features. The documentation can be found at [Home](../README.md) . 
 * Nina User Manual and Tutorials: Nina has extensive documentation and numerous video tutorials available online to guide you through its features and workflows. The Alpaca Benro Polaris documentation points you to a number of specific Nina resources.
 * Stellarium User Guide: Stellarium's website and user forum offer valuable information on using the software for astrophotography planning and telescope control. The Alpaca Benro Polaris documentation points you to a specific Stellarium resource at the University of Western Australia.

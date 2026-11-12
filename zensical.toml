@@ -16,12 +16,12 @@ extra_css = ["stylesheets/extra.css"]
 nav = [
   { "Home" = "index.md" },
   { "Getting Started" = [
-    "beginners.md",
-    "hardware.md",
-    { "Installation (Windows)" = "installation.md" },
-    { "Installation (macOS)" = "installation_macos.md" },
-    "raspberrypi.md",
-    "docker.md",
+    { "Start Here" = "beginners.md" },
+    { "Hardware Guide" = "hardware.md" },
+    { "Windows Installation" = "installation.md" },
+    { "macOS Installation" = "installation_macos.md" },
+    { "Raspberry Pi Installation" = "raspberrypi.md" },
+    { "Docker Installation" = "docker.md" },
   ] },
   { "Using the Driver" = [
     "pilot.md",

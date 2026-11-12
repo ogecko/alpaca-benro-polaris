@@ -15,7 +15,7 @@ It integrates with popular astronomy applications, including [NINA](https://nigh
 The driver transforms the Polaris from a simple panorama platform into a capable astrophotography mount, supporting guided deep-sky exposures of up to 300 seconds and complex, multi-layered panoramas aligned to galactic, equatorial, or topocentric coordinate systems.
 
 
-[Getting Started](#getting-started) · [Features](#features-enabled-by-the-driver) · [Gallery](#dso-gallery-captured-with-the-driver) · [Documentation](#documentation) · [Videos](https://www.youtube.com/@jdm5001/featured)
+[Getting Started](./docs/beginners.md) · [Features](#features-enabled-by-the-driver) · [Gallery](#dso-gallery-captured-with-the-driver) · [Documentation](#documentation) · [Videos](https://www.youtube.com/@jdm5001/featured)
 
 </br>
 
@@ -125,17 +125,7 @@ Other applications that support the ASCOM Alpaca standard should also work.
 - **A camera and lens.** Any camera that NINA or CCDciel can control. Beta testers have used Canon, Sony, Nikon, Pentax and ZWO cameras with lenses up to 800 mm.
 - **A computer to run the driver.** A Windows 11 laptop, a mini-PC mounted on the tripod, a Mac, or a Raspberry Pi (Zero 2 W and up). The [Hardware Guide](./docs/hardware.md) compares the options, including a fully self-contained "NinaAir" mini-PC rig.
 
-</br>
-
-## Getting Started
-
-1. **Back the project.** The driver is distributed to backers of the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o). See the [LICENSE](./LICENSE) for terms.
-2. **Choose your hardware.** Read the [Hardware Guide](./docs/hardware.md).
-3. **Install the driver.** Follow the guide for [Windows](./docs/installation.md), [macOS](./docs/installation_macos.md), [Raspberry Pi](./docs/raspberrypi.md) or [Docker](./docs/docker.md). 
-4. **Connect with Alpaca Pilot.** The [Alpaca Pilot Guide](./docs/pilot.md) takes you from first connection through alignment to your first goto.
-5. **Add your imaging app.** Set up [NINA](./docs/nina.md), [Stellarium](./docs/stellarium.md), [CCDciel](./docs/ccdciel.md) or [PHD2](./docs/guiding.md).
-
-If something goes wrong, the [Troubleshooting Guide](./docs/troubleshooting.md) and [FAQ](./docs/faq.md) cover the most common issues.
+When you have these, follow the [Getting Started](./docs/beginners.md) guide.
 
 </br>
 
@@ -147,7 +137,7 @@ These guides are also published as the [official documentation site](https://oge
 |---|---|
 | [Release Notes v2.2](./docs/release-notes-v2.2.0.md) | New features, compatible hardware and software, bug fixes and known issues |
 | [Video Playlists](https://www.youtube.com/@jdm5001/featured) | Demonstrations for [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics), [v2.0 and v2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), and [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) |
-| [Beginners Guide](./docs/beginners.md) | Learning the basics of astrophotography with the Polaris |
+| [Getting Started](./docs/beginners.md) | Quick-start steps, then a beginner's learning plan for the Polaris, Alpaca, Stellarium, NINA and Siril |
 | [Hardware Guide](./docs/hardware.md) | Laptop, mini-PC and Raspberry Pi setups, including the NinaAir rig |
 | [Installation Guide](./docs/installation.md) | Step-by-step install on Windows, plus [macOS](./docs/installation_macos.md), [Raspberry Pi](./docs/raspberrypi.md) and [Docker](./docs/docker.md) |
 | [Alpaca Pilot Guide](./docs/pilot.md) | The dashboard, catalog, alignment and panorama tools |
