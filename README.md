@@ -47,7 +47,7 @@
 </p>
 
 <p align="center">
-  Control the Benro Polaris Astro Edition from NINA, Stellarium, PHD2, CCDciel and other
+  Control the Benro Polaris Astro Edition from Stellarium, NINA, PHD2, CCDciel and other
   ASCOM Alpaca applications, with Multi-Point Alignment, plate solving, sync and pulse guiding,
   advanced motion control, orbital tracking and panoramas. The Polaris firmware is left untouched.
 </p>
@@ -65,4 +65,4 @@
 
 ## Getting the Driver
 
-The driver is distributed to backers of the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o). See the [LICENSE](./LICENSE) for terms, then follow Getting Started in the [documentation](https://ogecko.github.io/alpaca-benro-polaris/) to install and connect it.
+The driver is distributed to backers of the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o). See the [LICENSE](./LICENSE) for terms, then follow [Getting Started](https://ogecko.github.io/alpaca-benro-polaris/v2.2/getting-started/) to install and connect it.
