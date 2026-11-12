@@ -112,6 +112,36 @@ Chris Woodhouse’s NINA 17-part series covers everything
 
 By utilising these resources, you can gain a strong foundation in using NINA for astrophotography with the Benro Polaris. 
 
+### Learning Advanced Sequencer
+NINA has two sequencers. The Legacy Sequencer is a simple list of targets and exposures, and is a good place to start. As you add more astronomy equipment, such as filter wheels, focusers, power hubs and dedicated astronomy cameras, it's worth learning NINA's Advanced Sequencer. It builds your imaging session from instructions that you drag into place, so you can:
+* Control All Your Equipment: Cool the camera before imaging and warm it afterwards, switch filters, turn power hub outputs and dew heaters on and off, and park the mount when you're done.
+* Repeat and Wait: Use loops and conditions to repeat a set of instructions for a number of exposures, for a period of time, or until dawn.
+* React to Conditions: Use triggers to run an autofocus when the temperature or star sizes change, or to re-center the target when it drifts.
+* Reuse Your Workflows: Save a sequence as a template and reuse it for each new target.
+
+The Advanced Sequencer can look complicated at first, but it isn't once you get the hang of it, and you will never go back to the Legacy Sequencer.
+
+The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's [Sync Guiding](./guiding.md#approach-1-plate-solvesync-guiding-hardware-free), which runs a Solve and Sync every few minutes during your sequence, and [Panorama Grids](./pilot.md#capturing-panoramas-with-the-alpaca-driver), which use the `Polaris:PanoGrid` and `Polaris:PanoSlew` Device Actions to step through each panel.
+
+To learn the Advanced Sequencer, you can consider these resources:
+* Alpaca Documentation: [Advanced Sequence](./nina.md#5-advanced-sequence) in the NINA guide describes the instructions that work with the Alpaca Driver, and the [Device Actions](./alpaca-api.md#device-actions) reference lists each Device Action with examples.
+* NINA Documentation: The [Advanced Sequencer](https://nighttime-imaging.eu/docs/master/site/sequencer/advanced/advanced/) section of the NINA documentation explains each instruction, condition and trigger.
+
+### Learning Guiding
+Multi-Point Alignment gives the Polaris an accurate pointing and tracking model, but small errors remain. The Polaris has a periodic error of over 14 arc minutes on a repeating 35-minute cycle, as well as mechanical errors that cause slow drift. At wide focal lengths these errors are barely visible, but at 200mm and beyond they show up as drifting targets and trailed stars. Guiding measures where the stars actually are and corrects the mount as you image, allowing longer focal lengths and longer exposures.
+
+The Alpaca Driver supports two approaches to guiding. We recommend learning them in this order:
+* Sync Guiding: Start here, as it needs no extra hardware. Your imaging software plate solves an image from your main camera every 1 to 3 minutes and syncs the result, and the driver treats any remaining error as a guiding correction. In NINA, this is a "Solve and Sync" instruction added to your imaging sequence.
+* Pulse Guiding: Once you are comfortable with sync guiding, you can add a small guide scope and guide camera. PHD2 watches a guide star and sends small corrections to the driver every few seconds, correcting errors within a single exposure. This suits the longest focal lengths and exposures beyond 2 minutes.
+
+Both approaches also feed the driver's Periodic Error Correction, which learns how your Polaris drifts and corrects for it before it shows up in your images.
+
+To learn guiding, you can consider these resources:
+* Alpaca Documentation: The [Guiding Guide](./guiding.md) explains both approaches, then walks you through setting up PHD2, calibrating, pulse guiding and improving guiding performance with the Polaris.
+* PHD2 Documentation: The [PHD2 User Manual](https://openphdguiding.org/manual/) covers every feature, and the [PHD2 Best Practices](https://openphdguiding.org/phd2-best-practices/) guide explains how to get good results quickly.
+* Online Communities and Forums: The [PHD2 user forum](https://groups.google.com/g/open-phd-guiding) is very active, and the developers will review your guide logs if you ask for help.
+
+
 ### Learning Siril
 Siril is a powerful, open-source image processing software widely used in astrophotography for tasks like stacking, calibration, and enhancing astrophotography images. Once you have a set of images, you can use image stacking like Siril, to combine multiple images of the same target. This image stacking can improve the signal-to-noise ratio, revealing fainter details and reducing noise. Siril is a free and powerful software for astrophotography image processing, including stacking.
 
