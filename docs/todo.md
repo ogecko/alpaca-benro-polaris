@@ -8,6 +8,7 @@
   - [ ] uv tree --invert --package urllib3 
   - [ ] uv tree --group notebooks               # see pyproject.toml [dependency-groups]
   - [ ] uv add "urllib3==2.7.0" 
+  - [ ] uv lock --upgrade-package certifi
 - [ ] Check Pilot package vulnerabilities
   - [ ] npm outdated           Apply the updates; npm update; npm run build
   - [ ] npm audit --omit=dev   Apply the updates: npm audit fix
