@@ -9,9 +9,8 @@
   - [ ] uv tree --group notebooks               # see pyproject.toml [dependency-groups]
   - [ ] uv add "urllib3==2.7.0" 
 - [ ] Check Pilot package vulnerabilities
-  - [ ] Check non-breaking updates (dry run): quasar info;  quasar upgrade;        Apply the updates: quasar upgrade -i
-  - [ ] Check major potentially breaking updates (dry run): quasar upgrade -m;     Apply the updates: quasar upgrade -m -i
-  - [ ] Check runtime dependencies:                         npm audit --omit=dev   Apply the updates: npm audit fix
+  - [ ] npm outdated           Apply the updates; npm update; npm run build
+  - [ ] npm audit --omit=dev   Apply the updates: npm audit fix
   - [ ] npm list --depth=0
   - [ ] npm install axios@^1.13.5
   - [ ] npm list axios
