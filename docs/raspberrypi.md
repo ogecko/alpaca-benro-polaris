@@ -107,7 +107,7 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
 3. On the Raspberry Pi, download the Alpaca Driver setup.sh script. This is a program that automatically installs everything the Alpaca Driver needs, so you don't have to do it by hand.
     ```Bash
-    wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_2/platforms/raspberry_pi/setup.sh -O setup.sh
+    wget https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/main/platforms/raspberry_pi/setup.sh -O setup.sh
     ```
 4. Make the script runnable, then run it.
     ```Bash
