@@ -13,11 +13,13 @@ It integrates with popular astronomy applications, including [NINA](https://nigh
 The driver transforms the Polaris from a simple panorama platform into a capable astrophotography mount, supporting guided deep-sky exposures of up to 300 seconds and complex, multi-layered panoramas aligned to galactic, equatorial, or topocentric coordinate systems.
 
 
-[Getting Started](./getting-started.md) · [Features](#features-enabled-by-the-driver) · [Gallery](#dso-gallery-captured-with-the-driver) · [Documentation](#documentation) · [Videos](https://www.youtube.com/@jdm5001/featured)
+[Getting Started](./getting-started.md) · [Features](#features) · [Gallery](#gallery) · [Documentation](#documentation) · [Videos](https://www.youtube.com/@jdm5001/featured)
 
 </br>
 
-## Features enabled by the Driver
+## Features
+
+The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the Benro app offers.
 
 <table class="features">
   <tr>
@@ -91,9 +93,9 @@ The driver transforms the Polaris from a simple panorama platform into a capable
 </br>
 </br>
 
-## DSO Gallery captured with the Driver
+## Gallery
 
-Below are some sample images captured with a Benro Polaris and the Alpaca driver, using 200 mm to 400 mm camera lenses on a MiniCam8 (IMX585) astro camera, giving 680 mm to 2040 mm full-frame equivalent focal lengths, with sub-exposures from 2 s to 120 s.
+These deep-sky images were captured with a Benro Polaris and the Alpaca Driver, using 200 mm to 400 mm camera lenses on a MiniCam8 (IMX585) astro camera, giving 680 mm to 2040 mm full-frame equivalent focal lengths, with sub-exposures from 2 s to 120 s.
 
 <p align="center">
   <img src="images/abp-gallery.jpg" alt="Gallery: Carina Nebula, Horsehead Nebula, Eagle Nebula, Lagoon Nebula, Cat's Paw Nebula, Tarantula Nebula, Centaurus A, Omega Centauri, Eastern Veil Nebula, and a Milky Way mosaic" width="100%">
