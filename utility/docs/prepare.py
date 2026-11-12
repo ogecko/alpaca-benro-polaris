@@ -6,7 +6,8 @@ page in docs/ starts with a hand-made nav bar linking back to ../README.md. Zens
 see files inside its docs_dir and builds its own navigation, so this copies docs/ into
 build/site-src/ (the docs_dir in zensical.toml) and adjusts the copy, never the originals:
 
-  * README.md becomes index.md, with its ./docs/ links and image paths made relative to docs/
+  * README.md becomes index.md, with its ./docs/ links and image paths made relative to docs/,
+    and its links to other repo files (e.g. ./LICENSE) pointing at github.com
   * the github.com nav bar on line 1 of each page is dropped (Zensical's sidebar replaces it)
   * links to ../README.md point at index.md
   * links to other repo files outside docs/ (e.g. ../utility/ccdciel) point at github.com
@@ -119,6 +120,7 @@ def fix_readme(text: str) -> str:
     text = text.replace('](./README.md)', '](index.md)')
     text = re.sub(r'\]\((?:\./)?docs/', '](', text)
     text = re.sub(r'(src=["\'])(?:\./)?docs/', r'\1', text)
+    text = re.sub(r'\]\(\./(?!README\.md)([^)]+)\)', rf']({REPO_BLOB}\1)', text)  # other repo files, e.g. ./LICENSE
     return fix_lists(text)
 
 

@@ -11,6 +11,7 @@ repo_url = "https://github.com/ogecko/alpaca-benro-polaris"
 repo_name = "ogecko/alpaca-benro-polaris"
 docs_dir = "build/site-src"
 site_dir = "site"
+extra_css = ["stylesheets/extra.css"]
 
 nav = [
   { "Home" = "index.md" },

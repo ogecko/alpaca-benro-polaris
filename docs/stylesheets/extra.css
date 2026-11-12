@@ -1,0 +1,31 @@
+/* Feature grid on the home page: <table class="features"> in README.md.
+   github.com strips the class and shows the plain table; these rules only apply on the docs site. */
+.md-typeset table.features {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+}
+.md-typeset table.features td {
+  border: none;
+  padding: 1em .6em;
+  vertical-align: top;
+}
+.md-typeset table.features br {
+  display: none;
+}
+.md-typeset table.features img {
+  display: block;
+  margin: 0 auto .5em;
+}
+.md-typeset table.features b {
+  display: block;
+  line-height: 1.3;
+}
+.md-typeset table.features sub {
+  display: block;
+  margin-top: .25em;
+  color: var(--md-default-fg-color--light);
+  font-size: .85em;
+  line-height: 1.35;
+  vertical-align: baseline;
+}
