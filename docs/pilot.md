@@ -73,7 +73,7 @@ The Alpaca Pilot App can be accessed via external imaging software or directly t
 If you are using NINA, you can launch the Alpaca Pilot App directly from the NINA equipment setup interface:
 
 1.  **Access Equipment Setup:** Navigate to NINA's Equipment setup.
-2.  **Mount Connection:** Choose the device for the ABP driver.
+2.  **Mount Connection:** Choose the device for the Alpaca Driver.
 3.  **Use Settings Cog:** Before connecting, click the **settings cog button**.
 4.  **Fire Up App:** Clicking the settings cog will fire up the Alpaca Pilot application, allowing you to monitor the connection process in detail.
 

@@ -66,7 +66,7 @@ Version 2.2 incoporates a significant step forward in tracking accuracy when you
 ---
 
 
-This remainder of this document introduces how to use **PHD2** and pulse-guiding with the **Alpaca Benro Polaris Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse-guiding, as well as those transitioning from unguided imaging.
+This remainder of this document introduces how to use **PHD2** and pulse-guiding with the **Alpaca Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse-guiding, as well as those transitioning from unguided imaging.
 
 ## 1. Pulse Guiding Introduction
 
@@ -244,7 +244,7 @@ Calibration determines how your mount responds to guide pulses in Right Ascensio
 For best results, calibration should be performed under the following conditions:
 
 * **CRITICAL: Disable PEC Drift Correction if you are using Dithering** - 
-We recommend not using Dithering with the Alpaca Benro Polaris as we have not seen any significant improvement in guiding or hot pixel reduction. If you decide to use Dithering, then you should switch off PEC Drift Correction. Unlike calibration, dither steps aren't recognised, and you don't want PEC to learn them as drift. PEC Worm Gear Correction can stay on.
+We recommend not using Dithering with the Alpaca Driver as we have not seen any significant improvement in guiding or hot pixel reduction. If you decide to use Dithering, then you should switch off PEC Drift Correction. Unlike calibration, dither steps aren't recognised, and you don't want PEC to learn them as drift. PEC Worm Gear Correction can stay on.
 
 * **PEC can stay on during calibration** - 
 We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own Predictive PEC algorithm. The Driver’s version models both the RA and Dec axes independently and applies corrections directly within the mount's tracking loop. This can reduce the size of guide corrections and produce smoother tracking. To use PEC with an autoguider:

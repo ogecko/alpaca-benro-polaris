@@ -90,7 +90,7 @@ The Windows setup uses WSL2, which provides a Linux environment for running Dock
 
 # 2. Clone 
 
-   Clone the Alpaca Benro Polaris repository into a subfolder under your home directory. 
+   Clone the Alpaca Driver repository into a subfolder under your home directory. 
 
    ```bash
    git clone https://github.com/ogecko/alpaca-benro-polaris.git ~/alpaca-benro-polaris

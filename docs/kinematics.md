@@ -2,7 +2,7 @@
 
 
 
-# Alpaca Benro Polaris Driver — Kinematics Reference
+# Alpaca Driver — Kinematics Reference
 [Overview](#1-overview) | 
 [QUEST](#21-quest-alignment-optimisation) |
 [SCC](#22-slew--center-correction) |

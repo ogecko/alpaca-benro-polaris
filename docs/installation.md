@@ -19,7 +19,7 @@ You can view a demonstration of parts of this documentation in the following You
 
 [![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
 
-The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, offers to start the driver automatically when Windows starts, and places a shortcut to the driver on your desktop.
+The `setup.bat` script installs and configures the Alpaca Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, offers to start the driver automatically when Windows starts, and places a shortcut to the driver on your desktop.
 
 1. **Logon to Windows with an administrator account**
 
@@ -108,7 +108,7 @@ The `setup.bat` script installs and configures the Alpaca Benro Polaris Driver. 
 
 ### Starting the Alpaca Pilot App
 
-Once the Alpaca Benro Polaris Driver is running, you can access the Alpaca Pilot App from any web browser.
+Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any web browser.
 
 5. **Open a web browser**
 
@@ -172,7 +172,7 @@ If you do not see the `communications init... done` message, see [Troubleshootin
 
 ## Updating the Driver
 
-To update the Alpaca Benro Polaris Driver to the latest version, repeat **steps 1–3** above.
+To update the Alpaca Driver to the latest version, repeat **steps 1–3** above.
 
 The update process will:
 
@@ -279,7 +279,7 @@ This workflow outlines a typical imaging session using **Alpaca Driver V2.0** wi
 Stellarium is a free open-source planetarium for your computer. 
 While there are free and paid Mobile Stelarium Apps and free Web versions, 
 I'd recommend using the desktop version as it is full-featured and has been 
-tested with ABP.
+tested with the Alpaca Driver.
 
 #### To install the desktop version of Stellarium
 1. Download the relevant desktop version from https://stellarium.org/en/

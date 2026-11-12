@@ -30,7 +30,7 @@ The Sky Atlas tab allows you to search for various objects in the sky using its 
 ![Sky Atlas](images/abp-nina-all-atlas.png)
 
 ### Framing Images
-The Framing Assistant tab allows you to visualize how you frame up your target. It can download an image of the target and frames your shot given a particular focal length, pixel size, and resolution. It also allows you to plan panoramas with multiple overlapping panels that end up as separate targets in your sequence. The Alpaca Benro Polaris Driver does not currently support rotation.
+The Framing Assistant tab allows you to visualize how you frame up your target. It can download an image of the target and frames your shot given a particular focal length, pixel size, and resolution. It also allows you to plan panoramas with multiple overlapping panels that end up as separate targets in your sequence. The Alpaca Driver does not currently support rotation.
 ![Framing](images/abp-nina-all-framing.png)
 
 ### Taking Flat Images
@@ -56,7 +56,7 @@ This plugin provides the ability to MoveAxis, Control Rate, Stop/Stop Tracking, 
 The options tab includes a set of sub-tabs. On the Imaging sub-tab you to customize the directory where all the images will be saved. There is also a flexible approach to changing the naming convention of the images. You can capture additional metadata into a set of csv files using a plug-in called Session Metadata. Finally, you can copy images directly from the storage location to anywhere on your network. No more ejecting SD cards.
 ![imaging](images/abp-nina-all-options.png)
 
-All of these image capture features are independent of the Alpaca Benro Polaris (except for slewing of course).
+All of these image capture features are independent of the Alpaca Driver (except for slewing of course).
 
 ## 2. Selecting Targets
 While Ninas Sky Atlas is good for when you dont have an internet connection, other options you may want to consider include:
@@ -129,7 +129,7 @@ Nina supports a range of Plate-Solving applications to help identify where your 
 
 ![Plate Solving Options](images/abp-nina-ps-settings.png)
 
-The Alpaca Benro Polaris Driver allows you to integrate the Plate-Solving Sync feature with the alignment process of the Benro Polaris. The driver automatically aligns the Benro Polaris with the resolved coordinates whenever you perform a Sync. The more Plate-Solves you perform, the more accurate the alignment.  
+The Alpaca Driver allows you to integrate the Plate-Solving Sync feature with the alignment process of the Benro Polaris. The driver automatically aligns the Benro Polaris with the resolved coordinates whenever you perform a Sync. The more Plate-Solves you perform, the more accurate the alignment.  
 
 This can help eliminate the need to perform an initial compass alignment. It also eliminates using the BP App's joysticks to align your first star manually. Polar alignment with Benro Polaris was already relatively easy, and plate-solving makes it even easier.
 

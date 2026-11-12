@@ -27,11 +27,11 @@ The Benro Polaris is a fantastic tool for getting started with astrophotography.
 9. Start Shooting: Set your camera to manual mode, adjust your exposure settings, and start capturing some night sky panaramas!
 
 ### Understanding Alpaca and How It Fits In
-ASCOM Alpaca is a software standard that enables communication between different astronomy devices and applications. The Alpaca Benro Polaris Driver (ABP) is a softare driver that implements the ASCOM Alpaca standard. It will help you get more out of you Benro Polaris and allow you to build more advanced skills in astrophotography. 
+ASCOM Alpaca is a software standard that enables communication between different astronomy devices and applications. The Alpaca Driver is a software driver that implements the ASCOM Alpaca standard for the Benro Polaris. It will help you get more out of your Benro Polaris and allow you to build more advanced skills in astrophotography.
 
-The Alpaca Benro Polaris Driver (ABP) is installed on a separate device (like a mini-PC or laptop) that connects to your Polaris via WiFi. Why use Alpaca? The ABP Driver unlocks the Polaris's potential by enabling:
+The Alpaca Driver is installed on a separate device (like a mini-PC or laptop) that connects to your Polaris via Wi-Fi. It includes Alpaca Pilot, a browser app for controlling and monitoring the mount from a phone, tablet or PC. Why use Alpaca? The Alpaca Driver unlocks the Polaris's potential by enabling:
 * Advanced Software Compatibility: You can use powerful astrophotography applications like Stellarium and Nina to control your Polaris, offering more features and better control than the Benro app.
-* N-Point Alignment: This feature uses plate-solving technology to refine the Polaris's alignment with multiple reference points, significantly improving tracking accuracy.
+* Multi-Point Alignment: This feature uses plate-solving technology to refine the Polaris's alignment with multiple reference points, correcting for tripod tilt and significantly improving pointing and tracking accuracy.
 * Plate Solving: Precisely center your target by analyzing star patterns in an image and comparing them to a database. This makes framing your shot much easier.
 * Remote Control: Operate your setup from the comfort of indoors using a mini-PC and remote desktop software. This is especially helpful in cold weather or for long imaging sessions.
 * Autofocus: Alpaca allows integration with autofocus tools like Hocus Focus in Nina, achieving optimal focus for your lens.
@@ -52,27 +52,26 @@ Various camera options are available for astrophotography, each with its pros an
 As you become more familiar with Nina, you may want to explore using a dedicated imaging telescope, filters, monochrome cameras, focusers, and other equipment. The choice depends on your budget, experience, and desired level of image quality. 
 
 ### Choosing Your Alpaca Setup
-We recommend starting out by installing Alpaca Benro Polaris on a laptop with Stellarium. 
-* Install the ABP Driver, Python, and Stellarium on your laptop. This setup allows you to control the Polaris, find deep-sky objects, and watch its position update in real-time. 
+We recommend starting out by installing the Alpaca Driver on a laptop with Stellarium.
+* Install the Alpaca Driver and Stellarium on your laptop. This setup allows you to control the Polaris from Alpaca Pilot and Stellarium, find deep-sky objects, and watch its position update in real-time.
 
-Once this is successful you may want to consider getting a Mini-PC and installing Alpaca with Nina for more advcanced features.
+Once this is successful you may want to consider getting a Mini-PC and installing the Alpaca Driver with Nina for more advanced features.
 * A mini-PC allows you to use Nina to control the Polaris, camera, and potentially other equipment. It provides enhanced processing power, remote control, and a better overall user experience. Start by learning how to install and setup Nina. Then move on to learning how to perform an autofocus run, perform plate solving, create a sequence and capture images.
 
 More information on the Alpaca Setup can be found in the [Hardware Guide](./hardware.md).
   
-#### Installing the Alpaca Benro Polaris Driver
-The installation process varies slightly depending on your chosen platform (Windows, MacOS, Raspberry Pi). Detailed instructions can be found in the ABP project's documentation, but here's a simplified overview:
-1. Install Python: Make sure you have Python 3+ installed on your device.
-2. Download the Driver: Get the latest ABP Driver zip file from the Github repository.
-3. Extract and Install: Extract the zip file to a convenient location. Follow the platform-specific instructions to install the driver and its dependencies.
-4. Configure Settings: You'll need to adjust some settings in a configuration file (config.toml), like your location coordinates and other preferences.
+#### Installing the Alpaca Driver
+The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md), but here's a simplified overview:
+1. Install the Driver: Run the setup script or commands for your platform. They download the driver from GitHub and install Python and the required libraries for you.
+2. Start the Driver: Run the Alpaca Driver on your device. Check the driver's log window for confirmation messages.
+3. Configure Settings: Open Alpaca Pilot in your web browser and use its Settings page to set your observing site location and other preferences. There is no need to edit configuration files by hand.
 
 #### Connecting the Driver to Your Polaris
-1. Initial Setup with the Benro App: Follow the steps mentioned earlier to level, power on, calibrate, and align your Polaris using the Benro app.
-2. Connect Your Device: Connect your laptop/mini-PC to the Polaris's WiFi hotspot (usually named "polaris-######").
-3. Start the Driver: Run the ABP Driver on your device. Check the driver's log window for confirmation messages.
+1. Power On: Level the Polaris and power it on, then enable its Wi-Fi hotspot (usually named "polaris-######").
+2. Connect: Use Alpaca Pilot to connect the driver to the Polaris.
+3. Enter Astro Mode: Switch to Astro Mode in Alpaca Pilot. You can skip the Benro app's compass and single star alignment, and use Multi-Point Alignment instead.
 
-More information on installing Alpaca can be found in the [Installation Guide](./installation.md). The physical connection of a typical mini-PC setup is shown in the 
+More information on connecting can be found in the [Alpaca Pilot Guide](./pilot.md#ii-connecting-devices).
 
 ### Learning Stellarium
 Become familiar with using Stellarium to identify targets in the night sky and commanding the Polaris to point your camera to them. Some of the benefits you will get from using Stellarium include:
@@ -129,12 +128,12 @@ To learn Siril, you can consider these resources:
 
 
 ### Further Learning
-* Alpaca Benro Polaris Project Documentation: This is the go-to resource for detailed instructions, troubleshooting tips, and information on specific features. The documentation can be found at [Home](../README.md) . 
-* Nina User Manual and Tutorials: Nina has extensive documentation and numerous video tutorials available online to guide you through its features and workflows. The Alpaca Benro Polaris documentation points you to a number of specific Nina resources.
-* Stellarium User Guide: Stellarium's website and user forum offer valuable information on using the software for astrophotography planning and telescope control. The Alpaca Benro Polaris documentation points you to a specific Stellarium resource at the University of Western Australia.
+* Alpaca Driver Documentation: This is the go-to resource for detailed instructions, troubleshooting tips, and information on specific features. The documentation can be found at [Home](../README.md) and on the [documentation site](https://ogecko.github.io/alpaca-benro-polaris/).
+* Nina User Manual and Tutorials: Nina has extensive documentation and numerous video tutorials available online to guide you through its features and workflows. The Alpaca Driver documentation points you to a number of specific Nina resources.
+* Stellarium User Guide: Stellarium's website and user forum offer valuable information on using the software for astrophotography planning and telescope control. The Alpaca Driver documentation points you to a specific Stellarium resource at the University of Western Australia.
 * Siril Tutorials: Explore online tutorials and videos to learn how to use Siril effectively for image stacking, processing, and enhancing your astrophotos.
 
-Note: This document provides a basic introduction to the Benro Polaris and Alpaca. For in-depth information and specific instructions, please refer to the resources mentioned above and the ABP project's comprehensive documentation.
+Note: This document provides a basic introduction to the Benro Polaris and Alpaca. For in-depth information and specific instructions, please refer to the resources mentioned above and the Alpaca Driver's comprehensive documentation.
 
 
 

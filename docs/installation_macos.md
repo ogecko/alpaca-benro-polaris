@@ -10,11 +10,11 @@ The following YouTube video demonstrates parts of the installation and setup pro
 
 ## Overview
 
-The Alpaca Benro Polaris Driver is provided as a collection of Python scripts and is installed and run from the command line using the **Terminal** application. You do not need to install Python yourself. The installation procedure uses [uv](https://docs.astral.sh/uv/) to install the required Python version and all the libraries needed by the driver.
+The Alpaca Driver is provided as a collection of Python scripts and is installed and run from the command line using the **Terminal** application. You do not need to install Python yourself. The installation procedure uses [uv](https://docs.astral.sh/uv/) to install the required Python version and all the libraries needed by the driver.
 
 ## Installing
 
-### Installing the Alpaca Benro Polaris Driver code
+### Installing the Alpaca Driver code
 
 1. **Download the Alpaca Driver software**
 
@@ -47,9 +47,9 @@ The Alpaca Benro Polaris Driver is provided as a collection of Python scripts an
 
    > **Note:** If the `uv` command is not found, close and reopen Terminal. Then `cd` back into the `alpaca-benro-polaris` folder and try again.
 
-### Running the Alpaca Benro Polaris Driver
+### Running the Alpaca Driver
 
-4. **Start the Alpaca Benro Polaris Driver**
+4. **Start the Alpaca Driver**
 
    From within the `alpaca-benro-polaris` directory, run:
 
@@ -63,11 +63,11 @@ The Alpaca Benro Polaris Driver is provided as a collection of Python scripts an
 
    The driver output should look similar to this:
 
-   ![Alpaca Benro Polaris Driver](images/abp-startup.png)
+   ![Alpaca Driver](images/abp-startup.png)
 
 ### Starting the Alpaca Pilot App
 
-Once the Alpaca Benro Polaris Driver is running, you can access the Alpaca Pilot App from any web browser.
+Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any web browser.
 
 6. **Open a web browser**
 
@@ -126,11 +126,11 @@ Before you can use the Polaris, complete the following steps.
 
     Once the driver has connected successfully to the Polaris, the Alpaca Driver output should indicate that the connection has been established.
 
-    ![Alpaca Benro Polaris Driver](images/abp-startup.png)
+    ![Alpaca Driver](images/abp-startup.png)
 
 ### Updating the Driver
 
-To update the Alpaca Benro Polaris Driver to the latest version, stop the driver (**Ctrl+C** in its Terminal window) if it is running. Then, from within the `alpaca-benro-polaris` folder, run:
+To update the Alpaca Driver to the latest version, stop the driver (**Ctrl+C** in its Terminal window) if it is running. Then, from within the `alpaca-benro-polaris` folder, run:
 
 ```text
 git pull
@@ -157,6 +157,6 @@ To use the Stellarium application on macOS with its Remote Telescope control pro
    stellarium_port = 10001
    ```
 
-3. Restart the Alpaca Benro Polaris Driver.
+3. Restart the Alpaca Driver.
 
 4. Configure the telescope connection in Stellarium.

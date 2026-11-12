@@ -4,7 +4,7 @@
 [Applications Supported](#telescope-control-compatibility) | [Stellarium Mobile](#1-using-stellarium-mobile-plus) | [Stellarium Desktop](#2-using-stellarium-desktop) | [Sky Safari Pro](./installation.md#seting-up-sky-safari-pro-optional) | [Aiming Accuracy](./faq.md#b3---can-the-alpaca-project-improve-aiming-performance) 
 
 ## Telescope Control Compatibility
-The Alpaca Benro Polaris Driver supports both the [ASCOM Alpaca API](https://ascom-standards.org/api/#/Telescope%20Specific%20Methods) and [SynScan protocol](https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf). This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
+The Alpaca Driver supports both the [ASCOM Alpaca API](https://ascom-standards.org/api/#/Telescope%20Specific%20Methods) and [SynScan protocol](https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf). This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
 
 ![imaging](images/abp-compatibility.png)
 
@@ -37,7 +37,7 @@ Stellarium Plus connects to the driver over the network using SynScan protocol. 
 1. Select the Hamburger menu from the top left
 2. Select Observing Tools > Telescope Control
 3. Toggle it off/ and on to bring up the popup at the bottom left
-4. In the Host field, enter the IP Address of the ABP Driver.
+4. In the Host field, enter the IP Address of the Alpaca Driver.
 5. In the Port field, leave a default of 10001.
 6. Click the Link toggle to start the connection.
 7. Stellarium will attempt to connect to the driver.
@@ -105,7 +105,7 @@ Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. W
 6.  Click the `Configure Telescopes` button at the bottom of this dialog.
 7.  Click on the `Add Telescope` button (3rd one at the bottom of the Telescope Control Configure dialog).
 8.  Choose Telescope controlled by `External software or a remote computer` and enter `Benro Polaris` into the Name field.
-9.  In the Host field, enter the IP Address of the ABP Driver.
+9.  In the Host field, enter the IP Address of the Alpaca Driver.
 10. In the TCP Port field, leave a default of 10001.
 11. Click OK
 
@@ -113,7 +113,7 @@ Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. W
 Unfortunately, Stellarium Desktop does not include native Alpaca support. You must install the ASCOM Platform if you haven't already done so. After the ASCOM platform has been installed, you can add an ASCOM Telescope by using the following procedure:
 1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
 2.  Scroll down the list of plugins and find the `Telescope Control plugin`.
-3.  Optionally, if you want to always use the ABP telescope, check `Load at startup` on the Telescope Control Dialog. To browse Stellarium without Polaris, leave it unchecked, and just connect on demand from the `Ctrl+0` (Windows) or `Command+0` (MacOS) dialog.
+3.  Optionally, if you want to always use the Alpaca Driver telescope, check `Load at startup` on the Telescope Control Dialog. To browse Stellarium without Polaris, leave it unchecked, and just connect on demand from the `Ctrl+0` (Windows) or `Command+0` (MacOS) dialog.
 4.  Close Stellarium and Restart Stellarium from the Desktop.
 6.  Press `Ctrl+0` (Windows) or `Command+0` (MacOS) to open the Slew Telescope Dialog
 7.  Click the `Configure Telescopes` button at the bottom of this dialog.
@@ -131,7 +131,7 @@ Unfortunately, Stellarium Desktop does not include native Alpaca support. You mu
     a. Click `Yes` for  User Account Control.
     b. Enter the name `Benro Polaris`, then click `OK`.
     c. Click `Properties` on the ASCOM Telescope Chooser dialog box.
-    d. Change the Remote Device Host Name/IP address (`127.0.0.1` when running ABP on same machine as Stellarium, otherwise enter the IP address of the machine running ABP (dont use `192.168.0.x`).
+    d. Change the Remote Device Host Name/IP address (`127.0.0.1` when running the Alpaca Driver on the same machine as Stellarium, otherwise enter the IP address of the machine running the Alpaca Driver (dont use `192.168.0.x`).
     e. Change the Alpaca Port to `5555`.
     f. Click `OK`.
 19.  Click `OK` on ASCOM Telescope chooser dialog.

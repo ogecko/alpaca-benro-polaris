@@ -22,15 +22,15 @@ If you want to run the Alpaca Driver on a mobile device or iPad, please read  [F
 Unfortunately some laptop Wifi controllers dont support connecting with the Benro Polaris Wifi, so you'll also need something like [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (only US$17 from Amazon). 
 
 ## Using a Raspberry Pi for the driver
-You can install the Alpaca Benro Polaris Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
+You can install the Alpaca Driver on a Raspberry Pi. This would allow remote applications to control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
 
 ![Hardware Architecture](images/abp-hardware2.png)
 
 ## Using a Docker Container for the driver
-You can also run the Alpaca Benro Polaris Driver in a Docker container, on any OS and architecture that supports Docker (Windows via WSL2, macOS, Linux, mini-PC, Raspberry Pi, etc.), without installing Python or its dependencies directly on the host. See the [Docker Installation Guide](./docker.md) for more information.
+You can also run the Alpaca Driver in a Docker container, on any OS and architecture that supports Docker (Windows via WSL2, macOS, Linux, mini-PC, Raspberry Pi, etc.), without installing Python or its dependencies directly on the host. See the [Docker Installation Guide](./docker.md) for more information.
 
 ## A Mini-PC to control all your astronomy equipment (Recommended)
-To leverage more of the capabilities of the Alpaca Benro Polaris Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way, you can create an equivalent of a  [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Let's call it a `NinaAir` instead of an ASIAir!
+To leverage more of the capabilities of the Alpaca Driver, I'd recommend installing it on a mini-PC you can mount or hang from your tripod. This way, you can create an equivalent of a  [ZWO ASIAIR plus](https://www.zwoastro.com/product/asiair-plus/) that can control all your astronomy equipment. Let's call it a `NinaAir` instead of an ASIAir!
 
 ![Hardware Architecture](images/abp-hardware3.png)
 
@@ -269,7 +269,7 @@ npm install
 ```
 
 ### Installing the ASCOM Platform (OPTIONAL)
-ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. This `Alpaca Benro Polaris Driver (ABP) commplies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
+ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. The Alpaca Driver complies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
 
 You may need to install the ASCOM Platform software for compatibility with some astronomry equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the NinaAir. 
 

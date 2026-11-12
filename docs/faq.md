@@ -50,12 +50,12 @@ For now, the best experience comes from pairing the Polaris with a mini-PC and u
 ## Benro Polaris Capability Questions
 
 ### B1 - Can the Benro Polaris really be used for Deep Sky Photography?
-Yes, you can definitely use the Benro Polaris for deep-sky photography, but there are limitations! As an Alt/Az mount without auto-guiding, you're limited to relatively short exposures to avoid star trails. However, by combining a good camera, a longer lens (up to 800mm), and the advanced features unlocked by the Alpaca Benro Polaris Driver and software like Nina, you can capture stunning images of deep-sky objects. 
+Yes, you can definitely use the Benro Polaris for deep-sky photography, but there are limitations! As an Alt/Az mount without auto-guiding, you're limited to relatively short exposures to avoid star trails. However, by combining a good camera, a longer lens (up to 800mm), and the advanced features unlocked by the Alpaca Driver and software like Nina, you can capture stunning images of deep-sky objects. 
 
 Think of it this way: 
 * Shorter Exposures are Key: Because the Benro Polaris isn't an equatorial mount, you need to keep your exposures short to prevent star trails.
 * Stacking is Your Friend: To compensate for shorter exposures and capture fainter details, you'll use image stacking techniques. Nina can help you capture sequences of images that you'll combine later during processing.
-* Software Enhances Hardware: The Alpaca Benro Polaris Driver unlocks features like plate-solving and precise target centering, significantly improving your results.
+* Software Enhances Hardware: The Alpaca Driver unlocks features like plate-solving and precise target centering, significantly improving your results.
 
 ### B2 - What is the longest Focal Length that Benro Polaris can track with?
 The maximum focal length you can effectively use with the Benro Polaris for astrophotography depends on factors like your camera, lens, the accuracy of your polar alignment, and even environmental conditions.
@@ -128,12 +128,12 @@ This information is saved in CSV files, making it easy to import and use in othe
 
 ## Stellarium Usage Questions
 ### S1 - Will Stellarium work via Wifi or is a cable necessary?
-Stellarium doesn't require a USB connection to work with the Alpaca Benro Polaris Driver. It can connect wirelessly through your Wi-Fi network. This means you can use Stellarium on various devices:
+Stellarium doesn't require a USB connection to work with the Alpaca Driver. It can connect wirelessly through your Wi-Fi network. This means you can use Stellarium on various devices:
 
 * Mini-PC: For a dedicated astrophotography setup.
 * Laptop/Desktop: For planning and control from your primary computer.
 * iPhone/Android Phone/iPad: For a portable planetarium and control interface.
 
 ### S2 - Will Stellarium work on the same phone as BP App?
-Yes, you can use Stellarium on the same phone where you have the Benro Polaris App installed. In the past, the BP App needed to run in the background. However, the Alpaca Benro Polaris Driver can now keep the Polaris Wi-Fi connection alive even after you close the BP App. This is great for saving battery life on your phone.
+Yes, you can use Stellarium on the same phone where you have the Benro Polaris App installed. In the past, the BP App needed to run in the background. However, the Alpaca Driver can now keep the Polaris Wi-Fi connection alive even after you close the BP App. This is great for saving battery life on your phone.
 
