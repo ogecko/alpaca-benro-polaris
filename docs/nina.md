@@ -5,6 +5,7 @@
 
 ## Capturing Images -  Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
+
 [![Capturing Images](https://img.youtube.com/vi/HCJNchWL2Yg/0.jpg)](https://www.youtube.com/watch?v=HCJNchWL2Yg)
 
 ## 1. Capturing Images
