@@ -34,10 +34,13 @@ def fix_lists(text: str) -> str:
     Convert github.com (CommonMark) list layout to what Python-Markdown accepts:
       * a list must follow a blank line -- github.com lets one start straight after a paragraph
       * each nesting level must be indented 4 spaces -- github.com accepts 2 or 3
+      * an item that follows one containing a blank line must start after a blank line too --
+        Python-Markdown splits a page into blocks at blank lines, and an indented block would
+        otherwise carry the next item into the previous one
     Item continuation lines and fenced code inside items are shifted with their item.
     """
     out: list[str] = []
-    stack: list[tuple[int, int, int]] = []  # open items: (src marker indent, src content indent, new content indent)
+    stack: list[list] = []                  # open items: [src marker indent, src content indent, new content indent, blank line inside]
     fence_shift = None                      # indent shift applied to every line of the open code fence
     prev_blank, prev_item = True, False
     loose = False                           # a blank line or code fence since the last item: the next sibling needs a blank line
@@ -49,6 +52,8 @@ def fix_lists(text: str) -> str:
             if FENCE.match(line):
                 fence_shift = None
                 loose = True
+                for open_item in stack:
+                    open_item[3] = True
             out.append(line)
             continue
 
@@ -56,6 +61,8 @@ def fix_lists(text: str) -> str:
             out.append(line)
             prev_blank, prev_item = True, False
             loose = loose or bool(stack)
+            for open_item in stack:
+                open_item[3] = True
             continue
 
         indent = len(line) - len(line.lstrip())
@@ -67,22 +74,22 @@ def fix_lists(text: str) -> str:
 
         shift = 0
         if item:
-            sibling = False
+            sibling = closed_blank = False
             while stack and indent < stack[-1][1]:   # left of an open item's content: not its child
                 sibling = True
-                stack.pop()
-            if not prev_blank and not prev_item and (not sibling or loose):
-                out.append('')             # a list starting straight after text, or the next item of a loose one
+                closed_blank = stack.pop()[3] or closed_blank
+            if not prev_blank and ((not prev_item and (not sibling or loose)) or closed_blank):
+                out.append('')             # a list starting straight after text, or the next item after one with a blank line
             loose = False
             new_indent = stack[-1][2] if stack else 0
-            stack.append((indent, item.end() - 1, new_indent + INDENT_STEP))
+            stack.append([indent, item.end() - 1, new_indent + INDENT_STEP, False])
             line = ' ' * new_indent + line.lstrip()
         elif stack and indent:             # an item's continuation line (indent 0 is a lazy continuation)
             # After a blank line (or starting a new block such as a quote), a line left of a nested item's
             # content belongs to its parent; straight after the item's text it's a lazy continuation of that item
             while (prev_blank or BLOCK_START.match(line.lstrip())) and len(stack) > 1 and indent < stack[-1][1]:
                 stack.pop()
-            _, src_content, new_content = stack[-1]
+            _, src_content, new_content, _ = stack[-1]
             shift = new_content - src_content if indent < new_content else 0   # already deep enough: leave it
             line = ' ' * max(new_content, indent + shift) + line.lstrip()
 

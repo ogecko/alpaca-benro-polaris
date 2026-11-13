@@ -68,6 +68,7 @@ Run 4's case 15 (`m3_5_back`) was stopped by hand and is left out.
         is Az +84, Alt +12, Roll -47 in the sky; the 12 deg lead spread over three motors keeps each one's error, and so
         its speed, small (1-5 deg/s instead of ~8). 27 s for a move that could take 6 s.
     * Settling from 1' to the tracking tolerance (Kc/20 ≈ 2.3") takes another ~6 s, with BLC pushes in it.
+
 5. **A goto can complete while still moving**: on `m1_2_back` (run 1) M1 passed through the target at ~0.5 deg/s,
     was within 0.75' for one tick, completed, went IDLE and coasted 11' past.
 
@@ -479,6 +480,7 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
         Open: a 30 deg PA change from a pose near M2's top (85.9 deg) is past the roll the motors reach there;
         `_reachable_alpha` clips it by moving the pointing far away (alt 24.5), the path needs a branch change, and the PID
         chase unwinds into LIMIT (with 200 samples too).
+
 * *A correction MotorMove after the slew* (tried, not kept) in place of the GotoTrajectory replan was 0.6 s slower:
     even a tiny move waits out the response tail. The replan isn't the R4 cost either: after a slew its first tick costs
     no more than the slew's (370 calls). The 1,381 is a goto of 15 deg or less planned from the start.
@@ -509,6 +511,7 @@ response tail (Kt + 3 Kl, 1.55 s on the twin, 0.65 s on the mount) 1.7 s; the se
         path of 15 deg or less between targets above the horizon stays within 15 deg of them and can't reach the cone.
     * **Fallback**: a controlled path that needs an IK branch change or passes the motor limits goes straight instead.
     * Redirects mid-goto (R2) can switch between the two, both starting from the current motor speeds.
+
 3. **Compensate the dead time** (0.2-0.4 s): feedback against the plan delayed by the dead time, braking that much
     earlier. Removes the ~1-1.5 deg overshoot.
 4. **Complete a goto only once the motors have stopped**, not on one tick within tolerance.
