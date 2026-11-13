@@ -93,7 +93,7 @@ Use NINA's Sky Atlas or Stellarium to locate your target, then:
 
 1. Send it to the **Framing Assistant**, and view it on NINA's **Offline Sky Map**. Adjust the framing and rotation to suit the target.
 2. Use **Slew and Center** to move the mount onto the target, refining its position with repeated plate solves.
-3. Click **Add Target to Sequence** and choose the **Legacy Sequencer**, or the [Advanced Sequencer](./getting-started.md#learning-advanced-sequencer) for more control.
+3. Click **Add Target to Sequence** and choose the **Legacy Sequencer**, or the [Advanced Sequencer](./getting-started.md#learning-sequencing) for more control.
 
 ## Capturing the Sequence
 

@@ -26,7 +26,7 @@ The Benro Polaris is a fantastic tool for getting started with astrophotography.
 8. Compose and Focus: Use your camera's live view to compose your shot and achieve focus. A Bahtinov mask can be helpful for precise focusing.
 9. Start Shooting: Set your camera to manual mode, adjust your exposure settings, and start capturing some night sky panaramas!
 
-### Understanding Alpaca and How It Fits In
+### Understanding Alpaca
 ASCOM Alpaca is a software standard that enables communication between different astronomy devices and applications. The Alpaca Driver is a software driver that implements the ASCOM Alpaca standard for the Benro Polaris. It will help you get more out of your Benro Polaris and allow you to build more advanced skills in astrophotography.
 
 The Alpaca Driver is installed on a separate device (like a mini-PC or laptop) that connects to your Polaris via Wi-Fi. It includes Alpaca Pilot, a browser app for controlling and monitoring the mount from a phone, tablet or PC. Why use Alpaca? The Alpaca Driver unlocks the Polaris's potential by enabling:
@@ -39,7 +39,7 @@ The Alpaca Driver is installed on a separate device (like a mini-PC or laptop) t
 
 A great summary video which shows how Alpaca fits into a typical imaging session can be found in [Using the Benro Polaris with NINA - a game changer!](https://www.youtube.com/watch?v=D3JZOp0TFbk)
 
-### Choosing the Right Imaging Equipment
+### Choosing Equipment
 When selecting a camera and lens for astrophotography, what you currently have is probably your best option. If you are purchasing new equipment consider your target and desired outcome. For panoramas, wider focal lengths like 16mm, 24mm, or even 50mm are suitable, capturing a broader view of the Milky Way or nightscapes. For deep-sky objects like nebulae and galaxies, longer focal lengths, such as 135mm, 200mm, 400mm, or even 800mm, are necessary to magnify distant objects.
 
 Faster lenses (with lower f-numbers like f/1.4, f/2.8) are beneficial because they allow more light to reach the camera sensor in a shorter time. This is crucial in astrophotography, as you're often dealing with dim objects. A faster lens allows you to use shorter exposure times while maintaining good image brightness, reducing the impact of tracking errors and capturing more detail. 
@@ -64,14 +64,14 @@ Once this is successful you may want to consider getting a Mini-PC and installin
 
 More information on the Alpaca setup can be found in [Architecture](./architecture.md#hardware-architectures) and [Preparing the MiniPC](./hardware.md).
   
-#### Installing the Alpaca Driver
+#### Installing the Driver
 The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md), but here's a simplified overview:
 
 1. Install the Driver: Run the setup script or commands for your platform. They download the driver from GitHub and install Python and the required libraries for you.
 2. Start the Driver: Run the Alpaca Driver on your device. Check the driver's log window for confirmation messages.
 3. Configure Settings: Open Alpaca Pilot in your web browser and use its Settings page to set your observing site location and other preferences. There is no need to edit configuration files by hand.
 
-#### Connecting the Driver to Your Polaris
+#### Connecting the Driver
 
 1. Power On: Level the Polaris and power it on, then enable its Wi-Fi hotspot (usually named "polaris-######").
 2. Connect: Use Alpaca Pilot to connect the driver to the Polaris.
@@ -122,7 +122,7 @@ Chris Woodhouse’s NINA 17-part series covers everything
 
 By utilising these resources, you can gain a strong foundation in using NINA for astrophotography with the Benro Polaris. 
 
-### Learning Advanced Sequencer
+### Learning Sequencing
 NINA has two sequencers. The Legacy Sequencer is a simple list of targets and exposures, and is a good place to start. As you add more astronomy equipment, such as filter wheels, focusers, power hubs and dedicated astronomy cameras, it's worth learning NINA's Advanced Sequencer. It builds your imaging session from instructions that you drag into place, so you can:
 
 * Control All Your Equipment: Cool the camera before imaging and warm it afterwards, switch filters, turn power hub outputs and dew heaters on and off, and park the mount when you're done.
@@ -173,12 +173,12 @@ To learn Siril, you can consider these resources:
 * Online Communities and Forums: Astrophotography communities like Cloudy Nights (https://www.cloudynights.com/) and Stargazers Lounge (https://stargazerslounge.com/) have sections dedicated to Siril, where users share their experiences, tips, and troubleshooting advice.
 
 
-### Learning Planetary
-The Benro Polaris can also image the planets. Planetary imaging works quite differently from deep-sky imaging: planets are small and bright, so instead of a few long exposures you record a video of thousands of very short exposures, then keep and stack only the sharpest frames. This "lucky imaging" freezes the shimmer of the atmosphere and reveals detail such as Jupiter's cloud bands and Saturn's rings. Key areas to learn include:
+### Learning AutoStakkert!
+The Benro Polaris can also image the planets, and AutoStakkert! is the free program at the heart of planetary imaging. Planets are small and bright, so instead of a few long exposures you record a video of thousands of very short exposures. AutoStakkert! then grades every frame, keeps only the sharpest, and aligns and stacks them. This "lucky imaging" freezes the shimmer of the atmosphere and reveals detail such as Jupiter's cloud bands and Saturn's rings. A good stack starts with a good video, so key areas to learn include:
 
 * Choosing a Focal Length: Planets are tiny, so use your longest lens with an extender, ideally on a small astronomy camera with small pixels.
 * Capturing Video: Use SharpCap with an astronomy camera, or EOS Utility with a Canon camera. Keep exposures short, set the gain so the histogram stays clear of the right-hand side, and use USB 3 for a high frame rate.
-* Stacking: Use AutoStakkert! to grade every frame, then align and stack the best of them.
+* Stacking with AutoStakkert!: Analyse the video to grade every frame, stack the best 10 to 25 percent using a grid of alignment points, and use Drizzle 3.0x to recover finer detail.
 * Composing a Wider Shot: Combine the stacked planet with a longer exposure that shows its moons.
 
 The [Planetary Imaging](./planetary.md) guide covers each of these steps, using an image of Saturn and its moons as an example.
