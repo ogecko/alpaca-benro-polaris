@@ -1,6 +1,7 @@
 # Deep-Sky Imaging
+[Imaging Apps](#choosing-an-imaging-app) |
 [Planning](#planning-a-session) |
-[Focal Length and Exposure](#choosing-a-focal-length-and-exposure) |
+[Focal Length and Exposure](#focal-length-and-exposure) |
 [Setting Up](#setting-up-and-connecting) |
 [Focusing and Aligning](#focusing-and-aligning) |
 [Framing](#framing-the-target) |
@@ -13,7 +14,23 @@
 
 Deep-sky objects such as nebulae, galaxies and star clusters are faint, so deep-sky imaging builds up their light over a long total exposure. Instead of one very long exposure, you capture many shorter sub-exposures ("subs"), then stack them: stacking averages out the noise and reveals faint detail that no single sub shows. The Alpaca Driver turns the Benro Polaris into a mount that can do this, with accurate pointing from Multi-Point Alignment, plate solving to frame the target, and tracking and guiding that keep it steady through a long sequence.
 
-This guide outlines a typical deep-sky imaging session with the Benro Polaris, the Alpaca Driver and NINA. It assumes you're already familiar with operating Alpaca Pilot and NINA; see [Alpaca Pilot](./pilot.md) and [Using NINA](./nina.md) for those. The images above were all captured this way.
+## Choosing an Imaging App
+
+The Benro Polaris app controls your camera well for panoramas, time-lapse and astrophotography sequences. However, it doesn't stretch or process images, show RAW files, or make it easy to customise file names or copy images off for stacking. For deep-sky imaging, a dedicated imaging app gives you much more control, and works with the Alpaca Driver to point the mount and keep it on target. Some include:
+
+* [BackyardEOS](https://www.otelescope.com/store/category/2-backyardeos/) (no mount control)
+* [APT](https://www.astrophotography.app/) - Astro Photography Tool (paid, ASCOM support)
+* [SGPro](https://www.sequencegeneratorpro.com/sgpro/) - Sequence Generator Pro (paid, ASCOM support)
+* [NINA](https://nighttime-imaging.eu/) - Nighttime Imaging 'N' Astronomy (free, ASCOM support, Windows)
+* [CCDciel](https://ap-i.net/ccdciel/en/start/) (free, ASCOM support, macOS, Linux and Windows): see [Using CCDciel](./ccdciel.md)
+
+To find targets, start with Alpaca Pilot's catalog (see [Planning a Session](#planning-a-session)). With internet access, these are also useful:
+
+* [Stellarium](https://stellarium.org/en/) - Has a hidden feature: press `F10` for Astronomical Calculations, then **WUT** (What's Up Tonight).
+* [Telescopius](https://telescopius.com/) - A website with astronomy tools and a great catalog.
+* [The Sky Live](https://theskylive.com/whatsvisible) - A website that lists potential targets live.
+
+This guide uses NINA, the recommended app: it's free and has an excellent user interface. It outlines a typical deep-sky imaging session with the Benro Polaris, the Alpaca Driver and NINA, and assumes you're already familiar with operating Alpaca Pilot and NINA; see [Alpaca Pilot](./pilot.md) and [Using NINA](./nina.md) for those. The images above were all captured this way.
 
 ## Planning a Session
 
@@ -21,7 +38,7 @@ This guide outlines a typical deep-sky imaging session with the Benro Polaris, t
 * **Check its altitude.** The Polaris can point no higher than an altitude of 70°, so choose targets that stay below it during your session, and above any trees or buildings. Targets low in the sky are dimmer and blurrier, so the best time to image is usually when the target is high, but still below 70°.
 * **Check the Moon.** Moonlight brightens the sky and washes out faint detail. For emission nebulae, narrowband filters (such as Hα, OIII and SII) cut through moonlight and light pollution. A catalog entry's **Class** field shows which narrowband emissions a nebula has, and how strong they are (see the [Catalog Reference](./catalog.md#class)).
 
-## Choosing a Focal Length and Exposure
+## Focal Length and Exposure
 
 * **Focal length:** Most of the images above were taken with 200 mm to 400 mm camera lenses. Lenses up to about 800 mm work with the Polaris, but longer focal lengths show tracking errors more, so start shorter. A small-sensor astronomy camera makes a lens act longer: on an IMX585 sensor, with its 3.4× crop factor, a 400 mm lens frames like about 1,360 mm on a full-frame camera.
 * **Sub-exposure length:** How long each sub can be depends on how well the target is held still:

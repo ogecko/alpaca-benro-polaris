@@ -1,83 +1,70 @@
 # Using Nina with Benro Polaris
-[Capturing Images](#1-capturing-images) | [Selecting Targets](#2-selecting-targets) | [Autofocus](#3-star-detection-and-autofocus) | [Plate Solving](#4-plate-solving) | [Advanced Sequence](#5-advanced-sequence) 
+[Main NINA Tabs](#main-nina-tabs) | [Autofocus](#autofocus) | [Plate Solving](#plate-solving) | [Advanced Sequence](#advanced-sequence) 
 
-## Capturing Images -  Video Demonstration
+## Main NINA Tabs
+
+**Video Demonstration: Capturing Images**
+
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 
 [![Capturing Images](https://img.youtube.com/vi/HCJNchWL2Yg/0.jpg)](https://www.youtube.com/watch?v=HCJNchWL2Yg)
 
-## 1. Capturing Images
-The Benro Polaris App does a great job controlling your camera to take sequences of images for panoramas, time-lapse, and astrophotography. It exposes many camera features and makes them easy to setup and use. Unfortunately, it doesn't stretch or process images, show RAW files, or make it easy to customize file names or copy them off for stacking.
+**Equipment Setup**
 
-If you want to go beyond the native app, several software options provide more tailored control of your camera, especially for astrophotography. Some include:
-
-* [BackyardEOS](https://www.otelescope.com/store/category/2-backyardeos/) (no mount control)
-* [APT](https://www.astrophotography.app/) - Astro Photography Tool (paid, ASCOM support)
-* [SGPro](https://www.sequencegeneratorpro.com/sgpro/) - Sequence Generator Pro (paid, ASCOM Support)
-* [Nina](https://nighttime-imaging.eu/) - Nighttime Imaging 'N' Astronomy (free, ASCOM support, Win)
-* [CCDciel](https://ap-i.net/ccdciel/en/start/) - (free, ASCOM support, MacOS/Linux/Win)
-
-We are focusing on using Nina, the recommended solution, due to its price (free), and excellent user interface (improved user experience).
-
-### Equipment Setup
 Upon opening Nina, the Equipment tab allows you to discover and connect to all your various astronomy equipment. The first thing you are likely to setup, is your Camera. Nina supports Nikon and Canon cameras natively, and many other cameras through the ASCOM platform.
 ![Equpment](images/abp-nina-all-camera.png)
 
-### Finding Targets
+**Finding Targets**
+
 The Sky Atlas tab allows you to search for various objects in the sky using its own database of deep sky objects. You can filter the list by object type, size, brightnness, and even how far it rises in the sky tonight. You can add a target to a sequence, set it up for framing, or slew the Benro Polaris to point at it. 
 ![Sky Atlas](images/abp-nina-all-atlas.png)
 
-### Framing Images
+**Framing Images**
+
 The Framing Assistant tab allows you to visualize how you frame up your target. It can download an image of the target and frames your shot given a particular focal length, pixel size, and resolution. It also allows you to plan panoramas with multiple overlapping panels that end up as separate targets in your sequence. The Alpaca Driver does not currently support rotation.
 ![Framing](images/abp-nina-all-framing.png)
 
-### Taking Flat Images
+**Taking Flat Images**
+
 The Flat Wizard tab helps you take flat images by finding the optimal exposure settings for your camera. It takes a set of exposures and attempts to calculate the best exposure using extrapolation. It then takes a sequence of flats used with your stacking software.
 ![Flat Wizard](images/abp-nina-all-flats.png)
 
-### Sequencing Image Targets
+**Sequencing Image Targets**
+
 The Sequence tab helps you plan the set of images to capture on each target. You can choose to slew the Benro Polaris and center the image using plate solving (see below). You can also refine the autofocus initially or whenever it drifts out of focus. You can define how many lights, darks, bias, and flat frames are taken at each target.
 ![Sequencing](images/abp-nina-all-sequence.png)
 
-### Controlling Image Capture
+**Controlling Image Capture**
+
 The Imaging tab is where you will spend most of your time. Across the top, a set of buttons, show or hide information and tool panels. The layout is customizable by dragging and dropping any of the tabs or frames into drop targets around the screen. You can request a live view of stretched, low-resolution captures, one after another. You can also request a high-resolution, longer exposure; that is stretched, debayered and processed. Finally, you get an overview of the current sequence target and can start or stop the sequence.
 ![imaging](images/abp-nina-all-imaging.png)
 
 The imaging tab's main image panel allows you to zoom, rotate, or flip the image. You can also see a zoomed-in-mosiac of the image's center sides and corners. You can enable a crosshair for centering the image. You can also enable star detection annotations, helping you identify focusing and tracking issues. Finally, there is a panel where you can review the images captured so far.
 
-### Telescope Control
+**Telescope Control**
+
 The Benro Polaris can be controlled from the Equipment/Mount tab as well as the Image tab in Nina. To enable Telescope Control from the Image tab you will need to install the `Scope Control` plugin. 
 
 This plugin provides the ability to MoveAxis, Control Rate, Stop/Stop Tracking, Park/UnPark, Slew to RA/Dec, Slew to Alt/Az, Abort Slew. It also adds two new views to visualise the current position of the Benro Polaris (a) top down view called `Azimulth Chart` and (b) Side View called `Altitude Chart`. These views can be enhanced to show where obstructions are located at your site with the `Horizon Creator` plug-in.
 
-### Customising Settings
+**Customising Settings**
+
 The options tab includes a set of sub-tabs. On the Imaging sub-tab you to customize the directory where all the images will be saved. There is also a flexible approach to changing the naming convention of the images. You can capture additional metadata into a set of csv files using a plug-in called Session Metadata. Finally, you can copy images directly from the storage location to anywhere on your network. No more ejecting SD cards.
 ![imaging](images/abp-nina-all-options.png)
 
 All of these image capture features are independent of the Alpaca Driver (except for slewing of course).
 
-## 2. Selecting Targets
-While Ninas Sky Atlas is good for when you dont have an internet connection, other options you may want to consider include:
+## Autofocus
 
-* [Stellarium](https://stellarium.org/en/) - Has a hidden feature `F10` Astro Calcs > `WUT` Whats up Tonight.
-* [Telescopius](https://telescopious.com/) - A website with Astronomy Tools and a great catalog.
-* [The Sky Live](https://theskylive.com/whatsvisible) - A website that lists potential targets live.
+**Video Demonstration: Autofocus**
 
-Other sites and tools that I've found helpful include:
-
-* [Clear Outside](https://clearoutside.com/forecast) - Planning the best night to shoot.
-* [Light Polution Map](https://www.lightpollutionmap.info) - Planning where to shoot from.
-* [White Screen Online](https://www.whitescreen.online/) - For taking FLAT images
-* [PhotoPills Mobile App](https://www.photopills.com/) - Planning any photography shoot.
-
-## Autofocus - Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
+
 [![Autofocus](https://img.youtube.com/vi/di5nyA_pTJk/0.jpg)](https://www.youtube.com/watch?v=di5nyA_pTJk)
 
-## 3. Star Detection and Autofocus
 Mastering astrophotography requires ensuring that your camera lens is optimally focused. While modern cameras have fast, accurate, and intelligent focusing systems, they may not produce the best results for astrophotography. To address this, many astrophotography applications, like Nina, have their own autofocusing modules. These modules drive a telescope's focuser or your camera's lens-focusing system to capture sharp night sky images.
 
-### Setup Hocus Focus
+### Setting Up Hocus Focus
 While Nina has its own star detection and autofocus module, I'd recommend installing `Hocus Focus`, a third party star detection plug-in included in the Nina package. You can change Nina's Options > `Imaging` subtab, to use `Hocus Focus` over its own module. If you have a Canon camera, you should also install the Canon LensAF plug-in as well. 
 
 `Hocus Focus` has one of the best star detection algorithms around. It identifies potential stars in your image; assesses them for shape, intensity, size, location; then rejects any outliers; and then measures the remaining stars individual HFR (Half Flux Radius), the smaller the better. Its advanced rejection approach improves the reliability of the summary HFR statistic and summary # stars detected statistic.
@@ -94,12 +81,12 @@ After you take an image, you can use the Image > `Star Detection Results` info p
 
 ![Star Detection Results](images/abp-nina-af-star-results.png)
 
-### Star Detection Annotions and Options
+### Annotations and Options
 You can overlay star detection annotations over the image to see how each individual star has been classified. You can fine tune the annotations on the Image > `Star Annotations Option` panel. Hocus Focus is very detailed and flexible. You also can use Image > `Star Detection Options` subtab to fine tune the Star Detection algorithm if you are not happy with what you see. 
 
 ![Star Detection Annotations](images/abp-nina-af-star-annotations.png)
 
-### Manualy Initiated Autofocus Run
+### Manual Autofocus Run
 With stars detected and analysed, Nina can then take the HFR statistic as an indicator of how well your optics are focused. Use the Image > `Autofocus` tool panel to manually initate an autofocus run. Nina will move the lens out of focus, then take images, gradually moving the lens back through its focusing range. Nina plots the HFR at each of these images and fits a hyperbolic line to find the optimal focus point.
 
 As every optics system is different, you may need to adjust how Nina drives your lens. On the Options > `Autofocus` sub-tab, you can fine tune Nina's autofocus run process, including how far Nina steps out of focus, how large the steps are, how long to expose for, etc. From the Image > `Autofocus` tool panel you can even re-run past data to see how these changes effect the focus run.
@@ -111,7 +98,7 @@ In addition to manually initiated autofocus runs, you can perform them within a 
 
 ![AF Sequence](images/abp-nina-af-seq.png)
 
-### HFR and Star Detection History
+### HFR History
 On the Image > `HFR History` info panel you can also keep a eye on the HFR and # stars detected while you are monitoring a sequence. You may notice drops in star counts when images become blocked by trees or buildings; when wind picks up; when you drift out of frame frame. You may notice increases in HFR as clouds roll in, dew forms on your lens, you change you Camera's battery and its lens focus point shifts, you've left Lens AF or Image Stabilisation on. All anoying things.
 
 ![AF History](images/abp-nina-af-history.png)
@@ -119,12 +106,14 @@ On the Image > `HFR History` info panel you can also keep a eye on the HFR and #
 ### Autofocus Conclusions
 `Hocus Focus` and Nina's autofocus system are not perfect. You will get frustrated with them. But it is a game changer over trying to manully do it or squeze the lens AF to spot a star, or flying blind on a sequence. It will dramatically help you improve your keeper rate, preventing the collection of a whole bunch of bad images that are later thrown away in your stacking process.
 
-## Plate Solving and Alignment - Video Demonstration
+## Plate Solving
+
+**Video Demonstration: Plate Solving and Alignment**
+
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 
 [![Plate Solving and Alignment](https://img.youtube.com/vi/gLQwyCL6W_Q/0.jpg)](https://www.youtube.com/watch?v=gLQwyCL6W_Q)
 
-## 4. Plate Solving 
 Nina supports a range of Plate-Solving applications to help identify where your mount points in the night sky. Our recommended application is [ASTAP, the Astrometric STAcking Program](https://www.hnsky.org/astap.htm), which includes an astrometric solver. If you have used [Astronomy.net](https://nova.astrometry.net/upload) in the past, you will be amazed at ATAP's speed and ease of integration with Nina.
 
 ![Plate Solving Options](images/abp-nina-ps-settings.png)
@@ -133,7 +122,7 @@ The Alpaca Driver allows you to integrate the Plate-Solving Sync feature with th
 
 This can help eliminate the need to perform an initial compass alignment. It also eliminates using the BP App's joysticks to align your first star manually. Polar alignment with Benro Polaris was already relatively easy, and plate-solving makes it even easier.
 
-### Setting up ASTAP
+### Setting Up ASTAP
 
 ASTAP is not bundled with Nina, so you must download and install the application from the ASTAP website. You will also need to install one or more STAR Databases, which are also available on the website. 
 
@@ -145,7 +134,7 @@ On the Options/Equipment tab, you must set the Camera Pixel Size and Telescope F
 
 You must also ensure your lens is in focus before attempting a plate-solve. It's a good idea to perform a manually initiated autofocus run.
 
-### Manualy Initiated Plate Solving
+### Manual Plate Solving
 
 Plate solving can be manually initiated from Nina's Imaging tab, Plate Solving Tool Panel. Press the Play button, and Nina will take an exposure and attempt a plate-solve with ASTAP. It will update the Center RA and Center DEC fields on the Plate Solving Tool Panel if successful. You can also choose to Sync from the Plate Solving Tool Panel. This is a quick way to initiate an alignment of the Benro Polaris to its current position.
 
@@ -153,7 +142,7 @@ Plate solving can be manually initiated from Nina's Imaging tab, Plate Solving T
 
 The Imaging tab's main image panel has a button to initiate a Plate Solve from a recently exposed image. This does not allow a sync.
 
-### Sequence Target Centering and Aligning
+### Centering Targets
 
 One of Nina's best features is automated target centering and aligning. From Nina's Sequencer tab, under Target Options, you can enable a Slew to Target and Center Target. 
 
@@ -171,7 +160,7 @@ Once the target is centered, Nina will continue with the sequence, conducting an
 
 The Benro Polaris can have a habit of drifting off target. You can address this issue by simply pausing the sequence momentarily. Whenever Nina starts a sequence again, it will perform a Slew to Target and Center Target operation.
 
-## 5. Advanced Sequence
+## Advanced Sequence
 In addition to the Legacy Sequencer, Nina features an advanced sequencer that gives you full  control of your imaging session. The Alpaca Driver integrates with the Advanced Sequence with the following instructions:
 
 - **Telescope Instructions** - All Telescope instructions can control the Alpaca Driver (with the exception of Meridian Flip)
@@ -181,7 +170,7 @@ In addition to the Legacy Sequencer, Nina features an advanced sequencer that gi
 
 For information on how to use the Advanced Sequence for Panorama Workflows, please refer to [Creating Panoramas](./panoramas.md#why-use-the-alpaca-driver).
 
-## Advanced Sequence Reference
+## Instruction Reference
 ### Flow Control
 
 - **Sequencial Instruction Set** - a group of instructions that will execute one after the other from top to bottom. 

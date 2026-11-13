@@ -546,7 +546,7 @@ The **Flat White** page turns a phone or tablet into a light source for taking f
 
 * Set the device's screen brightness to maximum, and turn off its night mode or blue-light filter, so the light is bright and neutral.
 * Hold the screen flat against the front of the lens or lens hood. A sheet of white paper or fabric between the screen and the lens helps to even out the light.
-* Take your flats with NINA's **Flat Wizard**, which finds the right exposure for you (see [Using NINA](./nina.md#taking-flat-images)).
+* Take your flats with NINA's **Flat Wizard**, which finds the right exposure for you (see [Using NINA](./nina.md#main-nina-tabs)).
 * Tap the Alpaca Pilot icon in the top-left corner to return to the dashboard.
 
 See [Calibration Frames](./dso-imaging.md#calibration-frames) in the Deep-Sky Imaging guide for when to take your flats.

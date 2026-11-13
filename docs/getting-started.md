@@ -136,7 +136,7 @@ The Advanced Sequencer also gives you access to the Device Actions exposed by th
 
 To learn the Advanced Sequencer, you can consider these resources:
 
-* Alpaca Documentation: [Advanced Sequence](./nina.md#5-advanced-sequence) in the NINA guide describes the instructions that work with the Alpaca Driver, and the [Device Actions](./alpaca-api.md#device-actions) reference lists each Device Action with examples.
+* Alpaca Documentation: [Advanced Sequence](./nina.md#advanced-sequence) in the NINA guide describes the instructions that work with the Alpaca Driver, and the [Device Actions](./alpaca-api.md#device-actions) reference lists each Device Action with examples.
 * NINA Documentation: The [Advanced Sequencer](https://nighttime-imaging.eu/docs/master/site/sequencer/advanced/advanced/) section of the NINA documentation explains each instruction, condition and trigger.
 
 ### Learning Guiding

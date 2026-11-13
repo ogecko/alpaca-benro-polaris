@@ -76,7 +76,7 @@ Device Actions are the ASCOM standard's way for a driver to offer features that 
 
 Three approaches you can use Device Actions, include:
 
-1. From NINA's [Advanced Sequencer](./nina.md#5-advanced-sequence), install the **Device Actions and Commands** plug-in, then add a **Utility > Device Action** instruction, set the Device to `Telescope`, and choose the Action and its Parameters as shown in the tables below. 
+1. From NINA's [Advanced Sequencer](./nina.md#advanced-sequence), install the **Device Actions and Commands** plug-in, then add a **Utility > Device Action** instruction, set the Device to `Telescope`, and choose the Action and its Parameters as shown in the tables below. 
 2. From CCDciel, run one of the Alpaca Driver's scripts as a step of a plan, see [Scripting](./ccdciel.md#scripting) in the CCDciel guide.
 3. Call them directly through the REST API, with the Parameters as a JSON object:
 
