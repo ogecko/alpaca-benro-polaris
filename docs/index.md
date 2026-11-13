@@ -95,7 +95,7 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
 
 ## Gallery
 
-These deep-sky images were captured with a Benro Polaris and the Alpaca Driver, using 200 mm to 400 mm camera lenses on a MiniCam8 (IMX585) astro camera, giving 680 mm to 2040 mm full-frame equivalent focal lengths, with sub-exposures from 2 s to 120 s.
+These deep-sky images were captured with a Benro Polaris and the Alpaca Driver, using 200 mm to 400 mm camera lenses on a MiniCam8 (IMX585) astro camera, giving 680 mm to 2040 mm full-frame equivalent focal lengths, with sub-exposures from 2 s to 120 s. The Milky Way mosaic at the bottom is 48 panels (16 × 3), captured with the MiniCam8 and an EF 32 mm lens.
 
 <p align="center">
   <img src="images/abp-gallery.jpg" alt="Gallery: Carina Nebula, Horsehead Nebula, Eagle Nebula, Lagoon Nebula, Cat's Paw Nebula, Tarantula Nebula, Centaurus A, Omega Centauri, Eastern Veil Nebula, and a Milky Way mosaic" width="100%">

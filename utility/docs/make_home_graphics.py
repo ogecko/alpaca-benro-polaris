@@ -44,7 +44,7 @@ GALLERY = [
     ('C33 East Veil Nebula GLAT010S_GLON080_HSO_200mm_F2.8_120s_2640s_spcc_bx_nx_final.jpg', 'Eastern Veil Nebula', '200 mm (680 mm FF equiv.) · 22 × 120 s'),
 ]
 PANORAMA = ('[Group 0]-GLAT000S_GLON344_1_LRGB_stretched_result_GLAT022N_GLON352_2_LRGB_stretched_result-34 images.png',
-            'Milky Way mosaic', 'Two panels framed in galactic coordinates')
+            'Milky Way mosaic', '32 mm (109 mm FF equiv.) · 16 × 3 panels')
 
 # (file, title, caption) for the Satellite Imaging guide
 SATELLITES = [

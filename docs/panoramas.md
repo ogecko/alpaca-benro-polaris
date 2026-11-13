@@ -5,9 +5,9 @@
 [Capturing](#capturing) ·
 [Stitching](#stitching)
 
-![A 13-panel Milky Way mosaic, framed in galactic co-ordinates with the Alpaca Driver's Panorama Grid](images/milky-way-mosaic.jpg)
+![A 14-panel Milky Way mosaic, framed in galactic co-ordinates with the Alpaca Driver's Panorama Grid](images/milky-way-mosaic.jpg)
 
-*A 13-panel Milky Way mosaic, captured in two passes framed in galactic co-ordinates.*
+*A 14-panel (7 × 2) Milky Way mosaic, framed in galactic co-ordinates, captured with a MiniCam8 and an EF 16 mm lens (54 mm full-frame equivalent).*
 
 >VIDEO DEMO: [28 - Panorama Settings](https://youtu.be/k7OoPk98UCk?t=4m57s)
 
