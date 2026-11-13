@@ -101,7 +101,9 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
       
@@ -190,14 +192,8 @@
     </div>
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -276,6 +272,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -285,34 +289,6 @@
           
   
   Using the Driver
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../troubleshooting/" class="md-tabs__link">
-          
-  
-  Help
 
         </a>
       </li>
@@ -374,18 +350,12 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../alpaca-api/" class="md-tabs__link">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   Reference
@@ -418,19 +388,15 @@
       
         
       
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../beta_results_v2.2/" class="md-tabs__link">
+        <a href="../troubleshooting/" class="md-tabs__link">
           
   
-  Project
+  Help
 
         </a>
       </li>
@@ -441,7 +407,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -612,7 +584,7 @@
   <span class="md-ellipsis">
     
   
-  Hardware Guide
+  Preparing the MiniPC
 
     
   </span>
@@ -751,6 +723,14 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
       
         
       
@@ -903,22 +883,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#i-launching-the-alpaca-pilot-application" class="md-nav__link">
+  <a href="#launching-alpaca-pilot" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        I. Launching the Alpaca Pilot Application
+        Launching Alpaca Pilot
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="I. Launching the Alpaca Pilot Application">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connecting-polaris" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Connecting Polaris
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Connecting Polaris">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#method-a-launching-from-nina-nighttime-imaging-n-astronomy" class="md-nav__link">
+  <a href="#start-the-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Method A: Launching from NINA (Nighttime Imaging 'N' Astronomy)
+        Start the Driver
       </span>
     </span>
   </a>
@@ -926,10 +917,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#method-b-launching-via-web-browser" class="md-nav__link">
+  <a href="#launch-alpaca-pilot" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Method B: Launching via Web Browser
+        Launch Alpaca Pilot
       </span>
     </span>
   </a>
@@ -937,10 +928,54 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#method-c-launching-multiple-instances" class="md-nav__link">
+  <a href="#power-on-the-polaris" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Method C: Launching Multiple Instances
+        Power On the Polaris
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#establish-communications" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Establish Communications
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#astro-mode-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Astro Mode Setup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Network Services
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-https" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Using HTTPS
       </span>
     </span>
   </a>
@@ -953,199 +988,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ii-connecting-devices" class="md-nav__link">
+  <a href="#using-the-dashboard" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        II. Connecting Devices
+        Using the Dashboard
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="II. Connecting Devices">
+    <nav class="md-nav" aria-label="Using the Dashboard">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#a-start-alpaca-driver" class="md-nav__link">
+  <a href="#purpose" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        A. Start Alpaca Driver
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#b-launch-alpaca-pilot" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        B. Launch Alpaca Pilot
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#c-power-on-the-polaris-ane-enable-wifi" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        C. Power-on the Polaris ane enable Wifi
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#d-connect-to-polaris" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        D. Connect to Polaris
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#e-setup-the-polaris-for-astro-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        E. Setup the Polaris for Astro Mode
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#f-network-services" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        F. Network Services
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#g-using-alpaca-pilot-over-https" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        G. Using Alpaca Pilot over HTTPS
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="G. Using Alpaca Pilot over HTTPS">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#download-the-ca-certificate" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Download the CA Certificate
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-ca-certificate-on-windows" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install the CA Certificate on Windows
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-ca-certificate-on-macos" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install the CA Certificate on macOS
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-ca-certificate-on-ios--ipados" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install the CA Certificate on iOS / iPadOS
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#restart-your-browser-to-pickup-the-new-ca-certificate" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Restart Your Browser to pickup the new CA Certificate
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#enable-https-in-alpaca-pilot" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Enable HTTPS in Alpaca Pilot
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#persistent-certificate-warnings" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Persistent Certificate Warnings
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#iii-using-the-dashboard" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        III. Using the Dashboard
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="III. Using the Dashboard">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#purpose-of-the-dashboard" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Purpose of the Dashboard
+        Purpose
       </span>
     </span>
   </a>
@@ -1202,15 +1060,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#iv-using-the-catalog" class="md-nav__link">
+  <a href="#using-the-catalog" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        IV. Using the Catalog
+        Using the Catalog
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="IV. Using the Catalog">
+    <nav class="md-nav" aria-label="Using the Catalog">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1225,10 +1083,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#understanding-catalog-visual-indicators-chips" class="md-nav__link">
+  <a href="#catalog-chips" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Understanding Catalog Visual Indicators (Chips)
+        Catalog Chips
       </span>
     </span>
   </a>
@@ -1258,10 +1116,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#goto-slew-to-the-target" class="md-nav__link">
+  <a href="#goto-a-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        GoTo (Slew) to the Target
+        Goto a Target
       </span>
     </span>
   </a>
@@ -1285,10 +1143,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#v-creating-panoramas" class="md-nav__link">
+  <a href="#creating-panoramas" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        V. Creating Panoramas
+        Creating Panoramas
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flat-white" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Flat White
       </span>
     </span>
   </a>
@@ -1319,6 +1188,87 @@
     
   
   Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dso-imaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
 
     
   </span>
@@ -1419,14 +1369,41 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding/" class="md-nav__link">
+      <a href="../guiding-sync/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Using Guiding
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
 
     
   </span>
@@ -1455,6 +1432,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -1481,7 +1464,7 @@
   <span class="md-ellipsis">
     
   
-  Help
+  Release Notes
 
     
   </span>
@@ -1494,129 +1477,6 @@
         
           <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
             <label class="md-nav__title" for="__nav_4">
-              <span class="md-nav__icon md-icon"></span>
-              
-  
-  Help
-
-            </label>
-            <ul class="md-nav__list" data-md-scrollfix>
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Troubleshooting
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Frequently Asked Questions
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-            </ul>
-          </nav>
-        
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Release Notes
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1789,12 +1649,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1806,10 +1660,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1827,8 +1681,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_6">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1836,6 +1690,33 @@
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -1852,6 +1733,33 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
 
     
   </span>
@@ -1905,7 +1813,7 @@
   <span class="md-ellipsis">
     
   
-  Advanced Motion Control Guide
+  Control Reference
 
     
   </span>
@@ -1932,142 +1840,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Driver — Kinematics Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../quest_paper/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_alignment_mac_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_goto_response/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_drift/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC Drift — When to Learn, When to Apply
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+  Kinematics Reference
 
     
   </span>
@@ -2111,10 +1884,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -2126,17 +1895,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-  Project
+  Help
 
     
   </span>
@@ -2147,12 +1916,12 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_7">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
               <span class="md-nav__icon md-icon"></span>
               
   
-  Project
+  Help
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -2164,14 +1933,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.2/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.2
+  Troubleshooting
 
     
   </span>
@@ -2191,14 +1960,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.0/" class="md-nav__link">
+      <a href="../troubleshooting-install/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.0
+  Installation
 
     
   </span>
@@ -2218,14 +1987,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v1/" class="md-nav__link">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v1
+  Benro Polaris
 
     
   </span>
@@ -2245,14 +2014,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_agreement/" class="md-nav__link">
+      <a href="../troubleshooting-network/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Agreement
+  Network
 
     
   </span>
@@ -2272,14 +2041,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v2
+  NINA
 
     
   </span>
@@ -2299,14 +2068,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v1
+  Stellarium
 
     
   </span>
@@ -2326,68 +2095,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../podcast_2024_oct/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Podcast Oct 2024
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  MLAstro SAL-33
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benro/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benro Sponsorship
+  Frequently Asked Questions
 
     
   </span>
@@ -2477,22 +2192,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#i-launching-the-alpaca-pilot-application" class="md-nav__link">
+  <a href="#launching-alpaca-pilot" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        I. Launching the Alpaca Pilot Application
+        Launching Alpaca Pilot
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="I. Launching the Alpaca Pilot Application">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connecting-polaris" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Connecting Polaris
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Connecting Polaris">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#method-a-launching-from-nina-nighttime-imaging-n-astronomy" class="md-nav__link">
+  <a href="#start-the-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Method A: Launching from NINA (Nighttime Imaging 'N' Astronomy)
+        Start the Driver
       </span>
     </span>
   </a>
@@ -2500,10 +2226,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#method-b-launching-via-web-browser" class="md-nav__link">
+  <a href="#launch-alpaca-pilot" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Method B: Launching via Web Browser
+        Launch Alpaca Pilot
       </span>
     </span>
   </a>
@@ -2511,10 +2237,54 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#method-c-launching-multiple-instances" class="md-nav__link">
+  <a href="#power-on-the-polaris" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Method C: Launching Multiple Instances
+        Power On the Polaris
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#establish-communications" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Establish Communications
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#astro-mode-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Astro Mode Setup
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Network Services
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-https" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Using HTTPS
       </span>
     </span>
   </a>
@@ -2527,199 +2297,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#ii-connecting-devices" class="md-nav__link">
+  <a href="#using-the-dashboard" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        II. Connecting Devices
+        Using the Dashboard
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="II. Connecting Devices">
+    <nav class="md-nav" aria-label="Using the Dashboard">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#a-start-alpaca-driver" class="md-nav__link">
+  <a href="#purpose" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        A. Start Alpaca Driver
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#b-launch-alpaca-pilot" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        B. Launch Alpaca Pilot
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#c-power-on-the-polaris-ane-enable-wifi" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        C. Power-on the Polaris ane enable Wifi
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#d-connect-to-polaris" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        D. Connect to Polaris
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#e-setup-the-polaris-for-astro-mode" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        E. Setup the Polaris for Astro Mode
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#f-network-services" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        F. Network Services
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#g-using-alpaca-pilot-over-https" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        G. Using Alpaca Pilot over HTTPS
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="G. Using Alpaca Pilot over HTTPS">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#download-the-ca-certificate" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Download the CA Certificate
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-ca-certificate-on-windows" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install the CA Certificate on Windows
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-ca-certificate-on-macos" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install the CA Certificate on macOS
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#install-the-ca-certificate-on-ios--ipados" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Install the CA Certificate on iOS / iPadOS
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#restart-your-browser-to-pickup-the-new-ca-certificate" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Restart Your Browser to pickup the new CA Certificate
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#enable-https-in-alpaca-pilot" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Enable HTTPS in Alpaca Pilot
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#persistent-certificate-warnings" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Persistent Certificate Warnings
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#iii-using-the-dashboard" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        III. Using the Dashboard
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="III. Using the Dashboard">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#purpose-of-the-dashboard" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Purpose of the Dashboard
+        Purpose
       </span>
     </span>
   </a>
@@ -2776,15 +2369,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#iv-using-the-catalog" class="md-nav__link">
+  <a href="#using-the-catalog" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        IV. Using the Catalog
+        Using the Catalog
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="IV. Using the Catalog">
+    <nav class="md-nav" aria-label="Using the Catalog">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2799,10 +2392,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#understanding-catalog-visual-indicators-chips" class="md-nav__link">
+  <a href="#catalog-chips" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Understanding Catalog Visual Indicators (Chips)
+        Catalog Chips
       </span>
     </span>
   </a>
@@ -2832,10 +2425,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#goto-slew-to-the-target" class="md-nav__link">
+  <a href="#goto-a-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        GoTo (Slew) to the Target
+        Goto a Target
       </span>
     </span>
   </a>
@@ -2859,10 +2452,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#v-creating-panoramas" class="md-nav__link">
+  <a href="#creating-panoramas" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        V. Creating Panoramas
+        Creating Panoramas
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flat-white" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Flat White
       </span>
     </span>
   </a>
@@ -2925,6 +2529,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2957,12 +2569,12 @@
 
 
 <h1 id="alpaca-pilot-app">Alpaca Pilot App<a class="headerlink" href="#alpaca-pilot-app" title="Permanent link">&para;</a></h1>
-<p><a href="#what-is-alpaca-pilot">Purpose</a> | 
-<a href="#i-launching-the-alpaca-pilot-application">Launching</a> | 
-<a href="#ii-connecting-devices">Connect</a> | 
-<a href="#iii-using-the-dashboard">Dashboard</a> | 
-<a href="#iv-using-the-catalog">Catalog</a> | 
-<a href=".././panoramas/">Panoramas</a> </p>
+<p><a href="#what-is-alpaca-pilot">Purpose</a> ·
+<a href="#launching-alpaca-pilot">Launching</a> ·
+<a href="#connecting-polaris">Connect</a> ·
+<a href="#using-the-dashboard">Dashboard</a> ·
+<a href="#using-the-catalog">Catalog</a> ·
+<a href=".././panoramas/">Panoramas</a></p>
 <h2 id="what-is-alpaca-pilot">What is Alpaca Pilot?<a class="headerlink" href="#what-is-alpaca-pilot" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/0QSKD1GCzOc">21 - Alpha Preview Demonstration of V2.0</a></p>
@@ -3001,7 +2613,7 @@
 <li>
 <p><strong>⑤ Settings:</strong> Opens the configuration panel where you can set observing site latitude/longitude, define the park position, adjust preferences, and enable standard and advanced features.</p>
 <blockquote>
-<p>Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to <a href="#enable-https-in-alpaca-pilot">enable HTTPS in Alpaca Pilot</a>.</p>
+<p>Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to <a href="#using-https">enable HTTPS in Alpaca Pilot</a>.</p>
 </blockquote>
 </li>
 <li>
@@ -3018,12 +2630,12 @@
 </li>
 </ul>
 <hr />
-<h2 id="i-launching-the-alpaca-pilot-application">I. Launching the Alpaca Pilot Application<a class="headerlink" href="#i-launching-the-alpaca-pilot-application" title="Permanent link">&para;</a></h2>
+<h2 id="launching-alpaca-pilot">Launching Alpaca Pilot<a class="headerlink" href="#launching-alpaca-pilot" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/Wv_ZvBtZZ4Q?t=0m7s">22 - Launching Alpaca Pilot</a></p>
 </blockquote>
 <p>The Alpaca Pilot App can be accessed via external imaging software or directly through a web browser on a desktop, tablet, or phone.</p>
-<h3 id="method-a-launching-from-nina-nighttime-imaging-n-astronomy">Method A: Launching from NINA (Nighttime Imaging 'N' Astronomy)<a class="headerlink" href="#method-a-launching-from-nina-nighttime-imaging-n-astronomy" title="Permanent link">&para;</a></h3>
+<p><strong>From NINA</strong></p>
 <p>If you are using NINA, you can launch the Alpaca Pilot App directly from the NINA equipment setup interface:</p>
 <ol>
 <li><strong>Access Equipment Setup:</strong> Navigate to NINA's Equipment setup.</li>
@@ -3031,7 +2643,7 @@
 <li><strong>Use Settings Cog:</strong> Before connecting, click the <strong>settings cog button</strong>.</li>
 <li><strong>Fire Up App:</strong> Clicking the settings cog will fire up the Alpaca Pilot application, allowing you to monitor the connection process in detail.</li>
 </ol>
-<h3 id="method-b-launching-via-web-browser">Method B: Launching via Web Browser<a class="headerlink" href="#method-b-launching-via-web-browser" title="Permanent link">&para;</a></h3>
+<p><strong>From a Web Browser</strong></p>
 <p>You can access Alpaca Pilot from any browser on a device connected to the same network as the Mini-PC.</p>
 <ol>
 <li><strong>Start Driver:</strong> Make sure the driver is running on the Mini-PC.</li>
@@ -3044,148 +2656,12 @@
 </li>
 <li><strong>Full Screen Feature:</strong> On a phone, you can click on the battery icon to make the application go <strong>full screen</strong> to take up the full real estate available.</li>
 </ol>
-<h3 id="method-c-launching-multiple-instances">Method C: Launching Multiple Instances<a class="headerlink" href="#method-c-launching-multiple-instances" title="Permanent link">&para;</a></h3>
+<p><strong>Multiple Instances</strong></p>
 <p>The Pilot application is very flexible, allowing users to open up multiple windows simultaneously to facilitate operations and monitoring. To achieve this, you can right-click or hover on any of the navigation links across the top of the application (such as Dashboard, Connections, or Settings) and choose to open them in a new tab or a new window. </p>
 <p>For example, you might choose to open the Catalog as a new window and position it off to the right, while keeping the main Dashboard open on the left. This configuration allows for streamlined workflows, such as performing quick searches for celestial objects in the Catalog while monitoring the mount's status and coordinates on the Dashboard as you navigate to the selected target.</p>
-<details>
-
-<summary>Frequently asked questions</summary>
-
-### What are `ap.local` and mDNS?
-
-Alpaca Driver **v2.2 and later** include an mDNS (Multicast DNS) server. mDNS allows devices on the same local network to discover the Alpaca Driver and Alpaca Pilot Web Server without requiring a central Domain Name Server (DNS).
-
-The Alpaca Pilot web interface is advertised on the local network using mDNS with the default hostname:
-
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>http://ap.local
-</span></code></pre></div>
-
-You can change the hostname advertised by mDNS from Alpaca Pilot's **Connect** page using the **Network Services** dialog.
-
-The `ap.local` address should work when the device running your browser and the device running the driver are connected to the same local network. It will not normally work across different networks or routed subnets.
-
-Some enterprise networks, browsers, Wi-Fi configurations, firewalls, and security policies may also block or restrict mDNS traffic. If you cannot reach Alpaca Pilot using `ap.local`, use the driver's hostname or IP address instead, as described below.
-
-mDNS is **optional** and is not required for the Alpaca Driver or Alpaca Pilot to operate. If you can already access Alpaca Pilot using the device hostname or IPv4 address, mDNS simply provides an alternative method of access.
-
-### What alternative methods can be used to reach Alpaca Pilot?
-
-There are three ways to reach Alpaca Pilot:
-
-1. **Use mDNS**
-
-    On networks where mDNS is supported by both the network and the client device, use:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>http://ap.local
-</span></code></pre></div>
-
-2. **Use the driver's hostname**
-
-    If the hostname can be resolved by the device running the browser, replace `<hostname>` with the driver's hostname and use:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>http://&lt;hostname&gt;
-</span></code></pre></div>
-
-3. **Use the driver's IP address**
-
-    If you know the IPv4 address allocated to the driver, replace `<ipaddress>` with the driver's IPv4 address and use:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>http://&lt;ipaddress&gt;
-</span></code></pre></div>
-
-
-
-### How can I find the IP address of the driver?
-
-There are several ways to find the driver's IP address.
-
-1. **Use the driver's log file**
-
-    The IP address is recorded in:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>alpaca-benro-polaris/logs/alpaca.log
-</span></code></pre></div>
-
-    Look for the `==STARTUP==` message containing the mDNS hostname. The address following the `->` characters is the IP address of the driver.
-
-    In this example, the driver's IP address is `192.168.50.73`
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>2026-09-24T18:47:05.665 INFO ==STARTUP== Serving mDNS hostname [http://ap.local](http://ap.local) -&gt; 192.168.50.73:80
-</span></code></pre></div>
-
-
-
-2. **Use your router**
-
-    Log in to your router's administration interface and look for a list of connected devices. Depending on the router, this may be called **Connected Devices**, **DHCP Clients**, **LAN Clients**, **Attached Devices**, or something similar.
-
-    Look for the hostname of the device running the Alpaca Driver. The router should display the IPv4 address assigned to it.
-
-3. **Use Windows**
-
-    If the driver is running on Windows, open **Command Prompt** and run:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ipconfig
-</span></code></pre></div>
-
-    Find the network adapter that is currently connected to your local network and look for its **IPv4 Address**.
-
-    You can also use the following command to display the computer's hostname:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>hostname
-</span></code></pre></div>
-
-
-4. **Use Raspberry Pi**
-
-    If the driver is running on a Raspberry Pi, open a terminal and run:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>hostname -I
-</span></code></pre></div>
-
-    This displays the IP addresses currently assigned to the Raspberry Pi.
-
-    You can also use the following to display the Raspberry Pi's hostname:
-
-    <div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>hostname
-</span></code></pre></div>
-
-### Can you use a phone's hotspot as a network?
-
-Yes. A phone's hotspot can provide a network connection when a normal Wi-Fi network is unavailable.
-
-| Platform                      | Windows                                                                                                               | Raspberry Pi                                                      |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Join your phone's hotspot** | On the driver's Windows device, select your phone's hotspot from the Windows Wi-Fi connection list and connect to it. | Add your phone's hotspot using the setup command described below. |
-| **Example configuration**     | Use the normal Windows Wi-Fi configuration interface.                                                                 | `./setup.sh -n <ssid> -w <ssidpassword>`                          |
-
-Once configured, the driver will join the phone's hotspot whenever it is available. If the hotspot is unavailable, it will fall back to the configured home network. If no configured network is available, it will ultimately fall back to access-point mode.
-
-There is an important limitation when using an **Android phone as a hotspot**: Android browsers do not always resolve mDNS hostnames while the phone is operating as the hotspot. In this situation, `http://ap.local/` may not work even though the phone and driver are correctly connected to the same hotspot.
-
-If this occurs, find the driver's IP address and access Alpaca Pilot using the IP address instead.
-
-### How can I test mDNS?
-
-If `ap.local` does not work, you can test whether the device running the browser can resolve the hostname.
-
-On Windows, open **Command Prompt**. On Linux or macOS, open **Terminal**, and run:
-
-<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>ping ap.local
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>nslookup ap.local
-</span></code></pre></div>
-
-If these commands cannot resolve `ap.local`, mDNS may be unavailable or blocked on your network, or the client device may not support mDNS resolution in its current configuration.
-
-Note that a successful `ping` is not required for Alpaca Pilot to work. Some devices or network configurations may block ICMP traffic while still allowing access to the web server. The important test is whether `ap.local` can be resolved to the driver's IP address.
-
-If mDNS is unavailable, use the driver's hostname or IP address instead.
-
-</details>
-
+<p>If Alpaca Pilot doesn't open at <code>http://ap.local</code>, see <a href=".././troubleshooting-network/#c7---cant-reach-aplocal">C7 - Can't Reach ap.local</a>, which explains mDNS, the other ways to reach Alpaca Pilot, and how to find the driver's IP address.</p>
 <hr />
-<h2 id="ii-connecting-devices">II. Connecting Devices<a class="headerlink" href="#ii-connecting-devices" title="Permanent link">&para;</a></h2>
+<h2 id="connecting-polaris">Connecting Polaris<a class="headerlink" href="#connecting-polaris" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/0QSKD1GCzOc?t=0m51s">21 - Connecting to the Driver and Polaris</a></p>
 </blockquote>
@@ -3197,10 +2673,10 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 <li>D. Connect to the Polaris</li>
 <li>E. Setup the Polaris for Astro Mode</li>
 </ul>
-<h3 id="a-start-alpaca-driver">A. Start Alpaca Driver<a class="headerlink" href="#a-start-alpaca-driver" title="Permanent link">&para;</a></h3>
+<h3 id="start-the-driver">Start the Driver<a class="headerlink" href="#start-the-driver" title="Permanent link">&para;</a></h3>
 <p>After you have installed the Alpaca Driver, you can start the Driver either from a terminal or from the shortcut link you setup. </p>
 <p><img alt="Pilot start Driver" src="../images/pilot-connecta.png" /></p>
-<h3 id="b-launch-alpaca-pilot">B. Launch Alpaca Pilot<a class="headerlink" href="#b-launch-alpaca-pilot" title="Permanent link">&para;</a></h3>
+<h3 id="launch-alpaca-pilot">Launch Alpaca Pilot<a class="headerlink" href="#launch-alpaca-pilot" title="Permanent link">&para;</a></h3>
 <p>Follow the instructions from the previous section to launch the Alpaca Pilot Application. Navigate to the Connect page to monitor the startup process.</p>
 <p>When you launch the <strong>Alpaca Pilot</strong> application, it attempts to automatically connect to the <strong>Alpaca Driver</strong>. In most cases, this connection is established without user intervention. However, if the Driver is not running or network connectivity is lost, you may need to reconnect manually.</p>
 <p>If a connection issue is detected, a warning banner will appear. You can then navigate to the <strong>Connect</strong> page to re-establish communication with the Driver.</p>
@@ -3224,7 +2700,7 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 </ul>
 </li>
 </ul>
-<h3 id="c-power-on-the-polaris-ane-enable-wifi">C. Power-on the Polaris ane enable Wifi<a class="headerlink" href="#c-power-on-the-polaris-ane-enable-wifi" title="Permanent link">&para;</a></h3>
+<h3 id="power-on-the-polaris">Power On the Polaris<a class="headerlink" href="#power-on-the-polaris" title="Permanent link">&para;</a></h3>
 <p><img alt="Power on Poalris and Enable Wifi" src="../images/pilot-connectc.png" /></p>
 <ul>
 <li>
@@ -3251,12 +2727,12 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
     <img alt="alt text" src="../images/abp-troubleshoot-wifi1.png" /></p>
 </li>
 <li>
-<p>On Raspberry Pi, see <a href=".././raspberrypi/#p1---diagnosing-wifi-and-bluetooth-network-issues">raspberrypi.md's network troubleshooting</a> to join manually via <code>join_wifi.py</code> or <code>nmcli</code>. </p>
+<p>On Raspberry Pi, see <a href=".././raspberrypi/#p1---wi-fi-and-bluetooth">raspberrypi.md's network troubleshooting</a> to join manually via <code>join_wifi.py</code> or <code>nmcli</code>. </p>
 </li>
 </ul>
 </li>
 </ul>
-<h3 id="d-connect-to-polaris">D. Connect to Polaris<a class="headerlink" href="#d-connect-to-polaris" title="Permanent link">&para;</a></h3>
+<h3 id="establish-communications">Establish Communications<a class="headerlink" href="#establish-communications" title="Permanent link">&para;</a></h3>
 <p>Once Wifi network connectivity has been established to the Polaris, the Driver should automatically connect. If you have problems connecting to the Polaris, the following fields allow you to manually initiate a connection with custom settings.</p>
 <p><img alt="Connect to Polaris" src="../images/pilot-connectd.png" /></p>
 <ul>
@@ -3284,7 +2760,7 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
    If you continue to experience issues connecting to the Polaris, consult the <a href=".././troubleshooting/">Troubleshooting Guide</a> for diagnostic steps and solutions.</p>
 </blockquote>
 <p><br></p>
-<h3 id="e-setup-the-polaris-for-astro-mode">E. Setup the Polaris for Astro Mode<a class="headerlink" href="#e-setup-the-polaris-for-astro-mode" title="Permanent link">&para;</a></h3>
+<h3 id="astro-mode-setup">Astro Mode Setup<a class="headerlink" href="#astro-mode-setup" title="Permanent link">&para;</a></h3>
 <p>Follow these steps to prepare your Benro Polaris mount for Astro Mode using the Alpaca Pilot App:</p>
 <p><img alt="Pilot connect" src="../images/pilot-connecte.png" /></p>
 <ul>
@@ -3336,7 +2812,7 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 <p><strong>Begin Plate Solving:</strong> With setup complete, you're ready to use the Driver and perform your first plate solve.</p>
 </li>
 </ul>
-<h3 id="f-network-services">F. Network Services<a class="headerlink" href="#f-network-services" title="Permanent link">&para;</a></h3>
+<h3 id="network-services">Network Services<a class="headerlink" href="#network-services" title="Permanent link">&para;</a></h3>
 <p>The <strong>Network Services Dialog</strong> on the <strong>Connect</strong> page is optional, but provides advanced control over how the Alpaca Driver exposes its network services. You can selectively disable specific services or change the network port they use.</p>
 <p>This is primarily useful for:</p>
 <ul>
@@ -3345,16 +2821,16 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 </ul>
 <p>Additionally, this dialog allows you to modify the Driver’s behavior regarding automatic reconnection to the Polaris mount. You can disable auto-reconnect if manual control is preferred or if the mount is temporarily unavailable.</p>
 <p><img alt="Pilot connect" src="../images/pilot-connectf.png" /></p>
-<h3 id="g-using-alpaca-pilot-over-https">G. Using Alpaca Pilot over HTTPS<a class="headerlink" href="#g-using-alpaca-pilot-over-https" title="Permanent link">&para;</a></h3>
+<h3 id="using-https">Using HTTPS<a class="headerlink" href="#using-https" title="Permanent link">&para;</a></h3>
 <p>By default, Alpaca Pilot runs as an HTTP-based Single Page Application (SPA). As a result, your browser may display the site as <strong>“Not Secure”</strong> and restrict certain features such as location access and clipboard integration.</p>
 <p>Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser access and full functionality. When the Driver starts it will create self-signed certificates that are used for secure access. To use HTTPS you will need to download and install the CA Certificate and enable HTTPS in Alpaca Pilot.</p>
-<h4 id="download-the-ca-certificate">Download the CA Certificate<a class="headerlink" href="#download-the-ca-certificate" title="Permanent link">&para;</a></h4>
+<p><strong>Download the Certificate</strong></p>
 <ol>
 <li>Open the <strong>Alpaca Pilot Connect</strong> page.</li>
 <li>Open the <strong>Network Services</strong> dropdown dialog.</li>
 <li>Click <strong>Download CA Certificate</strong>.</li>
 </ol>
-<h4 id="install-the-ca-certificate-on-windows">Install the CA Certificate on Windows<a class="headerlink" href="#install-the-ca-certificate-on-windows" title="Permanent link">&para;</a></h4>
+<p><strong>Install on Windows</strong></p>
 <ol>
 <li>Open the downloaded <code>alpaca_pilot_ca.crt</code> file.</li>
 <li>Click <strong>Install Certificate</strong>.</li>
@@ -3364,7 +2840,7 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 <li>Select <strong>Trusted Root Certification Authorities</strong>, then click <strong>OK</strong>.</li>
 <li>Click <strong>Next</strong>, then <strong>Finish</strong>.</li>
 </ol>
-<h4 id="install-the-ca-certificate-on-macos">Install the CA Certificate on macOS<a class="headerlink" href="#install-the-ca-certificate-on-macos" title="Permanent link">&para;</a></h4>
+<p><strong>Install on macOS</strong></p>
 <ol>
 <li>Open the downloaded <code>.crt</code> file — <strong>Keychain Access</strong> will launch automatically.</li>
 <li>Add the certificate to the <strong>System</strong> keychain.</li>
@@ -3372,14 +2848,14 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 <li>Expand the <strong>Trust</strong> section and set <strong>When using this certificate</strong> to <strong>Always Trust</strong>.</li>
 <li>Close the dialog and enter your password to confirm the changes.</li>
 </ol>
-<h4 id="install-the-ca-certificate-on-ios--ipados">Install the CA Certificate on iOS / iPadOS<a class="headerlink" href="#install-the-ca-certificate-on-ios--ipados" title="Permanent link">&para;</a></h4>
+<p><strong>Install on iOS</strong></p>
 <ol>
 <li>Open the <strong>Alpaca Pilot Connect</strong> page in <strong>Safari</strong> and download the CA certificate (Safari will prompt that a profile is ready to install).</li>
 <li>Go to <strong>Settings → General → VPN &amp; Device Management</strong>, tap the <strong>alpaca-pilot-ca</strong> profile, then tap <strong>Install</strong> in the top-right corner (you'll be prompted for your device passcode).</li>
 <li><strong>This alone is not enough — the CA is installed but not yet trusted.</strong> Go to <strong>Settings → General → About → Certificate Trust Settings</strong>.</li>
 <li>Under <strong>Enable Full Trust for Root Certificates</strong>, toggle <strong>alpaca-pilot-ca</strong> to <strong>on</strong>.</li>
 </ol>
-<h4 id="restart-your-browser-to-pickup-the-new-ca-certificate">Restart Your Browser to pickup the new CA Certificate<a class="headerlink" href="#restart-your-browser-to-pickup-the-new-ca-certificate" title="Permanent link">&para;</a></h4>
+<p><strong>Restart Your Browser</strong></p>
 <ul>
 <li><strong>Chrome:</strong> Navigate to <code>chrome://restart</code></li>
 <li><strong>Safari:</strong> Fully close Safari (swipe it away from the App Switcher)</li>
@@ -3393,7 +2869,7 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 </ol>
 </li>
 </ul>
-<h4 id="enable-https-in-alpaca-pilot">Enable HTTPS in Alpaca Pilot<a class="headerlink" href="#enable-https-in-alpaca-pilot" title="Permanent link">&para;</a></h4>
+<p><strong>Enable HTTPS</strong></p>
 <ol>
 <li>Open the <strong>Alpaca Pilot Connect</strong> page.</li>
 <li>Open the <strong>Network Services</strong> dropdown.</li>
@@ -3401,7 +2877,7 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 <li>The Driver will restart with HTTPS enabled.</li>
 <li>Alpaca Pilot will detect the restart and redirect to HTTPS.</li>
 </ol>
-<h4 id="persistent-certificate-warnings">Persistent Certificate Warnings<a class="headerlink" href="#persistent-certificate-warnings" title="Permanent link">&para;</a></h4>
+<p><strong>Certificate Warnings</strong></p>
 <p>If you're upgrading from an earlier driver version and still see certificate warnings or connection failures after following the steps above, the browser or the OS may be holding onto stale security state from before the upgrade.</p>
 <p>On Windows, do a full power-off rather than Restart. Windows 11 enables "Fast Startup" by default, which hibernates the session instead of fully reinitializing it on Restart. Leftover network state can persist across a restart; only a genuine power-off clears it. </p>
 <p>On any device that connected to an earlier version of the driver, also clear that browser's site data</p>
@@ -3411,12 +2887,12 @@ If mDNS is unavailable, use the driver's hostname or IP address instead.
 </ul>
 <p><br>
 <br></p>
-<h2 id="iii-using-the-dashboard">III. Using the Dashboard<a class="headerlink" href="#iii-using-the-dashboard" title="Permanent link">&para;</a></h2>
+<h2 id="using-the-dashboard">Using the Dashboard<a class="headerlink" href="#using-the-dashboard" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/0QSKD1GCzOc?t=4m55s">21 - Dashboard introduction</a></p>
 <p>VIDEO DEMO: <a href="https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s">22 - Dashboard Status and Setpoint Entry</a></p>
 </blockquote>
-<h3 id="purpose-of-the-dashboard">Purpose of the Dashboard<a class="headerlink" href="#purpose-of-the-dashboard" title="Permanent link">&para;</a></h3>
+<h3 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h3>
 <p>The dashboard is the central component of the Alpaca Pilot App. It basically shows you the current <strong>orientation of the telescope</strong> and any <strong>activity on the motors</strong>. It provides <strong>real-time telemetry</strong> of the mount's current coordinates, including Azimuth, Altitude, Roll or Right Ascension, Declination, Position Angle. The Dashboard also provides direct control of the mount through action buttons and interaction into zoomable radial dials for each co-ordinate.</p>
 <h3 id="action-buttons">Action Buttons<a class="headerlink" href="#action-buttons" title="Permanent link">&para;</a></h3>
 <p>The action buttons in the top-left corner of the Dashboard offer quick access to global mount controls.</p>
@@ -3531,7 +3007,7 @@ Scrolling the mouse wheel downward performs the same action as this control.</li
 </ul>
 </li>
 </ul>
-<h2 id="iv-using-the-catalog">IV. Using the Catalog<a class="headerlink" href="#iv-using-the-catalog" title="Permanent link">&para;</a></h2>
+<h2 id="using-the-catalog">Using the Catalog<a class="headerlink" href="#using-the-catalog" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/Wv_ZvBtZZ4Q?t=6m42s">22 - Alpaca Pilot Catalog</a></p>
 </blockquote>
@@ -3545,7 +3021,7 @@ Scrolling the mouse wheel downward performs the same action as this control.</li
 <li><strong>Ratings and Notes:</strong> Each entry provides helpful notes and community ratings to guide your choices. To keep the application footprint small, items categorized as "typical," "hard," or "avoid" are excluded from the base catalog.</li>
 <li><strong>Cross Referenced:</strong> Each entry is cross referenced to over 25 master catalogs like Messier, Caldwell, NGC, IC, H400, Sh2, LDN etc. </li>
 </ol>
-<h3 id="understanding-catalog-visual-indicators-chips">Understanding Catalog Visual Indicators (Chips)<a class="headerlink" href="#understanding-catalog-visual-indicators-chips" title="Permanent link">&para;</a></h3>
+<h3 id="catalog-chips">Catalog Chips<a class="headerlink" href="#catalog-chips" title="Permanent link">&para;</a></h3>
 <p>Each target listing features three coloured chips that provide a quick visual summary of the object's characteristics and current position:</p>
 <table>
 <thead>
@@ -3611,7 +3087,7 @@ For a full list of supported catalogues, see the <strong>Reference Catalogues</s
 <li><strong>Filtering by Size (Dropdown):</strong> Filter by apparent angular size of the object</li>
 <li><strong>Filtering by Brightness (Dropdown):</strong> Filter by visual brightness (magnitude) for selecting objects suited to your observing or imaging conditions</li>
 </ol>
-<h3 id="goto-slew-to-the-target">GoTo (Slew) to the Target<a class="headerlink" href="#goto-slew-to-the-target" title="Permanent link">&para;</a></h3>
+<h3 id="goto-a-target">Goto a Target<a class="headerlink" href="#goto-a-target" title="Permanent link">&para;</a></h3>
 <p>To move the mount to a target's location, simply <strong>click the GoTo button</strong> associated with the item, and the mount will start moving to that location.</p>
 <ul>
 <li><strong>Tracking State Preservation:</strong> When you issue a GoTo command, the driver will preserve <strong>whatever the tracking state was</strong> at the time; it does not automatically turn tracking on.</li>
@@ -3622,8 +3098,19 @@ For a full list of supported catalogues, see the <strong>Reference Catalogues</s
 <p>For the full list of reference catalogues, and how to extend the catalog with your own entries, see the <a href=".././catalog/">Catalog Reference</a>.</p>
 <p><br>
 <br></p>
-<h2 id="v-creating-panoramas">V. Creating Panoramas<a class="headerlink" href="#v-creating-panoramas" title="Permanent link">&para;</a></h2>
+<h2 id="creating-panoramas">Creating Panoramas<a class="headerlink" href="#creating-panoramas" title="Permanent link">&para;</a></h2>
 <p>Alpaca Pilot's Panorama Grid lets you plan and capture multi-panel panoramas and mosaics. See <a href=".././panoramas/">Creating Panoramas</a>.</p>
+<p><br>
+<br></p>
+<h2 id="flat-white">Flat White<a class="headerlink" href="#flat-white" title="Permanent link">&para;</a></h2>
+<p>The <strong>Flat White</strong> page turns a phone or tablet into a light source for taking flat frames. Open it from the side menu, under <strong>Performance Tuning</strong>: the page fills the whole screen with white, with no other controls.</p>
+<ul>
+<li>Set the device's screen brightness to maximum, and turn off its night mode or blue-light filter, so the light is bright and neutral.</li>
+<li>Hold the screen flat against the front of the lens or lens hood. A sheet of white paper or fabric between the screen and the lens helps to even out the light.</li>
+<li>Take your flats with NINA's <strong>Flat Wizard</strong>, which finds the right exposure for you (see <a href=".././nina/#main-nina-tabs">Using NINA</a>).</li>
+<li>Tap the Alpaca Pilot icon in the top-left corner to return to the dashboard.</li>
+</ul>
+<p>See <a href=".././dso-imaging/#calibration-frames">Calibration Frames</a> in the Deep-Sky Imaging guide for when to take your flats.</p>
 
 
 
@@ -3731,7 +3218,7 @@ For a full list of supported catalogues, see the <strong>Reference Catalogues</s
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>

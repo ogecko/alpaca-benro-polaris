@@ -12,14 +12,14 @@
         <meta name="author" content="David Morrison">
       
       
-        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/ML_Astro_SAL-33/">
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/dso-imaging/">
       
       
       
-        <link rel="prev" href="../podcast_2024_oct/">
+        <link rel="prev" href="../panoramas/">
       
       
-        <link rel="next" href="../benro/">
+        <link rel="next" href="../planetary/">
       
       
         
@@ -30,7 +30,7 @@
     
     
       
-        <title>MLAstro SAL-33 - Alpaca Benro Polaris Driver</title>
+        <title>Deep-Sky Imaging - Alpaca Benro Polaris Driver</title>
       
     
     
@@ -101,7 +101,9 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
       
@@ -123,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              MLAstro SAL-33
+              Deep-Sky Imaging
             
           </span>
         </div>
@@ -190,14 +192,8 @@
     </div>
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -258,6 +254,8 @@
   
   
   
+    
+  
   
     
       
@@ -274,43 +272,23 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../pilot/" class="md-tabs__link">
           
   
   Using the Driver
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../troubleshooting/" class="md-tabs__link">
-          
-  
-  Help
 
         </a>
       </li>
@@ -372,18 +350,12 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../alpaca-api/" class="md-tabs__link">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   Reference
@@ -398,8 +370,6 @@
   
   
   
-    
-  
   
     
       
@@ -418,19 +388,15 @@
       
         
       
-        
-      
-        
-      
     
     
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../beta_results_v2.2/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
           
   
-  Project
+  Help
 
         </a>
       </li>
@@ -441,7 +407,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -612,7 +584,7 @@
   <span class="md-ellipsis">
     
   
-  Hardware Guide
+  Preparing the MiniPC
 
     
   </span>
@@ -745,8 +717,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -762,21 +736,32 @@
       
         
       
-    
-    
-    
+        
       
+        
+      
+        
+      
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -794,7 +779,7 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
             <label class="md-nav__title" for="__nav_3">
               <span class="md-nav__icon md-icon"></span>
               
@@ -846,6 +831,244 @@
     
   
   Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-an-imaging-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Choosing an Imaging App
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#planning-a-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Planning a Session
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#focal-length-and-exposure" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Focal Length and Exposure
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setting-up-and-connecting" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Setting Up and Connecting
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#focusing-and-aligning" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Focusing and Aligning
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#framing-the-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Framing the Target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#capturing-the-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Capturing the Sequence
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-and-refining" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Monitoring and Refining
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibration-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Calibration Frames
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stacking-and-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Stacking and Processing
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
 
     
   </span>
@@ -946,14 +1169,41 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding/" class="md-nav__link">
+      <a href="../guiding-sync/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Using Guiding
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
 
     
   </span>
@@ -982,6 +1232,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -1008,7 +1264,7 @@
   <span class="md-ellipsis">
     
   
-  Help
+  Release Notes
 
     
   </span>
@@ -1021,129 +1277,6 @@
         
           <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
             <label class="md-nav__title" for="__nav_4">
-              <span class="md-nav__icon md-icon"></span>
-              
-  
-  Help
-
-            </label>
-            <ul class="md-nav__list" data-md-scrollfix>
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Troubleshooting
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Frequently Asked Questions
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-            </ul>
-          </nav>
-        
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Release Notes
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1316,12 +1449,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1333,10 +1460,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1354,8 +1481,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_6">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1363,6 +1490,33 @@
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -1379,6 +1533,33 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
 
     
   </span>
@@ -1432,7 +1613,7 @@
   <span class="md-ellipsis">
     
   
-  Advanced Motion Control Guide
+  Control Reference
 
     
   </span>
@@ -1459,142 +1640,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Driver — Kinematics Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../quest_paper/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_alignment_mac_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_goto_response/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_drift/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC Drift — When to Learn, When to Apply
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+  Kinematics Reference
 
     
   </span>
@@ -1619,16 +1665,10 @@
       
   
   
-    
   
   
-  
     
     
-      
-        
-      
-        
       
         
       
@@ -1648,27 +1688,24 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-  Project
+  Help
 
     
   </span>
@@ -1679,12 +1716,12 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
-            <label class="md-nav__title" for="__nav_7">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
               <span class="md-nav__icon md-icon"></span>
               
   
-  Project
+  Help
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -1696,14 +1733,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.2/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.2
+  Troubleshooting
 
     
   </span>
@@ -1723,14 +1760,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.0/" class="md-nav__link">
+      <a href="../troubleshooting-install/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.0
+  Installation
 
     
   </span>
@@ -1750,14 +1787,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v1/" class="md-nav__link">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v1
+  Benro Polaris
 
     
   </span>
@@ -1777,14 +1814,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_agreement/" class="md-nav__link">
+      <a href="../troubleshooting-network/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Agreement
+  Network
 
     
   </span>
@@ -1804,14 +1841,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v2
+  NINA
 
     
   </span>
@@ -1831,14 +1868,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v1
+  Stellarium
 
     
   </span>
@@ -1858,203 +1895,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../podcast_2024_oct/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Podcast Oct 2024
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  MLAstro SAL-33
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  MLAstro SAL-33
-
-    
-  </span>
-  
-  
-
-      </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-core-specifications" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        1. Core specifications
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-load-balance-counterweights-and-the-gearbox-bearing" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        2. Load, balance, counterweights and the gearbox bearing
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-reliability-and-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        3. Reliability and service
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-firmware-software-and-connectivity" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4. Firmware, software and connectivity
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-polar-alignment-and-the-zero-shift-base" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        5. Polar alignment and the Zero-Shift base
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6-performance-and-guiding" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        6. Performance and guiding
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#7-mounting-tripods-and-accessories" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        7. Mounting, tripods and accessories
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#8-roadmap-and-business-brief" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        8. Roadmap and business (brief)
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benro/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benro Sponsorship
+  Frequently Asked Questions
 
     
   </span>
@@ -2116,10 +1964,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-core-specifications" class="md-nav__link">
+  <a href="#choosing-an-imaging-app" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        1. Core specifications
+        Choosing an Imaging App
       </span>
     </span>
   </a>
@@ -2127,10 +1975,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-load-balance-counterweights-and-the-gearbox-bearing" class="md-nav__link">
+  <a href="#planning-a-session" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2. Load, balance, counterweights and the gearbox bearing
+        Planning a Session
       </span>
     </span>
   </a>
@@ -2138,10 +1986,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-reliability-and-service" class="md-nav__link">
+  <a href="#focal-length-and-exposure" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3. Reliability and service
+        Focal Length and Exposure
       </span>
     </span>
   </a>
@@ -2149,10 +1997,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-firmware-software-and-connectivity" class="md-nav__link">
+  <a href="#setting-up-and-connecting" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        4. Firmware, software and connectivity
+        Setting Up and Connecting
       </span>
     </span>
   </a>
@@ -2160,10 +2008,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-polar-alignment-and-the-zero-shift-base" class="md-nav__link">
+  <a href="#focusing-and-aligning" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        5. Polar alignment and the Zero-Shift base
+        Focusing and Aligning
       </span>
     </span>
   </a>
@@ -2171,10 +2019,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-performance-and-guiding" class="md-nav__link">
+  <a href="#framing-the-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        6. Performance and guiding
+        Framing the Target
       </span>
     </span>
   </a>
@@ -2182,10 +2030,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#7-mounting-tripods-and-accessories" class="md-nav__link">
+  <a href="#capturing-the-sequence" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        7. Mounting, tripods and accessories
+        Capturing the Sequence
       </span>
     </span>
   </a>
@@ -2193,10 +2041,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#8-roadmap-and-business-brief" class="md-nav__link">
+  <a href="#monitoring-and-refining" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        8. Roadmap and business (brief)
+        Monitoring and Refining
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calibration-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Calibration Frames
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stacking-and-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Stacking and Processing
       </span>
     </span>
   </a>
@@ -2265,16 +2135,18 @@
       
         
       
+        
+      
     
     
     
     
       <li class="md-path__item">
-        <a href="../beta_results_v2.2/" class="md-path__link">
+        <a href="../pilot/" class="md-path__link">
           
   
   <span class="md-ellipsis">
-    Project
+    Using the Driver
   </span>
 
         </a>
@@ -2296,112 +2168,184 @@
   
 
 
-<h1 id="mlastro-sal-33-official-thread">MLAstro SAL-33 Official Thread<a class="headerlink" href="#mlastro-sal-33-official-thread" title="Permanent link">&para;</a></h1>
-<p>Summary of Cloudy Nights Forum thread p1-49</p>
-<h2 id="1-core-specifications">1. Core specifications<a class="headerlink" href="#1-core-specifications" title="Permanent link">&para;</a></h2>
+<h1 id="deep-sky-imaging">Deep-Sky Imaging<a class="headerlink" href="#deep-sky-imaging" title="Permanent link">&para;</a></h1>
+<p><a href="#choosing-an-imaging-app">Imaging Apps</a> ·
+<a href="#planning-a-session">Planning</a> ·
+<a href="#focal-length-and-exposure">Focal Length and Exposure</a> ·
+<a href="#setting-up-and-connecting">Setting Up</a> ·
+<a href="#focusing-and-aligning">Focusing and Aligning</a> ·
+<a href="#framing-the-target">Framing</a> ·
+<a href="#capturing-the-sequence">Capturing</a> ·
+<a href="#monitoring-and-refining">Monitoring</a> ·
+<a href="#calibration-frames">Calibration Frames</a> ·
+<a href="#stacking-and-processing">Stacking and Processing</a></p>
+<p><img alt="Deep-sky images captured with a Benro Polaris and the Alpaca Driver" src="../images/abp-gallery.jpg" /></p>
+<p>Deep-sky objects such as nebulae, galaxies and star clusters are faint, so deep-sky imaging builds up their light over a long total exposure. Instead of one very long exposure, you capture many shorter sub-exposures ("subs"), then stack them: stacking averages out the noise and reveals faint detail that no single sub shows. The Alpaca Driver turns the Benro Polaris into a mount that can do this, with accurate pointing from Multi-Point Alignment, plate solving to frame the target, and tracking and guiding that keep it steady through a long sequence.</p>
+<h2 id="choosing-an-imaging-app">Choosing an Imaging App<a class="headerlink" href="#choosing-an-imaging-app" title="Permanent link">&para;</a></h2>
+<p>The Benro Polaris app controls your camera well for panoramas, time-lapse and astrophotography sequences. However, it doesn't stretch or process images, show RAW files, or make it easy to customise file names or copy images off for stacking. For deep-sky imaging, a dedicated imaging app gives you much more control, and works with the Alpaca Driver to point the mount and keep it on target. Some include:</p>
 <ul>
-<li><strong>Payload:</strong> visual load is 15 kg without a counterweight, or 20 kg with a 5 kg counterweight. For imaging, Minh recommends about two-thirds (about 70%) of the visual load, and he only guarantees performance within that range.</li>
-<li><strong>Alt-az versus equatorial:</strong> capacity is the same in both modes.</li>
-<li><strong>Drive:</strong> 17:100 strain-wave (harmonic) gearing on both axes.</li>
-<li><strong>Slew:</strong> adjustable, up to 4°/s.</li>
-<li><strong>Brakes:</strong> a physical brake on RA and a back-EMF brake on DEC.</li>
-<li><strong>Pointing memory:</strong> the mount keeps its position through a power cycle.</li>
-<li><strong>Weight and build:</strong> the mount head is 5.6 kg (a later post says 5.3 kg), CNC aluminium with silver anodising. All panels are aluminium. The construction is bolted and modular, with swappable side panels including laser-etched ones.</li>
-<li><strong>Power:</strong> the power supply isn't included, and there's no DC output on the mount.</li>
-<li><strong>Other hardware details:</strong> there's a bubble level on the front, and two M4 holes on the side (per a user). The shipping box is 33.5 × 33.5 × 19 cm.</li>
-<li><strong>Motors:</strong> 48 mm NEMA17 steppers, which Minh says give about 25% more torque than the 40 mm motors common in competing mounts.</li>
-<li><strong>Drivers:</strong> TMC2209 drivers in UART mode, socketed for swapping faulty ones rather than upgrading.</li>
-<li><strong>Tripod interface:</strong> the mount uses a &#8540;" thread plus 3 × M6 holes, the same as a ZWO AM5, according to MLAstro's product page.</li>
+<li><a href="https://www.otelescope.com/store/category/2-backyardeos/">BackyardEOS</a> (no mount control)</li>
+<li><a href="https://www.astrophotography.app/">APT</a> - Astro Photography Tool (paid, ASCOM support)</li>
+<li><a href="https://www.sequencegeneratorpro.com/sgpro/">SGPro</a> - Sequence Generator Pro (paid, ASCOM support)</li>
+<li><a href="https://nighttime-imaging.eu/">NINA</a> - Nighttime Imaging 'N' Astronomy (free, ASCOM support, Windows)</li>
+<li><a href="https://ap-i.net/ccdciel/en/start/">CCDciel</a> (free, ASCOM support, macOS, Linux and Windows): see <a href=".././ccdciel/">Using CCDciel</a></li>
 </ul>
-<h2 id="2-load-balance-counterweights-and-the-gearbox-bearing">2. Load, balance, counterweights and the gearbox bearing<a class="headerlink" href="#2-load-balance-counterweights-and-the-gearbox-bearing" title="Permanent link">&para;</a></h2>
+<p>To find targets, start with Alpaca Pilot's catalog (see <a href="#planning-a-session">Planning a Session</a>). With internet access, these are also useful:</p>
 <ul>
-<li><strong>Balance:</strong> you don't balance a harmonic mount. A perfectly balanced harmonic performs badly, because these gearboxes need preloading. Minh gave the workable imbalance range for the SAL-33 as roughly 2 to 22 N·m. He never balances his own harmonic mounts, but says the setup must not tip over.</li>
-<li><strong>User disagreement:</strong> a user argued that balance still matters for tripod flexure and stability, and that his harmonic mounts guide better when not seriously imbalanced.</li>
-<li><strong>No extra counterweight to compensate:</strong> counterweights only balance torque about the RA axis. The gearbox's cross-roller bearing carries the radial load of the entire system (scope, counterweight and mount head) and already works near its limit. Overloading it risks damaging the bearing and can leave the mount unusable.</li>
-<li><strong>Total-load limit:</strong> Minh said never to put more than 25 kg on the SAL-33, counterweight included. A user reading the chart on the product page described a 29 kg maximum total load, so check the chart yourself.</li>
-<li><strong>Limits depend on OTA size:</strong> they depend on the telescope's centre-to-saddle distance. Torque is force times distance, so size matters as much as mass.</li>
-<li><strong>Latitude:</strong> the chart values are at latitude 0. Minh says the dependence is small and to use the chart limits at all latitudes.</li>
-<li><strong>Safety margin:</strong> built-in margin is for short spikes, such as bumping a door frame, not sustained overload. This applies to all harmonic mounts and worm-gear mounts too.</li>
-<li><strong>Counterweight hardware:</strong> the bar is 20 mm with roughly an M12×1.75 thread (Minh wrote M12.5). ZWO's counterweight bar also fits, and it's about 10 mm longer. Counterweights aren't sold by MLAstro.</li>
-<li><strong>User experience:</strong> DevonRob uses a 5 kg counterweight and finds harmonic mounts guide better heavier. He runs an EdgeHD 9.25 at 13-14 kg for imaging.</li>
+<li><a href="https://stellarium.org/en/">Stellarium</a> - Has a hidden feature: press <code>F10</code> for Astronomical Calculations, then <strong>WUT</strong> (What's Up Tonight).</li>
+<li><a href="https://telescopius.com/">Telescopius</a> - A website with astronomy tools and a great catalog.</li>
+<li><a href="https://theskylive.com/whatsvisible">The Sky Live</a> - A website that lists potential targets live.</li>
 </ul>
-<h2 id="3-reliability-and-service">3. Reliability and service<a class="headerlink" href="#3-reliability-and-service" title="Permanent link">&para;</a></h2>
+<p>This guide uses NINA, the recommended app: it's free and has an excellent user interface. It outlines a typical deep-sky imaging session with the Benro Polaris, the Alpaca Driver and NINA, and assumes you're already familiar with operating Alpaca Pilot and NINA; see <a href=".././pilot/">Alpaca Pilot</a> and <a href=".././nina/">Using NINA</a> for those. The images above were all captured this way.</p>
+<h2 id="planning-a-session">Planning a Session<a class="headerlink" href="#planning-a-session" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Cold-temperature issue:</strong> Batch 2 had a cold-weather problem that Minh attributed to a capacitor. He says coverage for it extends beyond the warranty, and affected owners should email MLAstro. Details were on Facebook and I couldn't see them.</li>
-<li><strong>Serviceability:</strong> parts such as mainboards, drivers, motors and brakes are designed to be user-replaceable. MLAstro has forwarding warehouses in the US (Oregon), UK, France and Australia. Servicing videos are being added gradually.</li>
-<li><strong>Warranty:</strong> one year, limited.</li>
+<li><strong>Choose a target.</strong> Alpaca Pilot's catalog lists hundreds of imaging targets, and its rating, visibility and size filters help you find ones that suit your equipment and sky. NINA's Sky Atlas is another good source. Check that the target fits your field of view: a large nebula needs a shorter focal length than a small galaxy.</li>
+<li><strong>Check its altitude.</strong> The Polaris can't point higher than an altitude of 81.5°, and the more the camera is rolled, the lower that limit becomes (see <a href=".././kinematics/#reachable-envelope">Reachable Envelope</a>). Choose targets that stay below it during your session, and above any trees or buildings. Targets low in the sky are dimmer and blurrier, so the best time to image is usually when the target is high, but still below that limit.</li>
+<li><strong>Check the Moon.</strong> Moonlight brightens the sky and washes out faint detail. For emission nebulae, narrowband filters (such as Hα, OIII and SII) cut through moonlight and light pollution. A catalog entry's <strong>Class</strong> field shows which narrowband emissions a nebula has, and how strong they are (see the <a href=".././catalog/#class">Catalog Reference</a>).</li>
 </ul>
-<h2 id="4-firmware-software-and-connectivity">4. Firmware, software and connectivity<a class="headerlink" href="#4-firmware-software-and-connectivity" title="Permanent link">&para;</a></h2>
+<h2 id="focal-length-and-exposure">Focal Length and Exposure<a class="headerlink" href="#focal-length-and-exposure" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Firmware base:</strong> official OnStepX hardware. The firmware and pin map are open source on GitHub (minhlead/MLAstro-SAL-33). Modifications that brick the mount void the warranty.</li>
-<li><strong>Updates:</strong><ul>
-<li>A first firmware update in Dec 2025 fixed occasional meridian flip failures, mostly affecting ASIAIR.</li>
-<li>10.27.p (mid-2026) is called important. After flashing, the motor and driver are briefly unpowered without the brake engaged. If the load falls, back-EMF could burn the driver, and one user did. So update with the scope off or reasonably balanced, and be ready to catch it.</li>
-<li>You can stay on your current version if it works. Check your version in the last line of Config in MLAstro Hub.</li>
+<li><strong>Focal length:</strong> Most of the images above were taken with 200 mm to 400 mm camera lenses. Lenses up to about 800 mm work with the Polaris, but longer focal lengths show tracking errors more, so start shorter. A small-sensor astronomy camera makes a lens act longer: on an IMX585 sensor, with its 3.4× crop factor, a 400 mm lens frames like about 1,360 mm on a full-frame camera.</li>
+<li><strong>Sub-exposure length:</strong> How long each sub can be depends on how well the target is held still:<ul>
+<li>Without guiding, keep subs short, typically 15 to 60 seconds, and re-centre the target regularly.</li>
+<li>With <a href=".././guiding-sync/">Sync Guiding</a>, NINA plate-solves your own images every 1 to 3 minutes and the driver corrects any drift, so subs can be longer.</li>
+<li>With <a href=".././guiding-pulse/">Pulse Guiding</a>, using a guide scope and PHD2, subs of up to about 300 seconds are possible.</li>
 </ul>
 </li>
-<li><strong>Flashing:</strong> it's done from Chrome using a web flasher. The SAL-33's chip shows as CP2102. Flashing SAL-33 firmware onto another ESP32 device bricks that device, and a user bricked an SVbony SV241 Pro this way. If the "hold BOOT" error appears, change computers or hold the BOOT button under the front plate. A flasher fix went live on Sept 8. Flashing can't be built into MLAstro Hub because of an ESP flash-tool licensing problem.</li>
-<li><strong>Web server versus Hub:</strong> the SmartWebServer is deprecated, and MLAstro Hub (Windows, Android, Apple) is the recommended interface. If you still use the SWS, the address is <a href="http://192.168.0.1">http://192.168.0.1</a> (not https).</li>
-<li><strong>Restoring lost WiFi:</strong><ol>
-<li>Open the front plate.</li>
-<li>Set the switch on the controller board to ESP8266/SWS.</li>
-<li>Connect by USB and open <a href="https://test.mlastro.com/">https://test.mlastro.com/</a> in Chrome.</li>
-<li>Flash the SWS commercial release.</li>
-<li>Move the switch back to ESP32/OnStepX and restart.</li>
+<li><strong>Gain or ISO:</strong> Set the gain (or ISO) so that the histogram's peak sits clear of the left-hand side, without saturating more than the brightest stars.</li>
+<li><strong>Total exposure:</strong> More total exposure gives a smoother, deeper image. The images above range from about 30 minutes to over 3 hours each. You can add to a target over several nights.</li>
+</ul>
+<h2 id="setting-up-and-connecting">Setting Up and Connecting<a class="headerlink" href="#setting-up-and-connecting" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Start the Alpaca Driver.</strong>
+    The driver starts by itself when the PC starts. If you skipped that during installation, launch it by double-clicking the desktop shortcut.</li>
+<li><strong>Open Alpaca Pilot.</strong>
+    In your browser, navigate to the Alpaca Pilot App.</li>
+<li><strong>Power on the Polaris.</strong>
+    Use a short press followed by a long press to power on the mount.</li>
+<li><strong>Confirm Wi-Fi connectivity.</strong>
+    Check that your mini-PC keeps a stable Wi-Fi connection to the Polaris.</li>
+<li>
+<p><strong>Connect and configure the Polaris.</strong>
+    On Alpaca Pilot's Connect page:</p>
+<ul>
+<li>Set <strong>Astro Mode</strong></li>
+<li><strong>Reset all axes</strong> and wait for them to finish</li>
+<li><strong>Skip</strong> the compass alignment</li>
+<li><strong>Skip</strong> the single star alignment</li>
+</ul>
+</li>
 </ol>
-</li>
-<li><strong>Bluetooth:</strong> Android only. iPhones can't see the mount.</li>
-<li><strong>Windows setup:</strong> ASCOM Platform 7.1.3, the CP210x Universal Windows Driver and OnStep ASCOM driver 1.0.43. The Hub .exe must be "unblocked" in Properties.</li>
-<li><strong>Software compatibility:</strong> the standard OnStep driver works with KStars/Ekos/INDI, NINA, ASIAIR (WiFi ports 9997-9999, 9999 recommended) and any ASCOM app. Minh says WiFi latency can hurt guiding, so use a wired connection for guiding. SkyTrack satellite tracking should work, but he hadn't tested it.</li>
-<li><strong>Tracking:</strong> ASIAIR can change solar, sidereal and King rates. On Batch 1, tracking began at power-up. From Batch 2 onward you must enable it or issue a goto.</li>
-<li><strong>Slew scripting:</strong> the ASCOM MoveAxis call takes a sidereal multiplier, and arbitrary fractional values work. For example, <code>MoveAxis(0, 3.2)</code> gives 3.2× sidereal in RA. SharpCap's built-in list only shows six fixed rates.</li>
-<li><strong>Limits and alt-az alignment:</strong> slew and axis limits can be set in the web server. To use alt-az, set the mount upright, choose Alt-Az in the configurator and power cycle. Minh does simple level-plus-one-sync or 3-9 star alignments, and the alignment isn't blind (you need to know star names).</li>
-<li><strong>Under development:</strong> experimental collision detection using StallGuard, and a mount-modelling update for goto accuracy. Balance monitoring is not planned.</li>
-<li><strong>Anti-cable-snag:</strong> it only lengthens the meridian flip and doesn't interfere with it.</li>
-</ul>
-<h2 id="5-polar-alignment-and-the-zero-shift-base">5. Polar alignment and the Zero-Shift base<a class="headerlink" href="#5-polar-alignment-and-the-zero-shift-base" title="Permanent link">&para;</a></h2>
+<h2 id="focusing-and-aligning">Focusing and Aligning<a class="headerlink" href="#focusing-and-aligning" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Point towards the celestial pole.</strong>
+    Using Alpaca Pilot or NINA:</p>
 <ul>
-<li><strong>How it works:</strong> you adjust alt-az with the locking bolts still tight and then leave them. The mechanism is patent-pending and undisclosed, using tight-tolerance machining and bearings. Minh claims no play in the altitude adjustment, unlike the EmCanAstro EM31.</li>
-<li><strong>Adjusters:</strong> alt-az adjusters are simple screw-on pins. Batch 2 and later use finer-thread azimuth screws for better control and wind resistance. Batch 1 owners got a retrofit offer.</li>
-<li><strong>Methods:</strong> digital polar alignment using the imaging scope, a PoleMaster or an iPolar. The side panel has a provision for an iPolar or PoleMaster. For daytime solar use, polar align at night and leave it, or use the day routine (rough alignment, goto the Sun, then centre it with the adjusters).</li>
-<li><strong>Modular base:</strong> the mount head detaches by removing four screws. The old base could become an EQ wedge for a Seestar or star tracker.</li>
-<li><strong>Alignment and tracking:</strong> Minh says easier alignment is mostly convenience. Many people guide better with polar alignment slightly off, because perfect alignment makes DEC corrections flip sides more often. That matters little on a harmonic mount, but on worm-gear mounts DEC backlash can elongate stars.</li>
-<li><strong>Robotic polar alignment kit:</strong> a retrofit for the SAL-33 and SAL-66, with a one-knob azimuth adjustment, motors on the south side of the pier, and a WiFi web interface. It integrates with NINA's 3PPA and KStars' routine but probably not ASIAIR. An evaluation SAL-33 went to INDI's lead developer. The target was late 2026. Its load limit may be lower than the mount's.</li>
-</ul>
-<h2 id="6-performance-and-guiding">6. Performance and guiding<a class="headerlink" href="#6-performance-and-guiding" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Periodic error:</strong> a prototype test gave under 20" peak-to-peak RA with a 14 kg rig, and Minh's production target is ±10" on the smallest cycle. He says a fixed PEC isn't practical, because PE varies cycle to cycle.</li>
-<li><strong>Predictive PEC:</strong> PHD2's predictive PEC is his recommendation for RA. It kicks in after about two cycles (roughly 900 s), with RA predictive weight around 100%.</li>
-<li><strong>Guiding figures:</strong> the reported numbers are Minh's relayed reports of 0.35" best and 1-1.5" in 20-30 mph wind, plus user reports. paling reached 0.66" after a first-night 1", DevonRob got under 1" in poor seeing, and TerryD1 got 0.3-0.4" in average seeing.</li>
-<li><strong>Minh's claim:</strong> he says the mount should reliably guide under 1" unless seeing is poor or there's a lot of wind. He suspects ASIAIR's RMS reads low.</li>
-<li><strong>PHD2 recommendations (Jan 2026):</strong><ul>
-<li>Use PHD2's calibration assistant and enable multistar guiding and "Assume DEC orthogonality to RA".</li>
-<li>For heavy rigs he runs high aggressiveness. For lighter ones and poor seeing, start at 0.35 minimum move and 50% aggressiveness, then raise it. Use 1-1.5 s guide exposures in poor seeing, since 0.5 s needs stable seeing.</li>
-<li>His Sept 2026 advice was RA and DEC minimum move 0.25" and about 70% weight.</li>
+<li>Slew the mount to point roughly towards your celestial pole (north or south)</li>
+<li>This doesn't need to be accurate</li>
+<li>Stars move less near the pole, which helps with focusing in the next step</li>
 </ul>
 </li>
-<li><strong>Focal length:</strong> for long-exposure DSO he recommends staying under about 1000 mm. He says harmonic PE is large, guiding is reactive, and long focal lengths mean few guide stars and more wind and seeing sensitivity. He calls this conservative rather than a hard limit. It doesn't apply to solar or planetary work. Minh says 30 s unguided exposures are challenging on any harmonic mount.</li>
-<li><strong>Alt-az visual:</strong> Minh reports good gotos in alt-az (objects land in the field of a 20 mm eyepiece on a 1300 mm scope) and no microstepping error.</li>
-</ul>
-<h2 id="7-mounting-tripods-and-accessories">7. Mounting, tripods and accessories<a class="headerlink" href="#7-mounting-tripods-and-accessories" title="Permanent link">&para;</a></h2>
+<li>
+<p><strong>Focus.</strong></p>
 <ul>
-<li><strong>Compatibility:</strong> anything that works with an AM5 works with the SAL-33.</li>
-<li><strong>P-200 pier extension:</strong> MLAstro's P-200 adapts common tripods and is natively compatible with Avalon T-Pod. Fasten it with M6 screws under 20 mm, mushroom or socket head, using a 4 mm Allen key. Washers are optional and protect the base plate from scratches.</li>
-<li><strong>Adapters:</strong> MLAstro adapters exist for Celestron CPC1100, SW EQ6 (usable without the P-200), iOptron and Sky-Watcher tripods, Meade 2" tripods (which use the tripod's six top-plate holes, so retract the centre rod), and the iOptron Tri-Pier 360. Custom adapters are available.</li>
-<li><strong>Exceptions:</strong> EQ3/EQ5 tripods have a non-removable azimuth pin, so use the P-200 to clear it. The ZWO PE200 has no holes for MLAstro's EQ6 adapter, and users described workarounds and a Starizona adapter.</li>
-<li><strong>Tripod advice:</strong> Minh recommends a steel, medium to heavy tripod over carbon, which is lighter, tips more easily and vibrates more. He prefers the iOptron CEM60/70 two-M8 connection to the EQ6's single centre screw, because he says the cast EQ6 top plate may not be machined flat. A user suggested Sky-Watcher EQ5/EQ6 tripods.</li>
-<li><strong>Saddle:</strong> a collar kit is available for saddles wider than 90 mm. A saddle 12 V/USB hub cannot be retrofitted, because it needs a hollow harmonic drive, and Minh has no plan to add one.</li>
-<li><strong>Guide scope:</strong> mount it side by side on a Losmandy dovetail. The PoleMaster holes aren't on the moving part.</li>
+<li>Use your camera and lens to reach a rough focus</li>
+<li>Run <strong>NINA's Autofocus</strong> for a precise focus</li>
+<li>If you're guiding, focus and align your guide scope as well</li>
 </ul>
-<h2 id="8-roadmap-and-business-brief">8. Roadmap and business (brief)<a class="headerlink" href="#8-roadmap-and-business-brief" title="Permanent link">&para;</a></h2>
+</li>
+<li>
+<p><strong>First plate solve (anywhere, for Single Point Alignment).</strong>
+    In NINA's Imaging tab:</p>
 <ul>
-<li><strong>SAL-66:</strong> a larger mount with a saddle hub and full 12 V/USB. An earlier estimate was about 30 kg without a counterweight and 40 kg with one, using a size-25 RA gearbox. The target price was under $2,000, and it was speculative.</li>
-<li><strong>Other plans:</strong> encoders and direct drive are considered for the larger mount only. Minh declined to build a smaller mount for pricing reasons.</li>
-<li><strong>Price:</strong> $999 for the first 50, then $1,099, then $1,249 from Batch 6 (Feb 2026). Minh said margins are thin and cited costs. Payment is PayPal only, with full payment at preorder, though alternatives were planned.</li>
-<li><strong>Shipping:</strong> it ranged from $140 in early 2026 to <span class="arithmatex">\(199-\)</span>270 by April 2026, with a tariff- and tax-inclusive courier option. Refunds are available before shipping.</li>
-<li><strong>Production status:</strong> Batch 9 sold out on Sept 14, 2026. Preorders now roll into Batch 10 with an estimated shipping window of mid to late Nov 2027. Batch 9 ships through early Oct 2026.</li>
+<li>Click <strong>Start Tracking</strong></li>
+<li>Open the Plate Solving panel</li>
+<li>Plate-solve and sync to achieve an initial alignment</li>
 </ul>
-<p>To cover the unread stretch, you could read the thread directly from about page 22 to page 45, or point me at a specific date range or topic and I can try to search for it.</p>
+</li>
+<li>
+<p><strong>Second plate solve (at the pole, for Multi-Point Alignment).</strong>
+    In Alpaca Pilot:</p>
+<ul>
+<li>Enable <strong>Multi-Point Alignment</strong></li>
+<li>Search for "pole" in the Alpaca Pilot catalog</li>
+<li>Goto your celestial pole and wait for the mount to settle</li>
+</ul>
+<p>Then, in NINA, plate-solve and sync at the celestial pole.</p>
+</li>
+<li>
+<p><strong>Third plate solve (at the target's future position).</strong>
+    In Alpaca Pilot:</p>
+<ul>
+<li>Goto your imaging target from the catalog</li>
+<li>Decrease its Right Ascension by 1 or 2 hours, which points to where the target will be later in the session</li>
+<li>Once the mount settles, plate-solve and sync again in NINA</li>
+</ul>
+<p>A sync point along the target's path keeps the Multi-Point Alignment accurate as the target moves across the sky (see <a href=".././control/">Control Reference</a>).</p>
+</li>
+</ol>
+<h2 id="framing-the-target">Framing the Target<a class="headerlink" href="#framing-the-target" title="Permanent link">&para;</a></h2>
+<p>Use NINA's Sky Atlas or Stellarium to locate your target, then:</p>
+<ol>
+<li>Send it to the <strong>Framing Assistant</strong>, and view it on NINA's <strong>Offline Sky Map</strong>. Adjust the framing and rotation to suit the target.</li>
+<li>Use <strong>Slew and Center</strong> to move the mount onto the target, refining its position with repeated plate solves.</li>
+<li>Click <strong>Add Target to Sequence</strong> and choose the <strong>Legacy Sequencer</strong>, or the <a href=".././getting-started/#learning-sequencing">Advanced Sequencer</a> for more control.</li>
+</ol>
+<h2 id="capturing-the-sequence">Capturing the Sequence<a class="headerlink" href="#capturing-the-sequence" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Create a sequence.</strong>
+    In NINA's Legacy Sequencer:</p>
+<ul>
+<li>Set the number of images (for example 150) and the exposure time (for example 30 s)</li>
+<li>If you're not guiding, re-centre the target with <strong>Slew and Center</strong> every 20 to 30 frames, manually or from the Advanced Sequencer</li>
+</ul>
+</li>
+<li>
+<p><strong>Start the imaging sequence.</strong>
+    Begin the sequence from NINA's Imaging tab, and check the first few frames. Zoom in on the image to check that the stars are round and the tracking is steady.</p>
+</li>
+</ol>
+<p>To keep the target steady for longer subs, add guiding:</p>
+<ul>
+<li><strong>Sync Guiding</strong> needs no extra hardware. Add a <strong>Solve and Sync</strong> instruction that runs every 1 to 3 minutes in NINA's Advanced Sequencer.</li>
+<li><strong>Pulse Guiding</strong> uses a guide scope and camera with PHD2.</li>
+</ul>
+<p><a href=".././guiding-sync/">Sync Guiding</a> and <a href=".././guiding-pulse/">Pulse Guiding</a> explain each approach. Don't combine them, and avoid dithering, which hasn't shown a benefit on the Polaris.</p>
+<h2 id="monitoring-and-refining">Monitoring and Refining<a class="headerlink" href="#monitoring-and-refining" title="Permanent link">&para;</a></h2>
+<p>You can check and refine the tracking during the sequence on Alpaca Pilot's <strong>PID Tuning</strong> and <strong>Alignment</strong> pages.</p>
+<ul>
+<li><strong>PID Tuning page:</strong><ul>
+<li><strong>Angular Position (PV vs SP):</strong> PV should closely follow a steady SP ramp on all axes for accurate tracking. In the equatorial co-ordinate view, Right Ascension, Declination and Position Angle show as steady horizontal SP lines.</li>
+<li><strong>Angular Velocity (OP):</strong> OP should be a steady horizontal line. Large oscillations may indicate instability. The PID controller works to close any gaps.</li>
+<li><strong>RMS Error:</strong> A quick measure of the tracking performance over the last 30 seconds. A value near <strong>2 arcseconds</strong> is ideal for high-quality tracking.</li>
+<li><strong>Pulse Guiding:</strong> Use <strong>equatorial co-ordinates</strong> to watch corrections from your guiding software. You should see the SP being "bumped" up and down as it corrects for the guide star's movement.</li>
+<li><strong>Advanced Tuning:</strong> Experienced users can adjust the PID parameters to reduce oscillations and improve responsiveness (see <a href=".././control/">Control Reference</a>).</li>
+</ul>
+</li>
+<li><strong>Alignment page:</strong><ul>
+<li><strong>Sync Point Residuals:</strong> Review the residuals to find misaligned sync points.</li>
+<li><strong>Model Refinement:</strong> Delete sync points with large residuals to improve the Multi-Point Alignment model.</li>
+</ul>
+</li>
+</ul>
+<h2 id="calibration-frames">Calibration Frames<a class="headerlink" href="#calibration-frames" title="Permanent link">&para;</a></h2>
+<p>Calibration frames remove the camera's own noise, dust shadows and vignetting from your images. Capture them at the end of the session, with the same camera settings:</p>
+<ul>
+<li><strong>Darks:</strong> The same exposure time, gain and temperature as your subs, with the lens capped.</li>
+<li><strong>Flats:</strong> Evenly lit frames that record dust and vignetting. Don't change the focus or the camera's rotation before taking them. Stop tracking and raise the camera to point upwards, then cover the lens with a flat panel, or with a phone or tablet showing Alpaca Pilot's <a href=".././pilot/#flat-white">Flat White</a> page, which fills the screen with white. NINA's <strong>Flat Wizard</strong> finds the right exposure for you.</li>
+<li><strong>Bias or dark flats:</strong> Very short exposures (bias), or exposures matching your flats (dark flats), with the lens capped.</li>
+</ul>
+<h2 id="stacking-and-processing">Stacking and Processing<a class="headerlink" href="#stacking-and-processing" title="Permanent link">&para;</a></h2>
+<p>Stacking software calibrates each sub with your calibration frames, aligns the subs and combines them into one image. <a href="https://siril.org/">Siril</a> is free and includes scripts that do all of this in one step. The combined image then needs processing:</p>
+<ol>
+<li>Remove the background gradient caused by light pollution and moonlight.</li>
+<li>Calibrate the colour, for example with Siril's photometric colour calibration.</li>
+<li>Stretch the image to bring out the faint detail.</li>
+<li>Reduce the noise, and enhance the target, for example by removing the stars and processing the nebula on its own.</li>
+</ol>
+<p>With narrowband filters, combine the channels into a colour image, for example in the SHO palette (SII, Hα and OIII as red, green and blue) used for several of the images above. <a href=".././getting-started/#learning-siril">Learning Siril</a> in Getting Started lists resources for learning to process your images.</p>
 
 
 
@@ -2441,7 +2385,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../podcast_2024_oct/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Podcast Oct 2024">
+          <a href="../panoramas/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Creating Panoramas">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -2451,20 +2395,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Podcast Oct 2024
+                Creating Panoramas
               </div>
             </div>
           </a>
         
         
           
-          <a href="../benro/" class="md-footer__link md-footer__link--next" aria-label="Next: Benro Sponsorship">
+          <a href="../planetary/" class="md-footer__link md-footer__link--next" aria-label="Next: Planetary Imaging">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Benro Sponsorship
+                Planetary Imaging
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -2509,7 +2453,7 @@
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>

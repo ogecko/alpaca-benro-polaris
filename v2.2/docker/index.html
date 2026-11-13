@@ -101,7 +101,9 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
       
@@ -190,14 +192,8 @@
     </div>
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -276,6 +272,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -285,34 +289,6 @@
           
   
   Using the Driver
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../troubleshooting/" class="md-tabs__link">
-          
-  
-  Help
 
         </a>
       </li>
@@ -374,18 +350,12 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../alpaca-api/" class="md-tabs__link">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   Reference
@@ -418,19 +388,15 @@
       
         
       
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../beta_results_v2.2/" class="md-tabs__link">
+        <a href="../troubleshooting/" class="md-tabs__link">
           
   
-  Project
+  Help
 
         </a>
       </li>
@@ -441,7 +407,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -617,7 +589,7 @@
   <span class="md-ellipsis">
     
   
-  Hardware Guide
+  Preparing the MiniPC
 
     
   </span>
@@ -727,6 +699,23 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="././" class="md-nav__link md-nav__link--active">
         
   
@@ -742,6 +731,159 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install Docker
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Install Docker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linux--raspberry-pi" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Linux / Raspberry Pi
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        macOS
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Windows
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clone" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Clone
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Build
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Run
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connecting-to-the-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Connecting to the Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Network Ports
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dedicated-wi-fi-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Dedicated Wi-Fi Adapter
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-data-and-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Configuration Data and Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -764,6 +906,14 @@
   
     
     
+      
+        
+      
+        
+      
+        
+      
+        
       
         
       
@@ -880,6 +1030,87 @@
   
   
     <li class="md-nav__item">
+      <a href="../dso-imaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../stellarium/" class="md-nav__link">
         
   
@@ -961,14 +1192,41 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding/" class="md-nav__link">
+      <a href="../guiding-sync/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Using Guiding
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
 
     
   </span>
@@ -997,6 +1255,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -1023,7 +1287,7 @@
   <span class="md-ellipsis">
     
   
-  Help
+  Release Notes
 
     
   </span>
@@ -1036,129 +1300,6 @@
         
           <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
             <label class="md-nav__title" for="__nav_4">
-              <span class="md-nav__icon md-icon"></span>
-              
-  
-  Help
-
-            </label>
-            <ul class="md-nav__list" data-md-scrollfix>
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Troubleshooting
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Frequently Asked Questions
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-            </ul>
-          </nav>
-        
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Release Notes
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1331,12 +1472,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1348,10 +1483,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1369,8 +1504,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_6">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1378,6 +1513,33 @@
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -1394,6 +1556,33 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
 
     
   </span>
@@ -1447,7 +1636,7 @@
   <span class="md-ellipsis">
     
   
-  Advanced Motion Control Guide
+  Control Reference
 
     
   </span>
@@ -1474,142 +1663,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Driver — Kinematics Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../quest_paper/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_alignment_mac_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_goto_response/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_drift/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC Drift — When to Learn, When to Apply
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+  Kinematics Reference
 
     
   </span>
@@ -1653,10 +1707,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -1668,17 +1718,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-  Project
+  Help
 
     
   </span>
@@ -1689,12 +1739,12 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_7">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
               <span class="md-nav__icon md-icon"></span>
               
   
-  Project
+  Help
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -1706,14 +1756,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.2/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.2
+  Troubleshooting
 
     
   </span>
@@ -1733,14 +1783,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.0/" class="md-nav__link">
+      <a href="../troubleshooting-install/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.0
+  Installation
 
     
   </span>
@@ -1760,14 +1810,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v1/" class="md-nav__link">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v1
+  Benro Polaris
 
     
   </span>
@@ -1787,14 +1837,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_agreement/" class="md-nav__link">
+      <a href="../troubleshooting-network/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Agreement
+  Network
 
     
   </span>
@@ -1814,14 +1864,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v2
+  NINA
 
     
   </span>
@@ -1841,14 +1891,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v1
+  Stellarium
 
     
   </span>
@@ -1868,68 +1918,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../podcast_2024_oct/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Podcast Oct 2024
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  MLAstro SAL-33
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benro/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benro Sponsorship
+  Frequently Asked Questions
 
     
   </span>
@@ -1967,6 +1963,11 @@
                       
                     
                     
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
                   
                   <div class="md-sidebar__inner">
                     
@@ -1978,6 +1979,147 @@
   
     
   
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Install Docker
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Install Docker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linux--raspberry-pi" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Linux / Raspberry Pi
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        macOS
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Windows
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clone" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Clone
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Build
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Run
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connecting-to-the-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Connecting to the Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Network Ports
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dedicated-wi-fi-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Dedicated Wi-Fi Adapter
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-data-and-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Configuration Data and Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -2065,17 +2207,22 @@
 
 
 <h1 id="docker-installation-guide">Docker Installation Guide<a class="headerlink" href="#docker-installation-guide" title="Permanent link">&para;</a></h1>
+<p><a href="#install-docker">Install Docker</a> ·
+<a href="#clone">Clone</a> ·
+<a href="#build">Build</a> ·
+<a href="#run">Run</a> ·
+<a href="#configuration-data-and-logs">Configuration Data and Logs</a></p>
 <p>Docker provides a portable and consistent way to run the driver across supported operating systems and hardware architectures. Instead of installing Python and the driver's dependencies directly on the host system, Docker packages the driver and its runtime environment into a container.</p>
 <p>This approach keeps the host system clean, makes installation and updates more predictable, and helps ensure that the driver behaves consistently across different platforms. Docker is particularly useful on systems such as Linux, where managing Python versions and native dependencies can otherwise require additional setup.</p>
 <p>Follow the instructions below for your operating system. <strong>Windows users should complete the additional WSL2, networking, and firewall configuration</strong> to allow the driver's network services to be accessed by other devices on the local network.</p>
-<h1 id="1-install-docker">1. Install Docker<a class="headerlink" href="#1-install-docker" title="Permanent link">&para;</a></h1>
-<h2 id="linux--raspberry-pi">Linux / Raspberry Pi<a class="headerlink" href="#linux--raspberry-pi" title="Permanent link">&para;</a></h2>
+<h2 id="install-docker">Install Docker<a class="headerlink" href="#install-docker" title="Permanent link">&para;</a></h2>
+<h3 id="linux--raspberry-pi">Linux / Raspberry Pi<a class="headerlink" href="#linux--raspberry-pi" title="Permanent link">&para;</a></h3>
 <p>Install Docker Engine using the <a href="https://docs.docker.com/engine/install/">official instructions</a> for your distribution. For example:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>docker.io
 </span></code></pre></div>
-<h2 id="macos">macOS<a class="headerlink" href="#macos" title="Permanent link">&para;</a></h2>
+<h3 id="macos">macOS<a class="headerlink" href="#macos" title="Permanent link">&para;</a></h3>
 <p>Install Docker Desktop from <a href="https://www.docker.com/products/docker-desktop/">Docker</a>.</p>
-<h2 id="windows">Windows<a class="headerlink" href="#windows" title="Permanent link">&para;</a></h2>
+<h3 id="windows">Windows<a class="headerlink" href="#windows" title="Permanent link">&para;</a></h3>
 <p>The Windows setup uses WSL2, which provides a Linux environment for running Docker Engine. The additional networking configuration below allows the driver's network services to be reached from other devices on your local network, such as an iPad or another PC.</p>
 <ol>
 <li>
@@ -2119,7 +2266,7 @@
 <p>Close and reopen the WSL terminal so the group membership change takes effect.</p>
 </li>
 </ol>
-<h1 id="2-clone">2. Clone<a class="headerlink" href="#2-clone" title="Permanent link">&para;</a></h1>
+<h2 id="clone">Clone<a class="headerlink" href="#clone" title="Permanent link">&para;</a></h2>
 <p>Clone the Alpaca Driver repository into a subfolder under your home directory. </p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/ogecko/alpaca-benro-polaris.git<span class="w"> </span>~/alpaca-benro-polaris
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nb">cd</span><span class="w"> </span>~/alpaca-benro-polaris
@@ -2127,7 +2274,7 @@
 <blockquote>
 <p>Note: On Windows WSL, we do not recommend cloning to <code>/mnt/c/...</code>. The WSL filesystem provides better performance for the driver and preserves the executable permission required by <code>run.sh</code>. Continue with <strong>Build</strong> and <strong>Run</strong> below, using this same WSL terminal.</p>
 </blockquote>
-<h1 id="3-build">3. Build<a class="headerlink" href="#3-build" title="Permanent link">&para;</a></h1>
+<h2 id="build">Build<a class="headerlink" href="#build" title="Permanent link">&para;</a></h2>
 <p>The Docker scripts in the repository need to be executable before they can be run. Git does not preserve the executable permission for these files, so mark them as executable the first time you check out the repository:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>chmod<span class="w"> </span>+x<span class="w"> </span>platforms/docker/run.sh<span class="w"> </span>platforms/docker/util.sh<span class="w"> </span>platforms/docker/entrypoint.sh
 </span></code></pre></div>
@@ -2135,13 +2282,13 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>./platforms/docker/run.sh<span class="w"> </span>-b<span class="w"> </span>-t<span class="w"> </span><span class="s2">"America/Vancouver"</span>
 </span></code></pre></div>
 <p>The <code>-t</code> option sets the driver's local time zone. Replace <code>America/Vancouver</code> with your own <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">TZ database time zone</a>.</p>
-<h1 id="4-run">4. Run<a class="headerlink" href="#4-run" title="Permanent link">&para;</a></h1>
+<h2 id="run">Run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h2>
 <p>Start the driver from the repository directory:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./platforms/docker/run.sh<span class="w"> </span>-n<span class="w"> </span>-t<span class="w"> </span><span class="s2">"America/Vancouver"</span>
 </span></code></pre></div>
 <p>Replace <code>America/Vancouver</code> with your local <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">TZ database time zone</a>.</p>
 <p>The <code>-n</code> option enables Docker host networking, which removes the network isolation between the container and the host. This allows the driver's network services to be accessed directly through the host's network interfaces. For most users, <strong>use <code>-n</code></strong>. It is required when using Alpaca Pilot, Stellarium, or another client on a different computer or device to connect to the driver running in the Docker container.</p>
-<h3 id="connecting-to-the-driver">Connecting to the driver<a class="headerlink" href="#connecting-to-the-driver" title="Permanent link">&para;</a></h3>
+<h3 id="connecting-to-the-driver">Connecting to the Driver<a class="headerlink" href="#connecting-to-the-driver" title="Permanent link">&para;</a></h3>
 <p>The Alpaca Pilot web interface can be accessed from a web browser by navigating to the driver's mDNS hostname, <code>ap.local</code> by default. This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the <code>-n</code> option and the firewall rule above are in place. Enter <code>ap.local</code> in your browser's address bar. </p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>http://ap.local
 </span></code></pre></div>
@@ -2153,7 +2300,7 @@
 <li><strong>Windows / WSL:</strong> <code>ipconfig</code></li>
 <li><strong>macOS / Linux / Raspberry Pi:</strong> <code>ip addr</code> or <code>hostname -I</code></li>
 </ul>
-<h3 id="network-ports">Network ports<a class="headerlink" href="#network-ports" title="Permanent link">&para;</a></h3>
+<h3 id="network-ports">Network Ports<a class="headerlink" href="#network-ports" title="Permanent link">&para;</a></h3>
 <p>With the driver running, the following services are available:</p>
 <table>
 <thead>
@@ -2201,11 +2348,11 @@
 </tr>
 </tbody>
 </table>
-<h3 id="using-a-dedicated-wi-fi-adapter-with-the-benro-polaris">Using a dedicated Wi-Fi adapter with the Benro Polaris<a class="headerlink" href="#using-a-dedicated-wi-fi-adapter-with-the-benro-polaris" title="Permanent link">&para;</a></h3>
+<h3 id="dedicated-wi-fi-adapter">Dedicated Wi-Fi Adapter<a class="headerlink" href="#dedicated-wi-fi-adapter" title="Permanent link">&para;</a></h3>
 <p>If your computer needs a dedicated USB Wi-Fi adapter to communicate with the Benro Polaris, connect that adapter to the Polaris <code>polaris_XXXXXX</code> hotspot as normal.</p>
 <p>The driver can communicate with the Polaris through one network interface while making its services available through another. In other words, the computer does not need to be connected to the Polaris and the rest of your network through the same Wi-Fi adapter.</p>
-<p>See <a href=".././hardware/#using-a-laptop-with-stellarium-desktop">Hardware — Using a laptop with Stellarium Desktop</a> for more information.</p>
-<h1 id="5-configuration-data-and-logs">5. Configuration Data and Logs<a class="headerlink" href="#5-configuration-data-and-logs" title="Permanent link">&para;</a></h1>
+<p>See <a href=".././architecture/#laptop">Architecture — Laptop with Stellarium Desktop</a> for more information.</p>
+<h2 id="configuration-data-and-logs">Configuration Data and Logs<a class="headerlink" href="#configuration-data-and-logs" title="Permanent link">&para;</a></h2>
 <p>Alpaca Pilot settings are stored as an overlay on top of the driver's shipped default configuration. The driver also generates and stores persistent data such as:</p>
 <ul>
 <li>calibration data</li>
@@ -2332,7 +2479,7 @@
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>

@@ -101,7 +101,9 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
       
@@ -190,14 +192,8 @@
     </div>
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -276,6 +272,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -285,34 +289,6 @@
           
   
   Using the Driver
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../troubleshooting/" class="md-tabs__link">
-          
-  
-  Help
 
         </a>
       </li>
@@ -374,18 +350,12 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../alpaca-api/" class="md-tabs__link">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   Reference
@@ -418,19 +388,15 @@
       
         
       
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../beta_results_v2.2/" class="md-tabs__link">
+        <a href="../troubleshooting/" class="md-tabs__link">
           
   
-  Project
+  Help
 
         </a>
       </li>
@@ -441,7 +407,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -617,7 +589,7 @@
   <span class="md-ellipsis">
     
   
-  Hardware Guide
+  Preparing the MiniPC
 
     
   </span>
@@ -719,6 +691,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#updating-the-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Updating the Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#starting-the-alpaca-pilot-app" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -730,10 +713,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#connecting-the-driver-to-polaris" class="md-nav__link">
+  <a href="#connecting-to-polaris" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Connecting the Driver to Polaris
+        Connecting to Polaris
       </span>
     </span>
   </a>
@@ -757,10 +740,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#updating-the-driver" class="md-nav__link">
+  <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Updating the Driver
+        Next Steps
       </span>
     </span>
   </a>
@@ -768,84 +751,34 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#imaging-with-alpaca-driver-v20-and-nina" class="md-nav__link">
+  <a href="#optional-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Imaging with Alpaca Driver V2.0 and NINA
+        Optional Steps
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Imaging with Alpaca Driver V2.0 and NINA">
+    <nav class="md-nav" aria-label="Optional Steps">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#setup-and-initialization" class="md-nav__link">
+  <a href="#stellarium-desktop" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Setup and Initialization
+        Stellarium Desktop
       </span>
     </span>
   </a>
   
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#focusing-alignment-and-targeting" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Focusing, Alignment and Targeting
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#imaging-sequence" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Imaging Sequence
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#optional-installations" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Optional Installations
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Optional Installations">
+    <nav class="md-nav" aria-label="Stellarium Desktop">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#installing-stellarium-optional" class="md-nav__link">
+  <a href="#installing-stellarium" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installing Stellarium (OPTIONAL)
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installing Stellarium (OPTIONAL)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#to-install-the-desktop-version-of-stellarium" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        To install the desktop version of Stellarium
+        Installing Stellarium
       </span>
     </span>
   </a>
@@ -853,10 +786,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#to-setup-stellarium-for-initial-use" class="md-nav__link">
+  <a href="#seting-up-stellarium" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        To Setup Stellarium for initial use
+        Seting up Stellarium
       </span>
     </span>
   </a>
@@ -869,10 +802,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#seting-up-sky-safari-pro-optional" class="md-nav__link">
+  <a href="#sky-safari-pro" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Seting up Sky Safari Pro (OPTIONAL)
+        Sky Safari Pro
       </span>
     </span>
   </a>
@@ -880,21 +813,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#installing-nina-optional" class="md-nav__link">
+  <a href="#installing-nina" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installing Nina (OPTIONAL)
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Software Architecture
+        Installing Nina
       </span>
     </span>
   </a>
@@ -1025,6 +947,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -1128,6 +1058,87 @@
   
   
     <li class="md-nav__item">
+      <a href="../dso-imaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../stellarium/" class="md-nav__link">
         
   
@@ -1209,14 +1220,41 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding/" class="md-nav__link">
+      <a href="../guiding-sync/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Using Guiding
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
 
     
   </span>
@@ -1245,6 +1283,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -1271,7 +1315,7 @@
   <span class="md-ellipsis">
     
   
-  Help
+  Release Notes
 
     
   </span>
@@ -1284,129 +1328,6 @@
         
           <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
             <label class="md-nav__title" for="__nav_4">
-              <span class="md-nav__icon md-icon"></span>
-              
-  
-  Help
-
-            </label>
-            <ul class="md-nav__list" data-md-scrollfix>
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Troubleshooting
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Frequently Asked Questions
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-            </ul>
-          </nav>
-        
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Release Notes
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1579,12 +1500,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1596,10 +1511,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1617,8 +1532,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_6">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1626,6 +1541,33 @@
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -1642,6 +1584,33 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
 
     
   </span>
@@ -1695,7 +1664,7 @@
   <span class="md-ellipsis">
     
   
-  Advanced Motion Control Guide
+  Control Reference
 
     
   </span>
@@ -1722,142 +1691,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Driver — Kinematics Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../quest_paper/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_alignment_mac_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_goto_response/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_drift/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC Drift — When to Learn, When to Apply
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+  Kinematics Reference
 
     
   </span>
@@ -1901,10 +1735,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -1916,17 +1746,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-  Project
+  Help
 
     
   </span>
@@ -1937,12 +1767,12 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_7">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
               <span class="md-nav__icon md-icon"></span>
               
   
-  Project
+  Help
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -1954,14 +1784,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.2/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.2
+  Troubleshooting
 
     
   </span>
@@ -1981,14 +1811,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.0/" class="md-nav__link">
+      <a href="../troubleshooting-install/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.0
+  Installation
 
     
   </span>
@@ -2008,14 +1838,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v1/" class="md-nav__link">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v1
+  Benro Polaris
 
     
   </span>
@@ -2035,14 +1865,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_agreement/" class="md-nav__link">
+      <a href="../troubleshooting-network/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Agreement
+  Network
 
     
   </span>
@@ -2062,14 +1892,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v2
+  NINA
 
     
   </span>
@@ -2089,14 +1919,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v1
+  Stellarium
 
     
   </span>
@@ -2116,68 +1946,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../podcast_2024_oct/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Podcast Oct 2024
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  MLAstro SAL-33
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benro/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benro Sponsorship
+  Frequently Asked Questions
 
     
   </span>
@@ -2262,6 +2038,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#updating-the-driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Updating the Driver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#starting-the-alpaca-pilot-app" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2273,10 +2060,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#connecting-the-driver-to-polaris" class="md-nav__link">
+  <a href="#connecting-to-polaris" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Connecting the Driver to Polaris
+        Connecting to Polaris
       </span>
     </span>
   </a>
@@ -2300,10 +2087,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#updating-the-driver" class="md-nav__link">
+  <a href="#next-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Updating the Driver
+        Next Steps
       </span>
     </span>
   </a>
@@ -2311,84 +2098,34 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#imaging-with-alpaca-driver-v20-and-nina" class="md-nav__link">
+  <a href="#optional-steps" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Imaging with Alpaca Driver V2.0 and NINA
+        Optional Steps
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Imaging with Alpaca Driver V2.0 and NINA">
+    <nav class="md-nav" aria-label="Optional Steps">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#setup-and-initialization" class="md-nav__link">
+  <a href="#stellarium-desktop" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Setup and Initialization
+        Stellarium Desktop
       </span>
     </span>
   </a>
   
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#focusing-alignment-and-targeting" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Focusing, Alignment and Targeting
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#imaging-sequence" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Imaging Sequence
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#optional-installations" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Optional Installations
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Optional Installations">
+    <nav class="md-nav" aria-label="Stellarium Desktop">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#installing-stellarium-optional" class="md-nav__link">
+  <a href="#installing-stellarium" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installing Stellarium (OPTIONAL)
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installing Stellarium (OPTIONAL)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#to-install-the-desktop-version-of-stellarium" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        To install the desktop version of Stellarium
+        Installing Stellarium
       </span>
     </span>
   </a>
@@ -2396,10 +2133,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#to-setup-stellarium-for-initial-use" class="md-nav__link">
+  <a href="#seting-up-stellarium" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        To Setup Stellarium for initial use
+        Seting up Stellarium
       </span>
     </span>
   </a>
@@ -2412,10 +2149,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#seting-up-sky-safari-pro-optional" class="md-nav__link">
+  <a href="#sky-safari-pro" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Seting up Sky Safari Pro (OPTIONAL)
+        Sky Safari Pro
       </span>
     </span>
   </a>
@@ -2423,21 +2160,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#installing-nina-optional" class="md-nav__link">
+  <a href="#installing-nina" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installing Nina (OPTIONAL)
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#software-architecture" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Software Architecture
+        Installing Nina
       </span>
     </span>
   </a>
@@ -2537,13 +2263,13 @@
 
 
 <h1 id="installation-guide">Installation Guide<a class="headerlink" href="#installation-guide" title="Permanent link">&para;</a></h1>
-<p><a href="#to-install-on-windows-1011">Microsoft Win11</a> | <a href=".././installation_macos/">Apple MacOS</a> | <a href=".././raspberrypi/">Raspberry Pi</a> | 
-<a href="#starting-the-alpaca-pilot-app">Startup</a> | 
-<a href="#imaging-with-alpaca-driver-v20-and-nina">Workflow</a> | 
-<a href="#installing-stellarium-optional">Stellarium</a> | 
-<a href="#seting-up-sky-safari-pro-optional">Sky Safari</a> | 
-<a href="#installing-nina-optional">Nina</a> | 
-<a href="#software-architecture">Architecture</a> </p>
+<p><a href="#to-install-on-windows-1011">Microsoft Win11</a> · <a href=".././installation_macos/">Apple MacOS</a> · <a href=".././raspberrypi/">Raspberry Pi</a> ·
+<a href="#starting-the-alpaca-pilot-app">Startup</a> ·
+<a href=".././dso-imaging/">Deep-Sky Imaging</a> ·
+<a href="#stellarium-desktop">Stellarium</a> ·
+<a href="#sky-safari-pro">Sky Safari</a> ·
+<a href="#installing-nina">Nina</a> ·
+<a href=".././architecture/">Architecture</a></p>
 <h2 id="software-installation">Software Installation<a class="headerlink" href="#software-installation" title="Permanent link">&para;</a></h2>
 <h3 id="to-install-on-windows-1011">To Install on Windows 10/11<a class="headerlink" href="#to-install-on-windows-1011" title="Permanent link">&para;</a></h3>
 <p>You can view a demonstration of parts of this documentation in the following YouTube Video.</p>
@@ -2582,8 +2308,8 @@ You can optionally specify the version or Git branch to install. In this example
 </ul>
 <p>When installation is complete, the driver should be up and running, and the script displays the address of the Alpaca Pilot App.</p>
 <p>By default, the driver is installed in <code>C:\Users\&lt;Username&gt;\alpaca-benro-polaris</code></p>
-<p>If the driver does not start automatically, see <a href=".././troubleshooting/#a8---the-driver-does-not-start-at-boot">Troubleshooting A8</a>.</p>
-<p><details>
+<p>If the driver does not start automatically, see <a href=".././troubleshooting-install/#a8---no-start-at-boot">Troubleshooting A8</a>.</p>
+<p><details markdown="1">
 <summary>Advanced options</summary></p>
 <p>You can provide additional options when running <code>setup.bat</code>. For example:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>setup.bat -d D:\Astro\Bin\alpaca-benro-polaris dev2_2
@@ -2642,6 +2368,16 @@ You can optionally specify the version or Git branch to install. In this example
 </details>
 </li>
 </ol>
+<h3 id="updating-the-driver">Updating the Driver<a class="headerlink" href="#updating-the-driver" title="Permanent link">&para;</a></h3>
+<p>To update the Alpaca Driver to the latest version, repeat <strong>step 4</strong> above.</p>
+<p>The update process will:</p>
+<ol>
+<li>Stop the currently running driver.</li>
+<li>Download the latest version.</li>
+<li>Install any required updates.</li>
+<li>Restart the driver.</li>
+</ol>
+<p>Your existing settings and data, including alignment and calibration data, are preserved.</p>
 <h3 id="starting-the-alpaca-pilot-app">Starting the Alpaca Pilot App<a class="headerlink" href="#starting-the-alpaca-pilot-app" title="Permanent link">&para;</a></h3>
 <p>Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any web browser.</p>
 <ol>
@@ -2662,10 +2398,10 @@ You can optionally specify the version or Git branch to install. In this example
 </li>
 <li>
 <p><strong>(Optional) Enable HTTPS</strong></p>
-<p>Browser features like Location and Clipboard access only work over a secure (HTTPS) connection. If you need them, follow the <a href=".././pilot/#g-using-alpaca-pilot-over-https">Pilot User Guide – Using Alpaca Pilot over HTTPS</a> to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.</p>
+<p>Browser features like Location and Clipboard access only work over a secure (HTTPS) connection. If you need them, follow the <a href=".././pilot/#using-https">Pilot User Guide – Using Alpaca Pilot over HTTPS</a> to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.</p>
 </li>
 </ol>
-<h3 id="connecting-the-driver-to-polaris">Connecting the Driver to Polaris<a class="headerlink" href="#connecting-the-driver-to-polaris" title="Permanent link">&para;</a></h3>
+<h3 id="connecting-to-polaris">Connecting to Polaris<a class="headerlink" href="#connecting-to-polaris" title="Permanent link">&para;</a></h3>
 <p>Before you can use the Polaris, complete the following steps.</p>
 <ol>
 <li>
@@ -2675,12 +2411,12 @@ You can optionally specify the version or Git branch to install. In this example
 <li>
 <p><strong>Set up and power on the Polaris</strong></p>
 <p>Set up your Benro Polaris tripod head and turn on the device.</p>
-<p>If you cannot turn on the Polaris, see <a href=".././troubleshooting/#b1---cannot-start-the-benro-polaris-device">Troubleshooting B1</a>.</p>
+<p>If you cannot turn on the Polaris, see <a href=".././troubleshooting-polaris/#b1---polaris-wont-start">Troubleshooting B1</a>.</p>
 </li>
 <li>
 <p><strong>Complete the connection procedure</strong></p>
 <p>On the <strong>Connect</strong> page in the Alpaca Pilot App, follow each step indicated by a checkmark.</p>
-<p>For detailed instructions, see the <a href=".././pilot/#ii-connecting-devices">Pilot User Guide – Connecting Devices</a>.</p>
+<p>For detailed instructions, see the <a href=".././pilot/#connecting-polaris">Pilot User Guide – Connecting Devices</a>.</p>
 <p>Make sure all applicable checkmarks are green. The final <strong>Multi-Point Alignment</strong> step will remain incomplete until you have successfully aligned on three or more stars.</p>
 </li>
 <li>
@@ -2693,153 +2429,16 @@ You can optionally specify the version or Git branch to install. In this example
 </li>
 </ol>
 <h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<p>If you do not see the <code>communications init... done</code> message, see <a href=".././troubleshooting/#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected">Troubleshooting C1</a> for steps to diagnose and resolve connection problems.</p>
-<h2 id="updating-the-driver">Updating the Driver<a class="headerlink" href="#updating-the-driver" title="Permanent link">&para;</a></h2>
-<p>To update the Alpaca Driver to the latest version, repeat <strong>steps 1–3</strong> above.</p>
-<p>The update process will:</p>
-<ol>
-<li>Stop the currently running driver.</li>
-<li>Download the latest version.</li>
-<li>Install any required updates.</li>
-<li>Restart the driver.</li>
-</ol>
-<p>Your existing settings and data, including alignment and calibration data, are preserved.</p>
-<h2 id="imaging-with-alpaca-driver-v20-and-nina">Imaging with Alpaca Driver V2.0 and NINA<a class="headerlink" href="#imaging-with-alpaca-driver-v20-and-nina" title="Permanent link">&para;</a></h2>
-<p>This workflow outlines a typical imaging session using <strong>Alpaca Driver V2.0</strong> with <strong>NINA</strong> and the <strong>Benro Polaris</strong> mount. It assumes you’re already familiar with operating <strong>Alpaca Pilot</strong> and <strong>NINA</strong>. For additional setup and operational guidance on these topics, refer to the documentation for <a href=".././pilot/">Alpaca Pilot</a> and <a href=".././nina/">NINA</a>.</p>
-<h3 id="setup-and-initialization">Setup and Initialization<a class="headerlink" href="#setup-and-initialization" title="Permanent link">&para;</a></h3>
-<ol>
-<li>
-<p><strong>Start Alpaca Driver</strong><br />
-    The driver starts by itself when the PC starts. If you skipped that during installation, launch it by double-clicking the desktop shortcut.</p>
-</li>
-<li>
-<p><strong>Open Alpaca Pilot</strong><br />
-    In your browser, navigate to the Alpaca Pilot App.</p>
-</li>
-<li>
-<p><strong>Power On Polaris</strong><br />
-    Use a short press followed by a long press to power on the mount.</p>
-</li>
-<li>
-<p><strong>Confirm Wi-Fi Connectivity</strong><br />
-    Monitor your Mini-PC wifi and confirm it maintains a stable connection to Polaris.</p>
-</li>
-<li>
-<p><strong>Connect and Configure Polaris</strong><br />
-    In the Pilot Connect page:</p>
-<ul>
-<li>Set <strong>Astro Mode</strong></li>
-<li><strong>Reset all axes</strong> and wait for completion</li>
-<li><strong>Skip compass alignment</strong></li>
-<li><strong>Skip single-star alignment</strong></li>
-</ul>
-</li>
-</ol>
-<h3 id="focusing-alignment-and-targeting">Focusing, Alignment and Targeting<a class="headerlink" href="#focusing-alignment-and-targeting" title="Permanent link">&para;</a></h3>
-<ol>
-<li>
-<p><strong>Point to Celestrial Polar Area</strong><br />
-    Using Pilot Alpaca or Nina:</p>
-<ul>
-<li>Slew the mount to approximately point towards your Celestrial Pole (either North or South)</li>
-<li>This initial orientation does not need to be accurate</li>
-<li>Having a high or low Declination reduces star movement for the next step</li>
-</ul>
-</li>
-<li>
-<p><strong>Initial Focus</strong>  </p>
-<ul>
-<li>Use your <strong>Camera and lens</strong> to achieve a rough focus</li>
-<li>Run <strong>NINA’s Autofocus</strong> process for a precise focus.</li>
-<li>Optionally, if you are using guiding, focus and align your Guide Scope as well.</li>
-</ul>
-</li>
-<li>
-<p><strong>First Plate Solve (anywhere for Single Point Alignment)</strong><br />
-    In NINA’s Image tab, </p>
-<ul>
-<li>Click on <strong>Start Tracking</strong></li>
-<li>Open the Plate Solving panel</li>
-<li>Manually plate-solve and sync to achieve intial alignment.</li>
-</ul>
-</li>
-<li>
-<p><strong>Second Plate Solve (at Pole for Multi Point Alignment)</strong><br />
-    In Alpaca Pilot:</p>
-<ul>
-<li>Enable <strong>Multi-Point Alignment</strong></li>
-<li>Search for 'pole' in the Alpaca Pilot Catalog</li>
-<li>GOTO your local Celestrial Pole and wait for the mount to settle.</li>
-</ul>
-<p>Using Nina:</p>
-<ul>
-<li>Initiate a second plate solve at the Celestrial Pole</li>
-</ul>
-</li>
-<li>
-<p><strong>Third Plate Solve (at Future Target for Multi-Point Alignment)</strong><br />
-    In Alpaca Pilot:</p>
-<ul>
-<li>GOTO your imaging target from the catalog</li>
-<li>Decrease the Right Ascensian axis by 1 or 2 hours </li>
-<li>Once settled, run a third plate-solve in NINA</li>
-</ul>
-</li>
-<li>
-<p><strong>Fourth Plate Solve (framing Your Target)</strong><br />
-    Use NINA’s Sky Atlas or Stellarium to locate your target.  </p>
-<ul>
-<li>Send it to <strong>Framing Assistant</strong>, and view it on Nina's <strong>Offline Sky Map</strong></li>
-<li>Use <strong>Slew and Center</strong> to refine positioning via iterative plate-solves.</li>
-<li>Select <strong>Add Target to Sequence</strong>, <strong>Legacy Sequencer</strong></li>
-</ul>
-</li>
-</ol>
-<h3 id="imaging-sequence">Imaging Sequence<a class="headerlink" href="#imaging-sequence" title="Permanent link">&para;</a></h3>
-<ol>
-<li>
-<p><strong>Create a Sequence</strong><br />
-    In NINA’s Legacy Sequencer:</p>
-<ul>
-<li>Define image count (e.g., 150) and exposure time (e.g., 30 s)  </li>
-<li>If not guiding, enable <strong>Slew and Center Target</strong> every 20–30 frames (manually or via Advanced Scheduler)</li>
-</ul>
-</li>
-<li>
-<p><strong>Start the Imaging Sequence</strong><br />
-    Begin the sequence from NINA’s Image tab and monitor the first few frames. Let the process settle and zoom into the image view to monitor roundness of stars and tracking quality.</p>
-</li>
-<li>
-<p><strong>Refine Tracking and Alignment</strong><br />
-    You can assess and refine tracking performance using the <strong>Alpaca PID Tuning</strong> and <strong>Alignment</strong> pages:</p>
-<ul>
-<li>
-<p>PID Tuning Page</p>
-<ul>
-<li><strong>Angular Position (PV vs SP)</strong>: PV should closely follow a steady SP ramp on all axes for accurate tracking. Changing to equatorial co-ordinate view will show a steady horizontal SP for Right Ascension, Declination, Position Angle.</li>
-<li><strong>Angular Velocity (OP)</strong>: OP should appear as a steady horizontal line, large oscillations may indicate instability. The PID controller will attempt to close any gaps.</li>
-<li><strong>RMS Error</strong>: This is a key performance statistic that provides a quick understanding of the tracking performance over the last 30 seconds. A value near <strong>2 arcseconds</strong> is ideal for high-quality tracking.</li>
-<li><strong>Pulse Guiding</strong>: Use <strong>equatorial coordinates</strong> to monitor corrections from guiding software. You should see the SP being "bumped" up and down to correct for guide star movement.</li>
-<li><strong>Advanced Tuning</strong>: Experienced users can adjust PID parameters to reduce oscillations and improve responsiveness.</li>
-</ul>
-</li>
-<li>
-<p>Alignment Page</p>
-<ul>
-<li><strong>Sync Point Residuals</strong>: Review residuals to identify misaligned points.</li>
-<li><strong>Model Refinement</strong>: Delete sync points with large residuals to improve the Multi-Point Alignment model.</li>
-</ul>
-</li>
-</ul>
-</li>
-</ol>
-<h2 id="optional-installations">Optional Installations<a class="headerlink" href="#optional-installations" title="Permanent link">&para;</a></h2>
-<h3 id="installing-stellarium-optional">Installing Stellarium (OPTIONAL)<a class="headerlink" href="#installing-stellarium-optional" title="Permanent link">&para;</a></h3>
+<p>If you do not see the <code>communications init... done</code> message, see <a href=".././troubleshooting-network/#c1a---wi-fi-2-not-connected">Troubleshooting C1</a> for steps to diagnose and resolve connection problems.</p>
+<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<p>To plan and run an imaging session, see <a href=".././dso-imaging/">Deep-Sky Imaging</a> and <a href=".././planetary/">Planetary Imaging</a>.</p>
+<h2 id="optional-steps">Optional Steps<a class="headerlink" href="#optional-steps" title="Permanent link">&para;</a></h2>
+<h3 id="stellarium-desktop">Stellarium Desktop<a class="headerlink" href="#stellarium-desktop" title="Permanent link">&para;</a></h3>
 <p>Stellarium is a free open-source planetarium for your computer. 
 While there are free and paid Mobile Stelarium Apps and free Web versions, 
 I'd recommend using the desktop version as it is full-featured and has been 
 tested with the Alpaca Driver.</p>
-<h4 id="to-install-the-desktop-version-of-stellarium">To install the desktop version of Stellarium<a class="headerlink" href="#to-install-the-desktop-version-of-stellarium" title="Permanent link">&para;</a></h4>
+<h4 id="installing-stellarium">Installing Stellarium<a class="headerlink" href="#installing-stellarium" title="Permanent link">&para;</a></h4>
 <ol>
 <li>Download the relevant desktop version from <a href="https://stellarium.org/en/">https://stellarium.org/en/</a></li>
 <li>The remaining instructions assume you are using v24.2 of the Windows x86 64bit version for Windows 10+</li>
@@ -2852,7 +2451,7 @@ tested with the Alpaca Driver.</p>
 <li>Click <code>Install</code>.</li>
 <li>Check <code>Launch Stellarium</code> and click <code>Finish</code>.</li>
 </ol>
-<h4 id="to-setup-stellarium-for-initial-use">To Setup Stellarium for initial use<a class="headerlink" href="#to-setup-stellarium-for-initial-use" title="Permanent link">&para;</a></h4>
+<h4 id="seting-up-stellarium">Seting up Stellarium<a class="headerlink" href="#seting-up-stellarium" title="Permanent link">&para;</a></h4>
 <ol>
 <li>Press <code>F11</code> to exit full-screen mode.</li>
 <li>Press <code>A</code> to remove the Atmosphere. Press <code>D</code>to see Deep Sky Objects.</li>
@@ -2862,15 +2461,12 @@ tested with the Alpaca Driver.</p>
 <li>If you are copying Oculars settings, duplicate the following file:
     <code>C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini</code></li>
 </ol>
-<h3 id="seting-up-sky-safari-pro-optional">Seting up Sky Safari Pro (OPTIONAL)<a class="headerlink" href="#seting-up-sky-safari-pro-optional" title="Permanent link">&para;</a></h3>
+<h3 id="sky-safari-pro">Sky Safari Pro<a class="headerlink" href="#sky-safari-pro" title="Permanent link">&para;</a></h3>
 <p>The following screen captures show the settings you need to use for Sky Safari Pro to work with the Alpaca Driver. Choose an Mount as Alt-Az , Brand as Celestron NexStar 5i/i8 , IP Address 192.168.0.3, Port 10001, Preset Name as Polaris and Save Preset.</p>
 <p><img alt="Sky Safari Pro" src="../images/abp-sky-safari.png" /></p>
-<h3 id="installing-nina-optional">Installing Nina (OPTIONAL)<a class="headerlink" href="#installing-nina-optional" title="Permanent link">&para;</a></h3>
+<h3 id="installing-nina">Installing Nina<a class="headerlink" href="#installing-nina" title="Permanent link">&para;</a></h3>
 <p>Nina is an open-source free software application covering image capture, autofocus, plate-solving, centering, star detection, guiding, and a lot more. Much of this now works with the Benro Polaris (well not guiding yet). The open-source nature makes it a bit more complicated to install and setup, but it's worth the effort - and it's free.</p>
 <p>The <a href="https://astrowhat.com/">Astro What</a> website has a good set of instructions for <a href="https://astrowhat.com/articles/setting-up-a-pc-with-n-i-n-a.18/page/installing-n-i-n-a.45/">Installing Nina and its Pre-requisiites</a>. </p>
-<h3 id="software-architecture">Software Architecture<a class="headerlink" href="#software-architecture" title="Permanent link">&para;</a></h3>
-<p>The following diagram is provided as a reference to help you undersdtand how the different software modules fit together.</p>
-<p><img alt="Software Layers" src="../images/abp-software-layers.png" /></p>
 
 
 
@@ -2910,7 +2506,7 @@ tested with the Alpaca Driver.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../hardware/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Hardware Guide">
+          <a href="../hardware/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Preparing the MiniPC">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -2920,7 +2516,7 @@ tested with the Alpaca Driver.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Hardware Guide
+                Preparing the MiniPC
               </div>
             </div>
           </a>
@@ -2978,7 +2574,7 @@ tested with the Alpaca Driver.</p>
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>

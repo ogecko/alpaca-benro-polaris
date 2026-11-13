@@ -4,25 +4,10 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/ML_Astro_SAL-33/</loc>
-      </url>
-      <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/alpaca-api/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/benro/</loc>
-      </url>
-      <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/beta_agreement/</loc>
-      </url>
-      <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/beta_results_v1/</loc>
-      </url>
-      <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/beta_results_v2.0/</loc>
-      </url>
-      <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/beta_results_v2.2/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/architecture/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/catalog/</loc>
@@ -37,10 +22,7 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/docker/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/facebook_pccgg_v1/</loc>
-      </url>
-      <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/facebook_pccgg_v2/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/dso-imaging/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/faq/</loc>
@@ -49,7 +31,10 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/getting-started/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding-pulse/</loc>
+      </url>
+      <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding-sync/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/hardware/</loc>
@@ -67,16 +52,19 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/nina/</loc>
       </url>
       <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/orbitals/</loc>
+      </url>
+      <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/panoramas/</loc>
+      </url>
+      <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/pilot-api/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/pilot/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/podcast_2024_oct/</loc>
-      </url>
-      <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/quest_paper/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/planetary/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/raspberrypi/</loc>
@@ -100,16 +88,19 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/stellarium/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/study_alignment_mac_v2/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting-install/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/study_goto_response/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting-network/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/study_pec_drift/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting-nina/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/study_pec_motor_space_v2/</loc>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting-polaris/</loc>
+      </url>
+      <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting-stellarium/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting/</loc>

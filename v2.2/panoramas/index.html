@@ -19,7 +19,7 @@
         <link rel="prev" href="../pilot/">
       
       
-        <link rel="next" href="../stellarium/">
+        <link rel="next" href="../dso-imaging/">
       
       
         
@@ -101,7 +101,9 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
       
@@ -190,14 +192,8 @@
     </div>
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -276,6 +272,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -285,34 +289,6 @@
           
   
   Using the Driver
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../troubleshooting/" class="md-tabs__link">
-          
-  
-  Help
 
         </a>
       </li>
@@ -374,18 +350,12 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../alpaca-api/" class="md-tabs__link">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   Reference
@@ -418,19 +388,15 @@
       
         
       
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../beta_results_v2.2/" class="md-tabs__link">
+        <a href="../troubleshooting/" class="md-tabs__link">
           
   
-  Project
+  Help
 
         </a>
       </li>
@@ -441,7 +407,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -612,7 +584,7 @@
   <span class="md-ellipsis">
     
   
-  Hardware Guide
+  Preparing the MiniPC
 
     
   </span>
@@ -764,6 +736,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -902,22 +882,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-why-use-the-alpaca-driver-for-panoramas" class="md-nav__link">
+  <a href="#why-use-the-alpaca-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        1. Why Use the Alpaca Driver for Panoramas
+        Why Use the Alpaca Driver
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Why Use the Alpaca Driver for Panoramas">
+    <nav class="md-nav" aria-label="Why Use the Alpaca Driver">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-three-problems-pilot-solves" class="md-nav__link">
+  <a href="#problems-it-solves" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        The three problems Pilot solves
+        Problems It Solves
       </span>
     </span>
   </a>
@@ -928,7 +908,7 @@
   <a href="#what-else-you-get" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        What else you get
+        What Else You Get
       </span>
     </span>
   </a>
@@ -941,22 +921,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-defining-a-panorama-grid" class="md-nav__link">
+  <a href="#defining-a-grid" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2. Defining a Panorama Grid
+        Defining a Grid
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. Defining a Panorama Grid">
+    <nav class="md-nav" aria-label="Defining a Grid">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#21-defining-the-grid-using-alpaca-pilot" class="md-nav__link">
+  <a href="#using-alpaca-pilot" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2.1 Defining the Grid Using Alpaca Pilot
+        Using Alpaca Pilot
       </span>
     </span>
   </a>
@@ -964,22 +944,38 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#22-defining-the-grid-programatically" class="md-nav__link">
+  <a href="#programmatically" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2.2 Defining the Grid Programatically
+        Programmatically
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2.2 Defining the Grid Programatically">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#previewing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Previewing
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Previewing">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#using-nina-advanced-sequencer" class="md-nav__link">
+  <a href="#spacing-calculator" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <strong>Using NINA Advanced Sequencer</strong>
+        Spacing Calculator
       </span>
     </span>
   </a>
@@ -987,18 +983,24 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#using-ccdceil-sequencer" class="md-nav__link">
+  <a href="#checking-overlap" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <strong>Using CCDCeil Sequencer</strong>
+        Checking Overlap
       </span>
     </span>
   </a>
   
 </li>
         
-      </ul>
-    </nav>
+          <li class="md-nav__item">
+  <a href="#checking-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Checking Coverage
+      </span>
+    </span>
+  </a>
   
 </li>
         
@@ -1008,22 +1010,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-previewing-the-panorama" class="md-nav__link">
+  <a href="#capturing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3. Previewing the Panorama
+        Capturing
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Previewing the Panorama">
+    <nav class="md-nav" aria-label="Capturing">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#31-panel-spacing-calculator" class="md-nav__link">
+  <a href="#capturing-with-nina" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3.1 Panel Spacing Calculator
+        Capturing with NINA
       </span>
     </span>
   </a>
@@ -1031,10 +1033,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#32-verifying-actual-panel-overlap" class="md-nav__link">
+  <a href="#landscape-foreground" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3.2 Verifying actual Panel overlap
+        Landscape Foreground
       </span>
     </span>
   </a>
@@ -1042,10 +1044,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#33-verifying-panorama-coverage" class="md-nav__link">
+  <a href="#sky-background" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3.3 Verifying panorama coverage
+        Sky Background
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moon-and-orbitals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Moon and Orbitals
       </span>
     </span>
   </a>
@@ -1058,71 +1071,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-capturing-the-panorama" class="md-nav__link">
+  <a href="#stitching" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        4 Capturing the Panorama
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4 Capturing the Panorama">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#41-capturing-a-set-of-panels-with-nina" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.1 Capturing a set of panels with Nina
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#42-capturing-the-landscape-foreground" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.2 Capturing the Landscape Foreground
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#43-capturing-the-sky-background" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.3 Capturing the Sky Background
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#44-capturing-the-moon-or-other-orbitals" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.4 Capturing the Moon or Other Orbitals
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-stitching-the-panorama" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        5. Stitching the Panorama
+        Stitching
       </span>
     </span>
   </a>
@@ -1130,10 +1082,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-closing-notes" class="md-nav__link">
+  <a href="#closing-notes" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        6. Closing Notes
+        Closing Notes
       </span>
     </span>
   </a>
@@ -1144,6 +1096,87 @@
   
 </nav>
       
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dso-imaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1237,14 +1270,41 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding/" class="md-nav__link">
+      <a href="../guiding-sync/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Using Guiding
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
 
     
   </span>
@@ -1273,6 +1333,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -1299,7 +1365,7 @@
   <span class="md-ellipsis">
     
   
-  Help
+  Release Notes
 
     
   </span>
@@ -1312,129 +1378,6 @@
         
           <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
             <label class="md-nav__title" for="__nav_4">
-              <span class="md-nav__icon md-icon"></span>
-              
-  
-  Help
-
-            </label>
-            <ul class="md-nav__list" data-md-scrollfix>
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Troubleshooting
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Frequently Asked Questions
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-            </ul>
-          </nav>
-        
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Release Notes
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1607,12 +1550,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1624,10 +1561,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1645,8 +1582,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_6">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1654,6 +1591,33 @@
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -1670,6 +1634,33 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
 
     
   </span>
@@ -1723,7 +1714,7 @@
   <span class="md-ellipsis">
     
   
-  Advanced Motion Control Guide
+  Control Reference
 
     
   </span>
@@ -1750,142 +1741,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Driver — Kinematics Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../quest_paper/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_alignment_mac_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_goto_response/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_drift/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC Drift — When to Learn, When to Apply
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+  Kinematics Reference
 
     
   </span>
@@ -1929,10 +1785,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -1944,17 +1796,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-  Project
+  Help
 
     
   </span>
@@ -1965,12 +1817,12 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_7">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
               <span class="md-nav__icon md-icon"></span>
               
   
-  Project
+  Help
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -1982,14 +1834,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.2/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.2
+  Troubleshooting
 
     
   </span>
@@ -2009,14 +1861,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.0/" class="md-nav__link">
+      <a href="../troubleshooting-install/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.0
+  Installation
 
     
   </span>
@@ -2036,14 +1888,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v1/" class="md-nav__link">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v1
+  Benro Polaris
 
     
   </span>
@@ -2063,14 +1915,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_agreement/" class="md-nav__link">
+      <a href="../troubleshooting-network/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Agreement
+  Network
 
     
   </span>
@@ -2090,14 +1942,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v2
+  NINA
 
     
   </span>
@@ -2117,14 +1969,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v1
+  Stellarium
 
     
   </span>
@@ -2144,68 +1996,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../podcast_2024_oct/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Podcast Oct 2024
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  MLAstro SAL-33
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benro/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benro Sponsorship
+  Frequently Asked Questions
 
     
   </span>
@@ -2267,22 +2065,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-why-use-the-alpaca-driver-for-panoramas" class="md-nav__link">
+  <a href="#why-use-the-alpaca-driver" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        1. Why Use the Alpaca Driver for Panoramas
+        Why Use the Alpaca Driver
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Why Use the Alpaca Driver for Panoramas">
+    <nav class="md-nav" aria-label="Why Use the Alpaca Driver">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-three-problems-pilot-solves" class="md-nav__link">
+  <a href="#problems-it-solves" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        The three problems Pilot solves
+        Problems It Solves
       </span>
     </span>
   </a>
@@ -2293,7 +2091,7 @@
   <a href="#what-else-you-get" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        What else you get
+        What Else You Get
       </span>
     </span>
   </a>
@@ -2306,22 +2104,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-defining-a-panorama-grid" class="md-nav__link">
+  <a href="#defining-a-grid" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2. Defining a Panorama Grid
+        Defining a Grid
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. Defining a Panorama Grid">
+    <nav class="md-nav" aria-label="Defining a Grid">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#21-defining-the-grid-using-alpaca-pilot" class="md-nav__link">
+  <a href="#using-alpaca-pilot" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2.1 Defining the Grid Using Alpaca Pilot
+        Using Alpaca Pilot
       </span>
     </span>
   </a>
@@ -2329,22 +2127,38 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#22-defining-the-grid-programatically" class="md-nav__link">
+  <a href="#programmatically" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2.2 Defining the Grid Programatically
+        Programmatically
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2.2 Defining the Grid Programatically">
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#previewing" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Previewing
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Previewing">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#using-nina-advanced-sequencer" class="md-nav__link">
+  <a href="#spacing-calculator" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <strong>Using NINA Advanced Sequencer</strong>
+        Spacing Calculator
       </span>
     </span>
   </a>
@@ -2352,18 +2166,24 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#using-ccdceil-sequencer" class="md-nav__link">
+  <a href="#checking-overlap" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        <strong>Using CCDCeil Sequencer</strong>
+        Checking Overlap
       </span>
     </span>
   </a>
   
 </li>
         
-      </ul>
-    </nav>
+          <li class="md-nav__item">
+  <a href="#checking-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Checking Coverage
+      </span>
+    </span>
+  </a>
   
 </li>
         
@@ -2373,22 +2193,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-previewing-the-panorama" class="md-nav__link">
+  <a href="#capturing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3. Previewing the Panorama
+        Capturing
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Previewing the Panorama">
+    <nav class="md-nav" aria-label="Capturing">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#31-panel-spacing-calculator" class="md-nav__link">
+  <a href="#capturing-with-nina" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3.1 Panel Spacing Calculator
+        Capturing with NINA
       </span>
     </span>
   </a>
@@ -2396,10 +2216,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#32-verifying-actual-panel-overlap" class="md-nav__link">
+  <a href="#landscape-foreground" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3.2 Verifying actual Panel overlap
+        Landscape Foreground
       </span>
     </span>
   </a>
@@ -2407,10 +2227,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#33-verifying-panorama-coverage" class="md-nav__link">
+  <a href="#sky-background" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3.3 Verifying panorama coverage
+        Sky Background
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moon-and-orbitals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Moon and Orbitals
       </span>
     </span>
   </a>
@@ -2423,71 +2254,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-capturing-the-panorama" class="md-nav__link">
+  <a href="#stitching" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        4 Capturing the Panorama
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4 Capturing the Panorama">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#41-capturing-a-set-of-panels-with-nina" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.1 Capturing a set of panels with Nina
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#42-capturing-the-landscape-foreground" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.2 Capturing the Landscape Foreground
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#43-capturing-the-sky-background" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.3 Capturing the Sky Background
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#44-capturing-the-moon-or-other-orbitals" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        4.4 Capturing the Moon or Other Orbitals
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-stitching-the-panorama" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        5. Stitching the Panorama
+        Stitching
       </span>
     </span>
   </a>
@@ -2495,10 +2265,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-closing-notes" class="md-nav__link">
+  <a href="#closing-notes" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        6. Closing Notes
+        Closing Notes
       </span>
     </span>
   </a>
@@ -2561,6 +2331,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2593,15 +2371,22 @@
 
 
 <h1 id="creating-panoramas">Creating Panoramas<a class="headerlink" href="#creating-panoramas" title="Permanent link">&para;</a></h1>
+<p><a href="#why-use-the-alpaca-driver">Why the Alpaca Driver</a> ·
+<a href="#defining-a-grid">Defining a Grid</a> ·
+<a href="#previewing">Previewing</a> ·
+<a href="#capturing">Capturing</a> ·
+<a href="#stitching">Stitching</a></p>
+<p><img alt="A 13-panel Milky Way mosaic, framed in galactic co-ordinates with the Alpaca Driver's Panorama Grid" src="../images/milky-way-mosaic.jpg" /></p>
+<p><em>A 13-panel Milky Way mosaic, captured in two passes framed in galactic co-ordinates.</em></p>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/k7OoPk98UCk?t=4m57s">28 - Panorama Settings</a></p>
 <p>VIDEO DEMO: <a href="https://youtu.be/k7OoPk98UCk?t=25m08s">28 - Panoramas Workflows</a></p>
 </blockquote>
 <p>This guide explains how to plan, configure, and capture panoramas using the <strong>Alpaca Driver</strong>, with optional automation through <strong>NINA Advanced Sequencer</strong>. It is aimed at users who want deterministic, repeatable panorama capture for astrophotography and astro‑landscape imaging.</p>
-<h3 id="1-why-use-the-alpaca-driver-for-panoramas">1. Why Use the Alpaca Driver for Panoramas<a class="headerlink" href="#1-why-use-the-alpaca-driver-for-panoramas" title="Permanent link">&para;</a></h3>
+<h2 id="why-use-the-alpaca-driver">Why Use the Alpaca Driver<a class="headerlink" href="#why-use-the-alpaca-driver" title="Permanent link">&para;</a></h2>
 <p>The Benro Polaris <strong>Standard Panorama</strong> and <strong>Pro Panorama</strong> modes are excellent for quickly capturing wide-field panoramas: define the panorama, capture the panels in order, and stitch the result. NINA's <strong>Framing Assistant Mosaic Panels</strong> do a similar job for astronomical mosaics, and suit large deep sky objects that are captured as part of an imaging sequence.</p>
 <p>Wide Milky Way and astro-landscape panoramas are harder. You often want tracked stars, a foreground captured at a different time, and a composition you can return to later. The <strong>Alpaca Driver and the Pilot application</strong> are built for this. They make it much easier, and they avoid three problems you will run into when using only the Benro Connect mobile application.</p>
-<h4 id="the-three-problems-pilot-solves">The three problems Pilot solves<a class="headerlink" href="#the-three-problems-pilot-solves" title="Permanent link">&para;</a></h4>
+<h3 id="problems-it-solves">Problems It Solves<a class="headerlink" href="#problems-it-solves" title="Permanent link">&para;</a></h3>
 <ol>
 <li>
 <p><strong>Benro Connect loses its place.</strong> The app does not reliably save and restore its state (everything it knows about the current panorama orientation). To have any hope of returning to the same position, you must keep the phone unlocked with Benro Connect open the whole time. If the phone locks or you switch to another app for too long, that information can be lost. You then cannot truly return to an earlier position, and your panels will be misaligned.
@@ -2616,7 +2401,7 @@
     <strong>With Pilot:</strong> the panorama tools have a <strong>derotate</strong> option that turns the camera back before each panel. Even with tracked stars, the horizon stays level from one panel to the next, which makes stitching much easier.</p>
 </li>
 </ol>
-<h4 id="what-else-you-get">What else you get<a class="headerlink" href="#what-else-you-get" title="Permanent link">&para;</a></h4>
+<h3 id="what-else-you-get">What Else You Get<a class="headerlink" href="#what-else-you-get" title="Permanent link">&para;</a></h3>
 <p>The Alpaca Driver treats a panorama as a <strong>grid fixed in space</strong>, rather than a one-time capture. You can save the grid, revisit it, reorder it, change it while imaging, and reuse it across sessions. That suits projects where the foreground and sky are captured separately, often at different times and with different tracking needs.</p>
 <p>You can define the grid in whichever way fits the shot:</p>
 <ul>
@@ -2635,10 +2420,10 @@
 <li><strong>Preview and check</strong> – select individual panels before or during capture to confirm coverage, overlap and framing in the field.</li>
 </ul>
 <p>In short, the Benro Polaris panorama modes and NINA Mosaic Panels each solve part of the panorama problem. The Alpaca Driver combines them into one reusable system that keeps its place, survives re-alignment, and keeps foreground, sky and other layers precisely lined up.</p>
-<h2 id="2-defining-a-panorama-grid">2. Defining a Panorama Grid<a class="headerlink" href="#2-defining-a-panorama-grid" title="Permanent link">&para;</a></h2>
+<h2 id="defining-a-grid">Defining a Grid<a class="headerlink" href="#defining-a-grid" title="Permanent link">&para;</a></h2>
 <p>At the core of the Alpaca Driver’s panorama system is the concept of a single, deterministic panorama grid anchored in space. At any given time, exactly one panorama grid is active in the driver. This grid defines the geometry, ordering, tracking behaviour, and anchor position for all panorama-related slews.</p>
 <p>The active panorama grid can be defined or modified either interactively using Alpaca Pilot, or programmatically using NINA’s Advanced Sequencer. Regardless of how it is configured, the driver always operates against the same internal panorama grid.</p>
-<h3 id="21-defining-the-grid-using-alpaca-pilot">2.1 Defining the Grid Using Alpaca Pilot<a class="headerlink" href="#21-defining-the-grid-using-alpaca-pilot" title="Permanent link">&para;</a></h3>
+<h3 id="using-alpaca-pilot">Using Alpaca Pilot<a class="headerlink" href="#using-alpaca-pilot" title="Permanent link">&para;</a></h3>
 <p>Alpaca Pilot provides a visual and interactive way to define the panorama grid. The Panorama Settings card allows you to configure the grid geometry, panel order, tracking behaviour, and anchor position in one place.</p>
 <p>Changes made in Alpaca Pilot immediately update the active panorama grid in the driver. This makes it well suited to planning, experimentation, and on-site adjustment when refining framing and overlap.</p>
 <p><img alt="Alpaca Pilot Pano Settings" src="../images/pilot-pano1.png" /></p>
@@ -2658,7 +2443,7 @@
 </li>
 </ul>
 <blockquote>
-<p>Note: Clipboard access is restricted in browsers and the Copy function will only work over HTTPS. Refer to the instructions below to <a href=".././pilot/#enable-https-in-alpaca-pilot">enable HTTPS in Alpaca Pilot</a>. </p>
+<p>Note: Clipboard access is restricted in browsers and the Copy function will only work over HTTPS. Refer to the instructions below to <a href=".././pilot/#using-https">enable HTTPS in Alpaca Pilot</a>. </p>
 </blockquote>
 <ul>
 <li>
@@ -2742,14 +2527,14 @@
 <p><strong>Current Panel: <code>"panel":</code></strong> This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.</p>
 </li>
 </ul>
-<h3 id="22-defining-the-grid-programatically">2.2 Defining the Grid Programatically<a class="headerlink" href="#22-defining-the-grid-programatically" title="Permanent link">&para;</a></h3>
+<h3 id="programmatically">Programmatically<a class="headerlink" href="#programmatically" title="Permanent link">&para;</a></h3>
 <p>In addition to configuring the Panorama Grid through Alpaca Pilot, the same grid can be defined programmatically using the <code>Polaris:PanoGrid</code> device action. Device actions are custom extensions to the Alpaca Driver that go beyond the ASCOM standard and expose higher-level behaviour.</p>
 <p>When executed, <code>Polaris:PanoGrid</code> updates the single active Panorama Grid maintained by the driver. Any parameters included in the action override the corresponding values in the current grid, while any parameters that are omitted are left unchanged. This allows a sequence to either fully define a new grid or make small, targeted adjustments to an existing one.</p>
 <p>Parameters are supplied in JSON format, enclosed in braces { }. Field names correspond directly to the panorama settings described earlier in this guide. Only the parameters you explicitly specify will be modified.</p>
 <blockquote>
 <p>Note: Defining or updating the Panorama Grid does not move the mount. The new grid settings are only applied when the driver is instructed to slew to a given panel or to advance to the next panel.</p>
 </blockquote>
-<h4 id="using-nina-advanced-sequencer"><strong>Using NINA Advanced Sequencer</strong><a class="headerlink" href="#using-nina-advanced-sequencer" title="Permanent link">&para;</a></h4>
+<p><strong>Using NINA Advanced Sequencer</strong></p>
 <p>To access Device Actions from the <strong>Nina Advanced Sequencer</strong> you must first install the <strong>Device Actions and Commands</strong> plug-in for Nina. Once installed, Device Actions become available in the Advanced Sequence Instructions list, located near the bottom of the instruction list under Utility.</p>
 <p>The <code>Polaris:PanoGrid</code> device action can then be added as an instruction in your sequence and it is typically placed near the beginning to initialise the Panorama Grid for a specific capture pass. When adding the Device Action, set the Device to Telescope, then select <code>Polaris:PanoGrid</code> from the action dropdown, where it appears near the bottom of the list.</p>
 <p>When used in a sequential instruction block, the block can be given a descriptive name (for example, “50 mm, 5×3,  Horizon-Locked Grid”) and saved as a template. This makes it easy to reuse consistent panorama grid definitions across multiple sessions or combine them into larger, multi-pass workflows.</p>
@@ -2761,13 +2546,13 @@
 <p><img alt="Alpaca Pilot Pano Settings" src="../images/pilot-panogrid3.png" /></p>
 <p>As a reference, the following JSON Parameters example shows all available fields that can be set using the <code>Polaris:PanoGrid</code> device action. In practice, you would typically specify only the parameters you need to change.
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>{ "cols":3, "rows":2, "hstep":40, "vstep":30, "first":0, "order":2, "track":0, "anchor":1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
-</span></code></pre></div></p>
-<h4 id="using-ccdceil-sequencer"><strong>Using CCDCeil Sequencer</strong><a class="headerlink" href="#using-ccdceil-sequencer" title="Permanent link">&para;</a></h4>
+</span></code></pre></div>
+<strong>Using CCDciel Sequencer</strong></p>
 <p>To define a Panorama Grid from CCDciel, make a script that sends the <code>Polaris:PanoGrid</code> device action and parameters to the Alpaca Driver, and add it as a script step in your plan (see <a href=".././ccdciel/#other-device-actions">Other Device Actions</a>).</p>
-<h2 id="3-previewing-the-panorama">3. Previewing the Panorama<a class="headerlink" href="#3-previewing-the-panorama" title="Permanent link">&para;</a></h2>
+<h2 id="previewing">Previewing<a class="headerlink" href="#previewing" title="Permanent link">&para;</a></h2>
 <p>Once a panorama grid is defined, you will probably want to verify its coverage and panel overlap. You can use the Alpaca Pilot Panel Navigation to do this. This displays a grid of <strong>Rows × Columns</strong>, numbered according to the selected panel order. The currently active panel is highlighted in blue, the next panel with a *, and the anchor panel with a ⚓. Clicking on a panel number will slew the mount to center on that panel.</p>
 <p><img alt="Alpaca Pilot Pano Navigation" src="../images/pilot-pano2.png" /></p>
-<h3 id="31-panel-spacing-calculator">3.1 Panel Spacing Calculator<a class="headerlink" href="#31-panel-spacing-calculator" title="Permanent link">&para;</a></h3>
+<h3 id="spacing-calculator">Spacing Calculator<a class="headerlink" href="#spacing-calculator" title="Permanent link">&para;</a></h3>
 <p>The Panorama Grid is designed to be simple, with the minimum number of parameters. It uses just two angular steps, <code>hstep</code> and <code>vstep</code> to define the spacing between panels. These fields effect the horizontal and vertical spacing of the panels from the cameras field of view.</p>
 <p>A calculator is provided calculate these properties:</p>
 <ul>
@@ -2782,7 +2567,7 @@
 <li>Click <code>Apply</code> to set the Rows, Columns, Horizontal Step and Vertical Step for the Panorama Grid. This will also store the Sensor Size, Focal Length and Overlap for next time you use the calculator.</li>
 </ul>
 <p><img alt="Astronomy Tools" src=".././images/pilot-panocalc.png" /></p>
-<h3 id="32-verifying-actual-panel-overlap">3.2 Verifying actual Panel overlap<a class="headerlink" href="#32-verifying-actual-panel-overlap" title="Permanent link">&para;</a></h3>
+<h3 id="checking-overlap">Checking Overlap<a class="headerlink" href="#checking-overlap" title="Permanent link">&para;</a></h3>
 <p>The actual panel overlap may differ from theoretical calculations, especially with wide-angle lenses. Use the verification procedure below to confirm with your setup before your imaging session begins.</p>
 <p>To check the horizontal and vertical overlap:</p>
 <ul>
@@ -2792,7 +2577,7 @@
 <li>Slew to the adjacent horizontal panel and check the overlap. Adjust <code>hstep</code> as needed.</li>
 <li>Repeat for vertical panels to confirm <code>vstep</code> ensures sufficient overlap.</li>
 </ul>
-<h3 id="33-verifying-panorama-coverage">3.3 Verifying panorama coverage<a class="headerlink" href="#33-verifying-panorama-coverage" title="Permanent link">&para;</a></h3>
+<h3 id="checking-coverage">Checking Coverage<a class="headerlink" href="#checking-coverage" title="Permanent link">&para;</a></h3>
 <p>Once on site, you can confirm that your panorama grid captures the full scene and desired foreground, and reaches the sky elevation needed for your selected celestial target.</p>
 <p>To check the horizontal extent of the scene:</p>
 <ul>
@@ -2813,13 +2598,13 @@
 <p>Note: Vertical Panoramas and Galactic Panoramas may span more than 90 degrees vertically. These angles will wrap over to the other side of the sky: Altitude 100° is Altitude 80° at the opposite Azimuth, Galactic Latitude 100° is Latitude 80° at Galactic Longitude + 180°, and a Declination past the celestial pole continues 12h round in RA. Past the top the camera is upside down, which covers the same rectangle of sky. See <a href="https://mymodernmet.com/vertical-panorama-landscape-geoff-decker/">Vertical Panoramas</a></p>
 <p>Note: The Polaris can't point above Altitude 81.5°. A panel whose centre falls between 81.5° and 90° (or between 90° and 98.5°, just over the top) is shot from 81.5° directly below its centre, up to 8.5° short of it, and with the camera level: the roll range shrinks with altitude (about ±64° at 70°, ±32° at 80°, 0° at 81.5°). When a grid passes near the zenith, check the panels next to it with Slew to Panel, and add overlap (a smaller vstep) or move the anchor so no panel centre lands in the zenith zone. Tracked panels high in the sky also can't follow field rotation in roll: shoot them first, or keep their exposures short.</p>
 </blockquote>
-<h2 id="4-capturing-the-panorama">4 Capturing the Panorama<a class="headerlink" href="#4-capturing-the-panorama" title="Permanent link">&para;</a></h2>
+<h2 id="capturing">Capturing<a class="headerlink" href="#capturing" title="Permanent link">&para;</a></h2>
 <p>Because the Alpaca Driver does not communicate directly with your camera, the process of slewing between panels and capturing images is handled by your imaging application, such as <strong>NINA</strong> or <strong>CCDCiel</strong>. To support this, the Alpaca Driver provides the <code>Polaris:PanoSlew</code> device action, which allows the imaging application to move the mount between panorama panels in a deterministic way.</p>
 <p>When executed with no parameters, <code>Polaris:PanoSlew</code> advances the mount to the next panel according to the grid’s defined sequence order. After the final panel is reached, the sequence wraps around and returns to panel 1.</p>
 <p>If you need to slew to a specific panel, you may supply a JSON parameter to the <code>Polaris:PanoSlew</code> device action, with the <code>panel</code> field set to the desired panel number. For example: <code>{"panel": 3}</code>. </p>
 <p>If you need to change which panel is considered “next” without immediately slewing the mount, you can use the <code>Polaris:PanoGrid</code> device action with the <code>panel</code> field set to the current (or prior) panel number. This updates the internal panel index without moving the mount. The next time <code>Polaris:PanoSlew</code> is executed without parameters, the driver will slew to the panel that follows the one you specified.</p>
 <p>The remainder of this section describes how to use <code>Polaris:PanoSlew</code> within NINA’s Advanced Sequencer to capture different types of panoramas.</p>
-<h3 id="41-capturing-a-set-of-panels-with-nina">4.1 Capturing a set of panels with Nina<a class="headerlink" href="#41-capturing-a-set-of-panels-with-nina" title="Permanent link">&para;</a></h3>
+<h3 id="capturing-with-nina">Capturing with NINA<a class="headerlink" href="#capturing-with-nina" title="Permanent link">&para;</a></h3>
 <p>A <em>panorama pass</em> consists of iterating over each panel in the active panorama grid exactly once and capturing one or more exposures at each position. In NINA, this is typically implemented using a Sequential Instruction Set with a loop.</p>
 <p>To configure a sequence that captures all panels:</p>
 <ul>
@@ -2841,7 +2626,7 @@
 </ul>
 <p><img alt="Alpaca Pilot Capturing Set of Panels" src="../images/pilot-pano-seq2loop.png" /></p>
 <p>This structure ensures that the mount advances to each panel in turn, captures a consistent set of exposures at that panel, and continues until the pass is complete.</p>
-<h3 id="42-capturing-the-landscape-foreground">4.2 Capturing the Landscape Foreground<a class="headerlink" href="#42-capturing-the-landscape-foreground" title="Permanent link">&para;</a></h3>
+<h3 id="landscape-foreground">Landscape Foreground<a class="headerlink" href="#landscape-foreground" title="Permanent link">&para;</a></h3>
 <p>The landscape foreground is typically captured as an <em>untracked</em>, <em>horizon-aligned</em> and usually occupies only the lower rows of the panorama grid. This layer is often captured earlier in the session, such as during twilight, when there is sufficient ambient light in the foreground. In some cases, foreground capture may also involve acquiring panels at multiple focus distances, allowing near and distant landscape features to be combined later using focus stacking techniques.</p>
 <p>A common approach is to use a nested Sequential Instruction Set that first configures the panorama grid and then performs the capture. This structure can be saved as a reusable template for future sessions.</p>
 <p>A typical panorama foreground workflow includes:</p>
@@ -2871,7 +2656,7 @@
 </li>
 </ul>
 <p><img alt="Alpaca Pilot Capturing Set of Panels" src="../images/pilot-pano-seq2fore.png" /></p>
-<h3 id="43-capturing-the-sky-background">4.3 Capturing the Sky Background<a class="headerlink" href="#43-capturing-the-sky-background" title="Permanent link">&para;</a></h3>
+<h3 id="sky-background">Sky Background<a class="headerlink" href="#sky-background" title="Permanent link">&para;</a></h3>
 <p>The sky background pass is usually captured later in the session and is typically tracked, allowing longer exposures and improved signal-to-noise. Depending on the composition, this pass may reuse the same grid geometry as the foreground or extend to additional rows at higher altitude. It may be horizon-locked to aid in aligning panels between foreground and background.</p>
 <p>The sequence structure is similar to the foreground pass, with key differences in PanoGrid and SmartExposure configuration.  A typical panorama sky workflow includes:</p>
 <ul>
@@ -2896,7 +2681,7 @@
 </ul>
 <p>Because the panorama grid is deterministic and persistent, the sky background pass will revisit the same panel centres as the foreground pass, even if the two passes are captured hours apart. This greatly simplifies later alignment, compositing, and stitching.</p>
 <p><img alt="Alpaca Pilot Capturing Set of Panels" src="../images/pilot-pano-seq2back.png" /></p>
-<h3 id="44-capturing-the-moon-or-other-orbitals">4.4 Capturing the Moon or Other Orbitals<a class="headerlink" href="#44-capturing-the-moon-or-other-orbitals" title="Permanent link">&para;</a></h3>
+<h3 id="moon-and-orbitals">Moon and Orbitals<a class="headerlink" href="#moon-and-orbitals" title="Permanent link">&para;</a></h3>
 <p>You can capture the Moon or other orbitals using the special Device Action <strong><code>Polaris:TrackOrbital</code></strong>, which instructs the mount to start tracking a specific celestial body. This action requires two parameters:</p>
 <ul>
 <li>
@@ -2919,7 +2704,7 @@
 </li>
 </ul>
 <p>A typical use case is to place this instruction within an outer loop so that, for example, the Moon can be captured after a certain number of panels. After executing <strong><code>Polaris:TrackOrbital</code></strong>, you should follow up with a <strong>Smart Exposure</strong> action to complete the capture.</p>
-<h2 id="5-stitching-the-panorama">5. Stitching the Panorama<a class="headerlink" href="#5-stitching-the-panorama" title="Permanent link">&para;</a></h2>
+<h2 id="stitching">Stitching<a class="headerlink" href="#stitching" title="Permanent link">&para;</a></h2>
 <p>Once you have captured all of the images for the panorama, you will need to use a dedicated <strong>stitching application</strong> to combine the individual panels into a single mosaic. These applications align overlapping frames, correct perspective, and blend exposure and color differences. There are many capable options available, depending on your workflow and experience level.</p>
 <ul>
 <li><strong>Kolor Autopano Giga</strong> – A powerful, fully automatic stitcher with advanced projection models and excellent handling of complex panoramas.</li>
@@ -2942,7 +2727,7 @@
 </li>
 <li>Once registered, the application can be launched normally without Administrator privileges.</li>
 </ul>
-<h2 id="6-closing-notes">6. Closing Notes<a class="headerlink" href="#6-closing-notes" title="Permanent link">&para;</a></h2>
+<h2 id="closing-notes">Closing Notes<a class="headerlink" href="#closing-notes" title="Permanent link">&para;</a></h2>
 <p>The Alpaca Driver’s panorama system is designed to provide precise, repeatable control rather than fully automatic results. Complex panoramas benefit from rehearsal and careful planning, especially for time‑critical events like solar and lunar eclipses. Unlike native solutions that may "forget" lens sizes or panorama boundaries if a menu is exited, the Alpaca Driver maintains exactly one active panorama grid.</p>
 <p>With a well‑defined panorama grid and sequenced capture passes, the Alpaca Driver enables workflows that are difficult or impossible with traditional panorama tools. With Horizon-Locked tracking, the driver prevents the significant horizon tilt, often 7.5 degrees or more, ensuring your raw frames maintain a consistent ground level, drastically easing stitching.</p>
 <p>The Alpaca Driver V2.1 is a community-driven project designed to unlock the latent potential of the Benro Polaris hardware. As you push the limits of what this device can capture, from guided DSO mosaics, 270° Milky Way arches to composite lunar eclipses, we encourage you to share your results and feedback with the community to help refine these tools for the next generation of astrophotographers</p>
@@ -3002,13 +2787,13 @@
         
         
           
-          <a href="../stellarium/" class="md-footer__link md-footer__link--next" aria-label="Next: Using Stellarium">
+          <a href="../dso-imaging/" class="md-footer__link md-footer__link--next" aria-label="Next: Deep-Sky Imaging">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Using Stellarium
+                Deep-Sky Imaging
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -3053,7 +2838,7 @@
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>

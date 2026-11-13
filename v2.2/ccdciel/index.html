@@ -19,7 +19,7 @@
         <link rel="prev" href="../nina/">
       
       
-        <link rel="next" href="../guiding/">
+        <link rel="next" href="../guiding-sync/">
       
       
         
@@ -101,7 +101,9 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
       
@@ -190,14 +192,8 @@
     </div>
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -276,6 +272,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -285,34 +289,6 @@
           
   
   Using the Driver
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
-  
-    
-      
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      <li class="md-tabs__item">
-        <a href="../troubleshooting/" class="md-tabs__link">
-          
-  
-  Help
 
         </a>
       </li>
@@ -374,18 +350,12 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../alpaca-api/" class="md-tabs__link">
+        <a href="../architecture/" class="md-tabs__link">
           
   
   Reference
@@ -418,19 +388,15 @@
       
         
       
-        
-      
-        
-      
     
     
     
     
       <li class="md-tabs__item">
-        <a href="../beta_results_v2.2/" class="md-tabs__link">
+        <a href="../troubleshooting/" class="md-tabs__link">
           
   
-  Project
+  Help
 
         </a>
       </li>
@@ -441,7 +407,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -612,7 +584,7 @@
   <span class="md-ellipsis">
     
   
-  Hardware Guide
+  Preparing the MiniPC
 
     
   </span>
@@ -764,6 +736,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -851,6 +831,87 @@
     
   
   Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dso-imaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
 
     
   </span>
@@ -983,22 +1044,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-capturing-images" class="md-nav__link">
+  <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        1. Capturing Images
+        Setup
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Capturing Images">
+    <nav class="md-nav" aria-label="Setup">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ccdciel-device-setup" class="md-nav__link">
+  <a href="#devices" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        CCDciel Device Setup
+        Devices
       </span>
     </span>
   </a>
@@ -1006,10 +1067,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#preferences-setup" class="md-nav__link">
+  <a href="#preferences" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Preferences Setup
+        Preferences
       </span>
     </span>
   </a>
@@ -1022,22 +1083,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-main-ccdciel-window" class="md-nav__link">
+  <a href="#main-window" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2. Main CCDciel Window
+        Main Window
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. Main CCDciel Window">
+    <nav class="md-nav" aria-label="Main Window">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#devices-connection-and-preview" class="md-nav__link">
+  <a href="#connecting-and-previewing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Devices Connection and Preview
+        Connecting and Previewing
       </span>
     </span>
   </a>
@@ -1061,15 +1122,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-auto-focus" class="md-nav__link">
+  <a href="#autofocus" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3. Auto-Focus
+        Autofocus
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Auto-Focus">
+    <nav class="md-nav" aria-label="Autofocus">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1095,10 +1156,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#autofocus" class="md-nav__link">
+  <a href="#running-autofocus" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Autofocus
+        Running Autofocus
       </span>
     </span>
   </a>
@@ -1111,15 +1172,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-plate-solving" class="md-nav__link">
+  <a href="#plate-solving" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        4. Plate-Solving
+        Plate Solving
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="4. Plate-Solving">
+    <nav class="md-nav" aria-label="Plate Solving">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1161,15 +1222,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-scripting" class="md-nav__link">
+  <a href="#scripting" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        5. Scripting
+        Scripting
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="5. Scripting">
+    <nav class="md-nav" aria-label="Scripting">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1233,22 +1294,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-pulse-guiding" class="md-nav__link">
+  <a href="#pulse-guiding" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        6. Pulse Guiding
+        Pulse Guiding
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="6. Pulse Guiding">
+    <nav class="md-nav" aria-label="Pulse Guiding">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
+  <a href="#guider-setup" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Setup
+        Guider Setup
       </span>
     </span>
   </a>
@@ -1298,14 +1359,41 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding/" class="md-nav__link">
+      <a href="../guiding-sync/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Using Guiding
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
 
     
   </span>
@@ -1334,6 +1422,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -1360,7 +1454,7 @@
   <span class="md-ellipsis">
     
   
-  Help
+  Release Notes
 
     
   </span>
@@ -1373,129 +1467,6 @@
         
           <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
             <label class="md-nav__title" for="__nav_4">
-              <span class="md-nav__icon md-icon"></span>
-              
-  
-  Help
-
-            </label>
-            <ul class="md-nav__list" data-md-scrollfix>
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../troubleshooting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Troubleshooting
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../faq/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Frequently Asked Questions
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-            </ul>
-          </nav>
-        
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Release Notes
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1668,12 +1639,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
     
     
     
@@ -1685,10 +1650,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1706,8 +1671,8 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_6">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
               <span class="md-nav__icon md-icon"></span>
               
   
@@ -1715,6 +1680,33 @@
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
               
                 
                   
@@ -1731,6 +1723,33 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
 
     
   </span>
@@ -1784,7 +1803,7 @@
   <span class="md-ellipsis">
     
   
-  Advanced Motion Control Guide
+  Control Reference
 
     
   </span>
@@ -1811,142 +1830,7 @@
   <span class="md-ellipsis">
     
   
-  Alpaca Driver — Kinematics Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../quest_paper/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Improving Sidereal Tracking Accuracy for Alt/Az/Roll Telescope Mounts
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_alignment_mac_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Alignment Model — M2/M3 Offsets and M2 Scale in QUEST (Plan)
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_goto_response/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Goto Response — Theory, Measurements &amp; Design for Flips, Unwinds and Goto Paths
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_drift/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC Drift — When to Learn, When to Apply
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../study_pec_motor_space_v2/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  PEC in Motor (Theta) Space — Validation &amp; Implementation Plan
+  Kinematics Reference
 
     
   </span>
@@ -1990,10 +1874,6 @@
       
         
       
-        
-      
-        
-      
     
     
     
@@ -2005,17 +1885,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-  Project
+  Help
 
     
   </span>
@@ -2026,12 +1906,12 @@
           </label>
         
         
-          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-            <label class="md-nav__title" for="__nav_7">
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
               <span class="md-nav__icon md-icon"></span>
               
   
-  Project
+  Help
 
             </label>
             <ul class="md-nav__list" data-md-scrollfix>
@@ -2043,14 +1923,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.2/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.2
+  Troubleshooting
 
     
   </span>
@@ -2070,14 +1950,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v2.0/" class="md-nav__link">
+      <a href="../troubleshooting-install/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v2.0
+  Installation
 
     
   </span>
@@ -2097,14 +1977,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_results_v1/" class="md-nav__link">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Results v1
+  Benro Polaris
 
     
   </span>
@@ -2124,14 +2004,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../beta_agreement/" class="md-nav__link">
+      <a href="../troubleshooting-network/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Beta Agreement
+  Network
 
     
   </span>
@@ -2151,14 +2031,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v2/" class="md-nav__link">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v2
+  NINA
 
     
   </span>
@@ -2178,14 +2058,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../facebook_pccgg_v1/" class="md-nav__link">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  PCCGG Feedback v1
+  Stellarium
 
     
   </span>
@@ -2205,68 +2085,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../podcast_2024_oct/" class="md-nav__link">
+      <a href="../faq/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-  Podcast Oct 2024
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../ML_Astro_SAL-33/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  MLAstro SAL-33
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../benro/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Benro Sponsorship
+  Frequently Asked Questions
 
     
   </span>
@@ -2328,22 +2154,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-capturing-images" class="md-nav__link">
+  <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        1. Capturing Images
+        Setup
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. Capturing Images">
+    <nav class="md-nav" aria-label="Setup">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ccdciel-device-setup" class="md-nav__link">
+  <a href="#devices" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        CCDciel Device Setup
+        Devices
       </span>
     </span>
   </a>
@@ -2351,10 +2177,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#preferences-setup" class="md-nav__link">
+  <a href="#preferences" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Preferences Setup
+        Preferences
       </span>
     </span>
   </a>
@@ -2367,22 +2193,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-main-ccdciel-window" class="md-nav__link">
+  <a href="#main-window" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        2. Main CCDciel Window
+        Main Window
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. Main CCDciel Window">
+    <nav class="md-nav" aria-label="Main Window">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#devices-connection-and-preview" class="md-nav__link">
+  <a href="#connecting-and-previewing" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Devices Connection and Preview
+        Connecting and Previewing
       </span>
     </span>
   </a>
@@ -2406,15 +2232,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-auto-focus" class="md-nav__link">
+  <a href="#autofocus" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        3. Auto-Focus
+        Autofocus
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. Auto-Focus">
+    <nav class="md-nav" aria-label="Autofocus">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2440,10 +2266,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#autofocus" class="md-nav__link">
+  <a href="#running-autofocus" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Autofocus
+        Running Autofocus
       </span>
     </span>
   </a>
@@ -2456,15 +2282,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-plate-solving" class="md-nav__link">
+  <a href="#plate-solving" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        4. Plate-Solving
+        Plate Solving
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="4. Plate-Solving">
+    <nav class="md-nav" aria-label="Plate Solving">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2506,15 +2332,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-scripting" class="md-nav__link">
+  <a href="#scripting" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        5. Scripting
+        Scripting
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="5. Scripting">
+    <nav class="md-nav" aria-label="Scripting">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2578,22 +2404,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-pulse-guiding" class="md-nav__link">
+  <a href="#pulse-guiding" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        6. Pulse Guiding
+        Pulse Guiding
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="6. Pulse Guiding">
+    <nav class="md-nav" aria-label="Pulse Guiding">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
+  <a href="#guider-setup" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Setup
+        Guider Setup
       </span>
     </span>
   </a>
@@ -2683,6 +2509,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -2715,8 +2549,8 @@
 
 
 <h1 id="using-ccdciel-with-benro-polaris">Using CCDciel with Benro Polaris<a class="headerlink" href="#using-ccdciel-with-benro-polaris" title="Permanent link">&para;</a></h1>
-<p><a href="#1-capturing-images">Setup</a> | <a href="#2-main-ccdciel-window">Main Window</a> | <a href="#3-auto-focus">Autofocus</a> | <a href="#4-plate-solving">Plate Solving</a> | <a href="#5-scripting">Sync Guiding</a> | <a href="#6-pulse-guiding">Pulse Guiding</a> </p>
-<h2 id="1-capturing-images">1. Capturing Images<a class="headerlink" href="#1-capturing-images" title="Permanent link">&para;</a></h2>
+<p><a href="#setup">Setup</a> · <a href="#main-window">Main Window</a> · <a href="#autofocus">Autofocus</a> · <a href="#plate-solving">Plate Solving</a> · <a href=".././guiding-sync/#sync-guiding-with-ccdciel">Sync Guiding</a> · <a href="#pulse-guiding">Pulse Guiding</a></p>
+<h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
 <p>The Benro Polaris App does a great job controlling your camera to take sequences of images for panoramas, time-lapse, and astrophotography. It exposes many camera features and makes them easy to setup and use. Unfortunately, it doesn't stretch or process images, show RAW files, or make it easy to customize file names or copy them off for stacking.</p>
 <p>If you want to go beyond the native app, several software options provide more tailored control of your camera, especially for astrophotography. Some include:</p>
 <ul>
@@ -2727,7 +2561,7 @@
 <li><a href="https://ap-i.net/ccdciel/en/start/">CCDciel</a> - (free, ASCOM support, MacOS/Linux/Win)</li>
 </ul>
 <p>We are focusing on using CCDCiel, an alternate solution, due to its price (free), and its suitability for macOS and Windows users.</p>
-<h3 id="ccdciel-device-setup">CCDciel Device Setup<a class="headerlink" href="#ccdciel-device-setup" title="Permanent link">&para;</a></h3>
+<h3 id="devices">Devices<a class="headerlink" href="#devices" title="Permanent link">&para;</a></h3>
 <p>Upon opening CCDciel, the Devices Setup dialog will appear, allowing you to discover and connect to all your various astronomy equipment. Step through each of the device types and connect up your camera, mount, rotator, and optionally your filter wheel, focuser or other devices you may have. </p>
 <ul>
 <li><strong>Mount:</strong> Select the ASCOM Alpaca tab, open the dropdown, then select <strong>Alpaca Benro Polaris Telescope</strong>.</li>
@@ -2738,7 +2572,7 @@
 <li><strong>Guide Camera:</strong> Install Indi or ASCOM drivers for your camera first.  </li>
 </ul>
 <p><img alt="Devices" src="../images/ccd-device-01.png" /></p>
-<h3 id="preferences-setup">Preferences Setup<a class="headerlink" href="#preferences-setup" title="Permanent link">&para;</a></h3>
+<h3 id="preferences">Preferences<a class="headerlink" href="#preferences" title="Permanent link">&para;</a></h3>
 <p>The <strong>Preferences Dialog</strong> can be accessed from the <strong>Edit &gt; Preferences</strong> dropdown menu. It will allow you to make initial setup changes including</p>
 <ul>
 <li><strong>Files:</strong> Directory and filename format of captured images</li>
@@ -2749,11 +2583,11 @@
 <li><strong>Slewing:</strong> Set correction method to <strong>Mount Sync</strong> and enable <strong>Sync the Rotator</strong></li>
 <li><strong>Meridian:</strong> Choose <strong>Do nothing</strong> as we are using an Az/Alt mount</li>
 <li><strong>Autoguiding:</strong> Choose <strong>Internal</strong> autoguiding if you have a guide camera</li>
-<li><strong>Sequence:</strong> Enable <strong>Run astrometry on every image</strong> and <strong>Recenter sequence target that drift</strong> to keep targets centred (see <a href="#4-plate-solving">Plate-Solving</a>)</li>
+<li><strong>Sequence:</strong> Enable <strong>Run astrometry on every image</strong> and <strong>Recenter sequence target that drift</strong> to keep targets centred (see <a href="#plate-solving">Plate-Solving</a>)</li>
 </ul>
 <p><img alt="Preferences" src="../images/ccd-pref-01.png" /></p>
-<h2 id="2-main-ccdciel-window">2. Main CCDciel Window<a class="headerlink" href="#2-main-ccdciel-window" title="Permanent link">&para;</a></h2>
-<h3 id="devices-connection-and-preview">Devices Connection and Preview<a class="headerlink" href="#devices-connection-and-preview" title="Permanent link">&para;</a></h3>
+<h2 id="main-window">Main Window<a class="headerlink" href="#main-window" title="Permanent link">&para;</a></h2>
+<h3 id="connecting-and-previewing">Connecting and Previewing<a class="headerlink" href="#connecting-and-previewing" title="Permanent link">&para;</a></h3>
 <p>On the main CCDciel window, use the <strong>Devices Connection Tool</strong> in the upper-right corner to connect all configured equipment by clicking <strong>Connect</strong>. You can also connect or disconnect individual devices by clicking their abbreviated device names. You can use the Preview panel to <strong>Preview</strong> a single image, or <strong>Loop</strong> to continuously preview.</p>
 <p><img alt="Connect" src="../images/ccd-connect-01.png" /></p>
 <h3 id="device-control">Device Control<a class="headerlink" href="#device-control" title="Permanent link">&para;</a></h3>
@@ -2770,15 +2604,15 @@
 <ul>
 <li><strong>PA:</strong> This field allows you to monior or control the equatorial Position Angle of the rotator directly.</li>
 </ul>
-<h2 id="3-auto-focus">3. Auto-Focus<a class="headerlink" href="#3-auto-focus" title="Permanent link">&para;</a></h2>
+<h2 id="autofocus">Autofocus<a class="headerlink" href="#autofocus" title="Permanent link">&para;</a></h2>
 <p>CCDciel can drive a connected focuser to find the best focus, measuring the HFD (Half Flux Diameter) of the stars in each image: the smaller the better. A focused lens is also needed before plate-solving will work.</p>
 <h3 id="manual-focus">Manual Focus<a class="headerlink" href="#manual-focus" title="Permanent link">&para;</a></h3>
 <p>Point the camera at the sky and use the <strong>Preview</strong> panel in <strong>Loop</strong> mode. Start with 10-15 second exposures while stars are out-of-focus disks, then reduce to about 1 second as focus improves. Double-click a star near the image centre, check it is not saturated, and enable <strong>Manual focus aid</strong> on the <strong>Focus</strong> tab to magnify it. Adjust the focuser until the star is as small and bright as possible.</p>
 <h3 id="calibration">Calibration<a class="headerlink" href="#calibration" title="Permanent link">&para;</a></h3>
 <p>Before using autofocus, run <strong>Tools &gt; Focuser calibration</strong> with a focused, centred star field. Set the exposure, preferred move direction, step size and backlash (if known). CCDciel then moves the focuser in one direction and back, measuring the star diameter, to find the minimum HFD. If the forward and reverse curves don't line up, cancel, adjust the backlash and restart. When finished, the focuser is left at the minimum HFD and the recommended parameters are shown; click <strong>Save</strong> to store them in the auto-focus preferences.</p>
-<h3 id="autofocus">Autofocus<a class="headerlink" href="#autofocus" title="Permanent link">&para;</a></h3>
+<h3 id="running-autofocus">Running Autofocus<a class="headerlink" href="#running-autofocus" title="Permanent link">&para;</a></h3>
 <p>In <strong>Edit &gt; Preferences &gt; Auto-focus</strong>, choose the <strong>Dynamic</strong> method (it fits a curve through the HFD measurements). Test the calibrated parameters with the <strong>Autofocus</strong> button on the <strong>Focus</strong> tab. In a sequence, each plan step has its own autofocus settings.</p>
-<h2 id="4-plate-solving">4. Plate-Solving<a class="headerlink" href="#4-plate-solving" title="Permanent link">&para;</a></h2>
+<h2 id="plate-solving">Plate Solving<a class="headerlink" href="#plate-solving" title="Permanent link">&para;</a></h2>
 <p>CCDciel supports ASTAP, astrometry.net and PlateSolve&#8532; to identify where your camera points in the sky. We recommend <a href="https://www.hnsky.org/astap.htm">ASTAP</a>, which is fast and works on Windows, macOS, Linux and Raspberry Pi.</p>
 <p>The Alpaca Driver aligns the Benro Polaris to the solved coordinates whenever you perform a <strong>Sync</strong>. The more plate-solve syncs you perform, the more accurate the alignment. This can remove the need for a compass alignment or manually aligning a first star with the Benro app.</p>
 <h3 id="installing-astap">Installing ASTAP<a class="headerlink" href="#installing-astap" title="Permanent link">&para;</a></h3>
@@ -2795,7 +2629,7 @@
 <p>In <strong>Edit &gt; Preferences &gt; Slewing</strong>, set the <strong>Correction method</strong> to <strong>Mount sync</strong>. Each goto that uses astrometry then takes a control exposure, plate-solves it, sends a <strong>Sync</strong> to the mount and slews again, until within the <strong>precision</strong> you set or the maximum number of tries is reached. Every sync also refines the Alpaca Driver's alignment. Enable <strong>Sync the rotator</strong> to sync the driver's rotator to the solved position angle at each slew.</p>
 <h3 id="recentering-targets">Recentering Targets<a class="headerlink" href="#recentering-targets" title="Permanent link">&para;</a></h3>
 <p>In a sequence, enable the target option <strong>Use astrometry to refine the position</strong> to centre each target on arrival. In <strong>Edit &gt; Preferences &gt; Sequence</strong>, <strong>Run astrometry on every image</strong> solves every captured image and shows the result in the log; <strong>Recenter sequence target that drift</strong> then plans a recenter before the next exposure whenever the drift exceeds the value you set. CCDciel recommends this value is more than 1.5x the slew precision (and 2-3x any dithering).</p>
-<h2 id="5-scripting">5. Scripting<a class="headerlink" href="#5-scripting" title="Permanent link">&para;</a></h2>
+<h2 id="scripting">Scripting<a class="headerlink" href="#scripting" title="Permanent link">&para;</a></h2>
 <p>CCDciel scripts are written in Python. Enable the Script tool from the <strong>Display</strong> menu, then open the <strong>Capture</strong> tab on the right of the screen: under <strong>Run Script</strong> you can select a script and run it, or use <strong>Edit</strong>, <strong>New</strong> and <strong>Copy</strong> to open the script editor. Scripts can be run from there, or as part of a sequence: when a target starts, as a step of a plan, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's <a href="https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference">Script reference</a>.</p>
 <h3 id="alpaca-driver-scripts">Alpaca Driver Scripts<a class="headerlink" href="#alpaca-driver-scripts" title="Permanent link">&para;</a></h3>
 <p>CCDciel has no instruction for sending an Alpaca <a href=".././alpaca-api/#device-actions">Device Action</a>, so the <a href="https://github.com/ogecko/alpaca-benro-polaris/blob/main/utility/ccdciel"><code>utility/ccdciel</code></a> folder provides scripts that send the Alpaca Driver's most common ones:</p>
@@ -2813,7 +2647,7 @@
 <td><code>PolarisSyncGuide</code></td>
 <td>none (CCDciel's plate-solve and sync)</td>
 <td>settle seconds (optional, default 5)</td>
-<td>Plate-solves the current image and syncs the mount, for <a href="#sync-guiding">Sync Guiding</a></td>
+<td>Plate-solves the current image and syncs the mount, for <a href=".././guiding-sync/#sync-guiding-with-ccdciel">Sync Guiding</a></td>
 </tr>
 <tr>
 <td><code>PolarisPanoSlew</code></td>
@@ -2840,15 +2674,7 @@
 <p>The scripts read the Alpaca Driver's address from CCDciel's mount settings (<strong>ASCOM Alpaca</strong> tab), so nothing needs editing. They use only standard Python, so they run with the Python included with CCDciel.</p>
 <p><strong>Using:</strong> add a script step to a plan, with the script's name and its arguments, or test a script from <strong>Run Script</strong> on the <strong>Capture</strong> tab. Each script writes what it did to the CCDciel log, and fails the step if the action fails.</p>
 <h3 id="sync-guiding">Sync Guiding<a class="headerlink" href="#sync-guiding" title="Permanent link">&para;</a></h3>
-<p>The Alpaca Driver treats a plate-solve <strong>sync without a slew</strong> as a guiding correction rather than a new alignment point (see <a href=".././guiding/">Guiding</a>). The recommended workflow is to solve and sync every 1 to 3 minutes during your imaging sequence.</p>
-<ul>
-<li>In Alpaca Pilot, enable <strong>Multi-Point Alignment</strong> and <strong>Sync Guiding (Plate-solve)</strong>.</li>
-<li>Add a <code>PolarisSyncGuide</code> step to your plan after the light frames, so it runs every 1 to 3 minutes of imaging. It solves the image just taken (no extra exposure) with CCDciel's <code>Astrometry_sync</code> command.</li>
-<li>After a goto, the first sync adds an alignment point and turns sync guiding on; the following syncs are used as guiding corrections (if within 3 degrees).</li>
-<li>After a sync the driver moves the mount back onto its target, so the script waits a few seconds (the settle argument) before the next exposure.</li>
-<li>Sync guiding with CCDciel is new: please report how it works for you.</li>
-<li>Don't combine sync guiding with pulse guiding: the guider pulls each sync correction straight back to its lock position.</li>
-</ul>
+<p>The <code>PolarisSyncGuide</code> script runs a plate-solve sync from a plan step, for sync guiding. See <a href=".././guiding-sync/#sync-guiding-with-ccdciel">Sync Guiding with CCDciel</a> for how to set it up.</p>
 <h3 id="panoramas">Panoramas<a class="headerlink" href="#panoramas" title="Permanent link">&para;</a></h3>
 <p>Use the Alpaca Driver's <a href=".././panoramas/">Panorama Grid</a> for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the <code>PolarisPanoSlew</code> script to move the mount between its panels.</p>
 <p>In CCDciel, add a <code>PolarisPanoSlew</code> step before each panel's light frames. With no argument, the script slews to the next panel, wrapping back to panel 1 after the last panel. You can also specify a panel number to slew directly to that panel. The step completes once the slew is finished.</p>
@@ -2920,7 +2746,7 @@
 <li><strong><code>PolarisSlewAbsolute</code></strong> slews to the coordinates given; coordinates not given keep their current value, e.g. <code>az=240 alt=45 roll=0</code> or <code>ra=10:45:03 dec=-59:41:04 pa=90</code>.</li>
 <li><strong><code>PolarisSlewRelative</code></strong> adds each value to the current target, e.g. <code>alt=0.5 roll=-10</code> or <code>ra=0:00:30</code>.</li>
 <li>Mix any of the coordinate keys in one step, but not with the motor keys <code>m1</code>, <code>m2</code>, <code>m3</code>.</li>
-<li>The driver keeps every slew within the Benro Polaris limits (Altitude 0-70°, Roll ±60°, see <a href=".././control/">Control</a>).</li>
+<li>The driver keeps every slew within what the Benro Polaris can physically reach, where Altitude and Roll limit each other (see <a href=".././kinematics/#reachable-envelope">Reachable Envelope</a>).</li>
 <li>The step finishes when the slew is complete.</li>
 </ul>
 <h3 id="other-device-actions">Other Device Actions<a class="headerlink" href="#other-device-actions" title="Permanent link">&para;</a></h3>
@@ -2941,9 +2767,9 @@
 <p>Install it like the other scripts, as <code>PolarisTrackMoon.script</code>, and add it to your plan as a script step.</p>
 </li>
 </ol>
-<h2 id="6-pulse-guiding">6. Pulse Guiding<a class="headerlink" href="#6-pulse-guiding" title="Permanent link">&para;</a></h2>
+<h2 id="pulse-guiding">Pulse Guiding<a class="headerlink" href="#pulse-guiding" title="Permanent link">&para;</a></h2>
 <p>CCDciel's <strong>Internal guider</strong> uses a guide camera to watch a guide star and sends pulse guide commands to the mount, which the Alpaca Driver turns into small corrections of the M1-M3 motor speeds. It has been tested with the Alpaca Driver.</p>
-<h3 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h3>
+<h3 id="guider-setup">Guider Setup<a class="headerlink" href="#guider-setup" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Connect the <strong>Guide Camera</strong> in the Devices Setup dialog.</li>
 <li>In <strong>Edit &gt; Preferences &gt; Auto-guiding</strong>, choose <strong>Internal guider</strong> (or <strong>PHD2</strong>, with its host and port, if you guide with PHD2).</li>
@@ -3015,13 +2841,13 @@
         
         
           
-          <a href="../guiding/" class="md-footer__link md-footer__link--next" aria-label="Next: Using Guiding">
+          <a href="../guiding-sync/" class="md-footer__link md-footer__link--next" aria-label="Next: Sync Guiding">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Using Guiding
+                Sync Guiding
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -3066,7 +2892,7 @@
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
     
     
       <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
