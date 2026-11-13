@@ -10,7 +10,7 @@ The Alpaca Driver runs on a device separate from the Benro Polaris, such as a Mi
 
 If you want to run the Alpaca Driver on a phone or iPad, please read [FAQ A3](./faq.md#a3---on-a-phone-or-ipad).
 
-### Laptop with Stellarium Desktop
+### Laptop
 ![Hardware Architecture: Laptop](images/abp-hardware1.png)
 
 Some laptop Wi-Fi controllers don't support connecting to the Benro Polaris Wi-Fi, so you may also need a USB Wi-Fi adapter such as the [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (about US$17 from Amazon).
@@ -42,8 +42,8 @@ The following diagram shows how the different software modules fit together.
 ## Development Setup
 The following steps are only needed if you want to use VS Code to make changes to the driver. No support is provided for modified drivers.
 
-### Setting up OpenSSH Server on Windows 11 (for Remote VS Code)
-Using PowerShell as Administrator, run the following commands:
+### OpenSSH Server
+To use VS Code remotely from another computer, set up the OpenSSH server on Windows 11. Using PowerShell as Administrator, run the following commands:
 ```
 Add-WindowsCapability -Online -Name OpenSSH.Server
 Start-Service sshd
@@ -52,7 +52,7 @@ Get-Service sshd
 New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
 ```
 
-### Installing Git for Windows and cloning the repository
+### Git and the Repository
 Download Git for Windows from [git-scm.com](https://git-scm.com/download/win), and install it with the default settings. Then open a PowerShell window and enter the following commands, substituting your own name and email address:
 ```
 git config --global user.name "FIRST_NAME LAST_NAME"
@@ -61,7 +61,7 @@ git config --global fetch.prune true
 git clone https://github.com/ogecko/alpaca-benro-polaris.git
 ```
 
-### Installing Node.js and npm to rebuild Alpaca Pilot
+### Node.js and npm
 Download and install Node.js, which includes npm, from [nodejs.org](https://nodejs.org/). Then install the Alpaca Pilot app's dependencies:
 ```
 cd alpaca-benro-polaris\pilot

@@ -172,7 +172,7 @@ If your computer needs a dedicated USB Wi-Fi adapter to communicate with the Ben
 
 The driver can communicate with the Polaris through one network interface while making its services available through another. In other words, the computer does not need to be connected to the Polaris and the rest of your network through the same Wi-Fi adapter.
 
-See [Architecture — Laptop with Stellarium Desktop](./architecture.md#laptop-with-stellarium-desktop) for more information.
+See [Architecture — Laptop with Stellarium Desktop](./architecture.md#laptop) for more information.
 
 
 
