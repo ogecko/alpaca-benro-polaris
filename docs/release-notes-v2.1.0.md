@@ -56,11 +56,11 @@
 - **[Updated SSL Root Certificates]** Must reinstall python pre-requisites using `pip -r requirements.txt`, See fix#74
 - **[Raspberry Pi Setup]** Enhance the Alpaca driver and Wi-Fi setup scripts, along with documentation, for Raspberry Pi Zero 2
 
-## New Features (enabled by Nina)
+## NINA Features
 
-## New Features (enabled by Stellarium)
+## Stellarium Features
 
-## Upgraded Win11 Requirements.txt Compatibility
+## Python Packages
 
 - **[Python 3.13.12]**: Upgraded Python support from 3.13.9.
 - **[Falcon 4.2.0]**: Upgraded Falcon support from 4.0.2.
@@ -71,7 +71,7 @@
 - **[scipy 1.17.0]**: Upgraded scipy support from 1.16.1.
 - **[certifi 2026.1.4]**: Upgraded certifi support from 2025.8.3.
 
-## Documentation (Alpaca Driver)
+## Documentation
 
 - **[Nina Advanced Sequencer]**: Add documentation on using Nina's advanced sequencer with Alpaca Driver
 - **[Auto Guiding]**: Add documentation on using PHD2 for auto-guiding 
@@ -81,7 +81,7 @@
 - **[Troublshooting B6]**: Add description on how to reset Polaris password
 - **[Troubleshooting P1-6]**: Add a troubleshooting section to the Raspberry Pi docs
 
-## Bug Fixes (from v2.0.0 version)
+## Bug Fixes
 
 - **[fix #62]**: Alpaca Driver SupportedActions method incorrectly lists "Polaris:J2000GotoPolaris:Ack" as a single action.
 - **[fix #67]**: Reduce CPU load by refactoring Motor Control to be event based rather than polling every 1ms for work.
@@ -94,7 +94,7 @@
 - **[fix #76]**: Alpaca Pilot change to Angular Velocity Process Error (Q) are reset when changing motors.
 - **[fix #77]**: Resolve Polaris Wi-Fi initialization issue on Raspberry Pi Linux
 
-## Tested Compatible Hardware and Software
+## Tested Compatibility
 ### Photography Equipment
 
 * Benro Polaris Hw 1.4.1.4, Firmware V6.0.0.54, Astro V1.0.2.14 (JDM - Main Board replaced)
@@ -169,7 +169,7 @@
 * iPadOS v17.6.1
 * Raspberry Pi OS (64-bit) Debian Trixie
 * Raspberry Pi OS Lite (64-bit) Debian Trixie
-### Alpaca Pilot compatible Browsers
+### Browsers
 
 * Firefox version 115+ 
 * Google Chrome version 115+
@@ -186,7 +186,7 @@ Please let us know if you can try any of these features.
 
 - **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.12 instead.
 
-## Potential Future Enhancements
+## Future Enhancements
 
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.

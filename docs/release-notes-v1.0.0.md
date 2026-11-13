@@ -8,7 +8,7 @@
 **MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
 
 
-## New Features (enabled by StellariumPLUS)
+## Stellarium PLUS Features
 
 - **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Larger Catalog]**: Includes an extensive catalog of celestial objects, surpassing the BP App.
@@ -27,7 +27,7 @@
 - **[OS Supported]**: Supports IOS and Android.
 - **[Hardware Supported]**: Supports iPad, Tablets and Mobile Phones.
 
-## New Features (enabled by Stellarium Desktop)
+## Stellarium Desktop Features
 
 - **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Even Larger Catalog]**: Includes an extensive catalog of celestial objects, surpassing the BP App.
@@ -45,7 +45,7 @@
 - **[OS Supported]**: It supports MacOS, Linux and Windows.
 - **[Hardware Supported]**: It supports Laptops and Desktops.
 
-## New Features (enabled by Nina)
+## NINA Features
 
 - **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Larger Catalog]**: Includes an extensive offline catalog of celestial objects, surpassing the BP App.
@@ -80,7 +80,7 @@
 - **[Cameras Supported]**: Support additional camera models through the ASCOM platform.
 - **[Sony Nina Plugin]**: Supports Sony Cameras and Lens. 
 
-## New Features (Alpaca Driver)
+## Driver Features
 
 - **[ASCOM ConformU]**: Passes standard validation tests for ITelescopeV3.
 - **[Driver Discovery]**: Provides Alpaca Discovery services.
@@ -128,7 +128,7 @@ Please let us know if you can try any of these features.
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
-## Bug Fixes (from Beta versions)
+## Bug Fixes
 
 - **[BP Keepalive]**: Implement Wifi Keepalive, reduce phone battery usage, by closing BP App.
 - **[AHRS Keepalive]**: Ensure AHRS continues to inform of position updates.
@@ -144,7 +144,7 @@ Please let us know if you can try any of these features.
 - **[Install Guide]**: Improve MacOS and Win installation guide based on Beta feedback.
 - **[Docs Improvement]**: Numerous documentation improvements and better troubleshooting.
 
-## Tested Compatible Hardware and Software
+## Tested Compatibility
 ### Photography Equipment
 
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
@@ -203,7 +203,7 @@ Please let us know if you can try any of these features.
 - **[Sky Safari 7 Plus]**: One Beta tester was unable to connect to Sky Safari 7 Plus.
 - **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
 
-## Potential Future Enhancements
+## Future Enhancements
 
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
 - **[Docker Support]** Official support and testing on Docker.

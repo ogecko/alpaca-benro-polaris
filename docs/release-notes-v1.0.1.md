@@ -13,16 +13,16 @@
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
 * Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 
-## New Features (enabled by Nina)
+## NINA Features
 
 - **[Fast Centering]**: Slew and Centering is 2x as fast and more accurate
 - **[Horizon Limits]**: Add note about Scope Control and Horizon Creator Plugins
 
-## New Features (enabled by Stellarium)
+## Stellarium Features
 
 - **[Horizon Limits]**: Add note about adding a custom Landscape using your own image
 
-## New Features (Alpaca Driver)
+## Driver Features
 
 - **[Image Cleanup]**: Added a Jupyter Notebook to read Nina's ImageMetaData.csv and move bad images to a Rejected folder.
 - **[Sky Safari Support]**: Support the latest Sky Safari 7 Pro version.
@@ -31,14 +31,14 @@
 - **[Performance Logs]**: Logs Aim Error, Drift Error, Periodic Error as csv.
 - **[Performance Analysis]**: Sample Jupyter Notebooks for performance analysis of your Polaris.
 
-## Upgraded Win11 Requirements.txt Compatibility
+## Python Packages
 
 - **[Python 3.13.1]**: Upgraded Python support from 3.12.7 to 3.13.1.
 - **[Falcon 4.0.2]**: Upgraded Falcon support from 3.1.3 to 4.0.2.
 - **[Uvicorn 0.33.0]**: Upgraded Uvicorn support from 0.30.6 to 0.33.0.
 - **[Ephem 4.1.6]**: Upgraded Ephem support from 4.1.5 to 4.1.6.
  
-## Documentation (Alpaca Driver)
+## Documentation
 
 - **[Table of Contents]**: Add a brief table of contents to each documentation page.
 - **[Beginners Guide]**: Add a topic for new astrophotographers.
@@ -62,7 +62,7 @@ Please let us know if you can try any of these features.
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
-## Bug Fixes (from v1.0.0 version)
+## Bug Fixes
 
 - **[Fix #024]**: First GOTO after a PlateSolve and SYNC, may overcorrect the offset by 2x the right amount.
 - **[Fix #023]**: Docker build process is now working.
@@ -70,7 +70,7 @@ Please let us know if you can try any of these features.
 - **[Fix #019]**: Ensure SynScan RA/Dec/Lat/Lon/etc are all range and 'NaN' checked.
 - **[Fix #020]**: Implement AbortSlew with SynScan protocol 'M' for Stellarium.
 
-## Tested Compatible Hardware and Software
+## Tested Compatibility
 ### Photography Equipment
 
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.48, Astro V1.0.2.14
@@ -132,7 +132,7 @@ Please let us know if you can try any of these features.
 - **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
 - **[Nina and Nikon Z8]**: Neither the Nina or ASCOM Camera Driver appear to work with the Nikon Z8.
 
-## Potential Future Enhancements
+## Future Enhancements
 
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
 - **[CCDciel Support]**: Official support and testing for CCDciel for MacOS.
