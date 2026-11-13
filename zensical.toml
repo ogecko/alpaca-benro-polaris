@@ -46,6 +46,7 @@ nav = [
     "architecture.md",
     "alpaca-api.md",
     "pilot-api.md",
+    "config.md",
     "catalog.md",
     "control.md",
     "kinematics.md",

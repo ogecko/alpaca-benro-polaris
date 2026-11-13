@@ -119,7 +119,7 @@ curl -s -X PUT "$BASE/action" -d 'Action=Polaris:RestartDriver' -d 'Parameters={
 ```
 
 ### Polaris:PanoGrid
-Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot. Any of these settings can be given, the rest keep their current values: `cols`, `rows` (the grid size), `hstep`, `vstep` (degrees between panel centres), `first` (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), `order` (0 Row-Major, 1 Column-Major, 2 Serpentine), `track` (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), `anchor` (what sits at the reference position: 0 the whole mosaic's centre, n panel n), `ref` (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and `r1`, `r2`, `r3` (the reference position in that frame, RA in hours). Use **Polaris:ConfigSave** to keep them for the next session.
+Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot (see [Panorama](./config.md#panorama) in the Configuration Reference). Any of these settings can be given, the rest keep their current values: `cols`, `rows` (the grid size), `hstep`, `vstep` (degrees between panel centres), `first` (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), `order` (0 Row-Major, 1 Column-Major, 2 Serpentine), `track` (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), `anchor` (what sits at the reference position: 0 the whole mosaic's centre, n panel n), `ref` (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and `r1`, `r2`, `r3` (the reference position in that frame, RA in hours). Use **Polaris:ConfigSave** to keep them for the next session.
 
 | **Instruction** | **Device** | Action | Parameters |
 | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ Fetch the orbital parameters of an object, slew to its co-ordinates and start no
 | **Utility > Device Action** | `Telescope` |  `Polaris:TrackOrbital` |  `{"name": "25544", "category":6}` |
 
 ### Polaris:ConfigUpdate
-Update the Alpaca Driver configuration setting to the defined values. Any property defined in config.toml can be modified with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, (c) to alter the park position and (d) to alter the ASCOM focal length; use the following.
+Update the Alpaca Driver configuration setting to the defined values. Any setting in the [Configuration Reference](./config.md) can be changed with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, (c) to alter the park position and (d) to alter the ASCOM focal length; use the following.
 
 | **Instruction** | **Device** | Action | Parameters |
 | --- | --- | --- | --- |
