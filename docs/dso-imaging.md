@@ -132,7 +132,7 @@ You can check and refine the tracking during the sequence on Alpaca Pilot's **PI
 Calibration frames remove the camera's own noise, dust shadows and vignetting from your images. Capture them at the end of the session, with the same camera settings:
 
 * **Darks:** The same exposure time, gain and temperature as your subs, with the lens capped.
-* **Flats:** Evenly lit frames that record dust and vignetting. Don't change the focus or the camera's rotation before taking them. Stop tracking and raise the camera to point upwards, then cover the lens with a flat panel, or with a phone or tablet showing Alpaca Pilot's **Flat White** page, which fills the screen with white. NINA's **Flat Wizard** finds the right exposure for you.
+* **Flats:** Evenly lit frames that record dust and vignetting. Don't change the focus or the camera's rotation before taking them. Stop tracking and raise the camera to point upwards, then cover the lens with a flat panel, or with a phone or tablet showing Alpaca Pilot's [Flat White](./pilot.md#vi-flat-white) page, which fills the screen with white. NINA's **Flat Wizard** finds the right exposure for you.
 * **Bias or dark flats:** Very short exposures (bias), or exposures matching your flats (dark flats), with the lens capped.
 
 ## Stacking and Processing

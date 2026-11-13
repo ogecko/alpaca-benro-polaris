@@ -673,3 +673,16 @@ For the full list of reference catalogues, and how to extend the catalog with yo
 
 ## V. Creating Panoramas
 Alpaca Pilot's Panorama Grid lets you plan and capture multi-panel panoramas and mosaics. See [Creating Panoramas](./panoramas.md).
+
+<br>
+<br>
+
+## VI. Flat White
+The **Flat White** page turns a phone or tablet into a light source for taking flat frames. Open it from the side menu, under **Performance Tuning**: the page fills the whole screen with white, with no other controls.
+
+* Set the device's screen brightness to maximum, and turn off its night mode or blue-light filter, so the light is bright and neutral.
+* Hold the screen flat against the front of the lens or lens hood. A sheet of white paper or fabric between the screen and the lens helps to even out the light.
+* Take your flats with NINA's **Flat Wizard**, which finds the right exposure for you (see [Using NINA](./nina.md#taking-flat-images)).
+* Tap the Alpaca Pilot icon in the top-left corner to return to the dashboard.
+
+See [Calibration Frames](./dso-imaging.md#calibration-frames) in the Deep-Sky Imaging guide for when to take your flats.
