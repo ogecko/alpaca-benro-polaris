@@ -3,7 +3,7 @@
 
 The Alpaca Driver presents the Benro Polaris to astronomy applications as two standard ASCOM Alpaca devices, a **Telescope** and a **Rotator**, together with a set of **Device Actions** for features that go beyond the ASCOM standard. Applications like NINA, PHD2, Stellarium and CCDciel make these calls for you. This page is for anyone who wants to script the mount directly, or understand what their applications are doing.
 
-All requests go to the driver's Alpaca REST API on port `5555` (the `alpaca_restapi_port` setting), at `http://<driver address>:5555/api/v1/<device>/0/<member>`. The examples below use `ap.local` as the driver address; use the IP address of the computer running the driver if `ap.local` doesn't resolve on your network (see [Launching the Alpaca Pilot Application](./pilot.md#i-launching-the-alpaca-pilot-application)). Each request includes a `ClientID` and `ClientTransactionID`, and the driver must be connected to the Polaris for most calls to succeed.
+All requests go to the driver's Alpaca REST API on port `5555` (the `alpaca_restapi_port` setting), at `http://<driver address>:5555/api/v1/<device>/0/<member>`. The examples below use `ap.local` as the driver address; use the IP address of the computer running the driver if `ap.local` doesn't resolve on your network (see [Launching the Alpaca Pilot Application](./pilot.md#launching-alpaca-pilot)). Each request includes a `ClientID` and `ClientTransactionID`, and the driver must be connected to the Polaris for most calls to succeed.
 
 ## Discovery
 

@@ -1,7 +1,7 @@
 # Using Stellarium and Sky Safari Pro
-[Applications Supported](#telescope-control-compatibility) | [Stellarium Mobile](#1-using-stellarium-mobile-plus) | [Stellarium Desktop](#2-using-stellarium-desktop) | [Sky Safari Pro](./installation.md#sky-safari-pro) | [Aiming Accuracy](./faq.md#b3---can-the-alpaca-project-improve-aiming-performance) 
+[Applications Supported](#compatibility) | [Stellarium Mobile](#stellarium-mobile-plus) | [Stellarium Desktop](#stellarium-desktop) | [Sky Safari Pro](./installation.md#sky-safari-pro) | [Aiming Accuracy](./faq.md#b3---better-aiming) 
 
-## Telescope Control Compatibility
+## Compatibility
 The Alpaca Driver supports both the [ASCOM Alpaca API](https://ascom-standards.org/api/#/Telescope%20Specific%20Methods) and [SynScan protocol](https://inter-static.skywatcher.com/downloads/synscanserialcommunicationprotocol_version33.pdf). This opens up a wide range of Telescope Control applications now compatible with the Benro Polaris. Out of all those listed, we recommend Stellarium PLUS and Stellarium Desktop.
 
 ![imaging](images/abp-compatibility.png)
@@ -23,11 +23,11 @@ The Alpaca Driver supports both the [ASCOM Alpaca API](https://ascom-standards.o
 * [Skyportal](https://www.celestron.com/pages/skyportal-mobile-app) - Celestron’s free version of Skysafari
 * [SynScan App and SynScan Pro App](https://skywatcher.com/download/software/) - Not currently supported
 
-## Stellarium - Video Demonstration
+## Video Demonstration
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 [![Telescope Control and Aiming](https://img.youtube.com/vi/Cra0FBuDxlY/0.jpg)](https://www.youtube.com/watch?v=Cra0FBuDxlY)
 
-## 1. Using Stellarium Mobile PLUS
+## Stellarium Mobile PLUS
 Stellarium Mobile PLUS is ideal for use on a tablet or mobile phone, either Android or IOS. It includes more features than the free Stellarium Web and the free Stellarium Mobile offerings.
 
 ### Connecting to the Driver
@@ -88,13 +88,13 @@ You can help improve the aim of the Benro Polaris by Syncing with a known object
 
 To reset the RA/Dec Offset, simply tap the disconnect and reconnect icons on the Telescope Control Popup in Stellarium. For a better understanding of how this works, refer to Section 3 below.
 
-## 2. Using Stellarium Desktop
+## Stellarium Desktop
 Stellarium Desktop has the broadest set of features of all versions of Stellarium. It is flexible, allowing you to customize what is shown (deep sky objects, satellites, meteor showers, planets, etc.) and how it is revealed (annotations, projections, landscapes, etc.), including numerous sky surveys.
 
 It includes an extensive What's Up Tonight tool for planning imaging targets. It also includes an extensive library of plug-ins that add more functionality to the application. It's a very powerful platform.
 
 
-### Connecting to the Driver on MacOS/Linux
+### Connecting on macOS/Linux
 Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. We have implemented a simple External Software Binary Protocol that only allows GOTO functionality. You can add an External Software Telescope by using the following procedure:
 
 1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
@@ -109,7 +109,7 @@ Stellarium Desktop on MacOS and Linux does not support native Alpaca or ASCOM. W
 10. In the TCP Port field, leave a default of 10001.
 11. Click OK
 
-### Connecting to the Driver on Windows
+### Connecting on Windows
 Unfortunately, Stellarium Desktop does not include native Alpaca support. You must install the ASCOM Platform if you haven't already done so. After the ASCOM platform has been installed, you can add an ASCOM Telescope by using the following procedure:
 
 1.  Select the `Plug-ins` tab on the Configuration Dialog menu bar.
@@ -154,7 +154,8 @@ You can also bring up the `Slew Telescope To` dialog by pressing `Ctrl+0` (Windo
 ### Changing Field of View
 Stellarium Desktop can be used to display the sky in **Alt/Az (topocentric)**, **RA/Dec (equatorial)**, or with the **Galactic longitude/latitude grid** overlaid. This allows the Stellarium view to be compared with the corresponding reference-frame modes of the Alpaca Pilot. If you lose site of your selected target, press `SPACE`, and the window will immediately pan to your selected object.
 
-#### 1. **Alt/Az — Topocentric view**
+**1. Alt/Az — Topocentric view**
+
 
 By default, Stellarium uses an **azimuthal (Alt/Az) mount mode**, which corresponds to the local, topocentric view of the sky. Dragging the screen horizontally adjusts Azimuth, while dragging it vertically adjusts Altitude.
 
@@ -162,7 +163,8 @@ To display the Alt/Az grid:
 
 1. Press **Z** to switch the **Azimuthal Grid** on and off.
 
-#### 2. **RA/Dec — Equatorial view**
+**2. RA/Dec — Equatorial view**
+
 
 To change Stellarium to an **equatorial (RA/Dec) mount mode**.
 
@@ -171,7 +173,8 @@ To change Stellarium to an **equatorial (RA/Dec) mount mode**.
 
 The equatorial grid is aligned with Right Ascension and Declination, with the celestial poles fixed in the view. When in **equatorial (RA/Dec) mount mode** dragging the screen horizontally adjusts Right Ascension, while dragging it vertically adjusts Declination.
 
-#### 3. **Galactic longitude/latitude view**
+**3. Galactic longitude/latitude view**
+
 
 Galactic mode is available through Stellarium's script console. 
 
@@ -199,7 +202,7 @@ To restore Stellarium to its normal default state:
 This restores the standard **natural** view, including the Alt/Az orientation, horizon, landscape and normal display settings.
 
 
-### Using a Custom Landscape and Horizon Image
+### Custom Landscape
 Stellarium Desktop allows you to create a custom Landscape to match your own observation site, including the image of the horizon overlaid into Stellarium.
 
 To create your own custom Landscape:
@@ -229,7 +232,7 @@ To create your own custom Landscape:
 * Check the orientation of the image in Stellarium. You may need to fine tune the `angle_rotatez` value to correctly align the image with reality.
 * You can now align your Benro Polaris during the day by syncing with a known spot in the horizon image.
 
-### Pulling Stellarium Desktop Targets into Nina
+### Targets into NINA
 You can use the Stellarium Desktop `Remote Control` Plug-in to further integrate Stellarium with Nina. Using this plug-in, Nina can pull any selected Stellarium Target into the Framing Tab on Nina. 
 To setup this integration:
 

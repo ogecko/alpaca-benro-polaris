@@ -160,7 +160,7 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
 ## Optional GPS Receiver
 
-Alpaca Pilot's **Locate** button uses the browser's location by default, which needs internet and is often only approximate. At a dark site, a USB GPS receiver plugged into the Pi gives the observing site's latitude, longitude and elevation instead, with no internet needed. How to use it in Pilot is described in [Set Observing Site Location](./pilot.md#e-setup-the-polaris-for-astro-mode); the notes below are specific to the Pi.
+Alpaca Pilot's **Locate** button uses the browser's location by default, which needs internet and is often only approximate. At a dark site, a USB GPS receiver plugged into the Pi gives the observing site's latitude, longitude and elevation instead, with no internet needed. How to use it in Pilot is described in [Set Observing Site Location](./pilot.md#astro-mode-setup); the notes below are specific to the Pi.
 
 ### Connecting the Receiver
 

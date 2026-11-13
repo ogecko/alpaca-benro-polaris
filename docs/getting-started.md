@@ -77,7 +77,7 @@ The installation process varies slightly depending on your chosen platform. Step
 2. Connect: Use Alpaca Pilot to connect the driver to the Polaris.
 3. Enter Astro Mode: Switch to Astro Mode in Alpaca Pilot. You can skip the Benro app's compass and single star alignment, and use Multi-Point Alignment instead.
 
-More information on connecting can be found in the [Alpaca Pilot Guide](./pilot.md#ii-connecting-devices).
+More information on connecting can be found in the [Alpaca Pilot Guide](./pilot.md#connecting-polaris).
 
 ### Learning Stellarium
 Become familiar with using Stellarium to identify targets in the night sky and commanding the Polaris to point your camera to them. Some of the benefits you will get from using Stellarium include:

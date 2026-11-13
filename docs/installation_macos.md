@@ -93,7 +93,7 @@ Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any 
 
 9. **(Optional) Enable HTTPS**
 
-    Browser features such as Location and Clipboard access only work over a secure (HTTPS) connection. If you need these features, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#g-using-alpaca-pilot-over-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
+    Browser features such as Location and Clipboard access only work over a secure (HTTPS) connection. If you need these features, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#using-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
 
 ### Connecting the Polaris
 
@@ -107,7 +107,7 @@ Before you can use the Polaris, complete the following steps.
 
     Set up your Benro Polaris tripod head and turn on the device.
 
-    If you cannot turn on the Polaris, see [Troubleshooting B1](./troubleshooting.md#b1---cannot-start-the-benro-polaris-device).
+    If you cannot turn on the Polaris, see [Troubleshooting B1](./troubleshooting-polaris.md#b1---polaris-wont-start).
 
 12. **Enable and join the Polaris Wi-Fi**
 
@@ -122,7 +122,7 @@ Before you can use the Polaris, complete the following steps.
 
     On the **Connect** page in the Alpaca Pilot App, follow each step indicated by a checkmark.
 
-    For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#ii-connecting-devices).
+    For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#connecting-polaris).
 
     Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have successfully aligned on three or more stars.
 
@@ -147,7 +147,7 @@ Your existing settings and data, including alignment and calibration data, are p
 
 ### Troubleshooting
 
-If you do not see the `communications init... done` message, see the [Troubleshooting Guide C1](./troubleshooting.md#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected) for steps to diagnose and resolve the problem.
+If you do not see the `communications init... done` message, see the [Troubleshooting Guide C1](./troubleshooting-network.md#c1a---wi-fi-2-not-connected) for steps to diagnose and resolve the problem.
 
 ### Stellarium
 

@@ -1,9 +1,9 @@
 # Alpaca Pilot App
 [Purpose](#what-is-alpaca-pilot) | 
-[Launching](#i-launching-the-alpaca-pilot-application) | 
-[Connect](#ii-connecting-devices) | 
-[Dashboard](#iii-using-the-dashboard) | 
-[Catalog](#iv-using-the-catalog) | 
+[Launching](#launching-alpaca-pilot) | 
+[Connect](#connecting-polaris) | 
+[Dashboard](#using-the-dashboard) | 
+[Catalog](#using-the-catalog) | 
 [Panoramas](./panoramas.md) 
 
 ## What is Alpaca Pilot?
@@ -48,7 +48,7 @@ The main menu of the **Alpaca Pilot** application provides centralized access to
 - **④ Connect:**  Initiates or terminates the connection to the Alpaca Driver and Polaris mount. This button reflects current connection status.
 
 - **⑤ Settings:** Opens the configuration panel where you can set observing site latitude/longitude, define the park position, adjust preferences, and enable standard and advanced features.
-> Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#enable-https-in-alpaca-pilot).
+> Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#using-https).
 
 - **⑥ Search Entry:** A text input field for searching catalog entries and targets. Supports shorthand formats and intelligent parsing for quick access to celestial objects.
 
@@ -61,14 +61,15 @@ The main menu of the **Alpaca Pilot** application provides centralized access to
 
 ---
 
-## I. Launching the Alpaca Pilot Application
+## Launching Alpaca Pilot
 
 >VIDEO DEMO: [22 - Launching Alpaca Pilot](https://youtu.be/Wv_ZvBtZZ4Q?t=0m7s)
 
 
 The Alpaca Pilot App can be accessed via external imaging software or directly through a web browser on a desktop, tablet, or phone.
 
-### Method A: Launching from NINA (Nighttime Imaging 'N' Astronomy)
+**From NINA**
+
 
 If you are using NINA, you can launch the Alpaca Pilot App directly from the NINA equipment setup interface:
 
@@ -77,7 +78,8 @@ If you are using NINA, you can launch the Alpaca Pilot App directly from the NIN
 3.  **Use Settings Cog:** Before connecting, click the **settings cog button**.
 4.  **Fire Up App:** Clicking the settings cog will fire up the Alpaca Pilot application, allowing you to monitor the connection process in detail.
 
-### Method B: Launching via Web Browser
+**From a Web Browser**
+
 
 You can access Alpaca Pilot from any browser on a device connected to the same network as the Mini-PC.
 
@@ -89,166 +91,21 @@ You can access Alpaca Pilot from any browser on a device connected to the same n
     3.  **IP Address:** eg `http://192.168.10.250`
 4.  **Full Screen Feature:** On a phone, you can click on the battery icon to make the application go **full screen** to take up the full real estate available.
 
-### Method C: Launching Multiple Instances
+**Multiple Instances**
+
 
 The Pilot application is very flexible, allowing users to open up multiple windows simultaneously to facilitate operations and monitoring. To achieve this, you can right-click or hover on any of the navigation links across the top of the application (such as Dashboard, Connections, or Settings) and choose to open them in a new tab or a new window. 
 
 For example, you might choose to open the Catalog as a new window and position it off to the right, while keeping the main Dashboard open on the left. This configuration allows for streamlined workflows, such as performing quick searches for celestial objects in the Catalog while monitoring the mount's status and coordinates on the Dashboard as you navigate to the selected target.
 
 
-<details>
-
-<summary>Frequently asked questions</summary>
-
-### What are `ap.local` and mDNS?
-
-Alpaca Driver **v2.2 and later** include an mDNS (Multicast DNS) server. mDNS allows devices on the same local network to discover the Alpaca Driver and Alpaca Pilot Web Server without requiring a central Domain Name Server (DNS).
-
-The Alpaca Pilot web interface is advertised on the local network using mDNS with the default hostname:
-
-```text
-http://ap.local
-```
-
-You can change the hostname advertised by mDNS from Alpaca Pilot's **Connect** page using the **Network Services** dialog.
-
-The `ap.local` address should work when the device running your browser and the device running the driver are connected to the same local network. It will not normally work across different networks or routed subnets.
-
-Some enterprise networks, browsers, Wi-Fi configurations, firewalls, and security policies may also block or restrict mDNS traffic. If you cannot reach Alpaca Pilot using `ap.local`, use the driver's hostname or IP address instead, as described below.
-
-mDNS is **optional** and is not required for the Alpaca Driver or Alpaca Pilot to operate. If you can already access Alpaca Pilot using the device hostname or IPv4 address, mDNS simply provides an alternative method of access.
-
-### What alternative methods can be used to reach Alpaca Pilot?
-
-There are three ways to reach Alpaca Pilot:
-
-1. **Use mDNS**
-
-    On networks where mDNS is supported by both the network and the client device, use:
-
-    ```text
-    http://ap.local
-    ```
-
-2. **Use the driver's hostname**
-
-    If the hostname can be resolved by the device running the browser, replace `<hostname>` with the driver's hostname and use:
-
-    ```text
-    http://<hostname>
-    ```
-
-3. **Use the driver's IP address**
-
-    If you know the IPv4 address allocated to the driver, replace `<ipaddress>` with the driver's IPv4 address and use:
-
-    ```text
-    http://<ipaddress>
-    ```
-
-   
-
-### How can I find the IP address of the driver?
-
-There are several ways to find the driver's IP address.
-
-1. **Use the driver's log file**
-
-    The IP address is recorded in:
-
-    ```text
-    alpaca-benro-polaris/logs/alpaca.log
-    ```
-
-    Look for the `==STARTUP==` message containing the mDNS hostname. The address following the `->` characters is the IP address of the driver.
-
-    In this example, the driver's IP address is `192.168.50.73`
-
-    ```text
-    2026-09-24T18:47:05.665 INFO ==STARTUP== Serving mDNS hostname [http://ap.local](http://ap.local) -> 192.168.50.73:80
-    ```
-
-  
-
-2. **Use your router**
-
-    Log in to your router's administration interface and look for a list of connected devices. Depending on the router, this may be called **Connected Devices**, **DHCP Clients**, **LAN Clients**, **Attached Devices**, or something similar.
-
-    Look for the hostname of the device running the Alpaca Driver. The router should display the IPv4 address assigned to it.
-
-3. **Use Windows**
-
-    If the driver is running on Windows, open **Command Prompt** and run:
-
-    ```text
-    ipconfig
-    ```
-
-    Find the network adapter that is currently connected to your local network and look for its **IPv4 Address**.
-
-    You can also use the following command to display the computer's hostname:
-
-    ```text
-    hostname
-    ```
-  
-
-4. **Use Raspberry Pi**
-
-    If the driver is running on a Raspberry Pi, open a terminal and run:
-
-    ```text
-    hostname -I
-    ```
-
-    This displays the IP addresses currently assigned to the Raspberry Pi.
-
-    You can also use the following to display the Raspberry Pi's hostname:
-
-    ```text
-    hostname
-    ```
-
-### Can you use a phone's hotspot as a network?
-
-Yes. A phone's hotspot can provide a network connection when a normal Wi-Fi network is unavailable.
-
-| Platform                      | Windows                                                                                                               | Raspberry Pi                                                      |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Join your phone's hotspot** | On the driver's Windows device, select your phone's hotspot from the Windows Wi-Fi connection list and connect to it. | Add your phone's hotspot using the setup command described below. |
-| **Example configuration**     | Use the normal Windows Wi-Fi configuration interface.                                                                 | `./setup.sh -n <ssid> -w <ssidpassword>`                          |
-
-Once configured, the driver will join the phone's hotspot whenever it is available. If the hotspot is unavailable, it will fall back to the configured home network. If no configured network is available, it will ultimately fall back to access-point mode.
-
-There is an important limitation when using an **Android phone as a hotspot**: Android browsers do not always resolve mDNS hostnames while the phone is operating as the hotspot. In this situation, `http://ap.local/` may not work even though the phone and driver are correctly connected to the same hotspot.
-
-If this occurs, find the driver's IP address and access Alpaca Pilot using the IP address instead.
-
-### How can I test mDNS?
-
-If `ap.local` does not work, you can test whether the device running the browser can resolve the hostname.
-
-On Windows, open **Command Prompt**. On Linux or macOS, open **Terminal**, and run:
-
-```text
-ping ap.local
-
-nslookup ap.local
-```
-
-If these commands cannot resolve `ap.local`, mDNS may be unavailable or blocked on your network, or the client device may not support mDNS resolution in its current configuration.
-
-Note that a successful `ping` is not required for Alpaca Pilot to work. Some devices or network configurations may block ICMP traffic while still allowing access to the web server. The important test is whether `ap.local` can be resolved to the driver's IP address.
-
-If mDNS is unavailable, use the driver's hostname or IP address instead.
-
-</details>
+If Alpaca Pilot doesn't open at `http://ap.local`, see [C7 - Can't Reach ap.local](./troubleshooting-network.md#c7---cant-reach-aplocal), which explains mDNS, the other ways to reach Alpaca Pilot, and how to find the driver's IP address.
 
 
 
 ---
 
-## II. Connecting Devices
+## Connecting Polaris
 
 >VIDEO DEMO: [21 - Connecting to the Driver and Polaris](https://youtu.be/0QSKD1GCzOc?t=0m51s)
 
@@ -260,12 +117,12 @@ When you start the Alpaca Driver, it will automatically attempt to try and conne
 - D. Connect to the Polaris
 - E. Setup the Polaris for Astro Mode
 
-### A. Start Alpaca Driver
+### Start the Driver
 After you have installed the Alpaca Driver, you can start the Driver either from a terminal or from the shortcut link you setup. 
 
 ![Pilot start Driver](images/pilot-connecta.png)
 
-### B. Launch Alpaca Pilot
+### Launch Alpaca Pilot
 Follow the instructions from the previous section to launch the Alpaca Pilot Application. Navigate to the Connect page to monitor the startup process.
 
 When you launch the **Alpaca Pilot** application, it attempts to automatically connect to the **Alpaca Driver**. In most cases, this connection is established without user intervention. However, if the Driver is not running or network connectivity is lost, you may need to reconnect manually.
@@ -287,7 +144,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
     - When **connected**, clicking this will disconnect the session.
 
 
-### C. Power-on the Polaris ane enable Wifi
+### Power On the Polaris
 
 ![Power on Poalris and Enable Wifi](images/pilot-connectc.png)
 
@@ -309,7 +166,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
 
     - On Raspberry Pi, see [raspberrypi.md's network troubleshooting](./raspberrypi.md#p1---wi-fi-and-bluetooth) to join manually via `join_wifi.py` or `nmcli`. 
 
-### D. Connect to Polaris
+### Establish Communications
 
 Once Wifi network connectivity has been established to the Polaris, the Driver should automatically connect. If you have problems connecting to the Polaris, the following fields allow you to manually initiate a connection with custom settings.
 
@@ -335,7 +192,7 @@ Once Wifi network connectivity has been established to the Polaris, the Driver s
 
 <br>
 
-### E. Setup the Polaris for Astro Mode
+### Astro Mode Setup
 
 Follow these steps to prepare your Benro Polaris mount for Astro Mode using the Alpaca Pilot App:
 
@@ -376,7 +233,7 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 
 - **Begin Plate Solving:** With setup complete, you're ready to use the Driver and perform your first plate solve.
 
-### F. Network Services
+### Network Services
 The **Network Services Dialog** on the **Connect** page is optional, but provides advanced control over how the Alpaca Driver exposes its network services. You can selectively disable specific services or change the network port they use.
 
 This is primarily useful for:
@@ -391,19 +248,21 @@ Additionally, this dialog allows you to modify the Driver’s behavior regarding
 ![Pilot connect](images/pilot-connectf.png)
 
 
-### G. Using Alpaca Pilot over HTTPS
+### Using HTTPS
 
 By default, Alpaca Pilot runs as an HTTP-based Single Page Application (SPA). As a result, your browser may display the site as **“Not Secure”** and restrict certain features such as location access and clipboard integration.
 
 Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser access and full functionality. When the Driver starts it will create self-signed certificates that are used for secure access. To use HTTPS you will need to download and install the CA Certificate and enable HTTPS in Alpaca Pilot.
 
-#### Download the CA Certificate
+**Download the Certificate**
+
 
 1. Open the **Alpaca Pilot Connect** page.
 2. Open the **Network Services** dropdown dialog.
 3. Click **Download CA Certificate**.
 
-#### Install the CA Certificate on Windows
+**Install on Windows**
+
 
 1. Open the downloaded `alpaca_pilot_ca.crt` file.
 2. Click **Install Certificate**.
@@ -413,7 +272,8 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
 5. Select **Trusted Root Certification Authorities**, then click **OK**.
 6. Click **Next**, then **Finish**.
 
-#### Install the CA Certificate on macOS
+**Install on macOS**
+
 
 1. Open the downloaded `.crt` file — **Keychain Access** will launch automatically.
 2. Add the certificate to the **System** keychain.
@@ -421,7 +281,8 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
 4. Expand the **Trust** section and set **When using this certificate** to **Always Trust**.
 5. Close the dialog and enter your password to confirm the changes.
 
-#### Install the CA Certificate on iOS / iPadOS
+**Install on iOS**
+
 
 1. Open the **Alpaca Pilot Connect** page in **Safari** and download the CA certificate (Safari will prompt that a profile is ready to install).
 2. Go to **Settings → General → VPN & Device Management**, tap the **alpaca-pilot-ca** profile, then tap **Install** in the top-right corner (you'll be prompted for your device passcode).
@@ -429,7 +290,8 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
 4. Under **Enable Full Trust for Root Certificates**, toggle **alpaca-pilot-ca** to **on**.
 
 
-#### Restart Your Browser to pickup the new CA Certificate
+**Restart Your Browser**
+
 
 * **Chrome:** Navigate to `chrome://restart`
 * **Safari:** Fully close Safari (swipe it away from the App Switcher)
@@ -440,7 +302,8 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
     3. Set the value to `true`
     4. Restart Firefox
 
-#### Enable HTTPS in Alpaca Pilot
+**Enable HTTPS**
+
 
 1. Open the **Alpaca Pilot Connect** page.
 2. Open the **Network Services** dropdown.
@@ -448,7 +311,8 @@ Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser 
 4. The Driver will restart with HTTPS enabled.
 5. Alpaca Pilot will detect the restart and redirect to HTTPS.
 
-#### Persistent Certificate Warnings
+**Certificate Warnings**
+
 If you're upgrading from an earlier driver version and still see certificate warnings or connection failures after following the steps above, the browser or the OS may be holding onto stale security state from before the upgrade.
 
 On Windows, do a full power-off rather than Restart. Windows 11 enables "Fast Startup" by default, which hibernates the session instead of fully reinitializing it on Restart. Leftover network state can persist across a restart; only a genuine power-off clears it. 
@@ -461,12 +325,12 @@ On any device that connected to an earlier version of the driver, also clear tha
 <br>
 <br>
 
-## III. Using the Dashboard
+## Using the Dashboard
 >VIDEO DEMO: [21 - Dashboard introduction](https://youtu.be/0QSKD1GCzOc?t=4m55s)
 
 >VIDEO DEMO: [22 - Dashboard Status and Setpoint Entry](https://youtu.be/Wv_ZvBtZZ4Q?t=3m18s)
 
-### Purpose of the Dashboard
+### Purpose
 The dashboard is the central component of the Alpaca Pilot App. It basically shows you the current **orientation of the telescope** and any **activity on the motors**. It provides **real-time telemetry** of the mount's current coordinates, including Azimuth, Altitude, Roll or Right Ascension, Declination, Position Angle. The Dashboard also provides direct control of the mount through action buttons and interaction into zoomable radial dials for each co-ordinate.
 
 ### Action Buttons
@@ -596,7 +460,7 @@ Scrolling the mouse wheel downward performs the same action as this control.
     - `d2.5` — Increase by 2.5 decimal degrees
 
 
-## IV. Using the Catalog
+## Using the Catalog
 
 >VIDEO DEMO: [22 - Alpaca Pilot Catalog](https://youtu.be/Wv_ZvBtZZ4Q?t=6m42s)
 
@@ -613,7 +477,7 @@ The catalog in the Alpaca Pilot App has been **significantly expanded** beyond t
 3.  **Ratings and Notes:** Each entry provides helpful notes and community ratings to guide your choices. To keep the application footprint small, items categorized as "typical," "hard," or "avoid" are excluded from the base catalog.
 4. **Cross Referenced:** Each entry is cross referenced to over 25 master catalogs like Messier, Caldwell, NGC, IC, H400, Sh2, LDN etc. 
 
-### Understanding Catalog Visual Indicators (Chips)
+### Catalog Chips
 
 Each target listing features three coloured chips that provide a quick visual summary of the object's characteristics and current position:
 
@@ -654,7 +518,7 @@ You can filter targets by various key attributes that affect imaging suitability
 3.  **Filtering by Size (Dropdown):** Filter by apparent angular size of the object
 3.  **Filtering by Brightness (Dropdown):** Filter by visual brightness (magnitude) for selecting objects suited to your observing or imaging conditions
 
-### GoTo (Slew) to the Target
+### Goto a Target
 To move the mount to a target's location, simply **click the GoTo button** associated with the item, and the mount will start moving to that location.
 
 *   **Tracking State Preservation:** When you issue a GoTo command, the driver will preserve **whatever the tracking state was** at the time; it does not automatically turn tracking on.
@@ -671,13 +535,13 @@ For the full list of reference catalogues, and how to extend the catalog with yo
 <br>
 <br>
 
-## V. Creating Panoramas
+## Creating Panoramas
 Alpaca Pilot's Panorama Grid lets you plan and capture multi-panel panoramas and mosaics. See [Creating Panoramas](./panoramas.md).
 
 <br>
 <br>
 
-## VI. Flat White
+## Flat White
 The **Flat White** page turns a phone or tablet into a light source for taking flat frames. Open it from the side menu, under **Performance Tuning**: the page fills the whole screen with white, with no other controls.
 
 * Set the device's screen brightness to maximum, and turn off its night mode or blue-light filter, so the light is bright and neutral.

@@ -39,6 +39,11 @@ nav = [
   ] },
   { "Help" = [
     "troubleshooting.md",
+    { "Installation" = "troubleshooting-install.md" },
+    { "Benro Polaris" = "troubleshooting-polaris.md" },
+    { "Network" = "troubleshooting-network.md" },
+    { "NINA" = "troubleshooting-nina.md" },
+    { "Stellarium" = "troubleshooting-stellarium.md" },
     "faq.md",
   ] },
   { "Release Notes" = [

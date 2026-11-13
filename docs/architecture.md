@@ -8,7 +8,7 @@ This page shows how the Alpaca Driver's hardware and software fit together, and 
 ## Hardware Architectures
 The Alpaca Driver runs on a device separate from the Benro Polaris, such as a MiniPC, laptop, MacBook, Raspberry Pi or desktop, which connects to the Polaris over Wi-Fi. This keeps the Polaris firmware untouched while allowing more powerful processing and flexibility. The setups below are the most common.
 
-If you want to run the Alpaca Driver on a phone or iPad, please read [FAQ A3](./faq.md#a3--can-i-run-the-alpaca-driver-on-my-phone-or-ipad).
+If you want to run the Alpaca Driver on a phone or iPad, please read [FAQ A3](./faq.md#a3---on-a-phone-or-ipad).
 
 ### Laptop with Stellarium Desktop
 ![Hardware Architecture: Laptop](images/abp-hardware1.png)
