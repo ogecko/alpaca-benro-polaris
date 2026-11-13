@@ -20,7 +20,7 @@ nav = [
   { "Home" = "index.md" },
   { "Getting Started" = [
     { "Start Here" = "getting-started.md" },
-    { "Hardware Guide" = "hardware.md" },
+    { "Preparing the MiniPC" = "hardware.md" },
     { "Windows Installation" = "installation.md" },
     { "macOS Installation" = "installation_macos.md" },
     { "Raspberry Pi Installation" = "raspberrypi.md" },
@@ -48,6 +48,7 @@ nav = [
     { "v1.0.0" = "release-notes-v1.0.0.md" },
   ] },
   { "Reference" = [
+    "architecture.md",
     "alpaca-api.md",
     "catalog.md",
     "control.md",

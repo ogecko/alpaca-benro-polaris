@@ -866,12 +866,12 @@ There are three approaches to connect StellariumPLUS to the Alpaca Driver, depen
     * Connect your phone to your Home Wifi.
     * In Stellarium's Observing Tools Setup, enter a Network Host of `192.168.X.XXX`
     * This address needs to match the IP address of your Alpaca Driver machine on your Home Wifi.
-* Scenario C: The Alpaca Driver device connects to Polaris Hotspot and has its own NinaAir Hotspot.
+* Scenario C: The Alpaca Driver device connects to Polaris Hotspot and has its own MiniPC Hotspot.
     * Check that the BP App is closed. This frees the phones Wifi from the Polaris Wifi.
     * Check that your phone does not autoconnect to the Polaris Wifi.
-    * Connect your phone to the NinaAir Hotspot.
+    * Connect your phone to the MiniPC Hotspot.
     * In Stellarium's Observing Tools Setup, enter a Network Host of `192.168.X.XXX`
-    * This address needs to match the IP address of your Alpaca Driver machine on your NinaAir Wifi.
+    * This address needs to match the IP address of your Alpaca Driver machine on your MiniPC Wifi.
 
 ### S2 - Still Cannot Connect StellariumPLUS to the Alpaca Driver
 

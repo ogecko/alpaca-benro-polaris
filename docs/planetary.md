@@ -22,7 +22,7 @@ Planets are tiny: Jupiter's disc is less than 50 arcseconds across, Saturn's rin
 
 For example, the Saturn image above used a 400 mm f/5.6 lens with a 2× III extender (800 mm f/11) on a MiniCam8 camera, whose IMX585 sensor has 2.9 micron pixels. That's about f/3.8 per micron of pixel size, within the ideal range. The sensor's 3.4× crop factor makes 800 mm act like about 2,700 mm on a full-frame camera, giving about 0.75 arcseconds per pixel, so Saturn's rings span about 60 pixels. A full-frame Canon EOS R5, with 4.4 micron pixels, would cover them with about 40 pixels at the same focal length.
 
-Long lenses with extenders are heavy and sensitive to wind, so keep the payload balanced and within the Polaris's limits (see the [Hardware Guide](./hardware.md)).
+Long lenses with extenders are heavy and sensitive to wind, so keep the payload balanced and within the Polaris's limits (see [FAQ B5](./faq.md#b5---what-is-the-heaviest-load-the-polaris-can-handle)).
 
 ## Pointing and Tracking
 

@@ -3,7 +3,7 @@
 ## Quick Start
 
 1. **Back the project.** The driver is distributed to backers of the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o). See the [LICENSE](https://github.com/ogecko/alpaca-benro-polaris/blob/main/LICENSE) for terms.
-2. **Choose your hardware.** Read the [Hardware Guide](./hardware.md).
+2. **Choose your platform.** Run the driver on a MiniPC (recommended, see [Preparing the MiniPC](./hardware.md)), a Windows laptop, a Mac, a Raspberry Pi, or in a Docker container.
 3. **Install the driver.** Follow the guide for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) or [Docker](./docker.md).
 4. **Connect with Alpaca Pilot.** The [Alpaca Pilot Guide](./pilot.md) takes you from first connection through alignment to your first goto.
 5. **Add your imaging app.** Set up [NINA](./nina.md), [Stellarium](./stellarium.md), [CCDciel](./ccdciel.md) or [PHD2](./guiding.md).
@@ -62,7 +62,7 @@ Once this is successful you may want to consider getting a Mini-PC and installin
 
 * A mini-PC allows you to use Nina to control the Polaris, camera, and potentially other equipment. It provides enhanced processing power, remote control, and a better overall user experience. Start by learning how to install and setup Nina. Then move on to learning how to perform an autofocus run, perform plate solving, create a sequence and capture images.
 
-More information on the Alpaca Setup can be found in the [Hardware Guide](./hardware.md).
+More information on the Alpaca setup can be found in [Architecture](./architecture.md#hardware-architectures) and [Preparing the MiniPC](./hardware.md).
   
 #### Installing the Alpaca Driver
 The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md), but here's a simplified overview:

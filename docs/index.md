@@ -123,7 +123,7 @@ Other applications that support the ASCOM Alpaca standard should also work.
 
 - **A Benro Polaris Astro Edition.** The driver is tested on hardware versions 1.2 to 1.4 with firmware V6.0.0.40 to V6.0.0.54. See the [Release Notes](./release-notes-v2.2.0.md#tested-compatible-hardware-and-software) for the full list.
 - **A camera and lens.** Any camera that NINA or CCDciel can control. Beta testers have used Canon, Sony, Nikon, Pentax and ZWO cameras with lenses up to 800 mm.
-- **A computer to run the driver.** A Windows 11 laptop, a mini-PC mounted on the tripod, a Mac, or a Raspberry Pi (Zero 2 W and up). The [Hardware Guide](./hardware.md) compares the options, including a fully self-contained "NinaAir" mini-PC rig.
+- **A computer to run the driver.** A Windows 11 laptop, a mini-PC mounted on the tripod, a Mac, or a Raspberry Pi (Zero 2 W and up). [Architecture](./architecture.md#hardware-architectures) compares the options, and [Preparing the MiniPC](./hardware.md) sets up a fully self-contained MiniPC rig.
 
 When you have these, follow the [Getting Started](./getting-started.md) guide.
 
@@ -137,7 +137,7 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | [Release Notes v2.2](./release-notes-v2.2.0.md) | New features, compatible hardware and software, bug fixes and known issues |
 | [Video Playlists](https://www.youtube.com/@jdm5001/featured) | Demonstrations for [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics), [v2.0 and v2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), and [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) |
 | [Getting Started](./getting-started.md) | Quick-start steps, then a beginner's learning plan for the Polaris, Alpaca, Stellarium, NINA and Siril |
-| [Hardware Guide](./hardware.md) | Laptop, mini-PC and Raspberry Pi setups, including the NinaAir rig |
+| [Preparing the MiniPC](./hardware.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
 | [Installation Guide](./installation.md) | Step-by-step install on Windows, plus [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md) |
 | [Alpaca Pilot Guide](./pilot.md) | The dashboard, catalog, alignment and panorama tools |
 | [Advanced Motion Control Guide](./control.md) | Alignment models, the rotator, PID tracking, PEC and orbital tracking |

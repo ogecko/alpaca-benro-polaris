@@ -116,7 +116,7 @@ The remainder of this secion will focus on the second solution, using **PHD2**.
 ## 2. PHD2 Guiding Prerequisites
 
 ### 2.1 Hardware Purchases and Software Installation
-To perform auto-guiding you will need some additional equipment, including the following. See [Hardware Pulse-Guiding Equipment](./hardware.md#guiding-scope-and-camera-optional) for more details.
+To perform auto-guiding you will need some additional equipment, including the following. See [Hardware Pulse-Guiding Equipment](./hardware.md#guiding-scope-and-camera) for more details.
 
 * A **Guide scope** (eg SVBony SV106 Guide Scope), or an off-axis guider (OAG)
 * A **Guide camera** (e.g. ToupTek GPM462M, ZWO ASI120MM, ZWO ASI220MM, etc.)

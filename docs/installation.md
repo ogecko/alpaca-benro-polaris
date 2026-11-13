@@ -2,10 +2,10 @@
 [Microsoft Win11](#to-install-on-windows-1011) | [Apple MacOS](./installation_macos.md) | [Raspberry Pi](./raspberrypi.md) | 
 [Startup](#starting-the-alpaca-pilot-app) | 
 [Deep-Sky Imaging](./dso-imaging.md) | 
-[Stellarium](#installing-stellarium-optional) | 
-[Sky Safari](#seting-up-sky-safari-pro-optional) | 
-[Nina](#installing-nina-optional) | 
-[Architecture](#software-architecture) 
+[Stellarium](#stellarium-desktop) | 
+[Sky Safari](#sky-safari-pro) | 
+[Nina](#installing-nina) | 
+[Architecture](./architecture.md) 
 
 
 
@@ -104,6 +104,19 @@ The `setup.bat` script installs and configures the Alpaca Driver. It uses [uv](h
 
     </details>
 
+### Updating the Driver
+
+To update the Alpaca Driver to the latest version, repeat **step 4** above.
+
+The update process will:
+
+1. Stop the currently running driver.
+2. Download the latest version.
+3. Install any required updates.
+4. Restart the driver.
+
+Your existing settings and data, including alignment and calibration data, are preserved.
+
 ### Starting the Alpaca Pilot App
 
 Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any web browser.
@@ -130,7 +143,7 @@ Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any 
 
     Browser features like Location and Clipboard access only work over a secure (HTTPS) connection. If you need them, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#g-using-alpaca-pilot-over-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
 
-### Connecting the Driver to Polaris
+### Connecting to Polaris
 
 Before you can use the Polaris, complete the following steps.
 
@@ -168,33 +181,19 @@ Before you can use the Polaris, complete the following steps.
 
 If you do not see the `communications init... done` message, see [Troubleshooting C1](./troubleshooting.md#c1a---cannot-see-communications-init-done-in-the-log-wi-fi-2-not-connected) for steps to diagnose and resolve connection problems.
 
-## Updating the Driver
-
-To update the Alpaca Driver to the latest version, repeat **steps 1–3** above.
-
-The update process will:
-
-1. Stop the currently running driver.
-2. Download the latest version.
-3. Install any required updates.
-4. Restart the driver.
-
-Your existing settings and data, including alignment and calibration data, are preserved.
-
-
 ## Next Steps
 
 To plan and run an imaging session, see [Deep-Sky Imaging](./dso-imaging.md) and [Planetary Imaging](./planetary.md).
 
-## Optional Installations
+## Optional Steps
    
-### Installing Stellarium (OPTIONAL)
+### Stellarium Desktop
 Stellarium is a free open-source planetarium for your computer. 
 While there are free and paid Mobile Stelarium Apps and free Web versions, 
 I'd recommend using the desktop version as it is full-featured and has been 
 tested with the Alpaca Driver.
 
-#### To install the desktop version of Stellarium
+#### Installing Stellarium
 
 1. Download the relevant desktop version from https://stellarium.org/en/
 2. The remaining instructions assume you are using v24.2 of the Windows x86 64bit version for Windows 10+
@@ -207,7 +206,7 @@ tested with the Alpaca Driver.
 9. Click `Install`.
 10. Check `Launch Stellarium` and click `Finish`.
 
-#### To Setup Stellarium for initial use
+#### Seting up Stellarium
 
 1. Press `F11` to exit full-screen mode.
 2. Press `A` to remove the Atmosphere. Press `D`to see Deep Sky Objects.
@@ -217,17 +216,12 @@ tested with the Alpaca Driver.
 6. If you are copying Oculars settings, duplicate the following file:
     `C:\Users\XXXXX\AppData\Roaming\Stellarium\modules\Oculars\ocular.ini`
 
-### Seting up Sky Safari Pro (OPTIONAL)
+### Sky Safari Pro
 The following screen captures show the settings you need to use for Sky Safari Pro to work with the Alpaca Driver. Choose an Mount as Alt-Az , Brand as Celestron NexStar 5i/i8 , IP Address 192.168.0.3, Port 10001, Preset Name as Polaris and Save Preset.
 
 ![Sky Safari Pro](images/abp-sky-safari.png)
 
-### Installing Nina (OPTIONAL)
+### Installing Nina
 Nina is an open-source free software application covering image capture, autofocus, plate-solving, centering, star detection, guiding, and a lot more. Much of this now works with the Benro Polaris (well not guiding yet). The open-source nature makes it a bit more complicated to install and setup, but it's worth the effort - and it's free.
 
 The [Astro What](https://astrowhat.com/) website has a good set of instructions for [Installing Nina and its Pre-requisiites](https://astrowhat.com/articles/setting-up-a-pc-with-n-i-n-a.18/page/installing-n-i-n-a.45/). 
-
-### Software Architecture
-The following diagram is provided as a reference to help you undersdtand how the different software modules fit together.
-
-![Software Layers](images/abp-software-layers.png)
