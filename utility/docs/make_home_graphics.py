@@ -3,6 +3,7 @@ Generate the home-page images in docs/images, in the charcoal-and-cyan style of 
 
   abp-hero.jpg      banner: an astrophoto with the Alpaca logo, wordmark and a photo of the Polaris
   abp-gallery.jpg   a grid of images captured with the Polaris, captioned with lens and sub-exposure length
+  abp-satellites.jpg  the satellite imaging examples, captioned the same way
 
 The feature icons are hand-editable SVGs in docs/images/icons/, laid out as an HTML table in docs/index.md.
 
@@ -44,6 +45,13 @@ GALLERY = [
 ]
 PANORAMA = ('[Group 0]-GLAT000S_GLON344_1_LRGB_stretched_result_GLAT022N_GLON352_2_LRGB_stretched_result-34 images.png',
             'Milky Way mosaic', 'Two panels framed in galactic coordinates')
+
+# (file, title, caption) for the Satellite Imaging guide
+SATELLITES = [
+    ('Spin_at_NGC6134_Little_Pincushion.jpg', 'Spin around NGC 6134', 'Mount rotated during a sequence of exposures'),
+    ('Starlink Satellite B 2026-10-20_20-34-23_L_-10.00_2.00s_1471.jpg', 'Starlink Satellite', 'Tracked by the Alpaca Driver · 2 s exposure'),
+]
+
 
 def font(fonts: Path, name: str, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(fonts / name), size)
@@ -100,6 +108,17 @@ def hero(src: Path, fonts: Path) -> Image.Image:
     return bg
 
 
+def caption(tile: Image.Image, title: str, sub: str, fonts: Path) -> Image.Image:
+    """Shade the bottom of a tile and write a title and caption on it."""
+    shade = Image.new('L', (1, tile.height))
+    shade.putdata([max(0, round(200 * (y - tile.height * 0.62) / (tile.height * 0.38))) for y in range(tile.height)])
+    tile.paste((0, 0, 0), (0, 0), shade.resize(tile.size))
+    d = ImageDraw.Draw(tile)
+    d.text((22, tile.height - 50), title, font=font(fonts, 'FRADM.TTF', 30), fill=WHITE, anchor='ls')
+    d.text((22, tile.height - 20), sub, font=font(fonts, 'segoeui.ttf', 22), fill=GREY, anchor='ls')
+    return tile
+
+
 def gallery(src: Path, fonts: Path) -> Image.Image:
     cols, tw, th, gap = 3, 640, 400, 10
     rows = -(-len(GALLERY) // cols)
@@ -107,22 +126,20 @@ def gallery(src: Path, fonts: Path) -> Image.Image:
     w = cols * tw + (cols - 1) * gap
     h = rows * (th + gap) + pano_h
     im = Image.new('RGB', (w, h), CHARCOAL)
-    title_font, sub_font = font(fonts, 'FRADM.TTF', 30), font(fonts, 'segoeui.ttf', 22)
-
-    def caption(tile: Image.Image, title: str, sub: str) -> Image.Image:
-        shade = Image.new('L', (1, tile.height))
-        shade.putdata([max(0, round(200 * (y - tile.height * 0.62) / (tile.height * 0.38))) for y in range(tile.height)])
-        tile.paste((0, 0, 0), (0, 0), shade.resize(tile.size))
-        d = ImageDraw.Draw(tile)
-        d.text((22, tile.height - 50), title, font=title_font, fill=WHITE, anchor='ls')
-        d.text((22, tile.height - 20), sub, font=sub_font, fill=GREY, anchor='ls')
-        return tile
-
     for i, (name, title, sub) in enumerate(GALLERY):
         tile = cover(Image.open(src / name).convert('RGB'), tw, th)
-        im.paste(caption(tile, title, sub), ((i % cols) * (tw + gap), (i // cols) * (th + gap)))
+        im.paste(caption(tile, title, sub, fonts), ((i % cols) * (tw + gap), (i // cols) * (th + gap)))
     name, title, sub = PANORAMA
-    im.paste(caption(cover(Image.open(src / name).convert('RGB'), w, pano_h, (0.5, 0.55)), title, sub), (0, rows * (th + gap)))
+    im.paste(caption(cover(Image.open(src / name).convert('RGB'), w, pano_h, (0.5, 0.55)), title, sub, fonts), (0, rows * (th + gap)))
+    return im
+
+
+def satellites(src: Path, fonts: Path) -> Image.Image:
+    tw, th, gap = 960, 540, 10
+    im = Image.new('RGB', (len(SATELLITES) * (tw + gap) - gap, th), CHARCOAL)
+    for i, (name, title, sub) in enumerate(SATELLITES):
+        tile = cover(Image.open(src / name).convert('RGB'), tw, th)
+        im.paste(caption(tile, title, sub, fonts), (i * (tw + gap), 0))
     return im
 
 
@@ -130,6 +147,7 @@ def main() -> None:
     src, fonts, out = (Path(a) for a in sys.argv[1:4])
     hero(src, fonts).save(out / 'abp-hero.jpg', quality=88, optimize=True, progressive=True)
     gallery(src, fonts).save(out / 'abp-gallery.jpg', quality=85, optimize=True, progressive=True)
+    satellites(src, fonts).save(out / 'abp-satellites.jpg', quality=85, optimize=True, progressive=True)
 
 
 if __name__ == '__main__':

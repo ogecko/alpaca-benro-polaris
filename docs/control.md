@@ -7,7 +7,6 @@
 [Calibration](#motor-speed-calibration) | 
 [Coordinated Speed](#coordinated-speed-control) | 
 [PID Controller](#pid-controller-and-performance-tuning) | 
-[Orbitals](#orbitals-and-non-sidereal-tracking) | 
 [Dev: API Testing](#developer-automated-pid-testing-via-alpaca-api) | 
 [Dev: PID Tuning Utility](#developer-pid-tuning-utility) 
 
@@ -31,14 +30,14 @@ This guide provides an overview of the **Advanced Control Features** of the Alpa
 - **[Slewing](./pilot.md#radial-dials):** Lets the driver's own motion controller handle manual slews, moving the set point by Az/Alt/Roll or RA/Dec/PA. No longer use Benro Polaris firmware for gotos or slews.
 - **[Advanced Goto](./kinematics.md#42-inverse-kinematics--sky--motors-angular-position):** Moves to targets along a shortest-path trajectory with optimised acceleration and deceleration, and preserves roll and tracking state.
 - **[PID Tracking](#pid-controller-and-performance-tuning):** Uses a closed-loop, three-axis PID controller with feed-forward to hold the mount on its target during tracking.
-- **[Orbitals Tracking](#orbitals-and-non-sidereal-tracking):** Enables non-sidereal tracking of the Sun, Moon, planets, satellites, comets and asteroids.
+- **[Orbitals Tracking](./orbitals.md):** Enables non-sidereal tracking of the Sun, Moon, planets, satellites, comets and asteroids.
 - **[Multi-Point Alignment](#alignment-models):** Uses the QUEST algorithm to build a correction model from three or more plate-solve syncs, compensating for tripod tilt, polar misalignment and cone error.
 - **[Mechanical Alignment Correction](./kinematics.md#23-mechanical-alignment-corrections-mac):** Fits M2 and M3 offsets (how the camera sits on the head) and the M2 scale with every alignment, cutting typical alignment and goto errors from about an arcdegree to a few arcminutes.
 - **[Slew & Center Correction](./kinematics.md#22-slew--center-correction):** Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).
 - **[PEC Drift Correction](./kinematics.md#iv-drift-correction---convergence):** Learns the remaining slow drift in RA and Dec from guiding corrections and applies proactive fixes every 200 ms.
 - **[PEC Worm Gear Correction](./kinematics.md#v-worm-gear-correction---profile-calibration):** Corrects each motor's worm gear wobble (repeating every 6° of motor rotation, typically around 35 minutes while tracking) from a profile measured once by a calibration test, with no guiding needed.
-- **[Sync Guiding (Plate-solve)](./guiding.md#approach-1-plate-solvesync-guiding-hardware-free):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
-- **[Pulse Guiding (Guide-camera)](./guiding.md#approach-2-pulse-guiding-hardware-based):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
+- **[Sync Guiding (Plate-solve)](./guiding.md#approach-1-sync-guiding):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
+- **[Pulse Guiding (Guide-camera)](./guiding.md#approach-2-pulse-guiding):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
 - **[Coordinated Speed Control](#coordinated-speed-control):** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
 - **[Backlash Compensation](./kinematics.md#27-backlash-compensation):** Drives each motor through its gear backlash at the end of a goto, so Slew & Center corrections land first time (not through a tracking reversal, which is left to the guider).
 
@@ -690,114 +689,6 @@ Tuning involves adjusting the proportional (KP), derivative (KD), and integral (
 <br>
 
 ---
-# Orbitals and Non-Sidereal Tracking
-
->VIDEO DEMO - [26 - Tracking Orbitals](https://youtu.be/no47ZNagEDk)
-
-The Alpaca Driver version 2.0 introduces comprehensive support for non-sidereal tracking, allowing the mount to precisely follow objects whose equatorial coordinates change constantly with time. This capability is achieved through the implementation of the **full ASCOM tracking rates** and real-time calculation of target positions.
-
-## 1. Supported Tracking Rates
-
-The driver supports the standard ASCOM tracking rates, which deviate from the default sidereal motion required for fixed stars.
-
-| Tracking Rate | Target Type | Description |
-| :--- | :--- | :--- |
-| **Sidereal** | Deep Sky Objects (DSOs), Stars | Standard tracking rate for objects outside the Solar System. |
-| **Lunar** | The Moon | Precisely tracks the motion of the Moon. |
-| **Solar** | The Sun | Tracks the Sun's motion (requires safety confirmation before enabling). |
-| **Custom** | Planets, Moons, Satellites, Comets, Asteroids and other Near Earth Objects | Tracks natural and artificial objects using advanced orbital mechanics. 
-|
-
-The driver is capable of tracking 
-
-- the **Sun**, all the solar system **Planets**, and the larger **Planetary moons**.
-- over **32,000 artificial satellites**, including man made satellites, rocket bodies, space stations, and space debris.
-- over **1 million heliocentric objects**, such as comets, asteriods and near Earth objects.
-
-## 2. Accessing Orbital Targets via the Catalog
-
-Orbital objects are accessed through the Alpaca Pilot App's integrated Catalog.
-
-### Solar System Objects
-
-Natural bodies, including the Sun, Moon, planets (such as Mars), and planetary moons (such as Titan, the Saturnian moon), are listed directly within the Catalog.
-
-1.  **Select Target:** Navigate to the Catalog and use the filters to view **Planets or Moons**.
-2.  **Initiate GoTo:** Choose the desired target (e.g., Mars) and select the **GoTo button**.
-3.  **Automatic Rate Change:** The mount will automatically change the tracking rate to match the selected object (e.g., the tracking status will show 'Solar', 'Lunar' or the targets name).
-
-### Artificial Satellites
-
-The Catalog also enables the search and tracking of over 32,000 artificial objects, including **Space Stations, satellites, rocket bodies, and space debris**, using their **NORAD ID**.
-
-1.  **Find NORAD ID:** Locate the satellite's NORAD ID (also called the space catalog number) using external resources such as Heavens-Above, N2YO, CelesTrak, or SatelliteMap.space.
-2.  **Search in Pilot:** Enter the NORAD ID into the Pilot Catalog search bar.
-3.  **Start Tracking:** The driver fetches the orbital parameters and begins tracking that satellite.
-
-### Helio-centric Objects
-The Catalog also enables the search and tracking of over 1 million Near Earth Objects, including **Asteriods, Comets, Drawf Planets, Interstellar objects**, using their **Name or Designator**.
-
-1.  **Find Object's ID:** Locate the object's ID using external resources such as TheSkyLive.com, EysOnAsteriods, MinorPlanetCenter.net, Sky-Tonight.com, AstroForumSpace.com, or cobs.si.
-2.  **Search in Pilot:** Enter the Object's ID into the Pilot Catalog search bar using the following formats.
-    - Long-period comets: "C/2025 A6", "C/2020 F3"
-    - Short-period comets: "P/2023 R1" 
-    - Provisional comet designations: "2006 F8"
-    - Dwarf Planet names: "Ceres", "Makemake"
-    - Named asteroids:  "Vesta", "Pallas", "Iris", "Flora", "Hebe", "Apophis" 
-    - Numbered asteroids: "00433" → Eros
-    - Provisional asteroid designations: "2023 BU", "2021 PH27",  "A801 AA" → Ceres
-3. **Monitor Response:** The NASA JPL Horizons database has stricter search term requirements, so be sure to check the success or failure notification to determine whether a different format is needed.
-
-4.  **Start Tracking:** The driver fetches the orbital parameters and begins tracking that satellite.
-
-## 3. Tracking Status
-
-### Pre-Tracking and Visibility Monitoring
-
-Because orbital objects can be below the horizon or too low for effective observation, the driver includes a pre-tracking feature.
-
-*   **Monitoring Altitude:** If an orbital object is below the **10° altitude** threshold, the mount will not actively track it.
-*   **Status Indication:** The status chip will turn **orange** and display the target's current position e.g., "ISS (ZARYA) (Az 223° Alt -31°)".
-*   **Idle Tracking:** While in this state, the mount falls back to sidereal tracking (if enabled), allowing deep-sky imaging while waiting for the satellite to rise.
-*   **Automatic Slew:** Once the object rises above 10° altitude, the mount will **automatically slew to that coordinate and start tracking it**. Tracking will stop when the satellite sets and dips below the threshold again.
-
-### Active Tracking
-When an orbital is above the **10° altitude** threshold, the mount will automatically slew to the target and start tracking its motion.
-
-*   **Continuous Updates:** The driver updates the equatorial set point coordinates every **200 milliseconds** to precisely track the object's dynamic motion.
-*   **Status Chip:** The Dashboard's Status Indicator will reflect the current tracking rate, displaying **Lunar**, **Solar** or the objects **Name**, (e.g., "Titan" or "ISS (ZARYA)").
-*   **Maintaining Offset:** If you use the slew commands to manually offset the mount (e.g., to focus on a feature of the Moon), the system will **continue to update the tracking** and follow the object from that new offset location. This offset can be removed by turning tracking off and then back on again.
-
-
-## 4. Considerations for Satellite Imaging
-
-Artificial satellites present unique challenges due to their speed.
-
-*   **Imaging Technique:** For brighter, faster-moving satellites, users may want to consider recording **video** and using techniques like Lucky Imaging to capture sharp frames. 
-- **Best viewing times**: 1–2 hours after sunset or before sunrise, when the satellite is sunlit but your location is dark.
-* Alternatively, switching to **sidereal tracking** will allow the satellite to sweep across the star field.
-
-
-#### Typical Pass Duration of Artificial Objects by Orbit Type
-
-| Orbit Type         | Altitude Range | Pass Duration | Example Satellites         |
-|--------------------|----------------|---------------|----------------------------|
-| Low Earth Orbit (LEO) | 200–2,000 km   | 2–10 minutes   | ISS, Starlink, Hubble      |
-| Medium Earth Orbit (MEO) | ~20,000 km     | 10–20 minutes  | GPS, Galileo               |
-| Geostationary Orbit | ~35,786 km     | Continuous     | Weather, communications    |
-
-- **LEO satellites** like the ISS typically take **4–6 minutes** to cross from horizon to horizon when visible.
-- **Inclination and observer latitude** affect how high and long the pass appears. Near-equatorial orbits may skim the horizon at high latitudes.
-- **Elevation angle** matters: passes directly overhead (high elevation) are longer and brighter than low-angle ones.
-
-
-
-
-<br>
-<br>
-
----
-
 # Developer: Automated PID Testing via Alpaca API
 
 This section documents how to control the driver programmatically for regression-testing the PID controller.

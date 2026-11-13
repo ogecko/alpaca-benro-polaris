@@ -26,7 +26,7 @@ Long lenses with extenders are heavy and sensitive to wind, so keep the payload 
 
 ## Pointing and Tracking
 
-Find the planet in Alpaca Pilot's catalog: filter by the **Planet** type, or search by name. Its **Goto** slews to the planet and starts non-sidereal tracking at the planet's own rate, so it stays centred while you capture (see [Orbitals and Non-Sidereal Tracking](./control.md#orbitals-and-non-sidereal-tracking)). Planets also appear in Stellarium, but a goto from there tracks at the sidereal rate.
+Find the planet in Alpaca Pilot's catalog: filter by the **Planet** type, or search by name. Its **Goto** slews to the planet and starts non-sidereal tracking at the planet's own rate, so it stays centred while you capture (see [Satellite Imaging](./orbitals.md#other-orbitals)). Planets also appear in Stellarium, but a goto from there tracks at the sidereal rate.
 
 * At planetary focal lengths the field of view is tiny, so align the mount well before slewing. A [Multi-Point Alignment](./control.md) with a sync near the planet puts it in the frame first time.
 * You may need to fine-tune the planet's position with Alpaca Pilot's jogging keys: the **arrow keys** (or **W**, **A**, **S** and **D**) move the mount, and the number keys set the jogging speed, from **1** (slowest) to **9** (fastest). Use the slowest speeds at planetary focal lengths, where a small movement shifts the planet across the whole frame.

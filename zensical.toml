@@ -31,6 +31,7 @@ nav = [
     { "Creating Panoramas" = "panoramas.md" },
     { "Deep-Sky Imaging" = "dso-imaging.md" },
     { "Planetary Imaging" = "planetary.md" },
+    { "Satellite Imaging" = "orbitals.md" },
     { "Using Stellarium" = "stellarium.md" },
     { "Using Nina" = "nina.md" },
     { "Using CCDciel" = "ccdciel.md" },
