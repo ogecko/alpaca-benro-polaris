@@ -11,7 +11,7 @@ pose:
            from d3).
   s2       M2 scale (fraction), a mount constant: about +0.3 to +2% on the mounts measured. Config align_m2_scale
            (%, default 1.0), refitted at each sync and taken when significantly better (SyncManager.refit_m2_scale).
-docs/study_alignment_mac_v2.md: on 1,300 archived sync points these take residuals from 36-95' to 2-8';
+project/study_alignment_mac_v2.md: on 1,300 archived sync points these take residuals from 36-95' to 2-8';
 docs/kinematics.md section 2.3 is the user documentation.
 
 Pure kinematics, no driver state: control.SyncManager keeps the fitted d2, d3 and applies them (corrQ_MAC).

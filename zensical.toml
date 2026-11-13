@@ -10,9 +10,6 @@ copyright = "Copyright &copy; 2024-2026 David Morrison"
 repo_url = "https://github.com/ogecko/alpaca-benro-polaris"
 repo_name = "ogecko/alpaca-benro-polaris"
 docs_dir = "docs"
-exclude_docs = """
-todo.md
-"""
 site_dir = "site"
 extra_css = ["stylesheets/extra.css"]
 
@@ -51,22 +48,6 @@ nav = [
     "catalog.md",
     "control.md",
     "kinematics.md",
-    "quest_paper.md",
-    "study_alignment_mac_v2.md",
-    "study_goto_response.md",
-    "study_pec_drift.md",
-    "study_pec_motor_space_v2.md",
-  ] },
-  { "Project" = [
-    { "Beta Results v2.2" = "beta_results_v2.2.md" },
-    { "Beta Results v2.0" = "beta_results_v2.0.md" },
-    { "Beta Results v1" = "beta_results_v1.md" },
-    { "Beta Agreement" = "beta_agreement.md" },
-    { "PCCGG Feedback v2" = "facebook_pccgg_v2.md" },
-    { "PCCGG Feedback v1" = "facebook_pccgg_v1.md" },
-    { "Podcast Oct 2024" = "podcast_2024_oct.md" },
-    { "MLAstro SAL-33" = "ML_Astro_SAL-33.md" },
-    { "Benro Sponsorship" = "benro.md" },
   ] },
   { "Help" = [
     "troubleshooting.md",

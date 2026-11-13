@@ -257,7 +257,7 @@ class KalmanFilter:
 # ************* Calibration Manager ************
 # Speed calibration (SpeedTest actions, Pilot calibration page). The coordinated speed controller (speed_controller.py)
 # uses only its FAST points, the baseline with approved FAST tests in place (fast_rate_units): the motors run 10-25%
-# faster than the baseline (docs/study_goto_response.md), and the goto planner's speeds come from these. Its SLOW
+# faster than the baseline (project/study_goto_response.md), and the goto planner's speeds come from these. Its SLOW
 # levels always use the firmware table. The legacy controller uses the whole table.
 class CalibrationManager:
     def __init__(self, liveInstance=True):

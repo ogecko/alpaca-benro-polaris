@@ -147,7 +147,7 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | [Sync Guiding](./guiding-sync.md) | Guiding with plate solves from your main camera, Periodic Error Correction and the worm gear calibration |
 | [Pulse Guiding](./guiding-pulse.md) | Guiding with PHD2, a guide scope and camera, and improving guiding performance |
 | [Troubleshooting](./troubleshooting.md) and [FAQ](./faq.md) | Solutions to common problems, and answers to common questions |
-| [Beta Test Results](./beta_results_v2.2.md) | Real-world results and feedback from the v2.2 beta testers |
+| [Beta Test Results](https://github.com/ogecko/alpaca-benro-polaris/blob/main/project/beta_results_v2.2.md) | Real-world results and feedback from the v2.2 beta testers |
 
 ## Support the Project
 

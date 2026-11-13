@@ -1,5 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [CCDciel](./ccdciel.md) | [Guiding](./guiding.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
-
 # General Final Release Checklist
 - [ ] Check Driver package vulnerabilities
   - [ ] uv audit
@@ -95,7 +93,7 @@ Build a one-off utility (alongside existing scripts in `utility/`) that: fetches
 Wire the standalone solver into the Driver process. Add a way to trigger a solve on demand (e.g. an Alpaca Pilot "Solve Now" button or a small REST endpoint) that fetches an image, solves it, and feeds the result into the same code path `control.py` already uses for external Plate-Solve/Sync requests — so the rest of the QUEST/PEC pipeline needs no changes.
 
 ### Phase 3 — Closed-Loop Automation
-Replace the manual "Solve and Sync every 2–5 minutes" NINA workflow (see `docs/guiding.md` Approach 1) with a Driver-internal periodic solve loop, so hardware-free drift correction works even with no client software connected at all.
+Replace the manual "Solve and Sync every 2–5 minutes" NINA workflow (see `docs/guiding-sync.md`) with a Driver-internal periodic solve loop, so hardware-free drift correction works even with no client software connected at all.
 
 ### Phase 4 — Hardening & Docs
 Field-test across a full session, handle solve failures (clouds, filters, poor focus) gracefully without disturbing tracking/PEC, then document setup and expected performance in `docs/`.
@@ -129,7 +127,7 @@ Add Camera ConformU checks alongside the existing Telescope/Rotator checks alrea
 
 ## 5. PHD2 on the Raspberry Pi Zero 2W
 
-**Goal:** Run PHD2 itself on the Pi Zero 2W, using a USB-attached guide scope/camera for pulse-guiding, and have it drive the Driver's existing ASCOM Alpaca `ITelescopeV3.PulseGuide` interface — eliminating the Windows/Mac Mini-PC currently required for the "Pulse Guiding" workflow in `docs/guiding.md`. The main imaging camera stays on the existing Polaris/Alpaca path; only the guiding loop moves onto the Pi.
+**Goal:** Run PHD2 itself on the Pi Zero 2W, using a USB-attached guide scope/camera for pulse-guiding, and have it drive the Driver's existing ASCOM Alpaca `ITelescopeV3.PulseGuide` interface — eliminating the Windows/Mac Mini-PC currently required for the "Pulse Guiding" workflow in `docs/guiding-pulse.md`. The main imaging camera stays on the existing Polaris/Alpaca path; only the guiding loop moves onto the Pi.
 
 **Benefits:** No laptop or Mini-PC needed for autoguiding — a smaller, cheaper, fully self-contained rig with the same long-exposure tracking benefits guiding already provides.
 
@@ -141,19 +139,19 @@ Add Camera ConformU checks alongside the existing Telescope/Rotator checks alrea
 - Headless operation: confirm PHD2 runs under Xvfb on the Lite (no-desktop) OS image, remains reachable over its Server API (TCP 4400), and can be viewed/controlled remotely via VNC for the one-time setup steps.
 
 ### Phase 1 — Guide Camera Standalone on the Pi
-Get PHD2 + the guide camera looping exposures on the Pi with no mount connected yet. Validate exposure timing and image quality over VNC, matching the manual focus/rotate/align workflow in `docs/guiding.md` §3.2.
+Get PHD2 + the guide camera looping exposures on the Pi with no mount connected yet. Validate exposure timing and image quality over VNC, matching the manual focus/rotate/align workflow in `docs/guiding-pulse.md` §3.2.
 
 ### Phase 2 — INDI↔Alpaca Bridge in Isolation
 Validate the bridge alone: send synthetic guide pulses through it and confirm the Driver's PID loop reacts the same way it does today via the Windows/ASCOM path. No PHD2 involved yet — isolates bridge correctness from PHD2/camera behavior.
 
 ### Phase 3 — End-to-End Pulse Guiding on the Pi
-Connect PHD2 → bridge → Driver end-to-end on the Pi. Perform calibration per the existing `docs/guiding.md` §4 workflow via VNC (one-time), then validate guiding accuracy against the documented baseline (~1.5–3.0 arcsec RMS).
+Connect PHD2 → bridge → Driver end-to-end on the Pi. Perform calibration per the existing `docs/guiding-pulse.md` Calibration workflow via VNC (one-time), then validate guiding accuracy against the documented baseline (~1.5–3.0 arcsec RMS).
 
 ### Phase 4 — Headless Field Operation
 Package the bridge (and Xvfb) as systemd services alongside `polaris-driver.service`, so a normal session needs VNC only for the one-off setup/calibration steps, not for ongoing guiding. Test an unattended multi-hour session.
 
 ### Phase 5 — Docs & Hardware Guidance
-Document the required powered USB hub, tested guide camera models, and setup workflow in `docs/hardware.md` / `docs/guiding.md` / `docs/raspberrypi.md`.
+Document the required powered USB hub, tested guide camera models, and setup workflow in `docs/hardware.md` / `docs/guiding-pulse.md` / `docs/raspberrypi.md`.
 
 
 ## 6. UX Rationalisation

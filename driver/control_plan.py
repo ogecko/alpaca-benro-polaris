@@ -16,7 +16,7 @@
 #   min_move_time       the shortest rest-to-rest time of one motor's move within its speed and acceleration.
 #
 # PID_Controller.plan_goto (control.py) decides when a goto is planned and steps the trajectory every tick. The goto
-# redesign (docs/study_goto_response.md: end solution chosen once, controlled paths for moves of 15 deg or less,
+# redesign (project/study_goto_response.md: end solution chosen once, controlled paths for moves of 15 deg or less,
 # closed-form straight motor moves above, planning that never blocks the tick) builds here.
 # -----------------------------------------------------------------------------
 import math
