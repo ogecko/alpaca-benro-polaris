@@ -172,6 +172,16 @@ To learn Siril, you can consider these resources:
 * Online Communities and Forums: Astrophotography communities like Cloudy Nights (https://www.cloudynights.com/) and Stargazers Lounge (https://stargazerslounge.com/) have sections dedicated to Siril, where users share their experiences, tips, and troubleshooting advice.
 
 
+### Learning Planetary
+The Benro Polaris can also image the planets. Planetary imaging works quite differently from deep-sky imaging: planets are small and bright, so instead of a few long exposures you record a video of thousands of very short exposures, then keep and stack only the sharpest frames. This "lucky imaging" freezes the shimmer of the atmosphere and reveals detail such as Jupiter's cloud bands and Saturn's rings. Key areas to learn include:
+
+* Choosing a Focal Length: Planets are tiny, so use your longest lens with an extender, ideally on a small astronomy camera with small pixels.
+* Capturing Video: Use SharpCap with an astronomy camera, or EOS Utility with a Canon camera. Keep exposures short, set the gain so the histogram stays clear of the right-hand side, and use USB 3 for a high frame rate.
+* Stacking: Use AutoStakkert! to grade every frame, then align and stack the best of them.
+* Composing a Wider Shot: Combine the stacked planet with a longer exposure that shows its moons.
+
+The [Planetary Imaging](./planetary.md) guide covers each of these steps, using an image of Saturn and its moons as an example.
+
 ### Further Learning
 
 * Alpaca Driver Documentation: This is the go-to resource for detailed instructions, troubleshooting tips, and information on specific features. The documentation can be found at [Home](./index.md) and on the [documentation site](https://ogecko.github.io/alpaca-benro-polaris/).
