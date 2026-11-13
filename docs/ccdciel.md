@@ -150,7 +150,7 @@ To Slew to alternate coordinate reference frames supported by the Alpaca Driver,
 * **`PolarisSlewAbsolute`** slews to the coordinates given; coordinates not given keep their current value, e.g. `az=240 alt=45 roll=0` or `ra=10:45:03 dec=-59:41:04 pa=90`.
 * **`PolarisSlewRelative`** adds each value to the current target, e.g. `alt=0.5 roll=-10` or `ra=0:00:30`.
 * Mix any of the coordinate keys in one step, but not with the motor keys `m1`, `m2`, `m3`.
-* The driver keeps every slew within the Benro Polaris limits (Altitude 0-70°, Roll ±60°, see [Control](./control.md)).
+* The driver keeps every slew within what the Benro Polaris can physically reach, where Altitude and Roll limit each other (see [Reachable Envelope](./kinematics.md#reachable-envelope)).
 * The step finishes when the slew is complete.
 
 ### Other Device Actions

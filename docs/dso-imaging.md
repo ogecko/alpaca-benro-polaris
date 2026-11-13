@@ -35,7 +35,7 @@ This guide uses NINA, the recommended app: it's free and has an excellent user i
 ## Planning a Session
 
 * **Choose a target.** Alpaca Pilot's catalog lists hundreds of imaging targets, and its rating, visibility and size filters help you find ones that suit your equipment and sky. NINA's Sky Atlas is another good source. Check that the target fits your field of view: a large nebula needs a shorter focal length than a small galaxy.
-* **Check its altitude.** The Polaris can point no higher than an altitude of 70°, so choose targets that stay below it during your session, and above any trees or buildings. Targets low in the sky are dimmer and blurrier, so the best time to image is usually when the target is high, but still below 70°.
+* **Check its altitude.** The Polaris can't point higher than an altitude of 81.5°, and the more the camera is rolled, the lower that limit becomes (see [Reachable Envelope](./kinematics.md#reachable-envelope)). Choose targets that stay below it during your session, and above any trees or buildings. Targets low in the sky are dimmer and blurrier, so the best time to image is usually when the target is high, but still below that limit.
 * **Check the Moon.** Moonlight brightens the sky and washes out faint detail. For emission nebulae, narrowband filters (such as Hα, OIII and SII) cut through moonlight and light pollution. A catalog entry's **Class** field shows which narrowband emissions a nebula has, and how strong they are (see the [Catalog Reference](./catalog.md#class)).
 
 ## Focal Length and Exposure
