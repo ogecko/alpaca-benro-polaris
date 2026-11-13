@@ -1,0 +1,3236 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/config/">
+      
+      
+      
+        <link rel="prev" href="../pilot-api/">
+      
+      
+        <link rel="next" href="../catalog/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Configuration Reference - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Start Here
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Preparing the MiniPC
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Windows Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  macOS Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../panoramas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dso-imaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alpaca-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Configuration Reference
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Configuration Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#network" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Network
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#site-and-equipment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Site and Equipment
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#panorama" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Panorama
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Control
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Models
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aiming" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Aiming
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Logging
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Control Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-network/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Network
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  NINA
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Stellarium
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#network" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Network
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#site-and-equipment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Site and Equipment
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#panorama" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Panorama
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Control
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#models" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Models
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aiming" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Aiming
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Logging
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../architecture/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h1>
+<p><a href="#network">Network</a> · <a href="#site-and-equipment">Site and Equipment</a> · <a href="#panorama">Panorama</a> · <a href="#control">Control</a> · <a href="#models">Models</a> · <a href="#aiming">Aiming</a> · <a href="#logging">Logging</a></p>
+<p>This page lists every setting of the Alpaca Driver, with its default value. It is generated from the driver's configuration file, <code>driver/config.toml</code>, by <code>utility/docs/make_config_reference.py</code>: change the file's comments rather than this page.</p>
+<p><strong>Where settings live.</strong> <code>driver/config.toml</code> holds the default for each setting, and is replaced when the driver is updated, so don't edit it to change a setting. Instead, change settings in Alpaca Pilot: most are on its Settings page, and some on its PID Tuning, Kalman, Panorama and Dashboard pages. Alpaca Pilot saves the settings you have changed to <code>data/config.pilot.json</code>, which the driver applies on top of the defaults each time it starts. Restoring the defaults deletes that file.</p>
+<p><strong>Changing settings from a script.</strong> The <code>Polaris:ConfigFetch</code>, <code>Polaris:ConfigUpdate</code>, <code>Polaris:ConfigSave</code> and <code>Polaris:ConfigRestore</code> Device Actions read, change, save and restore settings (see the <a href=".././alpaca-api/#device-actions">Alpaca API Reference</a>). A change takes effect straight away, except for the settings marked <strong>Restart</strong> below, which need a driver restart.</p>
+<h2 id="network">Network<a class="headerlink" href="#network" title="Permanent link">&para;</a></h2>
+<p>How the driver connects to the Benro Polaris, and the services it provides to applications.</p>
+<p>These settings are in the <code>[network]</code> section of <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Restart</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>polaris_auto_retry</code></td>
+<td><code>true</code></td>
+<td>Yes</td>
+<td>If the connection to the Polaris fails: true = keep retrying, false = wait for Alpaca Pilot to reconnect.</td>
+</tr>
+<tr>
+<td><code>enable_remote_shutdown</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Allow Alpaca Pilot to shut down the computer the driver runs on (Polaris:ShutdownOS).</td>
+</tr>
+<tr>
+<td><code>polaris_ip_address</code></td>
+<td><code>'192.168.0.1'</code></td>
+<td></td>
+<td>IP address of the Benro Polaris on its Wi-Fi hotspot.</td>
+</tr>
+<tr>
+<td><code>polaris_port</code></td>
+<td><code>9090</code></td>
+<td></td>
+<td>Port the Benro Polaris listens on.</td>
+</tr>
+<tr>
+<td><code>polaris_wifi_password</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>WPA2 password for the Polaris hotspot, used when the driver joins it (Windows only). Leave blank: the hotspot is open.</td>
+</tr>
+<tr>
+<td><code>enable_restapi</code></td>
+<td><code>true</code></td>
+<td>Yes</td>
+<td>Provide the Alpaca REST API service (required, don't turn off).</td>
+</tr>
+<tr>
+<td><code>enable_socket</code></td>
+<td><code>true</code></td>
+<td>Yes</td>
+<td>Provide the Alpaca Pilot WebSocket service.</td>
+</tr>
+<tr>
+<td><code>enable_discovery</code></td>
+<td><code>true</code></td>
+<td>Yes</td>
+<td>Provide the Alpaca discovery service, so applications can find the driver.</td>
+</tr>
+<tr>
+<td><code>enable_mdns</code></td>
+<td><code>true</code></td>
+<td>Yes</td>
+<td>Advertise Alpaca Pilot on the local network over mDNS, as http://<mdns_name>.</td>
+</tr>
+<tr>
+<td><code>mdns_name</code></td>
+<td><code>'ap.local'</code></td>
+<td>Yes</td>
+<td>Name advertised over mDNS (always ends in .local).</td>
+</tr>
+<tr>
+<td><code>enable_pilot</code></td>
+<td><code>true</code></td>
+<td>Yes</td>
+<td>Provide the Alpaca Pilot web server.</td>
+</tr>
+<tr>
+<td><code>enable_synscan</code></td>
+<td><code>true</code></td>
+<td>Yes</td>
+<td>Provide the SynScan service, for Stellarium and SkySafari.</td>
+</tr>
+<tr>
+<td><code>enable_rest_https</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Serve the Alpaca REST API over HTTPS (NINA then needs Options &gt; Equipment &gt; ASCOM Alpaca Discovery &gt; Use HTTPS).</td>
+</tr>
+<tr>
+<td><code>enable_https</code></td>
+<td><code>false</code></td>
+<td>Yes</td>
+<td>Serve Alpaca Pilot and its WebSocket over HTTPS/WSS, with a self-signed certificate.</td>
+</tr>
+<tr>
+<td><code>alpaca_pilot_https_port</code></td>
+<td><code>443</code></td>
+<td>Yes</td>
+<td>Alpaca Pilot's HTTPS port, used when enable_https is true.</td>
+</tr>
+<tr>
+<td><code>alpaca_pilot_http_port</code></td>
+<td><code>80</code></td>
+<td>Yes</td>
+<td>Alpaca Pilot's HTTP port, used when enable_https is false.</td>
+</tr>
+<tr>
+<td><code>alpaca_restapi_port</code></td>
+<td><code>5555</code></td>
+<td>Yes</td>
+<td>Port for the Alpaca REST API.</td>
+</tr>
+<tr>
+<td><code>alpaca_socket_port</code></td>
+<td><code>5556</code></td>
+<td>Yes</td>
+<td>Port for the Alpaca Pilot WebSocket.</td>
+</tr>
+<tr>
+<td><code>alpaca_discovery_port</code></td>
+<td><code>32227</code></td>
+<td>Yes</td>
+<td>UDP port for Alpaca discovery.</td>
+</tr>
+<tr>
+<td><code>stellarium_synscan_port</code></td>
+<td><code>10001</code></td>
+<td>Yes</td>
+<td>Port for the SynScan service (Stellarium, SkySafari).</td>
+</tr>
+<tr>
+<td><code>stellarium_synscan_ip_address</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>IP address the SynScan service listens on: <code>''</code> = all addresses, <code>'127.0.0.1'</code> = this computer only.</td>
+</tr>
+<tr>
+<td><code>alpaca_restapi_ip_address</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>IP address the Alpaca REST API listens on: <code>''</code> = all addresses, <code>'127.0.0.1'</code> = this computer only.</td>
+</tr>
+<tr>
+<td><code>preset_action</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>Set by Alpaca Pilot to act on a preset: <code>'&lt;verb&gt;_&lt;type&gt;'</code>, with verb save, load or delete, and type loc or pano. Resets to <code>''</code>.</td>
+</tr>
+<tr>
+<td><code>preset_name</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>Name of the preset to act on.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="site-and-equipment">Site and Equipment<a class="headerlink" href="#site-and-equipment" title="Permanent link">&para;</a></h2>
+<p>Your observing site, GPS receiver, and lens or telescope.</p>
+<p>These settings are in the <code>[server]</code> section of <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Restart</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>location_source</code></td>
+<td><code>'browser'</code></td>
+<td></td>
+<td>Where Alpaca Pilot's Locate gets your position: <code>'browser'</code> (the browser's location services) or <code>'gps'</code> (a GPS receiver).</td>
+</tr>
+<tr>
+<td><code>gps_provider</code></td>
+<td><code>'nmea'</code></td>
+<td></td>
+<td>GPS receiver protocol: <code>'nmea'</code> (serial or USB, all platforms), <code>'gpsd'</code> (Linux) or <code>'ubx'</code> (serial).</td>
+</tr>
+<tr>
+<td><code>gpsd_host</code></td>
+<td><code>'127.0.0.1'</code></td>
+<td></td>
+<td>GPSD server hostname or IP address.</td>
+</tr>
+<tr>
+<td><code>gpsd_port</code></td>
+<td><code>2947</code></td>
+<td></td>
+<td>GPSD server TCP port.</td>
+</tr>
+<tr>
+<td><code>gps_serial_device</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>GPS serial port (for example COM9 or /dev/ttyACM0), chosen in Alpaca Pilot's GPS Receiver settings.</td>
+</tr>
+<tr>
+<td><code>gps_serial_baudrate</code></td>
+<td><code>9600</code></td>
+<td></td>
+<td>GPS serial baud rate.</td>
+</tr>
+<tr>
+<td><code>gps_max_attempts</code></td>
+<td><code>5</code></td>
+<td></td>
+<td>Maximum GPS polls (1-20); three agreeing fixes are needed.</td>
+</tr>
+<tr>
+<td><code>gps_retry_max_delay</code></td>
+<td><code>15.0</code></td>
+<td></td>
+<td>Longest wait between GPS polls (seconds); the wait doubles every two attempts.</td>
+</tr>
+<tr>
+<td><code>location_list</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>Saved location names, sorted and separated by |, for Alpaca Pilot's locations list.</td>
+</tr>
+<tr>
+<td><code>location</code></td>
+<td>Set in Alpaca Pilot</td>
+<td></td>
+<td>Name of your observing site (any text).</td>
+</tr>
+<tr>
+<td><code>site_latitude</code></td>
+<td>Set in Alpaca Pilot</td>
+<td></td>
+<td>Site latitude (degrees, positive north, WGS84).</td>
+</tr>
+<tr>
+<td><code>site_longitude</code></td>
+<td>Set in Alpaca Pilot</td>
+<td></td>
+<td>Site longitude (degrees, positive east, WGS84).</td>
+</tr>
+<tr>
+<td><code>site_elevation</code></td>
+<td>Set in Alpaca Pilot</td>
+<td></td>
+<td>Site elevation above mean sea level (metres).</td>
+</tr>
+<tr>
+<td><code>site_pressure</code></td>
+<td><code>1010</code></td>
+<td></td>
+<td>Atmospheric pressure (millibars), for the refraction correction. 1010 is the standard atmosphere; 0 turns the correction off.</td>
+</tr>
+<tr>
+<td><code>focal_length</code></td>
+<td><code>800</code></td>
+<td></td>
+<td>Focal length of your lens or telescope (mm).</td>
+</tr>
+<tr>
+<td><code>focal_ratio</code></td>
+<td><code>11.0</code></td>
+<td></td>
+<td>Focal ratio of your lens or telescope (focal length / aperture).</td>
+</tr>
+<tr>
+<td><code>verbose_driver_exceptions</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Give more detail when the driver reports an error.</td>
+</tr>
+<tr>
+<td><code>default_azimuth</code></td>
+<td><code>'180'</code></td>
+<td></td>
+<td>Default azimuth for Alpaca Pilot's Compass and Single Star Alignment, as text: decimal degrees (<code>'180'</code>) or <code>deg:mm:ss</code> (<code>'180:30:00'</code>).</td>
+</tr>
+<tr>
+<td><code>default_altitude</code></td>
+<td><code>'45'</code></td>
+<td></td>
+<td>Default altitude for Alpaca Pilot's Single Star Alignment, as text: decimal degrees (<code>'45'</code>) or <code>deg:mm:ss</code> (<code>'45:30:00'</code>).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="panorama">Panorama<a class="headerlink" href="#panorama" title="Permanent link">&para;</a></h2>
+<p>The Panorama Grid and the Panel Spacing Calculator. Alpaca Pilot sets most of these from its Panorama pages (see <a href=".././panoramas/">Creating Panoramas</a>).</p>
+<p>These settings are in the <code>[panorama]</code> section of <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Restart</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pano_list</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>Saved panorama names, sorted and separated by |, for Alpaca Pilot's panoramas list.</td>
+</tr>
+<tr>
+<td><code>pano_name</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>Name of the panorama defined below.</td>
+</tr>
+<tr>
+<td><code>sensor_size</code></td>
+<td><code>'Full Frame (36 × 24 mm)'</code></td>
+<td></td>
+<td>Camera sensor size, used only by the Panel Spacing Calculator.</td>
+</tr>
+<tr>
+<td><code>panel_overlap</code></td>
+<td><code>'30%'</code></td>
+<td></td>
+<td>Overlap between adjacent panels, used only by the Panel Spacing Calculator.</td>
+</tr>
+<tr>
+<td><code>show_panels</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Show the Panorama Grid's panel navigation on the Dashboard.</td>
+</tr>
+<tr>
+<td><code>cols</code></td>
+<td><code>3</code></td>
+<td></td>
+<td>Number of panels across the mosaic (2-14).</td>
+</tr>
+<tr>
+<td><code>rows</code></td>
+<td><code>1</code></td>
+<td></td>
+<td>Number of panels down the mosaic (1-3).</td>
+</tr>
+<tr>
+<td><code>hstep</code></td>
+<td><code>40.0</code></td>
+<td></td>
+<td>Horizontal distance between panel centres (degrees).</td>
+</tr>
+<tr>
+<td><code>vstep</code></td>
+<td><code>25.0</code></td>
+<td></td>
+<td>Vertical distance between panel centres (degrees).</td>
+</tr>
+<tr>
+<td><code>first</code></td>
+<td><code>0</code></td>
+<td></td>
+<td>Which corner is panel 1: 0 = top left, 1 = top right, 2 = bottom left, 3 = bottom right.</td>
+</tr>
+<tr>
+<td><code>order</code></td>
+<td><code>0</code></td>
+<td></td>
+<td>Order the panels are captured in: 0 = row by row, 1 = column by column, 2 = serpentine.</td>
+</tr>
+<tr>
+<td><code>track</code></td>
+<td><code>0</code></td>
+<td></td>
+<td>Roll and tracking after moving to each panel: 0 = landscape, untracked; 1 = sky, horizon-locked; 2 = sky, celestial; 3 = sky, Milky Way.</td>
+</tr>
+<tr>
+<td><code>anchor</code></td>
+<td><code>0</code></td>
+<td></td>
+<td>Which part of the mosaic sits at the reference position: 0 = mosaic centre, n = panel n.</td>
+</tr>
+<tr>
+<td><code>ref_action</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>Set to <code>'update'</code> to make the mount's current position the reference position. Resets to <code>''</code>.</td>
+</tr>
+<tr>
+<td><code>ref</code></td>
+<td><code>0</code></td>
+<td></td>
+<td>Reference frame: 0 = Az/Alt/Roll, 1 = RA/Dec/PA, 2 = galactic l/b/GPA, 3 = M1/M2/M3 motor position.</td>
+</tr>
+<tr>
+<td><code>r1</code></td>
+<td><code>90.0</code></td>
+<td></td>
+<td>Reference position, first axis (Azimuth, RA, galactic longitude or M1).</td>
+</tr>
+<tr>
+<td><code>r2</code></td>
+<td><code>5.0</code></td>
+<td></td>
+<td>Reference position, second axis (Altitude, Dec, galactic latitude or M2).</td>
+</tr>
+<tr>
+<td><code>r3</code></td>
+<td><code>0.0</code></td>
+<td></td>
+<td>Reference position, third axis (Roll, PA, galactic PA or M3).</td>
+</tr>
+<tr>
+<td><code>panel</code></td>
+<td><code>3</code></td>
+<td></td>
+<td>Current panel: 0 = mosaic centre, n = panel n.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="control">Control<a class="headerlink" href="#control" title="Permanent link">&para;</a></h2>
+<p>The driver's motion control: alignment, tracking, guiding, Periodic Error Correction, the Kalman filter, the PID controller and the motor limits. See the <a href=".././control/">Control Reference</a> and <a href=".././kinematics/">Kinematics Reference</a> for how they work.</p>
+<p>These settings are in the <code>[control]</code> section of <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Restart</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>advanced_control</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Turn on the driver's advanced control. Must be true for any of the advanced features below.</td>
+</tr>
+<tr>
+<td><code>advanced_kf</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Smooth the Polaris's position measurements with a Kalman filter.</td>
+</tr>
+<tr>
+<td><code>advanced_rotator</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Provide the ASCOM Alpaca Rotator, for framing by rotation (needs advanced_tracking).</td>
+</tr>
+<tr>
+<td><code>advanced_slewing</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>The driver controls move-axis (jog) commands, instead of the Polaris.</td>
+</tr>
+<tr>
+<td><code>advanced_goto</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>The driver controls gotos, instead of the Polaris.</td>
+</tr>
+<tr>
+<td><code>advanced_tracking</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>The driver controls tracking, instead of the Polaris.</td>
+</tr>
+<tr>
+<td><code>advanced_pulse_guiding</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Accept ASCOM Alpaca pulse guiding, from applications such as PHD2 (needs advanced_tracking).</td>
+</tr>
+<tr>
+<td><code>advanced_pulse_pec_tuning</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Use pulse guiding corrections to tune the PEC model.</td>
+</tr>
+<tr>
+<td><code>pec_ignore_guider_calibration</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>PEC ignores a guider's calibration (PHD2, CCDciel), recognised as 3 or more single-axis pulses, each the same as or 1.5x the last.</td>
+</tr>
+<tr>
+<td><code>advanced_sync_guiding</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Sync Guiding: treat a plate-solve sync without a slew as a guiding correction (needs advanced_tracking).</td>
+</tr>
+<tr>
+<td><code>advanced_alignment</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Use the Multi-Point Alignment (QUEST) model, instead of the Polaris's Single Point Alignment.</td>
+</tr>
+<tr>
+<td><code>advanced_scc_enabled</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Slew and Center Correction: reduce the number of Slew and Center cycles, using the method set by advanced_scc_choice.</td>
+</tr>
+<tr>
+<td><code>advanced_scc_choice</code></td>
+<td><code>2</code></td>
+<td></td>
+<td>Slew and Center Correction method: 0 = zero last residual, 1 = local Gaussian adjustment, 2 = sync guiding adjustment.</td>
+</tr>
+<tr>
+<td><code>advanced_align_mac</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Mechanical Alignment Correction: fit the M2/M3 offsets (and the M2 scale) with the alignment (false = rotation-only QUEST).</td>
+</tr>
+<tr>
+<td><code>advanced_eq_mode</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Beta, experimental: for a Polaris on an equatorial wedge, with the M1 axis aligned to the celestial pole.</td>
+</tr>
+<tr>
+<td><code>advanced_eq_mode_visible</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Beta, experimental: show the Equatorial Mode switch in Alpaca Pilot's settings.</td>
+</tr>
+<tr>
+<td><code>advanced_orbitals</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Track orbitals (the Sun, Moon, planets, satellites and comets) at their own, non-sidereal rates.</td>
+</tr>
+<tr>
+<td><code>orbital_lead_sec</code></td>
+<td><code>0.3</code></td>
+<td></td>
+<td>Aim this far ahead of an orbital (seconds), to make up for the control loop's delay (0.2-0.4 s).</td>
+</tr>
+<tr>
+<td><code>advanced_pec_drift</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>PEC Drift Correction: learn the slow drift from guiding corrections and correct it.</td>
+</tr>
+<tr>
+<td><code>advanced_pec_worm</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>PEC Worm Gear Correction: correct each motor's worm gear error, using data/worm_profile.json.</td>
+</tr>
+<tr>
+<td><code>coordinated_speed_control</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Coordinated speed control: shared motor speed control, planned gotos, acceleration-shaped jogs, and no PID integral build-up during gotos.</td>
+</tr>
+<tr>
+<td><code>advanced_backlash</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Backlash Compensation: take up the gear slack as a goto finishes (needs coordinated_speed_control; not applied to tracking reversals).</td>
+</tr>
+<tr>
+<td><code>backlash_deg</code></td>
+<td><code>[0.04, 0.12, 0.08]</code></td>
+<td></td>
+<td>Each motor's gear backlash (degrees, M1/M2/M3); worm profile tests measured about 125-160", 280-620" and 310".</td>
+</tr>
+<tr>
+<td><code>restore_tracking_on_restart</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>After a driver restart, resume the tracking it was doing, if it was saved less than 10 minutes ago.</td>
+</tr>
+<tr>
+<td><code>pec_tau_sec</code></td>
+<td><code>450</code></td>
+<td></td>
+<td>Smoothing time constant of PEC's drift rate estimate (seconds): 450 = 7.5 minutes.</td>
+</tr>
+<tr>
+<td><code>pec_reversal_pause</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>PEC pauses learning while a motor reverses its tracking direction (even with Backlash Compensation on).</td>
+</tr>
+<tr>
+<td><code>pec_reversal_lead_sec</code></td>
+<td><code>120</code></td>
+<td></td>
+<td>The PEC pause starts this long before the motor's turning point (seconds), as its gear unloads while it slows.</td>
+</tr>
+<tr>
+<td><code>pec_reversal_backlash_deg</code></td>
+<td><code>0.2</code></td>
+<td></td>
+<td>The PEC pause ends once the motor has turned this far past its turning point (degrees; backlash measured at 150-620").</td>
+</tr>
+<tr>
+<td><code>kf_measure_noise</code></td>
+<td><code>[0.00316, 0.00631, 0.0158, 0.00158, 0.00316, 0.255]</code></td>
+<td></td>
+<td>Kalman filter measurement noise: position M1/M2/M3, then velocity M1/M2/M3.</td>
+</tr>
+<tr>
+<td><code>kf_goto_noise_scale</code></td>
+<td><code>0.1</code></td>
+<td></td>
+<td>During a goto or rotate, the Kalman filter's position measurement noise is multiplied by this (tracking keeps kf_measure_noise).</td>
+</tr>
+<tr>
+<td><code>kf_process_noise</code></td>
+<td><code>[5.01e-05, 7.94e-05, 0.000126, 0.0001, 0.0001, 0.0001]</code></td>
+<td></td>
+<td>Kalman filter process noise: position M1/M2/M3, then velocity M1/M2/M3.</td>
+</tr>
+<tr>
+<td><code>measurement_dt</code></td>
+<td><code>0.2</code></td>
+<td></td>
+<td>Interval between the Polaris's position (518) messages, fixed by its hardware (seconds).</td>
+</tr>
+<tr>
+<td><code>measurement_catchup_max_dt</code></td>
+<td><code>2.0</code></td>
+<td></td>
+<td>Longest gap between position (518) messages before it's treated as an outage (seconds).</td>
+</tr>
+<tr>
+<td><code>pid_Kp</code></td>
+<td><code>[1, 1, 1]</code></td>
+<td></td>
+<td>PID proportional gain, M1/M2/M3: more control in proportion to the position error.</td>
+</tr>
+<tr>
+<td><code>pid_Ki</code></td>
+<td><code>[0.07, 0.07, 0.07]</code></td>
+<td></td>
+<td>PID integral gain, M1/M2/M3: more control while an error persists.</td>
+</tr>
+<tr>
+<td><code>pid_Kd</code></td>
+<td><code>[0.5, 0.5, 0.8]</code></td>
+<td></td>
+<td>PID derivative gain, M1/M2/M3: damping, with less control when moving fast.</td>
+</tr>
+<tr>
+<td><code>pid_Ke</code></td>
+<td><code>0.4</code></td>
+<td></td>
+<td>PID output smoothing (0 = none, 0.4 = mix in 40% of the previous output).</td>
+</tr>
+<tr>
+<td><code>pid_Kc</code></td>
+<td><code>0.75</code></td>
+<td></td>
+<td>PID tolerance treated as on target (arc minutes).</td>
+</tr>
+<tr>
+<td><code>pid_Ka</code></td>
+<td><code>0.0</code></td>
+<td></td>
+<td>PID maximum acceleration on any motor (0.5-5.0 deg/s²; 0.0 = the default of 5). Must be a decimal.</td>
+</tr>
+<tr>
+<td><code>pid_Kv</code></td>
+<td><code>0.0</code></td>
+<td></td>
+<td>PID maximum slew rate on any motor (0.0-8.5 deg/s; 0.0 = the calibrated maximum). Must be a decimal.</td>
+</tr>
+<tr>
+<td><code>pid_Kt</code></td>
+<td><code>0.2</code></td>
+<td></td>
+<td>PID dead time (seconds): how late measurements show a motor's response.</td>
+</tr>
+<tr>
+<td><code>pid_Kl</code></td>
+<td><code>0.15</code></td>
+<td></td>
+<td>PID motor lag (seconds): the time constant with which a motor eases to a new speed. Goto plans allow for both (0.2-0.4 s in all on the mount).</td>
+</tr>
+<tr>
+<td><code>zeta_safety_margin</code></td>
+<td><code>10</code></td>
+<td></td>
+<td>Safety margin inside the motor limits below, to prevent cable wind-up (degrees).</td>
+</tr>
+<tr>
+<td><code>z1_min_limit</code></td>
+<td><code>-270</code></td>
+<td></td>
+<td>M1 motor limit, minimum (degrees).</td>
+</tr>
+<tr>
+<td><code>z1_max_limit</code></td>
+<td><code>270</code></td>
+<td></td>
+<td>M1 motor limit, maximum (degrees).</td>
+</tr>
+<tr>
+<td><code>z2_min_limit</code></td>
+<td><code>-55</code></td>
+<td></td>
+<td>M2 motor limit, minimum (degrees).</td>
+</tr>
+<tr>
+<td><code>z2_max_limit</code></td>
+<td><code>37</code></td>
+<td></td>
+<td>M2 motor limit, maximum (degrees).</td>
+</tr>
+<tr>
+<td><code>z3_min_limit</code></td>
+<td><code>-270</code></td>
+<td></td>
+<td>M3 motor limit, minimum (degrees).</td>
+</tr>
+<tr>
+<td><code>z3_max_limit</code></td>
+<td><code>270</code></td>
+<td></td>
+<td>M3 motor limit, maximum (degrees).</td>
+</tr>
+<tr>
+<td><code>m1_park</code></td>
+<td><code>0.0</code></td>
+<td></td>
+<td>M1 motor angle of the saved park position (degrees).</td>
+</tr>
+<tr>
+<td><code>m2_park</code></td>
+<td><code>0.0</code></td>
+<td></td>
+<td>M2 motor angle of the saved park position (degrees).</td>
+</tr>
+<tr>
+<td><code>m3_park</code></td>
+<td><code>0.0</code></td>
+<td></td>
+<td>M3 motor angle of the saved park position (degrees).</td>
+</tr>
+<tr>
+<td><code>guide_rate_ra</code></td>
+<td><code>1.0</code></td>
+<td></td>
+<td>Right Ascension guide rate, as a multiple of the sidereal rate.</td>
+</tr>
+<tr>
+<td><code>guide_rate_dec</code></td>
+<td><code>1.0</code></td>
+<td></td>
+<td>Declination guide rate, as a multiple of the sidereal rate.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="models">Models<a class="headerlink" href="#models" title="Permanent link">&para;</a></h2>
+<p>Alignment model (Mechanical Alignment Correction, advanced_align_mac): the M2/M3 zero offsets are fitted at every sync; the M2 scale (+0.3-2.2% on every Polaris measured) starts here and is refitted at each sync when significantly better.</p>
+<p>These settings are in the <code>[models]</code> section of <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Restart</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>align_m2_scale</code></td>
+<td><code>1.0</code></td>
+<td></td>
+<td>Starting M2 scale (%): M2 turns this much further than its reported angle (at about 45°).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="aiming">Aiming<a class="headerlink" href="#aiming" title="Permanent link">&para;</a></h2>
+<p>Small aiming adjustments.</p>
+<p>These settings are in the <code>[device]</code> section of <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Restart</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tracking_settle_time</code></td>
+<td><code>16</code></td>
+<td></td>
+<td>Time to wait after sidereal tracking restarts, before a slew is reported complete (seconds).</td>
+</tr>
+<tr>
+<td><code>aiming_adjustment_enabled</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Make small adjustments to improve aiming.</td>
+</tr>
+<tr>
+<td><code>aiming_adjustment_time</code></td>
+<td><code>2</code></td>
+<td></td>
+<td>How far ahead to convert RA/Dec to Az/Alt, allowing for tracking to settle (seconds).</td>
+</tr>
+<tr>
+<td><code>aim_max_error_correction</code></td>
+<td><code>0.5</code></td>
+<td></td>
+<td>Largest aiming error the driver corrects when aiming at Az/Alt (degrees).</td>
+</tr>
+<tr>
+<td><code>aiming_adjustment_az</code></td>
+<td><code>-0.0300750663</code></td>
+<td></td>
+<td>Starting azimuth aiming adjustment (degrees); set to 0 for none.</td>
+</tr>
+<tr>
+<td><code>aiming_adjustment_alt</code></td>
+<td><code>0.0195474932</code></td>
+<td></td>
+<td>Starting altitude aiming adjustment (degrees); set to 0 for none.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h2>
+<p>What the driver writes to its log. Most switches are for diagnosing problems, and can be left as they are.</p>
+<p>These settings are in the <code>[logging]</code> section of <code>config.toml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Restart</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>log_dir</code></td>
+<td><code>''</code></td>
+<td></td>
+<td>Folder for log files (<code>''</code> = the logs folder next to the driver).</td>
+</tr>
+<tr>
+<td><code>log_level</code></td>
+<td><code>'INFO'</code></td>
+<td></td>
+<td>Lowest level of message to log, for example <code>'INFO'</code>.</td>
+</tr>
+<tr>
+<td><code>log_to_file</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Write the log to alpaca.log, keeping older logs as alpaca.1, alpaca.2 and so on (see num_keep_logs).</td>
+</tr>
+<tr>
+<td><code>log_to_stdout</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Also write the log to the console.</td>
+</tr>
+<tr>
+<td><code>log_alpaca_protocol</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Log ASCOM Alpaca Telescope messages sent and received.</td>
+</tr>
+<tr>
+<td><code>log_rotator_protocol</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Log ASCOM Alpaca Rotator messages sent and received.</td>
+</tr>
+<tr>
+<td><code>log_alpaca_discovery</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log Alpaca discovery and management messages, and WebSocket subscribe, unsubscribe and timeout activity.</td>
+</tr>
+<tr>
+<td><code>log_synscan_protocol</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Log Stellarium SynScan and binary protocol messages sent and received.</td>
+</tr>
+<tr>
+<td><code>log_alpaca_actions</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Log Alpaca Device Actions (frequently polled actions, such as Polaris:ConfigFetch, follow log_alpaca_polling instead).</td>
+</tr>
+<tr>
+<td><code>log_polaris_ble</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log Benro Polaris Bluetooth Low Energy messages sent and received.</td>
+</tr>
+<tr>
+<td><code>log_polaris_protocol</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log Benro Polaris protocol messages sent and received.</td>
+</tr>
+<tr>
+<td><code>log_pulse_guiding</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log ASCOM Alpaca pulse guiding messages.</td>
+</tr>
+<tr>
+<td><code>log_alpaca_polling</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log frequent polling from Alpaca applications (for example NINA).</td>
+</tr>
+<tr>
+<td><code>log_synscan_polling</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log frequent polling from SynScan applications (for example Stellarium).</td>
+</tr>
+<tr>
+<td><code>log_polaris_polling</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log frequent polling of the Benro Polaris.</td>
+</tr>
+<tr>
+<td><code>log_quest_model</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Log the Multi-Point Alignment (QUEST) model's sync point weights.</td>
+</tr>
+<tr>
+<td><code>log_orbital_queries</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Log JPL Horizons and CelesTrak orbit queries.</td>
+</tr>
+<tr>
+<td><code>log_gps_receiver</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log what the GPS receiver sends (NMEA, UBX, GPSD), and each Locate attempt's fix.</td>
+</tr>
+<tr>
+<td><code>log_pec</code></td>
+<td><code>true</code></td>
+<td></td>
+<td>Log Periodic Error Correction.</td>
+</tr>
+<tr>
+<td><code>log_heartbeat</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log a stack trace whenever a heartbeat is skipped, and garbage collections over 100 ms.</td>
+</tr>
+<tr>
+<td><code>log_position</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Log full Kalman filter (KFLOG) and PID (PIDLOG) telemetry every control tick (about 200 ms while tracking).</td>
+</tr>
+<tr>
+<td><code>log_hardware_unit_tests</code></td>
+<td><code>false</code></td>
+<td></td>
+<td>Allow unit tests that send real commands to the Polaris (they move the mount).</td>
+</tr>
+<tr>
+<td><code>max_size_mb</code></td>
+<td><code>20</code></td>
+<td></td>
+<td>Maximum log file size (MB).</td>
+</tr>
+<tr>
+<td><code>num_keep_logs</code></td>
+<td><code>20</code></td>
+<td></td>
+<td>Number of old log files to keep.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../pilot-api/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Pilot API Reference">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Pilot API Reference
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../catalog/" class="md-footer__link md-footer__link--next" aria-label="Next: Catalog Reference">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Catalog Reference
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

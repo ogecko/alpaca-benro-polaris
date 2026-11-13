@@ -350,6 +350,8 @@
       
         
       
+        
+      
     
     
     
@@ -1289,6 +1291,8 @@
       
         
       
+        
+      
     
     
     
@@ -1676,6 +1680,33 @@
     
   
   Pilot API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Configuration Reference
 
     
   </span>
@@ -2361,6 +2392,8 @@
       
         
       
+        
+      
     
     
     
@@ -2472,7 +2505,7 @@
 </span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">'ClientID=1'</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">'ClientTransactionID=5'</span>
 </span></code></pre></div>
 <h3 id="polarispanogrid">Polaris:PanoGrid<a class="headerlink" href="#polarispanogrid" title="Permanent link">&para;</a></h3>
-<p>Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot. Any of these settings can be given, the rest keep their current values: <code>cols</code>, <code>rows</code> (the grid size), <code>hstep</code>, <code>vstep</code> (degrees between panel centres), <code>first</code> (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), <code>order</code> (0 Row-Major, 1 Column-Major, 2 Serpentine), <code>track</code> (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), <code>anchor</code> (what sits at the reference position: 0 the whole mosaic's centre, n panel n), <code>ref</code> (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and <code>r1</code>, <code>r2</code>, <code>r3</code> (the reference position in that frame, RA in hours). Use <strong>Polaris:ConfigSave</strong> to keep them for the next session.</p>
+<p>Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot (see <a href=".././config/#panorama">Panorama</a> in the Configuration Reference). Any of these settings can be given, the rest keep their current values: <code>cols</code>, <code>rows</code> (the grid size), <code>hstep</code>, <code>vstep</code> (degrees between panel centres), <code>first</code> (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), <code>order</code> (0 Row-Major, 1 Column-Major, 2 Serpentine), <code>track</code> (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), <code>anchor</code> (what sits at the reference position: 0 the whole mosaic's centre, n panel n), <code>ref</code> (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and <code>r1</code>, <code>r2</code>, <code>r3</code> (the reference position in that frame, RA in hours). Use <strong>Polaris:ConfigSave</strong> to keep them for the next session.</p>
 <table>
 <thead>
 <tr>
@@ -2726,7 +2759,7 @@
 </tbody>
 </table>
 <h3 id="polarisconfigupdate">Polaris:ConfigUpdate<a class="headerlink" href="#polarisconfigupdate" title="Permanent link">&para;</a></h3>
-<p>Update the Alpaca Driver configuration setting to the defined values. Any property defined in config.toml can be modified with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, &copy; to alter the park position and (d) to alter the ASCOM focal length; use the following.</p>
+<p>Update the Alpaca Driver configuration setting to the defined values. Any setting in the <a href=".././config/">Configuration Reference</a> can be changed with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, &copy; to alter the park position and (d) to alter the ASCOM focal length; use the following.</p>
 <table>
 <thead>
 <tr>
