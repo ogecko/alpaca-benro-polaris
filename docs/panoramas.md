@@ -1,4 +1,13 @@
 # Creating Panoramas
+[Why the Alpaca Driver](#why-use-the-alpaca-driver) |
+[Defining a Grid](#defining-a-grid) |
+[Previewing](#previewing) |
+[Capturing](#capturing) |
+[Stitching](#stitching)
+
+![A 13-panel Milky Way mosaic, framed in galactic co-ordinates with the Alpaca Driver's Panorama Grid](images/milky-way-mosaic.jpg)
+
+*A 13-panel Milky Way mosaic, captured in two passes framed in galactic co-ordinates.*
 
 >VIDEO DEMO: [28 - Panorama Settings](https://youtu.be/k7OoPk98UCk?t=4m57s)
 
@@ -6,13 +15,13 @@
 
 This guide explains how to plan, configure, and capture panoramas using the **Alpaca Driver**, with optional automation through **NINA Advanced Sequencer**. It is aimed at users who want deterministic, repeatable panorama capture for astrophotography and astro‑landscape imaging.
 
-### 1. Why Use the Alpaca Driver for Panoramas
+## Why Use the Alpaca Driver
 
 The Benro Polaris **Standard Panorama** and **Pro Panorama** modes are excellent for quickly capturing wide-field panoramas: define the panorama, capture the panels in order, and stitch the result. NINA's **Framing Assistant Mosaic Panels** do a similar job for astronomical mosaics, and suit large deep sky objects that are captured as part of an imaging sequence.
 
 Wide Milky Way and astro-landscape panoramas are harder. You often want tracked stars, a foreground captured at a different time, and a composition you can return to later. The **Alpaca Driver and the Pilot application** are built for this. They make it much easier, and they avoid three problems you will run into when using only the Benro Connect mobile application.
 
-#### The three problems Pilot solves
+### Problems It Solves
 
 1. **Benro Connect loses its place.** The app does not reliably save and restore its state (everything it knows about the current panorama orientation). To have any hope of returning to the same position, you must keep the phone unlocked with Benro Connect open the whole time. If the phone locks or you switch to another app for too long, that information can be lost. You then cannot truly return to an earlier position, and your panels will be misaligned.
     **With Pilot:** the device running Pilot keeps track of your panorama, so there is nothing to lose.
@@ -23,7 +32,7 @@ Wide Milky Way and astro-landscape panoramas are harder. You often want tracked 
 3. **The camera rotates while tracking.** Benro Connect can automate the photos for a panorama, but if you both track and stack, the camera rotates over time. With ultra-wide lenses and a 180–215° panorama this is tolerable. With standard to telephoto lenses, or a 360° panorama, the camera can easily rotate 15° or more between the first and last panel.
     **With Pilot:** the panorama tools have a **derotate** option that turns the camera back before each panel. Even with tracked stars, the horizon stays level from one panel to the next, which makes stitching much easier.
 
-#### What else you get
+### What Else You Get
 
 The Alpaca Driver treats a panorama as a **grid fixed in space**, rather than a one-time capture. You can save the grid, revisit it, reorder it, change it while imaging, and reuse it across sessions. That suits projects where the foreground and sky are captured separately, often at different times and with different tracking needs.
 
@@ -48,13 +57,13 @@ In short, the Benro Polaris panorama modes and NINA Mosaic Panels each solve par
 
 
 
-## 2. Defining a Panorama Grid
+## Defining a Grid
 
 At the core of the Alpaca Driver’s panorama system is the concept of a single, deterministic panorama grid anchored in space. At any given time, exactly one panorama grid is active in the driver. This grid defines the geometry, ordering, tracking behaviour, and anchor position for all panorama-related slews.
 
 The active panorama grid can be defined or modified either interactively using Alpaca Pilot, or programmatically using NINA’s Advanced Sequencer. Regardless of how it is configured, the driver always operates against the same internal panorama grid.
 
-### 2.1 Defining the Grid Using Alpaca Pilot
+### Using Alpaca Pilot
 
 Alpaca Pilot provides a visual and interactive way to define the panorama grid. The Panorama Settings card allows you to configure the grid geometry, panel order, tracking behaviour, and anchor position in one place.
 
@@ -139,7 +148,7 @@ Changes made in Alpaca Pilot immediately update the active panorama grid in the 
 - **Current Panel: `"panel":`** This represents the active Panel Number being captured and is highlighted in blue on the Panel Navigation grid. This field effects what the next panel in sequence will be.
 
 
-### 2.2 Defining the Grid Programatically
+### Programmatically
 
 In addition to configuring the Panorama Grid through Alpaca Pilot, the same grid can be defined programmatically using the `Polaris:PanoGrid` device action. Device actions are custom extensions to the Alpaca Driver that go beyond the ASCOM standard and expose higher-level behaviour.
 
@@ -149,7 +158,8 @@ Parameters are supplied in JSON format, enclosed in braces { }. Field names corr
 
 > Note: Defining or updating the Panorama Grid does not move the mount. The new grid settings are only applied when the driver is instructed to slew to a given panel or to advance to the next panel.
 
-#### **Using NINA Advanced Sequencer**
+**Using NINA Advanced Sequencer**
+
 To access Device Actions from the **Nina Advanced Sequencer** you must first install the **Device Actions and Commands** plug-in for Nina. Once installed, Device Actions become available in the Advanced Sequence Instructions list, located near the bottom of the instruction list under Utility.
 
 The `Polaris:PanoGrid` device action can then be added as an instruction in your sequence and it is typically placed near the beginning to initialise the Panorama Grid for a specific capture pass. When adding the Device Action, set the Device to Telescope, then select `Polaris:PanoGrid` from the action dropdown, where it appears near the bottom of the list.
@@ -172,16 +182,17 @@ As a reference, the following JSON Parameters example shows all available fields
 ```
 { "cols":3, "rows":2, "hstep":40, "vstep":30, "first":0, "order":2, "track":0, "anchor":1, "ref":0, "r1":90, "r2":5, "r3":0, "panel":0 }
 ```
-#### **Using CCDCeil Sequencer**
+**Using CCDciel Sequencer**
+
 To define a Panorama Grid from CCDciel, make a script that sends the `Polaris:PanoGrid` device action and parameters to the Alpaca Driver, and add it as a script step in your plan (see [Other Device Actions](./ccdciel.md#other-device-actions)).
 
 
-## 3. Previewing the Panorama
+## Previewing
 Once a panorama grid is defined, you will probably want to verify its coverage and panel overlap. You can use the Alpaca Pilot Panel Navigation to do this. This displays a grid of **Rows × Columns**, numbered according to the selected panel order. The currently active panel is highlighted in blue, the next panel with a *, and the anchor panel with a ⚓. Clicking on a panel number will slew the mount to center on that panel.
 
 ![Alpaca Pilot Pano Navigation](images/pilot-pano2.png)
 
-### 3.1 Panel Spacing Calculator
+### Spacing Calculator
 The Panorama Grid is designed to be simple, with the minimum number of parameters. It uses just two angular steps, `hstep` and `vstep` to define the spacing between panels. These fields effect the horizontal and vertical spacing of the panels from the cameras field of view.
 
 A calculator is provided calculate these properties:
@@ -198,7 +209,7 @@ A calculator is provided calculate these properties:
 
 ![Astronomy Tools](./images/pilot-panocalc.png)
 
-### 3.2 Verifying actual Panel overlap
+### Checking Overlap
 The actual panel overlap may differ from theoretical calculations, especially with wide-angle lenses. Use the verification procedure below to confirm with your setup before your imaging session begins.
 
 To check the horizontal and vertical overlap:
@@ -209,7 +220,7 @@ To check the horizontal and vertical overlap:
 * Slew to the adjacent horizontal panel and check the overlap. Adjust `hstep` as needed.
 * Repeat for vertical panels to confirm `vstep` ensures sufficient overlap.
 
-### 3.3 Verifying panorama coverage
+### Checking Coverage
 Once on site, you can confirm that your panorama grid captures the full scene and desired foreground, and reaches the sky elevation needed for your selected celestial target.
 
 To check the horizontal extent of the scene:
@@ -233,7 +244,7 @@ To check the vertical extent of the scene:
 >Note: The Polaris can't point above Altitude 81.5°. A panel whose centre falls between 81.5° and 90° (or between 90° and 98.5°, just over the top) is shot from 81.5° directly below its centre, up to 8.5° short of it, and with the camera level: the roll range shrinks with altitude (about ±64° at 70°, ±32° at 80°, 0° at 81.5°). When a grid passes near the zenith, check the panels next to it with Slew to Panel, and add overlap (a smaller vstep) or move the anchor so no panel centre lands in the zenith zone. Tracked panels high in the sky also can't follow field rotation in roll: shoot them first, or keep their exposures short.
 
 
-## 4 Capturing the Panorama
+## Capturing
 
 Because the Alpaca Driver does not communicate directly with your camera, the process of slewing between panels and capturing images is handled by your imaging application, such as **NINA** or **CCDCiel**. To support this, the Alpaca Driver provides the `Polaris:PanoSlew` device action, which allows the imaging application to move the mount between panorama panels in a deterministic way.
 
@@ -245,7 +256,7 @@ If you need to change which panel is considered “next” without immediately s
 
 The remainder of this section describes how to use `Polaris:PanoSlew` within NINA’s Advanced Sequencer to capture different types of panoramas.
 
-### 4.1 Capturing a set of panels with Nina
+### Capturing with NINA
 A *panorama pass* consists of iterating over each panel in the active panorama grid exactly once and capturing one or more exposures at each position. In NINA, this is typically implemented using a Sequential Instruction Set with a loop.
 
 To configure a sequence that captures all panels:
@@ -266,7 +277,7 @@ To configure a sequence that captures all panels:
 
 This structure ensures that the mount advances to each panel in turn, captures a consistent set of exposures at that panel, and continues until the pass is complete.
 
-### 4.2 Capturing the Landscape Foreground
+### Landscape Foreground
 The landscape foreground is typically captured as an *untracked*, *horizon-aligned* and usually occupies only the lower rows of the panorama grid. This layer is often captured earlier in the session, such as during twilight, when there is sufficient ambient light in the foreground. In some cases, foreground capture may also involve acquiring panels at multiple focus distances, allowing near and distant landscape features to be combined later using focus stacking techniques.
 
 A common approach is to use a nested Sequential Instruction Set that first configures the panorama grid and then performs the capture. This structure can be saved as a reusable template for future sessions.
@@ -291,7 +302,7 @@ A typical panorama foreground workflow includes:
 
 ![Alpaca Pilot Capturing Set of Panels](images/pilot-pano-seq2fore.png)
 
-### 4.3 Capturing the Sky Background
+### Sky Background
 
 The sky background pass is usually captured later in the session and is typically tracked, allowing longer exposures and improved signal-to-noise. Depending on the composition, this pass may reuse the same grid geometry as the foreground or extend to additional rows at higher altitude. It may be horizon-locked to aid in aligning panels between foreground and background.
 
@@ -314,7 +325,7 @@ Because the panorama grid is deterministic and persistent, the sky background pa
 
 ![Alpaca Pilot Capturing Set of Panels](images/pilot-pano-seq2back.png)
 
-### 4.4 Capturing the Moon or Other Orbitals
+### Moon and Orbitals
 
 You can capture the Moon or other orbitals using the special Device Action **`Polaris:TrackOrbital`**, which instructs the mount to start tracking a specific celestial body. This action requires two parameters:
 
@@ -334,7 +345,7 @@ You can capture the Moon or other orbitals using the special Device Action **`Po
 A typical use case is to place this instruction within an outer loop so that, for example, the Moon can be captured after a certain number of panels. After executing **`Polaris:TrackOrbital`**, you should follow up with a **Smart Exposure** action to complete the capture.
 
 
-## 5. Stitching the Panorama
+## Stitching
 
 Once you have captured all of the images for the panorama, you will need to use a dedicated **stitching application** to combine the individual panels into a single mosaic. These applications align overlapping frames, correct perspective, and blend exposure and color differences. There are many capable options available, depending on your workflow and experience level.
 
@@ -357,7 +368,7 @@ To register the free version
     * Registration code: KAPG7-K3A9X-IZJHX-FIIT7-C5IM8-MQF2N
 * Once registered, the application can be launched normally without Administrator privileges.
 
-## 6. Closing Notes
+## Closing Notes
 
 The Alpaca Driver’s panorama system is designed to provide precise, repeatable control rather than fully automatic results. Complex panoramas benefit from rehearsal and careful planning, especially for time‑critical events like solar and lunar eclipses. Unlike native solutions that may "forget" lens sizes or panorama boundaries if a menu is exited, the Alpaca Driver maintains exactly one active panorama grid.
 

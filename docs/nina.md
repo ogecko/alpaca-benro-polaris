@@ -179,7 +179,7 @@ In addition to the Legacy Sequencer, Nina features an advanced sequencer that gi
 - **Utility Device Action** - Special Device Actions including tracking on orbital.
 - **Guider Instructions** - Instructions sent to the guiding application can indirectly control the mount.
 
-For information on how to use the Advanced Sequence for Panorama Workflows, please refer to [Creating Panoramas](./panoramas.md#1-why-use-the-alpaca-driver-for-panoramas).
+For information on how to use the Advanced Sequence for Panorama Workflows, please refer to [Creating Panoramas](./panoramas.md#why-use-the-alpaca-driver).
 
 ## Advanced Sequence Reference
 ### Flow Control
