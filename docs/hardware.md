@@ -1,6 +1,6 @@
 # Preparing the MiniPC
 [Choosing a MiniPC](#choosing-a-minipc) |
-[Powering](#powering-the-minipc-and-camera-overnight) |
+[Powering](#powering-the-minipc) |
 [Connecting Up](#connecting-up-the-minipc) |
 [Setting Up Windows](#setting-up-windows) |
 [Optional Steps](#optional-steps)
@@ -14,7 +14,7 @@ Unfortunately its built-in Wi-Fi doesn't support connecting to the Benro Polaris
 
 We have received reports of compact "mini" USB Wi-Fi adapters having difficulty keeping a stable connection with the Polaris. For this reason, we specifically recommend the model above, as its full-size external antenna gives a more reliable connection.
 
-## Powering the MiniPC and Camera Overnight
+## Powering the MiniPC
 A battery I'd recommend is the [INIU 140W Power Bank](https://www.amazon.com.au/dp/B0CB1FWNMK). What an awesome product, 27000mAh of storage with 140W fast charging and discharging capabilities! I use this powerbank to power the mini-PC and my camera. 
 
 ![INIU 140W Power Bank](images/battery.png)
@@ -31,7 +31,7 @@ The image below shows how you could configure the cables and physical setup of t
 ## Setting Up Windows
 The following steps are a high-level summary of how you may wish to set up Windows on your MiniPC. They are not comprehensive.
 
-### BIOS Settings 
+### BIOS Settings
 You can set the Mele PC to automatically boot when it is powered on. This can save you from having to manually press the Power button to boot the device.
 
 To set the Mele PC BIOS to auto power on:
@@ -81,7 +81,7 @@ To isolate the MiniPC’s Windows settings:
 
 This will stop Windows from syncing system settings (including Wi-Fi networks) to and from other PCs using the same Microsoft account.
 
-### Power saver functions
+### Power Saving
 Make sure that your power saver functions are set so that your computer will not go to sleep/hibernate mode. Also its useful to disable your screensaver.
 You need to set the Power Management to High Power.
 
@@ -95,7 +95,7 @@ To disable hibernation:
 
 3. In the Command Prompt window, enter `powercfg /h off`
 
-### Windows Security (Microsoft Defender) scans
+### Defender Scans
 Microsoft Defender can temporarily consume most of a Mini PC's CPU resources during an imaging session, causing the Alpaca Driver to become unresponsive for several seconds.
 
 There are three potential sources of activity:
@@ -163,10 +163,10 @@ Disable the Require Devices to use Network Level authentication.
 ## Optional Steps
 The following steps are optional, depending on where you image and what equipment you use.
 
-### Hosting a Mobile Hotspot
+### Mobile Hotspot
 This step is only needed if you want to use the MiniPC at a remote location where there is no Wifi connection. Windows 11 allows you to setup your own WiFi hotspot hosted on the MiniPC. This allows you to connect directly to the MiniPC's Wifi and operate it via Remote Desktop.
 
-#### Install Loopback Driver
+#### Loopback Driver
 In order to create a hotspot, Windows 11 needs to create a tether to an existing network connection. When in the outback you may not have internet connectivity so we'll link the hotspot to a Loopback driver
 
 1. Open Device Manager. This can be done by right clicking on the start menu and clicking Device Manager.
@@ -187,7 +187,7 @@ In order to create a hotspot, Windows 11 needs to create a tether to an existing
 16. Rename the KM-TEST loopback adapter to "Loopback"
 17. Restart the mini-PC
 
-#### Create a Scheduled Task to start mobile hotspot on boot
+#### Startup Task
 Because you will want this to run headless and won't have a way to start it manually, this needs to start automatically at boot time. 
 
 1. Run Task Scheduler
@@ -200,7 +200,7 @@ Because you will want this to run headless and won't have a way to start it manu
 
 6. Change conditions to uncheck only start if on AC power
 
-#### Registry based mobile hotspot startup
+#### Startup Registry Key
 If the Task Scheduler startup doesnt enable the mobile hotspot on startup, you can try to use the Windows Registry as well.
 
 1. Press Win + R, and type regedit, accept the account privileges check.
@@ -211,15 +211,15 @@ If the Task Scheduler startup doesnt enable the mobile hotspot on startup, you c
 
 Note, you may need to re-create this registry value after a Windows Update.
 
-#### Fixing Remote Desktop 0x904 error
+#### Error 0x904
 You may encounter an 0x904 error when using Remote Desktop to connect to MiniPC via its hotspot. If you encounter this issue, you can try downloading Remote Desktop from the Windows Store. This has successfully resolved the 0x904 issue on some machines.
 
-### Installing the ASCOM Platform
+### ASCOM Platform
 ASCOM stands for Astronomy Common Object Model. It is a universal standard for Astronomy and used by many different applications and equipment manufacturers. The standard was modernised with a HTTP/REST API in 2018 under the ASCOM Alpaca initiative. The Alpaca Driver complies with the ASCOM ITelescopeV3 interface and provides an Alpaca ASCOM  REST API. 
 
 You may need to install the ASCOM Platform software for compatibility with some astronomy equipment or applications. You will need to install the ASCOM Platform with Stellarium as it is not bundled by default. You do not need to install the ASCOM Platform on a laptop that uses Remote Desktop to access the MiniPC. 
 
-#### To install the ASCOM Platform. 
+To install the ASCOM Platform:
 
 1. Download the ASCOM Platform from https://ascom-standards.org/ (Download button on the top-right-hand side of the home page).
 2. The remaining instructions assume you are using ASCOM Platform 7.1.3 
@@ -232,7 +232,7 @@ You may need to install the ASCOM Platform software for compatibility with some 
 
 You can also download other versions from the [ASCOM GitHub Releases Site](https://github.com/ASCOMInitiative/ASCOMPlatform/releases).
 
-### Gemini EAF Driver Installation
+### Gemini EAF Focuser
 The Canon RF 2x and 1.4x Extenders do not appear to work with Nina and the LensAF plugin. You can work around their issue by using an Electronic Auto Focuser (EAF)
 to manually adjust the focus of an attached Canon lens. A cheap EAF available from AliExpress is the [Gemini EAF Product](https://www.aliexpress.com/item/1005006731851010.html). You can connect a simple timing belt and pulley to the focuser so that it can move the manual focus ring of any lens. The following timing belt worked fine for me [2GT-6 Timing Belt](https://www.amazon.com.au/VGOL-Printer-Timing-Closed-Rubber/dp/B0CB8BFRCX)
 
@@ -251,37 +251,9 @@ Use the following instructions to set up the Gemini EAF driver on your MiniPC
 11. Click Connect, the EAF should beep.
 12. Click Disconnect and Exit.
 
+### Gemini Power Hub 3
+The [Gemini Power & Data Hubs Advanced 3](https://geminiastro.cc/products/powerbox-adv3/) (Power Hub 3) is a great alternative to an unpowered USB hub. Mounted alongside the MiniPC, it provides both power and data to all your equipment from one place: the TP-Link Wi-Fi adapter, the focuser, the main camera, the guide camera, a GPS dongle, dew heater strips and more.
 
-### Guiding Scope and Camera
-The Alpaca Driver V2.0 now supports **pulse-guiding**, enabling integration with guiding software such as [PHD2](https://openphdguiding.org/) to improve tracking accuracy and reduce drift during long imaging sessions. This allows the Benro Polaris to correct for small tracking errors in real time, significantly enhancing performance for astrophotography, especially at longer focal lengths.
-
-To take advantage of guiding, you’ll need additional hardware:
-
-#### 1. Guide Camera
-
-A dedicated guide camera captures rapid images of a guide star and sends these images to the guiding application. The guiding application makes corrections to the mount via the Alpaca Driver. Choose a camera with:
-
-- **High sensitivity** (mono sensors preferred for better low-light performance)
-- **USB connectivity** (USB 2.0 or 3.0, depending on your mini-pc)
-- **ASCOM compatibility** (for use with PHD2)
-
-Examples include A. ZWO ASI120MM Mini; B. Touptek GPM462M; C. QHY5L-II Mono
-
-#### 2. Guide Scope or Off-Axis Guider (OAG)
-
-You’ll need a way to collect and focus light from a guide star to the guide camera. You can choose one of two approaches:
-
-- **Guide Scope**: A small refractor (e.g., 30–60 mm aperture) mounted in parallel with your main imaging scope. For example an SVBony 50mm f/4 Guide Scope
-- **Off-Axis Guider (OAG)**: Uses a small prism to divert light from the edge of your main telescope’s field of view into the guide camera. Ideal for long focal length setups where differential flexure is a concern.
-
-#### 3. Mounting the Guide Scope
-
-Secure mounting is critical to avoid flexure between the guide scope and main imaging system. You can consider:
-
-- **iShoot 220mm Arca Swiss Plate and QR-50B Clamps** used with Polaris L-Bracket orientation, this can hold your camera and lens, guide scope and MiniPC, all above the mount.
-- **William Optics Dual side Dovetail Plate** 245mm in length and weighs 330g.
-- **YUEOCT Metal Finder Scope Mount Adapter AT-05** mounts the guidescope via the cameras flash hot/coldshoe.
-
-**Example Setup:**
-
-- Touptek GPM462M camera + SVBony 50mm guide scope mounted via QR-50B clamps to a 220mm Arca Swiss plate.
+* It has two 5 Gbps USB 3.2 ports and four USB 2.0 ports. Plug the cameras into the USB 3.2 ports, and lower-speed devices such as the focuser, Wi-Fi adapter and GPS dongle into the USB 2.0 ports.
+* It runs from a 12 V DC supply, such as a 12 V battery or a portable power station.
+* Beware of using a 5 Gbps (USB 3) USB-B to USB-A cable to connect the hub to the MiniPC.

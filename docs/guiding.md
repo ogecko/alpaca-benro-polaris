@@ -116,17 +116,37 @@ The remainder of this secion will focus on the second solution, using **PHD2**.
 ## 2. PHD2 Guiding Prerequisites
 
 ### 2.1 Hardware Purchases and Software Installation
-To perform auto-guiding you will need some additional equipment, including the following. See [Hardware Pulse-Guiding Equipment](./hardware.md#guiding-scope-and-camera) for more details.
+To perform pulse guiding you will need a guide camera, a guide scope or off-axis guider, and a way to mount them.
 
-* A **Guide scope** (eg SVBony SV106 Guide Scope), or an off-axis guider (OAG)
-* A **Guide camera** (e.g. ToupTek GPM462M, ZWO ASI120MM, ZWO ASI220MM, etc.)
-* Suitable **Mounting equipment** (e.g. iShoot 220mm Quick Release Plate, with 3 x QR 50B Quick Release Clamps for a. MiniPC/Focuser, b. Main Lens/Camera, c. Guide Scope)
+#### Guide Camera
+A dedicated guide camera captures rapid images of a guide star and sends them to the guiding application, which makes corrections to the mount through the Alpaca Driver. Choose a camera with:
 
+- **High sensitivity** (mono sensors are preferred for better low-light performance)
+- **USB connectivity** (USB 2.0 or 3.0, depending on your MiniPC)
+- **ASCOM compatibility** (for use with PHD2)
 
-You will also need to download and install the following software onto the Mini-PC.
+Examples include the ZWO ASI120MM Mini, ZWO ASI220MM, ToupTek GPM462M and QHY5L-II Mono.
 
-* **ASCOM Platform** - Download latest ASCOM Platform from the [ASCOM Home page](https://ascom-standards.org/index.htm)
-* **PHD2 Guiding Application** - Download free PHD2 application from the [PHD2 Download page](https://openphdguiding.org/downloads/)
+#### Guide Scope or OAG
+You'll need a way to collect and focus light from a guide star onto the guide camera. You can choose one of two approaches:
+
+- **Guide Scope**: A small refractor (e.g. 30–60 mm aperture) mounted in parallel with your main lens or telescope, for example the SVBony SV106 50 mm guide scope.
+- **Off-Axis Guider (OAG)**: Uses a small prism to divert light from the edge of your main telescope's field of view into the guide camera. Ideal for long focal length setups where differential flexure is a concern.
+
+#### Mounting
+Secure mounting is critical to avoid flexure between the guide scope and the main imaging system. You can consider:
+
+- **iShoot 220mm Arca Swiss Plate and QR-50B Clamps**: used with the Polaris in the L-Bracket orientation, with three clamps to hold your camera and lens, guide scope and MiniPC (or focuser), all above the mount.
+- **William Optics Dual Side Dovetail Plate**: 245 mm long and weighs 330 g.
+- **YUEOCT Metal Finder Scope Mount Adapter AT-05**: mounts the guide scope via the camera's flash hot or cold shoe.
+
+**Example setup:** a ToupTek GPM462M camera and SVBony 50 mm guide scope, mounted with QR-50B clamps on a 220 mm Arca Swiss plate.
+
+#### Software
+You will also need to download and install the following software on the MiniPC:
+
+* **ASCOM Platform** - Download the latest ASCOM Platform from the [ASCOM Home page](https://ascom-standards.org/index.htm)
+* **PHD2 Guiding Application** - Download the free PHD2 application from the [PHD2 Download page](https://openphdguiding.org/downloads/)
 
 ### 2.2 ASCOM Telescope and Rotator Setup
 Once the ASCOM Platform is been installed, you need to use the **ASCOM Diagnostics App** to create a dynamic driver link to the Alpaca Driver's Telescope and Rotator. This step makes the Alpaca Driver's Telescope and Rotator available to all ASCOM-compatible applications, including PHD2, and only needs to be done once.
