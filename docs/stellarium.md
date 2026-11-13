@@ -86,7 +86,7 @@ You can help improve the aim of the Benro Polaris by Syncing with a known object
 * The Reticle should immediately shift to your selected target.
 * This amount will now offset all RA/Dec coordinates sent and received from Polaris.
 
-To reset the RA/Dec Offset, simply tap the disconnect and reconnect icons on the Telescope Control Popup in Stellarium. For a better understanding of how this works, refer to Section 3 below.
+To reset the RA/Dec Offset, simply tap the disconnect and reconnect icons on the Telescope Control Popup in Stellarium.
 
 ## Stellarium Desktop
 Stellarium Desktop has the broadest set of features of all versions of Stellarium. It is flexible, allowing you to customize what is shown (deep sky objects, satellites, meteor showers, planets, etc.) and how it is revealed (annotations, projections, landscapes, etc.), including numerous sky surveys.
@@ -258,5 +258,5 @@ On Windows, you can help improve the aim of the Benro Polaris by Syncing with a 
 4. The Reticle should imediately shift to your selected target
 5. This amount will now offset all RA/Dec coordinates sent and received from Polaris.
 
-To reset the RA/Dec Offset, restart the driver. Refer to Section 3 below for a better understanding of how this works.
+To reset the RA/Dec Offset, restart the driver.
 

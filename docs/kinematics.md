@@ -279,7 +279,7 @@ Starting with version 2.2, the driver utilizes a refined mathematical approach t
 *   **Integral Suspension:** To prevent "overshoot"—where the mount continues moving after a pulse ends—the driver **temporarily suspends the integration of the error term** (KI) during an active pulse. This ensures the correction is crisp and does not introduce new oscillations.
 
 #### **IV. How to Use and Get the Best Results**
-For a comprehensive guide on hardware selection and software configuration, please refer to the **Guiding Users Guide** (`guiding.md`). To optimize the kinematic response of pulse guiding:
+For a comprehensive guide on hardware selection and software configuration, please refer to the [Pulse Guiding](./guiding-pulse.md) guide. To optimize the kinematic response of pulse guiding:
 
 *   **Set the Guide Rate:** A guide rate of **0.75x to 1.0x sidereal** is recommended. If the mount appears to "hunt" or oscillate, lowering this rate in the Alpaca Pilot settings can smooth the response.
 *   **Multi-Star Guiding:** Always enable "Use Multiple Stars" in your guiding software. This averages out atmospheric turbulence (seeing), providing the PID controller with a cleaner signal that represents true mechanical drift rather than "chasing the wind".
@@ -625,7 +625,7 @@ Backlash can cause:
 
 - **Slew & Center errors:** A goto may finish with the gears unloaded in the tracking direction, causing the camera to shift as tracking takes up the slack.
 - **Drift during tracking reversals:** When a motor reverses direction, the camera may temporarily stop moving, causing tracking to drift as the slack is taken up.
-- **Low-speed guiding oscillations:** Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see [Guiding §6.4](./guiding.md)).
+- **Low-speed guiding oscillations:** Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see [Gear Backlash](./guiding-pulse.md#gear-backlash) in the Pulse Guiding guide).
 
 
 #### II. How does Backlash Compensation Work?

@@ -1,71 +1,14 @@
-# Guiding Users Guide
-[Sync-Guiding](#approach-1-sync-guiding) | 
-[Pulse-Guiding](#approach-2-pulse-guiding) | 
-[Periodic Error Correction](#periodic-error-correction)  |
-[PHD2: Pre-requisites](#prerequisites) | 
-[Equipment Setup](#equipment-setup) | 
-[Calibration](#calibration) | 
-[Workflow](#guiding-with-phd2) |
-[Improving Guiding](#improving-guiding) |
+# Pulse Guiding
+[Introduction](#pulse-guiding-introduction) |
+[Prerequisites](#prerequisites) |
+[Equipment Setup](#equipment-setup) |
+[Calibration](#calibration) |
+[Guiding with PHD2](#guiding-with-phd2) |
+[Improving Guiding](#improving-guiding)
 
+This guide introduces how to use **PHD2** and pulse guiding with the **Alpaca Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse guiding, as well as those moving on from unguided imaging or [Sync Guiding](./guiding-sync.md).
 
-Guiding is a general concept that refers to any method used to correct tracking errors. It includes manual-guiding, auto-guiding, encoder-assisted guiding, and software based corrections. 
-
-## Guiding Approaches
-
-**Auto-Guiding** is a broad term for any method used to automatically correct for tracking errors. While the Alpaca Driver’s Multi-Point-Alignment model (QUEST) provides an excellent foundation for tracking, physical factors like **periodic error**, **mechanical error**, and **polar mis-alignment**, can still cause star trailing and drift. 
-
-The Benro Polaris has a **periodic error** measured at **over 14 arc minutes**, with a repeating **35-minute** cycle. To achieve improved results, the driver supports two distinct auto-guiding approaches:
-
-1.  **Sync Guiding:** A hardware-free, software-based approach using your main imaging camera.
-2.  **Pulse Guiding:** A traditional hardware-based approach using a dedicated guide scope and camera.
-
-![PHD2 Advanced Settings](images/phd2-choice.png)
-
-### Approach 1: Sync Guiding
-
-This innovative approach finally solves the drift problem without requiring a separate guide scope or camera. By using the main imaging camera to periodically "re-anchor" the alignment model, the driver can effectively correct for tracking drift.
-
-*   **How it Works:** When you perform a **plate-solve sync without slewing**, the driver no longer treats it as a simple Multi-Point-Alignment update. Instead, it interprets the residual error as a **guiding correction**. 
-*   **The Recommended Workflow:**
-    1.  **Initialise:** Perform your standard Multi-Point Alignment (MPA) and slew to your target.
-    2.  **Automate:** Configure your capture software (like NINA) to perform a **"Solve and Sync" every 1 to 3 minutes** as part of your imaging sequence.
-    3.  **Result:** The driver will automatically refine the alignment and PEC model with every sync, keeping the target perfectly centered.
-*   **Primary Benefits:**
-    *   **No Extra Hardware:** Eliminates the cost, weight, and cable management of a guide scope and camera.
-    *   **Superior Accuracy:** Full-frame plate-solves provide much higher resolution and more reliable data than traditional single-star guiding.
-    *   **Faster Operation:** Guiding happens "in-place" during your normal sequence; no more repetitive slew-and-center cycles.
-
-
-### Approach 2: Pulse Guiding
-
-Pulse Guiding is a high-speed feedback mechanism that uses a dedicated camera to monitor a guide star's position. This remains the gold standard for correcting high-frequency errors **within a single exposure**.
-
-*   **How it Works:** An external application (such as **PHD2**) monitors a guide star and sends "pulse corrections" to the driver. The driver interprets these as temporary velocity changes, nudging the mount back into alignment without interrupting the underlying sidereal motion.
-*   **Primary Benefits:**
-    *   **Sub-Exposure Correction:** Corrects tracking errors immediately as they happen, preventing stars from turning into "footballs" during a long frame.
-    *   **Long Exposures:** Ideal for very deep-sky imaging where exposures may exceed 2 or 5 minutes.
-    *   **Improved Control:** Version 2.2 incorporates improvements to the accuracy of **Pulse Guiding*, improving the reliability of calibration and corections.
-*   **Don't Combine the Two Approaches:** Running Sync Guiding alongside Pulse Guiding makes them fight: the guider pulls each sync correction straight back to its lock position. To keep the target centered during a long Pulse Guided session, use Nina's **Center After Drift** trigger instead (see the note in section 2.4 of `kinematics.md`).
-    
-## Periodic Error Correction
-
-Version 2.2 incoporates a significant step forward in tracking accuracy when you use either approach to auto-guiding. **Periodic Error Correction (PEC)** is a specialized, proactive layer that sits **below either auto-guiding approach**. It does not replace guiding; rather, it uses the data provided by either Sync or Pulse guiding to build a superior tracking model.
-
-*   **Proactive Modeling:** While guiding is reactive (fixing errors after they happen), PEC learns the mount's current drift rate from the guide corrections, smoothed over about 7.5 minutes (an exponential moving average, `pec_tau_sec`). This allows the driver to **anticipate** the drift and apply fine-grained corrections every **200ms**, leaving the guider only what is left.
-*   **Dual Support:** PEC learns from whichever guiding data is available. It monitors the "pulses" from PHD2 or the "residuals" from Plate-Solve Syncs.
-*   **Convergence:** The PEC model only begins applying proactive corrections once it meets statistical criteria: enough observations, a low **rmse**, and an **R² value** indicating good fit.
-*   **Worm Gear Correction:** Each motor's 6° worm gear error is corrected separately, from a profile measured with the Speed Calibration worm profile test. It applies when **PEC Worm Gear Correction** is on (approving a profile chooses the profile; the switch is separate), with or without guiding, and PEC Drift Correction then learns whatever drift is left. Each has its own switch in Pilot's settings.
-*   **Integration:** This implementation is fully integrated into the **PID control loop**, enabling the Benro Polaris to maintain pinpoint stars even during long exposures by effectively "killing" the periodic error before it manifests.
-
-<br>
-<br>
-<br>
-
----
-
-
-This remainder of this document introduces how to use **PHD2** and pulse-guiding with the **Alpaca Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse-guiding, as well as those transitioning from unguided imaging.
+Use pulse guiding or sync guiding, not both: the guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back. To keep the target centred during a long pulse-guided session, use NINA's **Center After Drift** trigger instead.
 
 ## Pulse Guiding Introduction
 
@@ -283,7 +226,7 @@ We recommend using the Alpaca Driver's Periodic Error Correction over PHD2's own
     * Avoid switching PEC Drift Correction off and on around calibration: switching it restarts the drift model, which then has to learn the drift again.
 
 * **Connect the Rotator so one calibration lasts the night** - 
-On the Benro Polaris the Position Angle (PA) changes from target to target, and PHD2's calibration is only valid at the PA it was made at. If PHD2 is connected to the **Alpaca Benro Polaris Rotator** with **Reverse the sign of Angle** enabled (see [4.3 Re-Calibration](#re-calibration)), PHD2 adjusts its calibration to each new PA itself, so you can calibrate once and slew to other targets. Without the Rotator, calibrate at your imaging target so the PA is the same for calibration and imaging: slew to the target, ignore PHD2's calibration location warning, and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration.
+On the Benro Polaris the Position Angle (PA) changes from target to target, and PHD2's calibration is only valid at the PA it was made at. If PHD2 is connected to the **Alpaca Benro Polaris Rotator** with **Reverse the sign of Angle** enabled (see [Re-Calibration](#re-calibration)), PHD2 adjusts its calibration to each new PA itself, so you can calibrate once and slew to other targets. Without the Rotator, calibrate at your imaging target so the PA is the same for calibration and imaging: slew to the target, ignore PHD2's calibration location warning, and click Calibrate. PHD2 will make a small slew to remove backlash before starting the calibration.
 
 * **Close to the intended imaging target** - 
     RA/Dec guide commands are translated into coordinated motor movements whose relationship varies with sky position. Calibrating near the imaging target ensures the transformation between guide corrections and motor motion remains accurate. 
@@ -404,7 +347,7 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 
 * **What you see:** A slow, smooth wave in the guide graph, with a period of a few minutes to an hour or more. In the PHD2 Log Viewer's frequency analysis it shows as a peak, often around 30-40 minutes, but it varies with where the mount is pointing.
 * **Cause:** Each motor drives its axis through a worm gear (6°, 60 teeth). Small irregularities in the gear make each axis wobble by about 30-150 arc seconds, repeating every 6° of that motor's rotation. Because the wobble is tied to the motor angles, it repeats in the same way night after night.
-* **Solution:** Measure each motor's worm once with the **M1-M2-M3-WORM-PROFILE** test on Pilot's Speed Calibration page (about 20 minutes, using plate solves), approve the result, then switch on **PEC Worm Gear Correction**. The driver then removes the wobble before it happens, with or without guiding. See [Kinematics 2.6 V](./kinematics.md#v-worm-gear-correction---profile-calibration) for the test.
+* **Solution:** Measure each motor's worm once with the **M1-M2-M3-WORM-PROFILE** test on Pilot's Speed Calibration page (see [Worm Gear Calibration](./guiding-sync.md#worm-gear-calibration)) (about 20 minutes, using plate solves), approve the result, then switch on **PEC Worm Gear Correction**. The driver then removes the wobble before it happens, with or without guiding. See [Kinematics 2.6 V](./kinematics.md#v-worm-gear-correction---profile-calibration) for the test.
 * **Tips:**
     * PEC Drift Correction and PEC Worm Gear Correction work together: the worm correction removes the wave, and the drift correction learns what is left. The PEC button on Pilot's status panel switches both.
     * The PEC switches are live settings. Press **Save** on the Config page to keep them after the driver restarts.
@@ -435,7 +378,7 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 
         `->> Polaris: M2 reverses its tracking direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min`
 
-    * **Watch for oscillation with ZM2:** The ZM2 roll strategy (6.3) keeps M2 nearly stationary, which can help with a heavy payload but may leave the motor operating at very low speeds. If you see 8–10 second oscillations after selecting ZM2, try reducing RA and/or Dec aggressiveness.
+    * **Watch for oscillation with ZM2:** The ZM2 roll strategy (see [Payload Slip on M2](#payload-slip-on-m2)) keeps M2 nearly stationary, which can help with a heavy payload but may leave the motor operating at very low speeds. If you see 8–10 second oscillations after selecting ZM2, try reducing RA and/or Dec aggressiveness.
     * **Distinguish guiding errors from goto errors:** Backlash can also leave Slew & Center corrections a few arcminutes short or past the target, requiring another iteration. This is a separate effect from the guiding symptoms described above.
     * **Backlash Compensation (needs Coordinated Speed Control):** When enabled, the driver compensates for each motor's gear slack at the end of every goto, helping Slew & Center corrections reach the target more accurately on the first attempt. Backlash compensation does not attempt to correct slack due to motor reversals during guiding. At the very low motor speeds involved, guide corrections can repeatedly reverse direction without fully taking up the gear slack, leaving the guider to compensate. You may still see the motor oscillate over an 8–10 second cycle; reducing guiding aggressiveness can help.
   
@@ -450,15 +393,15 @@ Guiding corrects whatever the mount gets wrong, but the less there is to correct
 
 | What you see in the guide graph | Likely cause | What to do |
 | ------------------------------- | ------------ | ---------- |
-| Steady drift, mostly one-sided corrections | Imperfect alignment model | PEC Drift Correction (6.1); refresh Multi-Point Alignment |
-| Slow wave, minutes to an hour | Worm gear wobble | Worm profile test and PEC Worm Gear Correction (6.2) |
-| Regular sharp kicks every 10-40 s, heavy lens | M2 payload slip | ZM2 roll preset, better balance (6.3) |
-| A drift bump for 5-15 minutes, at the same point in the sky | A motor reversing through its gear backlash | Check the log for "reverses its tracking direction"; PEC pauses learning; Backlash Compensation (6.4) |
-| Slew & Center needs extra iterations, a few arcminutes short or past | A goto ending with a motor's gear slack open | Backlash Compensation (6.4) |
-| Back-and-forth every 8-10 s, calmer with lower aggressiveness | A slow motor going back and forth through its backlash | Lower the aggressiveness on that axis; longer guide exposures (6.4) |
-| A single large jump at random | Computer stall | Check the log for lag warnings; reduce background load (6.5) |
-| Rapid back-and-forth, high RA Osc | Guider over-correcting | Lower PHD2 aggressiveness or the Guide Rate (3.4) |
-| Drift after a dither | PEC learning the dither | Switch off PEC Drift Correction when dithering (6.1) |
+| Steady drift, mostly one-sided corrections | Imperfect alignment model | PEC Drift Correction; refresh Multi-Point Alignment |
+| Slow wave, minutes to an hour | Worm gear wobble | Worm profile test and PEC Worm Gear Correction |
+| Regular sharp kicks every 10-40 s, heavy lens | M2 payload slip | ZM2 roll preset, better balance |
+| A drift bump for 5-15 minutes, at the same point in the sky | A motor reversing through its gear backlash | Check the log for "reverses its tracking direction"; PEC pauses learning; Backlash Compensation |
+| Slew & Center needs extra iterations, a few arcminutes short or past | A goto ending with a motor's gear slack open | Backlash Compensation |
+| Back-and-forth every 8-10 s, calmer with lower aggressiveness | A slow motor going back and forth through its backlash | Lower the aggressiveness on that axis; longer guide exposures |
+| A single large jump at random | Computer stall | Check the log for lag warnings; reduce background load |
+| Rapid back-and-forth, high RA Osc | Guider over-correcting | Lower PHD2 aggressiveness or the Guide Rate |
+| Drift after a dither | PEC learning the dither | Switch off PEC Drift Correction when dithering |
 
 <br>
 

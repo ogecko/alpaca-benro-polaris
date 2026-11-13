@@ -36,8 +36,8 @@ This guide provides an overview of the **Advanced Control Features** of the Alpa
 - **[Slew & Center Correction](./kinematics.md#22-slew--center-correction):** Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).
 - **[PEC Drift Correction](./kinematics.md#iv-drift-correction---convergence):** Learns the remaining slow drift in RA and Dec from guiding corrections and applies proactive fixes every 200 ms.
 - **[PEC Worm Gear Correction](./kinematics.md#v-worm-gear-correction---profile-calibration):** Corrects each motor's worm gear wobble (repeating every 6° of motor rotation, typically around 35 minutes while tracking) from a profile measured once by a calibration test, with no guiding needed.
-- **[Sync Guiding (Plate-solve)](./guiding.md#approach-1-sync-guiding):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
-- **[Pulse Guiding (Guide-camera)](./guiding.md#approach-2-pulse-guiding):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
+- **[Sync Guiding (Plate-solve)](./guiding-sync.md):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
+- **[Pulse Guiding (Guide-camera)](./guiding-pulse.md):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
 - **[Coordinated Speed Control](#coordinated-speed-control):** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
 - **[Backlash Compensation](./kinematics.md#27-backlash-compensation):** Drives each motor through its gear backlash at the end of a goto, so Slew & Center corrections land first time (not through a tracking reversal, which is left to the guider).
 

@@ -144,7 +144,8 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | [Using Stellarium](./stellarium.md) | Connecting and controlling the Polaris from Stellarium |
 | [Using NINA](./nina.md) | Capturing, autofocus, plate solving and sequencing |
 | [Using CCDciel](./ccdciel.md) | Capturing, focusing, plate solving and guiding with CCDciel |
-| [Guiding Guide](./guiding.md) | Sync guiding, PHD2 pulse guiding and improving guiding performance |
+| [Sync Guiding](./guiding-sync.md) | Guiding with plate solves from your main camera, Periodic Error Correction and the worm gear calibration |
+| [Pulse Guiding](./guiding-pulse.md) | Guiding with PHD2, a guide scope and camera, and improving guiding performance |
 | [Troubleshooting](./troubleshooting.md) and [FAQ](./faq.md) | Solutions to common problems, and answers to common questions |
 | [Beta Test Results](./beta_results_v2.2.md) | Real-world results and feedback from the v2.2 beta testers |
 
