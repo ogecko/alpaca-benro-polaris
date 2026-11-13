@@ -132,7 +132,7 @@ NINA has two sequencers. The Legacy Sequencer is a simple list of targets and ex
 
 The Advanced Sequencer can look complicated at first, but it isn't once you get the hang of it, and you will never go back to the Legacy Sequencer.
 
-The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's [Sync Guiding](./guiding.md#approach-1-plate-solvesync-guiding-hardware-free), which runs a Solve and Sync every few minutes during your sequence, and [Panorama Grids](./panoramas.md), which use the `Polaris:PanoGrid` and `Polaris:PanoSlew` Device Actions to step through each panel.
+The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's [Sync Guiding](./guiding.md#approach-1-sync-guiding), which runs a Solve and Sync every few minutes during your sequence, and [Panorama Grids](./panoramas.md), which use the `Polaris:PanoGrid` and `Polaris:PanoSlew` Device Actions to step through each panel.
 
 To learn the Advanced Sequencer, you can consider these resources:
 

@@ -26,8 +26,8 @@ This guide outlines a typical deep-sky imaging session with the Benro Polaris, t
 * **Focal length:** Most of the images above were taken with 200 mm to 400 mm camera lenses. Lenses up to about 800 mm work with the Polaris, but longer focal lengths show tracking errors more, so start shorter. A small-sensor astronomy camera makes a lens act longer: on an IMX585 sensor, with its 3.4× crop factor, a 400 mm lens frames like about 1,360 mm on a full-frame camera.
 * **Sub-exposure length:** How long each sub can be depends on how well the target is held still:
     * Without guiding, keep subs short, typically 15 to 60 seconds, and re-centre the target regularly.
-    * With [Sync Guiding](./guiding.md#approach-1-plate-solvesync-guiding-hardware-free), NINA plate-solves your own images every 1 to 3 minutes and the driver corrects any drift, so subs can be longer.
-    * With [Pulse Guiding](./guiding.md#approach-2-pulse-guiding-hardware-based), using a guide scope and PHD2, subs of up to about 300 seconds are possible.
+    * With [Sync Guiding](./guiding.md#approach-1-sync-guiding), NINA plate-solves your own images every 1 to 3 minutes and the driver corrects any drift, so subs can be longer.
+    * With [Pulse Guiding](./guiding.md#approach-2-pulse-guiding), using a guide scope and PHD2, subs of up to about 300 seconds are possible.
 * **Gain or ISO:** Set the gain (or ISO) so that the histogram's peak sits clear of the left-hand side, without saturating more than the brightest stars.
 * **Total exposure:** More total exposure gives a smoother, deeper image. The images above range from about 30 minutes to over 3 hours each. You can add to a target over several nights.
 
