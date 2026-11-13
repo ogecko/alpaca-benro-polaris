@@ -1,8 +1,8 @@
 # Using CCDciel with Benro Polaris
-[Setup](#1-capturing-images) | [Main Window](#2-main-ccdciel-window) | [Autofocus](#3-auto-focus) | [Plate Solving](#4-plate-solving) | [Sync Guiding](#5-scripting) | [Pulse Guiding](#6-pulse-guiding) 
+[Setup](#setup) | [Main Window](#main-window) | [Autofocus](#autofocus) | [Plate Solving](#plate-solving) | [Sync Guiding](#sync-guiding) | [Pulse Guiding](#pulse-guiding) 
 
 
-## 1. Capturing Images
+## Setup
 The Benro Polaris App does a great job controlling your camera to take sequences of images for panoramas, time-lapse, and astrophotography. It exposes many camera features and makes them easy to setup and use. Unfortunately, it doesn't stretch or process images, show RAW files, or make it easy to customize file names or copy them off for stacking.
 
 If you want to go beyond the native app, several software options provide more tailored control of your camera, especially for astrophotography. Some include:
@@ -15,7 +15,7 @@ If you want to go beyond the native app, several software options provide more t
 
 We are focusing on using CCDCiel, an alternate solution, due to its price (free), and its suitability for macOS and Windows users.
 
-### CCDciel Device Setup
+### Devices
 Upon opening CCDciel, the Devices Setup dialog will appear, allowing you to discover and connect to all your various astronomy equipment. Step through each of the device types and connect up your camera, mount, rotator, and optionally your filter wheel, focuser or other devices you may have. 
 
 * **Mount:** Select the ASCOM Alpaca tab, open the dropdown, then select **Alpaca Benro Polaris Telescope**.
@@ -27,7 +27,7 @@ Upon opening CCDciel, the Devices Setup dialog will appear, allowing you to disc
 
 ![Devices](images/ccd-device-01.png)
 
-### Preferences Setup
+### Preferences
 The **Preferences Dialog** can be accessed from the **Edit > Preferences** dropdown menu. It will allow you to make initial setup changes including
 
 * **Files:** Directory and filename format of captured images
@@ -38,13 +38,13 @@ The **Preferences Dialog** can be accessed from the **Edit > Preferences** dropd
 * **Slewing:** Set correction method to **Mount Sync** and enable **Sync the Rotator**
 * **Meridian:** Choose **Do nothing** as we are using an Az/Alt mount
 * **Autoguiding:** Choose **Internal** autoguiding if you have a guide camera
-* **Sequence:** Enable **Run astrometry on every image** and **Recenter sequence target that drift** to keep targets centred (see [Plate-Solving](#4-plate-solving))
+* **Sequence:** Enable **Run astrometry on every image** and **Recenter sequence target that drift** to keep targets centred (see [Plate-Solving](#plate-solving))
 
 ![Preferences](images/ccd-pref-01.png)
 
-## 2. Main CCDciel Window
+## Main Window
 
-### Devices Connection and Preview
+### Connecting and Previewing
 On the main CCDciel window, use the **Devices Connection Tool** in the upper-right corner to connect all configured equipment by clicking **Connect**. You can also connect or disconnect individual devices by clicking their abbreviated device names. You can use the Preview panel to **Preview** a single image, or **Loop** to continuously preview.
 
 ![Connect](images/ccd-connect-01.png)
@@ -66,7 +66,7 @@ The **Rotator Controls** allow you to control the Benro Polaris Mount as well.
 * **PA:** This field allows you to monior or control the equatorial Position Angle of the rotator directly.
 
 
-## 3. Auto-Focus
+## Autofocus
 CCDciel can drive a connected focuser to find the best focus, measuring the HFD (Half Flux Diameter) of the stars in each image: the smaller the better. A focused lens is also needed before plate-solving will work.
 
 ### Manual Focus
@@ -75,10 +75,10 @@ Point the camera at the sky and use the **Preview** panel in **Loop** mode. Star
 ### Calibration
 Before using autofocus, run **Tools > Focuser calibration** with a focused, centred star field. Set the exposure, preferred move direction, step size and backlash (if known). CCDciel then moves the focuser in one direction and back, measuring the star diameter, to find the minimum HFD. If the forward and reverse curves don't line up, cancel, adjust the backlash and restart. When finished, the focuser is left at the minimum HFD and the recommended parameters are shown; click **Save** to store them in the auto-focus preferences.
 
-### Autofocus
+### Running Autofocus
 In **Edit > Preferences > Auto-focus**, choose the **Dynamic** method (it fits a curve through the HFD measurements). Test the calibrated parameters with the **Autofocus** button on the **Focus** tab. In a sequence, each plan step has its own autofocus settings.
 
-## 4. Plate-Solving
+## Plate Solving
 CCDciel supports ASTAP, astrometry.net and PlateSolve2/3 to identify where your camera points in the sky. We recommend [ASTAP](https://www.hnsky.org/astap.htm), which is fast and works on Windows, macOS, Linux and Raspberry Pi.
 
 The Alpaca Driver aligns the Benro Polaris to the solved coordinates whenever you perform a **Sync**. The more plate-solve syncs you perform, the more accurate the alignment. This can remove the need for a compass alignment or manually aligning a first star with the Benro app.
@@ -101,7 +101,7 @@ In **Edit > Preferences > Slewing**, set the **Correction method** to **Mount sy
 ### Recentering Targets
 In a sequence, enable the target option **Use astrometry to refine the position** to centre each target on arrival. In **Edit > Preferences > Sequence**, **Run astrometry on every image** solves every captured image and shows the result in the log; **Recenter sequence target that drift** then plans a recenter before the next exposure whenever the drift exceeds the value you set. CCDciel recommends this value is more than 1.5x the slew precision (and 2-3x any dithering).
 
-## 5. Scripting
+## Scripting
 CCDciel scripts are written in Python. Enable the Script tool from the **Display** menu, then open the **Capture** tab on the right of the screen: under **Run Script** you can select a script and run it, or use **Edit**, **New** and **Copy** to open the script editor. Scripts can be run from there, or as part of a sequence: when a target starts, as a step of a plan, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's [Script reference](https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference).
 
 ### Alpaca Driver Scripts
@@ -177,10 +177,10 @@ To send a Device Action that has no script, such as `Polaris:TrackOrbital` or `P
 
 3. Install it like the other scripts, as `PolarisTrackMoon.script`, and add it to your plan as a script step.
 
-## 6. Pulse Guiding
+## Pulse Guiding
 CCDciel's **Internal guider** uses a guide camera to watch a guide star and sends pulse guide commands to the mount, which the Alpaca Driver turns into small corrections of the M1-M3 motor speeds. It has been tested with the Alpaca Driver.
 
-### Setup
+### Guider Setup
 
 * Connect the **Guide Camera** in the Devices Setup dialog.
 * In **Edit > Preferences > Auto-guiding**, choose **Internal guider** (or **PHD2**, with its host and port, if you guide with PHD2).
