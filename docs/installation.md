@@ -1,7 +1,7 @@
 # Installation Guide 
 [Microsoft Win11](#to-install-on-windows-1011) | [Apple MacOS](./installation_macos.md) | [Raspberry Pi](./raspberrypi.md) | 
 [Startup](#starting-the-alpaca-pilot-app) | 
-[Workflow](#imaging-with-alpaca-driver-v20-and-nina) | 
+[Deep-Sky Imaging](./dso-imaging.md) | 
 [Stellarium](#installing-stellarium-optional) | 
 [Sky Safari](#seting-up-sky-safari-pro-optional) | 
 [Nina](#installing-nina-optional) | 
@@ -182,102 +182,9 @@ The update process will:
 Your existing settings and data, including alignment and calibration data, are preserved.
 
 
-## Imaging with Alpaca Driver V2.0 and NINA
+## Next Steps
 
-This workflow outlines a typical imaging session using **Alpaca Driver V2.0** with **NINA** and the **Benro Polaris** mount. It assumes you’re already familiar with operating **Alpaca Pilot** and **NINA**. For additional setup and operational guidance on these topics, refer to the documentation for [Alpaca Pilot](./pilot.md) and [NINA](./nina.md).
-
-### Setup and Initialization
-
-1. **Start Alpaca Driver**  
-    The driver starts by itself when the PC starts. If you skipped that during installation, launch it by double-clicking the desktop shortcut.
-
-2. **Open Alpaca Pilot**  
-    In your browser, navigate to the Alpaca Pilot App.
-
-3. **Power On Polaris**  
-    Use a short press followed by a long press to power on the mount.
-
-4. **Confirm Wi-Fi Connectivity**  
-    Monitor your Mini-PC wifi and confirm it maintains a stable connection to Polaris.
-
-5. **Connect and Configure Polaris**  
-    In the Pilot Connect page:
-
-    - Set **Astro Mode**
-    - **Reset all axes** and wait for completion
-    - **Skip compass alignment**
-    - **Skip single-star alignment**
-
-### Focusing, Alignment and Targeting
-
-6. **Point to Celestrial Polar Area**  
-    Using Pilot Alpaca or Nina:
-
-    - Slew the mount to approximately point towards your Celestrial Pole (either North or South)
-    - This initial orientation does not need to be accurate
-    - Having a high or low Declination reduces star movement for the next step
-
-7. **Initial Focus**  
-    - Use your **Camera and lens** to achieve a rough focus
-    - Run **NINA’s Autofocus** process for a precise focus.
-    - Optionally, if you are using guiding, focus and align your Guide Scope as well.
-
-8. **First Plate Solve (anywhere for Single Point Alignment)**  
-    In NINA’s Image tab, 
-
-    - Click on **Start Tracking**
-    - Open the Plate Solving panel
-    - Manually plate-solve and sync to achieve intial alignment.
-   
-9. **Second Plate Solve (at Pole for Multi Point Alignment)**  
-    In Alpaca Pilot:
-
-    - Enable **Multi-Point Alignment**
-    - Search for 'pole' in the Alpaca Pilot Catalog
-    - GOTO your local Celestrial Pole and wait for the mount to settle.
-   
-    Using Nina:
-
-    - Initiate a second plate solve at the Celestrial Pole
-
-10. **Third Plate Solve (at Future Target for Multi-Point Alignment)**  
-    In Alpaca Pilot:
-
-    - GOTO your imaging target from the catalog
-    - Decrease the Right Ascensian axis by 1 or 2 hours 
-    - Once settled, run a third plate-solve in NINA
-
-11. **Fourth Plate Solve (framing Your Target)**  
-    Use NINA’s Sky Atlas or Stellarium to locate your target.  
-
-    - Send it to **Framing Assistant**, and view it on Nina's **Offline Sky Map**
-    - Use **Slew and Center** to refine positioning via iterative plate-solves.
-    - Select **Add Target to Sequence**, **Legacy Sequencer**
-
-### Imaging Sequence
-
-12. **Create a Sequence**  
-    In NINA’s Legacy Sequencer:
-
-    - Define image count (e.g., 150) and exposure time (e.g., 30 s)  
-    - If not guiding, enable **Slew and Center Target** every 20–30 frames (manually or via Advanced Scheduler)
-
-13. **Start the Imaging Sequence**  
-    Begin the sequence from NINA’s Image tab and monitor the first few frames. Let the process settle and zoom into the image view to monitor roundness of stars and tracking quality.
-
-14. **Refine Tracking and Alignment**  
-    You can assess and refine tracking performance using the **Alpaca PID Tuning** and **Alignment** pages:
-
-    * PID Tuning Page
-        - **Angular Position (PV vs SP)**: PV should closely follow a steady SP ramp on all axes for accurate tracking. Changing to equatorial co-ordinate view will show a steady horizontal SP for Right Ascension, Declination, Position Angle.
-        - **Angular Velocity (OP)**: OP should appear as a steady horizontal line, large oscillations may indicate instability. The PID controller will attempt to close any gaps.
-        - **RMS Error**: This is a key performance statistic that provides a quick understanding of the tracking performance over the last 30 seconds. A value near **2 arcseconds** is ideal for high-quality tracking.
-        - **Pulse Guiding**: Use **equatorial coordinates** to monitor corrections from guiding software. You should see the SP being "bumped" up and down to correct for guide star movement.
-        - **Advanced Tuning**: Experienced users can adjust PID parameters to reduce oscillations and improve responsiveness.
-
-    * Alignment Page
-        - **Sync Point Residuals**: Review residuals to identify misaligned points.
-        - **Model Refinement**: Delete sync points with large residuals to improve the Multi-Point Alignment model.
+To plan and run an imaging session, see [Deep-Sky Imaging](./dso-imaging.md) and [Planetary Imaging](./planetary.md).
 
 ## Optional Installations
    

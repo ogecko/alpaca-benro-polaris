@@ -29,6 +29,7 @@ nav = [
   { "Using the Driver" = [
     { "Alpaca Pilot App" = "pilot.md" },
     { "Creating Panoramas" = "panoramas.md" },
+    { "Deep-Sky Imaging" = "dso-imaging.md" },
     { "Planetary Imaging" = "planetary.md" },
     { "Using Stellarium" = "stellarium.md" },
     { "Using Nina" = "nina.md" },

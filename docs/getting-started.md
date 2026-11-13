@@ -7,6 +7,7 @@
 3. **Install the driver.** Follow the guide for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) or [Docker](./docker.md).
 4. **Connect with Alpaca Pilot.** The [Alpaca Pilot Guide](./pilot.md) takes you from first connection through alignment to your first goto.
 5. **Add your imaging app.** Set up [NINA](./nina.md), [Stellarium](./stellarium.md), [CCDciel](./ccdciel.md) or [PHD2](./guiding.md).
+6. **Capture your first images.** Follow [Deep-Sky Imaging](./dso-imaging.md) for nebulae and galaxies, or [Planetary Imaging](./planetary.md) for the planets.
 
 If something goes wrong, the [Troubleshooting Guide](./troubleshooting.md) and [FAQ](./faq.md) cover the most common issues.
 
