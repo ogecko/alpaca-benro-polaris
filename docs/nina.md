@@ -170,7 +170,6 @@ In addition to the Legacy Sequencer, Nina features an advanced sequencer that gi
 
 For information on how to use the Advanced Sequence for Panorama Workflows, please refer to [Creating Panoramas](./panoramas.md#why-use-the-alpaca-driver).
 
-## Instruction Reference
 ### Flow Control
 
 - **Sequencial Instruction Set** - a group of instructions that will execute one after the other from top to bottom. 
