@@ -1,6 +1,12 @@
 # Mac Setup Guide
+[Installing](#installing-the-driver) |
+[Running](#running-the-driver) |
+[Alpaca Pilot](#starting-alpaca-pilot) |
+[Connecting](#connecting-the-polaris) |
+[Updating](#updating-the-driver) |
+[Troubleshooting](#troubleshooting)
 
-## macOS Installation Video Demonstration
+## Video Demonstration
 
 The following YouTube video demonstrates parts of the installation and setup procedure described in this guide.
 
@@ -12,7 +18,7 @@ The Alpaca Driver is provided as a collection of Python scripts and is installed
 
 ## Installing
 
-### Installing the Alpaca Driver code
+### Installing the Driver
 
 1. **Download the Alpaca Driver software**
 
@@ -45,7 +51,7 @@ The Alpaca Driver is provided as a collection of Python scripts and is installed
 
     > **Note:** If the `uv` command is not found, close and reopen Terminal. Then `cd` back into the `alpaca-benro-polaris` folder and try again.
 
-### Running the Alpaca Driver
+### Running the Driver
 
 4. **Start the Alpaca Driver**
 
@@ -63,7 +69,7 @@ The Alpaca Driver is provided as a collection of Python scripts and is installed
 
     ![Alpaca Driver](images/abp-startup.png)
 
-### Starting the Alpaca Pilot App
+### Starting Alpaca Pilot
 
 Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any web browser.
 
@@ -89,7 +95,7 @@ Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any 
 
     Browser features such as Location and Clipboard access only work over a secure (HTTPS) connection. If you need these features, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#g-using-alpaca-pilot-over-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
 
-### Connecting the Driver to Polaris
+### Connecting the Polaris
 
 Before you can use the Polaris, complete the following steps.
 

@@ -1,10 +1,10 @@
 # Raspberry Pi Setup Guide
 [Versions](#which-pi-should-i-buy) | 
-[Image Creation](#install-the-raspberry-pi-os-lite-image) | 
-[Alpaca Installation](#install-pre-requisites-and-the-alpaca-driver) | 
+[Image Creation](#pi-os-lite-image) | 
+[Alpaca Installation](#installing-the-driver) | 
 [Optional GPS](#optional-gps-receiver) |
 [Setup.sh Reference](#setupsh-command-reference) | 
-[Troubleshooting](#troubleshooting-the-raspberry-pi)
+[Troubleshooting](#troubleshooting)
 
 
 ## Overview
@@ -37,7 +37,7 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
    1942 root      20   0  608352 113132  41640 R  22.4  26.5   8:33.13 python3
 
 ```
-## Install the Raspberry Pi OS Lite Image
+## Pi OS Lite Image
 
 1. Download the Raspberry Pi Imager from the [official website](https://www.raspberrypi.com/software/)
 2. Open the downloaded exe file to install the Imaging program on your PC, following it's installation instructions. Choose to run the program at the end of installation.
@@ -55,7 +55,7 @@ MiB Swap:    416.0 total,    387.1 free,     28.9 used.    211.3 avail Mem
     10. Write the image to the SD Card, click **WRITE**
 4. Remove the SD Card storage device and insert it into your Raspberry Pi
 
-## Install the Pi n Stars OS Image
+## Pi n Stars OS Image
 PINS is a Linux-focused fork of N.I.N.A. aimed at image acquisition on compact systems, including Raspberry Pi. 
 PINS is for users who want to experiment with a more portable, lower-power field computer.
 
@@ -100,7 +100,7 @@ PINS is for users who want to experiment with a more portable, lower-power field
         1.  Refresh the Mounts then select the Alapca Driver from the dropdown
         2.  Refresh the Rotators then select the Alpaca Driver from the dropdown
 
-## Install Pre-Requisites and the Alpaca Driver
+## Installing the Driver
 These instructions assume a fresh install of Raspberry Pi OS Lite, written using the [Raspberry Pi Imager](https://www.raspberrypi.com/software/). 
 
 1. Prepare the Raspberry Pi Zero 2W hardware. Connect the middle MicroUSB Port to a TPLink USB Wifi Adapter using a Micro-USB to USB-A (female) cable. Connect the outer MicroUSB port to a power source, using a Micro-USB to USB-C cable, and wait for it to power up.
@@ -162,14 +162,14 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
 Alpaca Pilot's **Locate** button uses the browser's location by default, which needs internet and is often only approximate. At a dark site, a USB GPS receiver plugged into the Pi gives the observing site's latitude, longitude and elevation instead, with no internet needed. How to use it in Pilot is described in [Set Observing Site Location](./pilot.md#e-setup-the-polaris-for-astro-mode); the notes below are specific to the Pi.
 
-### Connecting the receiver
+### Connecting the Receiver
 
 * **Pi Zero 2 W:** plug the receiver into the micro-USB port marked **USB** with an OTG adapter (not the **PWR** port). Other Pis: any USB port.
 * **Plug it directly into the Pi.** A cheap USB hub, and cameras or USB 3 cables close by, can block the GPS signal completely. In testing, a receiver that got a fix plugged directly into the computer never got one through a hub shared with a guide camera.
 * u-blox receivers appear as `/dev/ttyACM0`, and receivers using a CH340 USB-serial chip as `/dev/ttyUSB0`. To check, run `ls /dev/ttyACM* /dev/ttyUSB*`.
 * The Pi user running the driver must be in the `dialout` group to read the receiver. The default `pi` user already is. To check, run `groups`.
 
-### USB / Serial (NMEA) (recommended)
+### USB or Serial (NMEA)
 The driver reads the receiver directly. Nothing extra needs to be installed.
 
 1. In Pilot **Settings**, click the arrow beside **Locate** and choose **Use GPS Receiver**.
@@ -177,7 +177,7 @@ The driver reads the receiver directly. Nothing extra needs to be installed.
 3. Leave **Baud Rate** at `9600` unless your receiver's documentation says otherwise. u-blox receivers ignore it.
 4. Click **OK**, then **Locate (GPS)**.
 
-### GPS Daemon (GPSD) (optional)
+### GPS Daemon (GPSD)
 GPSD is a Linux service that shares a GPS receiver between programs, for example with KStars/Ekos, or to keep the Pi's clock on GPS time. Use it only if you need that: while GPSD is running it holds the receiver, so choose **GPS Daemon (GPSD)** in Pilot rather than USB / Serial.
 
 1. Install gpsd and its status client:
@@ -232,7 +232,7 @@ Options can be combined, and it's always safe to re-run `./setup.sh` on a Pi tha
 ./setup.sh -n "OfficeWifi" -w "OfficePassword" -a "my-scope" -p "differentpass"
 ```
 
-## Monitoring and Diagnostic commands
+## Diagnostic Commands
 
 The Alpaca Driver runs automatically in the background (even after a reboot) as what Linux calls a "service" — you don't need to start it by hand. The commands below let you check on it or restart it if needed.
 
@@ -245,10 +245,10 @@ The Alpaca Driver runs automatically in the background (even after a reboot) as 
     journalctl -u polaris-driver -f            # Watch its log messages live (Ctrl+C to stop watching)
     ```
 
-## Troubleshooting the Raspberry Pi
+## Troubleshooting
 The sections below (labelled P1, P2, etc.) cover specific problems people have run into. You shouldn't need any of them for a normal install — skip straight past this section unless something's actually gone wrong, and jump to whichever entry best matches what you're seeing.
 
-### P1 - Diagnosing Wifi and Bluetooth Network Issues
+### P1 - Wi-Fi and Bluetooth
 Normally, connecting to the Polaris is fully automatic (see step 9 above): Bluetooth is used briefly just to find the Polaris and turn on its Wi-Fi, then the Pi joins that Wi-Fi network by itself. This section is for when that doesn't work.
 
 **If Bluetooth won't turn on at all** (you'll see a message like `Bluetooth unavailable` in the Driver's logs):
@@ -294,7 +294,7 @@ ip addr show wlan1                                                  # confirm it
 ping 192.168.0.1                                                    # confirm the Pi can actually reach the Polaris
 journalctl -u NetworkManager -f                                     # NetworkManager logs
 ```
-### P2 - Diagnosing Wifi Connections
+### P2 - Wi-Fi Connections
 These commands show more detail about the Pi's network connections generally, useful if P1 above didn't solve things. `ip a` lists every network connection the Pi has and the address each one was given — look for `wlan0` (built-in Wifi, should show your home network's address) and `wlan1` (the USB adapter, should show `192.168.0.100` when connected to the Polaris):
 ```
 $ ip a
@@ -354,7 +354,7 @@ $ sudo iw wlan1 scan | grep SSID
         SSID: NeighboursNetwork_5GHz
 ```
 
-### P3 - Adding an additional home/site Wifi network
+### P3 - Add a Wi-Fi Network
 By default, the Pi remembers one Wi-Fi network (whatever you set up in the Raspberry Pi Imager) and falls back to its own hotspot when that's not in range (see step 9 above). If you'd like it to also recognise a **second** network — for example, a different location you regularly visit that does have Wi-Fi — re-run the setup script and tell it about the new network:
 ```Bash
 cd ~/alpaca-benro-polaris/platforms/raspberry_pi
@@ -369,7 +369,7 @@ sudo nmcli connection modify "OtherNetworkName" wifi-sec.key-mgmt wpa-psk wifi-s
 sudo nmcli connection modify "OtherNetworkName" connection.interface-name wlan0 connection.autoconnect-priority 10
 ```
 
-### P4 - Raspberry Pi Station Mode connection keeps dropping 
+### P4 - Station Mode Drops
 The Raspberry Pi Zero 2 W has been known to have problems with some **home mesh Wi-Fi systems** (multiple access points sharing one network name). Some routers include a feature often called "Roaming Assistant," "Smart Connect," or "Band Steering." This disconnects a device it judges to have a weak signal, hoping it reconnects to a closer access point. The Raspberry Pi may not handle this well and get bumped repeatedly, even when their signal is actually strong.
 
 To resolve this issue:

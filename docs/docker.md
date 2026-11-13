@@ -1,4 +1,9 @@
 # Docker Installation Guide
+[Install Docker](#install-docker) |
+[Clone](#clone) |
+[Build](#build) |
+[Run](#run) |
+[Configuration Data and Logs](#configuration-data-and-logs)
 
 Docker provides a portable and consistent way to run the driver across supported operating systems and hardware architectures. Instead of installing Python and the driver's dependencies directly on the host system, Docker packages the driver and its runtime environment into a container.
 
@@ -8,9 +13,9 @@ Follow the instructions below for your operating system. **Windows users should 
 
 
 
-# 1. Install Docker
+## Install Docker
 
-## Linux / Raspberry Pi
+### Linux / Raspberry Pi
 
 Install Docker Engine using the [official instructions](https://docs.docker.com/engine/install/) for your distribution. For example:
 
@@ -18,11 +23,11 @@ Install Docker Engine using the [official instructions](https://docs.docker.com/
 sudo apt install docker.io
 ```
 
-## macOS
+### macOS
 
 Install Docker Desktop from [Docker](https://www.docker.com/products/docker-desktop/).
 
-## Windows
+### Windows
 
 The Windows setup uses WSL2, which provides a Linux environment for running Docker Engine. The additional networking configuration below allows the driver's network services to be reached from other devices on your local network, such as an iPad or another PC.
 
@@ -84,7 +89,7 @@ The Windows setup uses WSL2, which provides a Linux environment for running Dock
 
       Close and reopen the WSL terminal so the group membership change takes effect.
 
-# 2. Clone 
+## Clone
 
    Clone the Alpaca Driver repository into a subfolder under your home directory. 
 
@@ -96,7 +101,7 @@ The Windows setup uses WSL2, which provides a Linux environment for running Dock
 
 
 
-# 3. Build
+## Build
 
 The Docker scripts in the repository need to be executable before they can be run. Git does not preserve the executable permission for these files, so mark them as executable the first time you check out the repository:
 
@@ -113,7 +118,7 @@ The Docker image is built automatically the first time you run `run.sh`. You nor
 The `-t` option sets the driver's local time zone. Replace `America/Vancouver` with your own [TZ database time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
 
 
-# 4. Run
+## Run
 
 Start the driver from the repository directory:
 
@@ -125,7 +130,7 @@ Replace `America/Vancouver` with your local [TZ database time zone](https://en.w
 
 The `-n` option enables Docker host networking, which removes the network isolation between the container and the host. This allows the driver's network services to be accessed directly through the host's network interfaces. For most users, **use `-n`**. It is required when using Alpaca Pilot, Stellarium, or another client on a different computer or device to connect to the driver running in the Docker container.
 
-### Connecting to the driver
+### Connecting to the Driver
 
 The Alpaca Pilot web interface can be accessed from a web browser by navigating to the driver's mDNS hostname, `ap.local` by default. This works from any other device on your network with mDNS support (iPad, Mac, Linux, other Windows PCs) once the `-n` option and the firewall rule above are in place. Enter `ap.local` in your browser's address bar. 
 
@@ -147,7 +152,7 @@ http://192.168.1.50
 * **macOS / Linux / Raspberry Pi:** `ip addr` or `hostname -I`
 
 
-### Network ports
+### Network Ports
 
 With the driver running, the following services are available:
 
@@ -161,7 +166,7 @@ With the driver running, the following services are available:
 | 32227 |    UDP   | Alpaca Discovery                   |
 |  5353 |    UDP   | mDNS — advertises `ap.local`       |
 
-### Using a dedicated Wi-Fi adapter with the Benro Polaris
+### Dedicated Wi-Fi Adapter
 
 If your computer needs a dedicated USB Wi-Fi adapter to communicate with the Benro Polaris, connect that adapter to the Polaris `polaris_XXXXXX` hotspot as normal.
 
@@ -172,7 +177,7 @@ See [Architecture — Laptop with Stellarium Desktop](./architecture.md#laptop-w
 
 
 
-# 5. Configuration Data and Logs
+## Configuration Data and Logs
 
 Alpaca Pilot settings are stored as an overlay on top of the driver's shipped default configuration. The driver also generates and stores persistent data such as:
 
