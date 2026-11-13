@@ -36,7 +36,7 @@ Periodic Error Correction (PEC) anticipates the Polaris's tracking errors and co
 * **PEC Worm Gear Correction** corrects the wobble from each motor's worm gear, which repeats every 6° of the motor's rotation and can move the view by 30 to 150 arc seconds. It uses a profile of your mount's gears, measured once with the [Worm Gear Calibration](#worm-gear-calibration) below, and works with or without guiding.
 * **PEC Drift Correction** learns the slow drift that remains, from your guiding corrections, whether from sync guiding or pulse guiding. It starts correcting once it has received a few corrections and its estimate of the drift is reliable.
 
-The **PEC** button on Alpaca Pilot's status panel switches both on and off together. For how PEC works in detail, see [Periodic Error Correction](./kinematics.md#26-periodic-error-correction-pec) in the Kinematics Reference.
+The **PEC** button on Alpaca Pilot's status panel switches both on and off together. For how PEC works in detail, see [Periodic Error Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
 
 ## Worm Gear Calibration
 
@@ -57,7 +57,7 @@ The worm gear profile only needs to be measured once for your mount, and again i
 
 **While the test runs**, don't guide, slew, park or jog the mount, as any of these stops the test. Your syncs are only used as measurements, and don't change the pointing model. If no sync arrives for a minute, the test stops with **NO DATA**. When it finishes, stop the NINA sequence.
 
-**Review and approve the result.** The results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. If the result looks reliable, approve it, then switch on **PEC Worm Gear Correction**. The driver combines up to five of your most recent approved tests, so repeating the test on another night improves the profile. For how to read every column of the results, see [Worm Gear Correction](./kinematics.md#26-periodic-error-correction-pec) in the Kinematics Reference.
+**Review and approve the result.** The results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. If the result looks reliable, approve it, then switch on **PEC Worm Gear Correction**. The driver combines up to five of your most recent approved tests, so repeating the test on another night improves the profile. For how to read every column of the results, see [Worm Gear Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
 
 ## Sync Guiding with NINA
 

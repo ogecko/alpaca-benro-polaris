@@ -28,18 +28,18 @@ This guide provides an overview of the **Advanced Control Features** of the Alpa
 - **[Kalman Filtering](#kalman-filter):** Smooths the noisy raw telemetry from the mount into a steadier estimate of its position and velocity.
 - **[Alpaca Rotator](#alpaca-rotator):** Exposes the third (Astro) axis as an ASCOM Rotator so you can control roll or position angle for framing, mosaics and panoramas.
 - **[Slewing](./pilot.md#radial-dials):** Lets the driver's own motion controller handle manual slews, moving the set point by Az/Alt/Roll or RA/Dec/PA. No longer use Benro Polaris firmware for gotos or slews.
-- **[Advanced Goto](./kinematics.md#42-inverse-kinematics--sky--motors-angular-position):** Moves to targets along a shortest-path trajectory with optimised acceleration and deceleration, and preserves roll and tracking state.
+- **[Advanced Goto](./kinematics.md#inverse-position):** Moves to targets along a shortest-path trajectory with optimised acceleration and deceleration, and preserves roll and tracking state.
 - **[PID Tracking](#pid-controller):** Uses a closed-loop, three-axis PID controller with feed-forward to hold the mount on its target during tracking.
 - **[Orbitals Tracking](./orbitals.md):** Enables non-sidereal tracking of the Sun, Moon, planets, satellites, comets and asteroids.
 - **[Multi-Point Alignment](#alignment-models):** Uses the QUEST algorithm to build a correction model from three or more plate-solve syncs, compensating for tripod tilt, polar misalignment and cone error.
-- **[Mechanical Alignment Correction](./kinematics.md#23-mechanical-alignment-corrections-mac):** Fits M2 and M3 offsets (how the camera sits on the head) and the M2 scale with every alignment, cutting typical alignment and goto errors from about an arcdegree to a few arcminutes.
-- **[Slew & Center Correction](./kinematics.md#22-slew--center-correction):** Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).
-- **[PEC Drift Correction](./kinematics.md#iv-drift-correction---convergence):** Learns the remaining slow drift in RA and Dec from guiding corrections and applies proactive fixes every 200 ms.
-- **[PEC Worm Gear Correction](./kinematics.md#v-worm-gear-correction---profile-calibration):** Corrects each motor's worm gear wobble (repeating every 6° of motor rotation, typically around 35 minutes while tracking) from a profile measured once by a calibration test, with no guiding needed.
+- **[Mechanical Alignment Correction](./kinematics.md#mechanical-alignment):** Fits M2 and M3 offsets (how the camera sits on the head) and the M2 scale with every alignment, cutting typical alignment and goto errors from about an arcdegree to a few arcminutes.
+- **[Slew & Center Correction](./kinematics.md#slew-and-center):** Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).
+- **[PEC Drift Correction](./kinematics.md#periodic-error-correction):** Learns the remaining slow drift in RA and Dec from guiding corrections and applies proactive fixes every 200 ms.
+- **[PEC Worm Gear Correction](./kinematics.md#periodic-error-correction):** Corrects each motor's worm gear wobble (repeating every 6° of motor rotation, typically around 35 minutes while tracking) from a profile measured once by a calibration test, with no guiding needed.
 - **[Sync Guiding (Plate-solve)](./guiding-sync.md):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
 - **[Pulse Guiding (Guide-camera)](./guiding-pulse.md):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
 - **[Coordinated Speed Control](#coordinated-speed-control):** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
-- **[Backlash Compensation](./kinematics.md#27-backlash-compensation):** Drives each motor through its gear backlash at the end of a goto, so Slew & Center corrections land first time (not through a tracking reversal, which is left to the guider).
+- **[Backlash Compensation](./kinematics.md#backlash-compensation):** Drives each motor through its gear backlash at the end of a goto, so Slew & Center corrections land first time (not through a tracking reversal, which is left to the guider).
 
 
 For a comprehensive technical reference on the updated kinematics, refer to [kinematics.md](./kinematics.md).

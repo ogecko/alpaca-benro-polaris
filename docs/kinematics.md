@@ -1,22 +1,22 @@
 # Kinematics Reference
-[Overview](#1-overview) | 
-[QUEST](#21-quest-alignment-optimisation) |
-[SCC](#22-slew--center-correction) |
-[MAC](#23-mechanical-alignment-corrections-mac) |
-[Sync Guiding](#24-plate-solvedsync-guiding) |
-[Pulse Guiding](#25-pulse-guiding) |
-[PEC](#26-periodic-error-correction-pec) |
-[Backlash](#27-backlash-compensation) |
-[Envelope](#28-reachable-altitude-and-roll-envelope) |
-[Base Frame](#31-base-frame-b---representations-and-conversions) | 
-[Topo Frame](#32-topocentric-frame-t---representations-and-conversions) | 
-[Equatorial Frame](#33-equatorial-frame-e---representations) | 
-[Forward Flow](#41-forward-kinematics--motors--sky-angular-position) | 
-[Inverse Flow](#42-inverse-kinematics--sky--motors-angular-position) | 
-[Feed Forward](#43-inverse-kinematics--sky--motors-angular-velocity-feed-forward) | 
+[Overview](#overview) | 
+[QUEST](#quest-alignment) |
+[SCC](#slew-and-center) |
+[MAC](#mechanical-alignment) |
+[Sync Guiding](#sync-guiding) |
+[Pulse Guiding](#pulse-guiding) |
+[PEC](#periodic-error-correction) |
+[Backlash](#backlash-compensation) |
+[Envelope](#reachable-envelope) |
+[Base Frame](#base-frame-b) | 
+[Topo Frame](#topocentric-frame-t) | 
+[Equatorial Frame](#equatorial-frame-e) | 
+[Forward Flow](#forward-kinematics) | 
+[Inverse Flow](#inverse-position) | 
+[Feed Forward](#inverse-velocity) | 
 
 
-## 1. Overview
+## Overview
 
 The Benro Polaris is a three-axis motorised camera mount designed for precision tracking and pointing. Accurate operation requires compensating for multiple sources of mechanical, optical, and dynamic error while transforming between four distinct reference frames: the camera sensor frame, the mount base frame, the local sky frame, and the celestial reference frame. This document defines these reference frames, along with the variables, rotation matrices, and quaternions associated with each, and describes the kinematic chains that relate them.
 
@@ -49,12 +49,13 @@ The document also outlines the principal mitigation techniques used to reduce tr
 
 
 ---
-## 2. Kinematics Corrections
+## Corrections
 The Alpaca Driver achieves superior tracking performance through a multi-layered suite of kinematic corrections that address both global and local mechanical errors. At its foundations is the QUEST model in Multi-Point Alignment. Layered on top of this are corrections for Mechanical imperfections, Periodic and Local residual errors.
 
-### 2.1 QUEST Alignment Optimisation
+### QUEST Alignment
 
-#### **I. What it is and What it Solves**
+**What it is and What it Solves**
+
 **QUEST (QUaternion ESTimator)** is an advanced mathematical framework used in Multi-Point Alignment (MPA) to calculate the most accurate relationship between your Polaris mount and the night sky. In the context of the Alpaca Driver, it is a **closed-form, quaternion-based solution** designed to solve "Wahba’s problem": determining the optimal rotation that aligns a set of predicted sensor vectors with observed "ground-truth" vectors from plate solving.
 
 Because the Benro Polaris is an **Alt/Az/Roll mount**, it lacks a physical axis naturally aligned with Earth’s rotation. This makes tracking complex, as all three motors must coordinate perfectly to follow a target. QUEST solves several critical hardware and environmental challenges that standard software cannot:
@@ -63,7 +64,8 @@ Because the Benro Polaris is an **Alt/Az/Roll mount**, it lacks a physical axis 
 *   **Tripod Tilt:** A major advantage of QUEST is that **users no longer need to obsess over leveling their tripod**, as the model mathematically detects and corrects for tilt.
 *   **Tracking Accuracy:** It minimizes the angular residuals (errors) between where the mount *thinks* it is pointing and where it *actually* is, leading to superior sidereal tracking for long-exposure deep-sky photography.
 
-#### **II. Integration with Single Point Alignment (SPA)**
+**Integration with Single Point Alignment (SPA)**
+
 The Alpaca Driver supports two distinct modes: **Single-Point Alignment (SPA)** and **Multi-Point Alignment (QUEST/MPA)**. 
 
 *   **SPA (The Foundation):** This mirrors the standard Polaris method by syncing to one known celestial position. While simple, it relies on **precise tripod leveling** and is highly susceptible to drift because it cannot account for complex geometric errors.
@@ -71,14 +73,16 @@ The Alpaca Driver supports two distinct modes: **Single-Point Alignment (SPA)** 
 
 By using QUEST, the driver can correct for the fact that a sync point taken in the East might require a slightly different correction than one taken in the West due to tripod tilt or mechanical flex.
 
-#### **III. The Mathematics of the Model (Briefly)**
+**The Mathematics of the Model (Briefly)**
+
 QUEST operates by minimizing a **quadratic loss function**, which is essentially the sum of the squared differences between pairs of reference vectors (stars) and measured vectors (mount sensors). 
 
 1.  **Vector Pairing:** Each sync point provides a pair of vectors: the **predicted direction** from the mount's internal sensors and the **observed direction** from a plate solve.
-2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs. With **Mechanical Alignment Correction** on, the rotation is instead fitted together with the M2/M3 offsets, unweighted (see [2.3](#23-mechanical-alignment-corrections-mac)).
+2.  **Davenport Matrix:** The algorithm constructs a specialized matrix (known as a **Davenport Matrix**) from the weighted outer products of these vector pairs. With **Mechanical Alignment Correction** on, the rotation is instead fitted together with the M2/M3 offsets, unweighted (see [2.3](#mechanical-alignment)).
 3.  **Eigenvector Solution:** The "optimal" alignment is found by identifying the **eigenvector with the largest eigenvalue** of that matrix. This provides a **unit quaternion** that represents the best-fit rotation for the entire system.
 
-#### **IV. How to Use QUEST and Get the Best Results**
+**How to Use QUEST and Get the Best Results**
+
 To achieve high-precision results, you must move from simply "syncing" to **strategic modeling**:
 
 *   **Enable MPA:** Ensure Multi-Point Alignment is enabled in the Alpaca Pilot App settings or alignment page.
@@ -91,19 +95,22 @@ To achieve high-precision results, you must move from simply "syncing" to **stra
 
 
 ---
-### 2.2 Slew & Center Correction
+### Slew and Center
 
-#### **I. What it is and What it Solves**
+**What it is and What it Solves**
+
 In astrophotography, the **Slew & Center** operation is a critical workflow where the mount slews to a target, performs a plate-solve to verify its position, and then makes a corrective slew to center the object, repeating the process until it is centered perfectly. The primary aim of **Slew & Center Correction** is to speed up this process by **reducing the number of correction slews** needed to zero in on a target. 
 
 Without this correction, even a high-quality global alignment model (like QUEST) may have a small residual error at any given sky position. When a controlling application (such as NINA) performs a corrective slew based on a residual error, it may require several iterations to narrow in on the target. If the residual at the target is large and you have configured a very low pointing tollerance, the Slew & Center operation may struggle to complete.
 
-#### **II. The Challenge: Global vs. Local Accuracy**
+**The Challenge: Global vs. Local Accuracy**
+
 The QUEST algorithm finds a global optimum by fitting a single rigid-body rotation across all available sync points. While this provides excellent average accuracy across the entire sky, it cannot perfectly satisfy every individual sync point simultaneously. 
 
 This leaves a **residual pointing error**, the difference between the model's predicted position and the actual observed plate-solved position. To achieve near-instant centering, the driver must account for this residual immediately after a sync occurs.
 
-#### **III. Three Approaches to Correction**
+**Three Approaches to Correction**
+
 The Alpaca Driver utilizes three distinct strategies to handle these residuals, ensuring the mount's "Present Value" matches the sky as accurately as possible:
 
 1.  **Zero Last Residual (ZLR):**
@@ -120,7 +127,8 @@ The Alpaca Driver utilizes three distinct strategies to handle these residuals, 
     * **It lasts until it is replaced.** The next alignment sync sets a new offset; a goto or slew keeps it (so the next Slew & Center benefits); turning tracking off or changing the alignment or Slew & Center settings clears it.
     * **Unlike LGA, it does not fade with distance:** after slewing far from the last sync point the offset still applies until the next Slew & Center sync replaces it, which is normally the first plate solve at the new target.
 
-#### **IV. The Mathematics of LGA**
+**The Mathematics of LGA**
+
 LGA uses a **Gaussian weighting function** to determine how much of the local residual should be applied based on the angular distance from the last sync point. The correction fades to identity (zero additional correction) as the distance increases.
 
 The formula for the weight is:
@@ -134,15 +142,17 @@ The formula for the weight is:
 *   **At 30° Away:** The weight drops to approximately 0.14 (14% correction).
 *   **Beyond 45°:** The weight is less than 0.05, meaning the LGA is effectively inactive and the mount relies solely on the QUEST model.
 
-#### **V. Operational Benefits**
+**Operational Benefits**
+
 
 *   **Faster Centering:** By eliminating the local residual at the target, the first "corrective slew" issued by imaging software is more accurate.
 
 
 ---
-### 2.3 Mechanical Alignment Corrections (MAC)
+### Mechanical Alignment
 
-#### I. What Is MAC?
+**What Is MAC?**
+
 
 Mechanical Alignment Correction (MAC) improves pointing accuracy by modelling mechanical errors that a standard QUEST alignment cannot correct.
 
@@ -155,7 +165,8 @@ On the Benro Polaris, these errors include:
 
 MAC models these errors alongside the QUEST alignment, improving pointing accuracy across the sky rather than just near individual alignment points.
 
-#### II. How to Get the Best Results
+**How to Get the Best Results**
+
 
 **Enable MAC and sync at six or more well-spaced points.** QUEST and the M2/M3 offsets work from three well-spread points; the M2 scale needs six or more.
 
@@ -168,7 +179,8 @@ For best results:
 
 No separate mechanical calibration is required. The driver fits the M2 and M3 offsets during multi-point alignment and refines the M2 scale when sufficient data is available.
 
-#### III. What Improvements Can You Expect?
+**What Improvements Can You Expect?**
+
 
 MAC can substantially improve pointing accuracy, reduce centring iterations and reduce position-dependent drift during tracking.
 
@@ -183,7 +195,8 @@ In these tests, MAC also reduced typical alignment residuals from tens of arcmin
 
 MAC reduces systematic pointing errors across the sky, leaving less for Slew & Center and guiding corrections to compensate.
 
-#### IV. Checking the Alignment Model
+**Checking the Alignment Model**
+
 
 The Alignment page displays the **Telescope Alignment Model** card, including the status of each mechanical correction:
 
@@ -193,7 +206,8 @@ The Alignment page displays the **Telescope Alignment Model** card, including th
 
 With MAC enabled, the driver retains up to **20 sync points**, compared with 10 when MAC is disabled. When the limit is reached, the oldest point is normally replaced, while the highest and lowest M2 points are preserved to support M2 scale fitting.
 
-#### V. Understanding the MAC Model
+**Understanding the MAC Model**
+
 
 MAC corrects the reported M2 and M3 motor angles before the driver works out where the camera points:
 
@@ -213,7 +227,8 @@ The default M2 scale correction is +1.0%. An accepted value is saved with the al
 
 All three corrections are managed automatically; no manual calibration is required.
 
-#### VI. Comparing MAC On and Off
+**Comparing MAC On and Off**
+
 
 The **Mechanical Alignment Correction** toggle in Pilot's Settings allows you to compare the standard QUEST alignment with MAC using the same sync points.
 
@@ -223,26 +238,30 @@ The **Mechanical Alignment Correction** toggle in Pilot's Settings allows you to
 **Note:** MAC improves the underlying alignment model but does not eliminate all pointing errors. Slew & Center and guiding remain useful for correcting remaining residual errors.
 
 
-### 2.4 **Plate-Solved/Sync Guiding**
+### Sync Guiding
 
-#### **I. What it is and What it Solves**
+**What it is and What it Solves**
+
 **Plate-Solved/Sync Guiding** is an innovative, hardware-free approach to auto-guiding that eliminates the need for a separate guide scope and camera. It solves the persistent problem of tracking drift and periodic error in the Benro Polaris by using the main imaging camera to periodically update its dynamic local alignment model. 
 
 Traditionally, the Polaris suffers from **periodic error (PEC)**, mechanical oscillations caused by gear irregularities, which have been measured at approximately **14+ arc minutes** with a primary period of **35 minutes**. Without constant correction, this error leads to noticeable star trails and tracking drift during long exposures. Plate-Solved/Sync Guiding solves this by integrating periodic plate-solve data directly into the motion control loop, acting as a high-precision pulse guide without additional hardware.
 
-#### **II. The Mechanism: From Sync to Pulse Guide**
+**The Mechanism: From Sync to Pulse Guide**
+
 The core of this feature lies in how the Alpaca Driver interprets synchronization commands. When a user performs a **plate-solve sync without slewing the telescope**, the driver no longer treats it a new position to add to the QUEST model.
 
 Instead, the driver interprets the resulting residual error as a **guiding correction**. Each of these guiding corrections feed into PEC's drift model (an exponential moving average of the drift rate) to predict the local RA and Dec drift rates. The PID Controller then applies these drift rates every 200ms as a continuously refining quaternion correction. This integrated model addresses both local alignment issues and the long-term periodic error cycle simultaneously, ensuring the mount's "Present Value" is continuously refined to match the true sky, even between each plate-solve.
 
-#### **III. Integration with QUEST and PID Control**
+**Integration with QUEST and PID Control**
+
 This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to function at its highest potential. 
 
 *   **Dynamic Refinement:** By feeding the model fresh "ground-truth" data every few minutes, any local errors can be corrected for dynamically. 
 *   **Drift Reduction:** The residual data is fed into the **PID Controller**, which automatically adjusts motor speeds to "kill" the drift. 
 *   **Reduced Star Trails:** By proactively correcting for the worm gear error and inherent drift, exposures remain sharp even during lengthy imaging sessions.
 
-#### **IV. Recommended Workflow: The Plate-Solve/Sync Guiding**
+**Recommended Workflow: The Plate-Solve/Sync Guiding**
+
 To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
 
 1.  **Reset Multi-Point-Alignment** - To reset MPA, clear all old Sync points, or toggle MPA off then back on (this will clear all sync points). Enable Tracking.
@@ -253,40 +272,46 @@ To get the best results and maintain perfect centering without manual interventi
 
 > **Note:** Don't use Sync Guiding at the same time as Pulse Guiding. The guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back, and the target drifts off center anyway (e.g. from flexure between guide scope and main scope). To keep the target centered during a long Pulse Guided session, use Nina's **Center After Drift** trigger instead. When the plate solve drifts past the threshold (about 0.3–0.5 arcmin), Nina stops guiding, re-centers the target, and restarts guiding with a new lock position. Each re-center is a slew, which resets the driver's PEC model, so avoid setting the threshold too tight.
 
-#### **V. Primary Benefits**
+**Primary Benefits**
+
 
 *   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
 *   **Superior Accuracy:** Plate-solves provide significantly more information and higher resolution than traditional guide star pulses.
 *   **Streamlined Operations:** No more repetitive "Slew and Center" iterations are needed; the guiding happens "in-place" as part of the normal imaging sequence.
 
 
-### 2.5 **Pulse Guiding**
+### Pulse Guiding
 
-#### **I. What it is and What it Solves**
+**What it is and What it Solves**
+
 **Pulse Guiding** is a high-speed feedback mechanism that allows external guiding software to make micro-adjustments to the mount's tracking in real-time. While **QUEST Alignment** and **Mechanical Corrections** provide a robust global model, they cannot account for dynamic, unpredictable factors such as atmospheric refraction, subtle mechanical "sticktion," or high-frequency periodic error.
 
 Pulse guiding solves these issues by acting as a **fine correction tool**. It continuously monitors the position of a guide star and sends small "pulses" to the driver to nudge the mount back into perfect alignment, ensuring that the imaging target remains stationary on the sensor at a sub-pixel level.
 
-#### **II. The Mechanism: From Pulse to Motion**
+**The Mechanism: From Pulse to Motion**
+
 The Alpaca Driver exposes pulse-guiding commands through the **ASCOM Alpaca ITelescopeV3 Interface**. When a guiding application (like PHD2) detects a deviation, it calculates the required correction and sends a pulse of a specific duration and direction to the driver.
 
 The driver interprets this input as a **corrected position change**. In the PID control loop, this appears as a "jump" in RA and/or Dec co-ordinates in proportion to the duration of the pulse and the pulse guide rate. This allows the driver to translate equatorial corrections into coordinated, multi-axis motor movements (M1, M2, and M3) without interrupting the underlying sidereal tracking.
 
-#### **III. The Mathematical Model (Briefly)**
+**The Mathematical Model (Briefly)**
+
 Starting with version 2.2, the driver utilizes a refined mathematical approach to ensure these pulses are executed with extreme fidelity:
 
 *   **PID Feed-Forward Control:** The driver incorporates feed-forward logic specifically for pulses, allowing the motors to reach the required correction velocity almost instantaneously.
 *   **Integral Suspension:** To prevent "overshoot"—where the mount continues moving after a pulse ends—the driver **temporarily suspends the integration of the error term** (KI) during an active pulse. This ensures the correction is crisp and does not introduce new oscillations.
 
-#### **IV. How to Use and Get the Best Results**
+**How to Use and Get the Best Results**
+
 For a comprehensive guide on hardware selection and software configuration, please refer to the [Pulse Guiding](./guiding-pulse.md) guide. To optimize the kinematic response of pulse guiding:
 
 *   **Set the Guide Rate:** A guide rate of **0.75x to 1.0x sidereal** is recommended. If the mount appears to "hunt" or oscillate, lowering this rate in the Alpaca Pilot settings can smooth the response.
 *   **Multi-Star Guiding:** Always enable "Use Multiple Stars" in your guiding software. This averages out atmospheric turbulence (seeing), providing the PID controller with a cleaner signal that represents true mechanical drift rather than "chasing the wind".
 *   **Monitor the PID Loop:** You can visualize pulse commands in real-time on the **PID Tuning page** in Alpaca Pilot, where they appear as dynamic shifts in the RA and Dec setpoints.
-*   **Don't Combine with Sync Guiding:** The guider pulls each sync correction straight back to its lock position. To keep the target centered during a long session, use Nina's **Center After Drift** trigger instead (see the note in section 2.4, Recommended Workflow).
+*   **Don't Combine with Sync Guiding:** The guider pulls each sync correction straight back to its lock position. To keep the target centered during a long session, use Nina's **Center After Drift** trigger instead (see the note under Recommended Workflow in [Sync Guiding](#sync-guiding)).
 
-#### **V. Primary Benefits**
+**Primary Benefits**
+
 
 *   **Sub-Exposure Correction:** The main benefit of pulse guiding is the ability to correct tracking errors **within a single exposure**. This prevents small drifts from turning stars into "footballs" or trails before the frame is completed.
 *   **Longer Exposures:** By eliminating cumulative drift, pulse guiding enables the Benro Polaris to maintain pinpoint stars over much longer imaging sessions than would be possible unguided.
@@ -294,9 +319,10 @@ For a comprehensive guide on hardware selection and software configuration, plea
 
 ------
 
-### **2.6 Periodic Error Correction (PEC)**
+### Periodic Error Correction
 
-#### **I. What is Periodic Error?**
+**What is Periodic Error?**
+
 
 **Periodic Error** includes tracking errors that the mount cannot detect directly. On the Benro Polaris, there are two main sources of periodic error:
 
@@ -306,23 +332,26 @@ For a comprehensive guide on hardware selection and software configuration, plea
 
 Without correction, both errors produce irregular star shapes and trails, limiting exposure length. 
 
-#### **II. How does the Driver correct for Periodic Error?**
+**How does the Driver correct for Periodic Error?**
+
 The driver addresses periodic error in two layers. Both are applied every **200ms**:
 
 * **Drift correction** learns and corrects the slow changing drift based on guiding corrections from either **Pulse Guiding** or **Sync Guiding**.
-* **Worm gear correction** uses a fixed periodic correction profile for each motor of the mount (see section V).
+* **Worm gear correction** uses a fixed periodic correction profile for each motor of the mount (see Worm Gear Correction - Profile Calibration below).
 
 Each layer has its own switch in Pilot's settings, **PEC Drift Correction** and **PEC Worm Gear Correction** (`advanced_pec_drift`, `advanced_pec_worm`), so either can be compared on and off. The PEC button on Pilot's status panel switches both together.
 
 These two corrections allow PEC to anticipate the periodic errors and correct them before they become visible in the image.
 
-#### **III. Comparison with External Models**
+**Comparison with External Models**
+
 
 Software such as PHD2 provides its own "Predictive PEC". The Alpaca Driver's implementation is instead integrated directly into the Benro Polaris motion-control system, with knowledge of its kinematics and three axis worm gear design.
 
 External models often operate only on the RA axis and may use slower correction cycles. The Alpaca PEC is **fully integrated into the PID control loop**, allowing it to correct all axes simultaneously.
 
-#### **IV. Drift Correction - Convergence**
+**Drift Correction - Convergence**
+
 
 PEC does not immediately apply drift correction. As guiding corrections arrive, PEC estimates the current drift rate independently for RA and Dec. The estimate is smoothed over about 7.5 minutes using an exponential moving average (`pec_tau_sec`). 
 
@@ -340,7 +369,8 @@ Incoming data used in the estimate is filtered, and the model must first demonst
 
 > Note: Drift Correction applies only when PEC Drift Correction is switched on.
 
-#### **V. Worm Gear Correction - Profile Calibration**
+**Worm Gear Correction - Profile Calibration**
+
 
 The driver applies worm gear corrections once it has a profile of each motor's gearset. This correction is applied first and immediately, **without requiring any guiding**. Because the error is caused by the gears and its phase is relative to the motors' home position (0,0,0), it should repeat from night to night. Any remaining slowly changing drift is then learnt and corrected by PEC Drift Correction.
 
@@ -513,7 +543,8 @@ With worm gear correction enabled, the slow, regular oscillation in the guide co
 
 In PHD2 Log Viewer, use frequency analysis to compare the peak at the worm period. This is typically around 34 minutes (approximately 2,000 seconds), although the period varies with the target's position as the motor speeds change. With effective correction, this peak should be substantially reduced or disappear.
 
-#### **VI. Important Considerations**
+**Important Considerations**
+
 
 PEC is designed exclusively for **sidereal tracking** of Deep Sky Objects (DSOs) and stars.
 
@@ -529,7 +560,8 @@ PEC is intended for fine mechanical correction. It cannot compensate for gross m
 * tripod instability; or
 * wind effects.
 
-#### **VII. PEC Logging (for analysis and development)**
+**PEC Logging (for analysis and development)**
+
 
 With `log_pec` enabled, the driver writes a `PECCONFIG` line once per session and a `PECLOG` line at every guide update.
 
@@ -600,15 +632,16 @@ To start a test from a clean PEC state, toggle Tracking off and on. This resets 
 
 Do **not** restart the driver for this purpose. Restarting the driver restores the saved sync guide correction from `data/sync_points.json`.
 
-> For exactly how a sync guide residual reaches `q_syncguide_B`, how a PID tick evaluates the PEC rate, and how the next `518` message folds that correction into `theta_pv`, see [§4. Kinemtaics Flows](#4-kinemtaics-flows), sections 4.4–4.6.
+> For exactly how a sync guide residual reaches `q_syncguide_B`, how a PID tick evaluates the PEC rate, and how the next `518` message folds that correction into `theta_pv`, see [Kinematic Flows](#kinematic-flows): Sync Guide Ingestion, PID Tick and 518 Message Processing.
 
 ![Worm Gear Corrections](images/abp-pec-worm.png)
 
 
 
-### 2.7 Backlash Compensation
+### Backlash Compensation
 
-#### I. What Is Gear Backlash?
+**What Is Gear Backlash?**
+
 
 Backlash is the mechanical slack between gear teeth. When a motor reverses direction, it must cross this slack before the mount's output shaft, and therefore the camera, moves. 
 
@@ -628,7 +661,8 @@ Backlash can cause:
 - **Low-speed guiding oscillations:** Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see [Gear Backlash](./guiding-pulse.md#gear-backlash) in the Pulse Guiding guide).
 
 
-#### II. How does Backlash Compensation Work?
+**How does Backlash Compensation Work?**
+
 When enabled, the driver estimates the camera's position beyond the gearbox and accounts for mechanical slack in its position control.
 
 Compensation operates **after a goto or rotate:** The driver takes up the backlash until each compensated motor is engaged in its tracking direction. The move completes only when this is done, helping the camera remain at the position confirmed by any subsequent plate solve. The same process occurs when tracking resumes after a driver restart.
@@ -647,7 +681,8 @@ Pilot's position displays, reported coordinates, and the PID controller therefor
 
 A sync taken while compensation is acting keeps its adjustment alongside its raw motor angles, and the alignment factors it in only while Backlash Compensation is on, like the worm gear correction; switching it then refits the alignment. When compensation is inactive, its position correction is zero.
 
-#### III. When is Backlash Compensation Active?
+**When is Backlash Compensation Active?**
+
 
 Backlash Compensation needs **Coordinated Speed Control** on: only that controller can push a motor through its slack and hold it while the sky catches up. With Coordinated Speed Control off it stays inactive, even when switched on.
 
@@ -664,10 +699,11 @@ Compensation is also inhibited on a motor under the following conditions:
 - **A goto near a turning point:** During a goto, compensation is skipped for any motor expected to reach its turning point within 5 minutes.
 - **Near gimbal lock or the M2 limit:** Compensation is disabled for all three motors when M2 is within 12° of gimbal lock or within 1° of its 81.5° limit.
 
-A motor left uncompensated after a goto can still be engaged on the side away from its tracking direction. When tracking or guiding then turns it into its slack, the motor turns but the camera doesn't, so the guider sees the sky move. Backlash Compensation doesn't push such a motor, because corrections can outpace it, but it reports it as crossing its slack. PEC Drift Correction doesn't learn from it (§2.6), until the motor is engaged in its tracking direction, for at most 15 minutes after the goto.
+A motor left uncompensated after a goto can still be engaged on the side away from its tracking direction. When tracking or guiding then turns it into its slack, the motor turns but the camera doesn't, so the guider sees the sky move. Backlash Compensation doesn't push such a motor, because corrections can outpace it, but it reports it as crossing its slack. PEC Drift Correction doesn't learn from it (see [Periodic Error Correction](#periodic-error-correction)), until the motor is engaged in its tracking direction, for at most 15 minutes after the goto.
 
 
-#### IV. Configuration
+**Configuration**
+
 
 | Setting | Default | Description |
 |---|---|---|
@@ -680,13 +716,15 @@ The take-up push uses `coordinated_speed_control`. Without it, compensation rema
 
 Changing either setting while running resets the backlash model using the current motor angles.
 
-#### V. Limitations
+**Limitations**
+
 
 - **Sampling:** The backlash model updates from motor-angle measurements every 0.2 seconds, with M3 updated approximately every 0.6 seconds. Reversals between samples can cause unmodelled motion. In testing, goto errors reached approximately 1.5 arcmin (one or two Slew & Center corrections in eight, always M3), still generally better than without compensation.
 - **Variable backlash:** M2 backlash changes with load and position. Gravity may also hold the gears against one side, reducing or eliminating the slack during a reversal. Digital-twin tests remained beneficial with backlash estimates 30% too low or too high and with M2 held by gravity.
-- **Tracking reversals:** Not compensated (§II): while a motor reverses, the camera can stall by up to its backlash until the guider has taken the slack up.
+- **Tracking reversals:** Not compensated (see How does Backlash Compensation Work? above): while a motor reverses, the camera can stall by up to its backlash until the guider has taken the slack up.
 
-#### VI. Log Messages
+**Log Messages**
+
 
 When a full slack take-up starts:
 
@@ -698,13 +736,14 @@ If a motor keeps crossing its slack (compensation for it stops until the next go
 
 Logs before 2026-10-20 also show `BACKLASH M2 reversing its tracking direction in 9 s: compensating its 432" slack until the next goto` where a planned reversal was compensated.
 
-Reversal warnings are still issued approximately 5 minutes in advance, whether compensation is enabled or not (see [§4.4](#44-sync-guide-ingestion--residual--q_syncguide_b-and-pec-learning)).
+Reversal warnings are still issued approximately 5 minutes in advance, whether compensation is enabled or not (see [Sync Guide Ingestion](#sync-guide-ingestion)).
 
 
 
 
-### **2.8 Reachable Altitude and Roll Envelope**
-#### I. What it is and What it Solves
+### Reachable Envelope
+**What it is and What it Solves**
+
 
 The Benro Polaris's second motor axis (`M2` or `theta2`) has a mechanical range of only **-8° to +81.5°**, which directly constrains how far the mount can point in Altitude and Roll — the two are coupled by `cos(theta2) = cos(alt) · cos(roll)`, so the more roll a shot needs, the less altitude range is available, and vice versa. Because this trade-off is a genuine hardware limit rather than a software one, any target orientation outside it must either be resolved to the nearest reachable point, or reached by an alternate mechanical path. The chart below shows this envelope: the green area is directly reachable.
 
@@ -712,7 +751,8 @@ The Benro Polaris's second motor axis (`M2` or `theta2`) has a mechanical range 
 
 Near the bottom edges of the envelope, the driver often has a choice between two valid solutions for a given (Altitude and Roll) target: an "unflipped" path, and a "flipped" path where `theta3` (the Astro axis) is rotated by approximately 180° to swing the boresight around from the opposite side. The flipped path trades a large Astro axis movement for access to orientations, particularly steep negative altitudes, that the unflipped path cannot reach at all.
 
-#### II. Related Features
+**Related Features**
+
 
 * **[Reachable Targets]**: If you slew or Goto to a target that's just outside what the Polaris can physically reach, the driver automatically adjusts it to the closest position the mount *can* reach, instead of failing the Goto outright.
 * **[Zenith Zone]**: M2 can't raise the camera above 81.5°, so a target that culminates higher passes through a zone the mount can't reach. While it's there the mount tracks at its limit directly below the target: same Azimuth, Altitude 81.5°, pointing off by only the target's altitude above 81.5° (at most 8.5°). M1 follows the target's own Azimuth, the short way round through the meridian on the side the target transits (south of the zenith when its Dec is south of your latitude, north otherwise), and picks up full tracking again as the target drops back below 81.5°. Only a pose that has genuinely gone over the top (Altitude above 90°) is flipped to the opposite Azimuth.
@@ -723,7 +763,8 @@ Near the bottom edges of the envelope, the driver often has a choice between two
 
 
 
-#### III. Poor Tracking at Low Altitudes and Low Roll Angles
+**Poor Tracking at Low Altitudes and Low Roll Angles**
+
 
 **The problem:** When the telescope is pointing **low in the sky** and the camera has **little or no roll angle**, tracking the stars with the Benro Polaris becomes harder.
 
@@ -790,7 +831,7 @@ Once the telescope is above about **50° altitude**, this problem is essentially
 
 ---
 
-## 3. Reference Frames
+## Reference Frames
 
 Each frame has a fixed set of basis axes. The scale of each reference frame is arbitrary, since Polaris kinematic mathematics is angle-based, and quaternions are defined on a unit sphere. Vectors and quaternions are tagged with
 the frame they are expressed in.
@@ -805,9 +846,10 @@ the frame they are expressed in.
 
 ---
 
-### 3.1 Base Frame (B) - Representations and Conversions
+### Base Frame (B)
 
-#### Mechanical Orientation and Angular Velocity
+**Mechanical Orientation and Angular Velocity**
+
 The Base Frame represents the mechanical orientation of the mount as either motor angles
 or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular velocity in the Base Frame drives individual motor speeds. The Jacobian `J(theta)` is a matrix that, for a given orientation `(theta)`, describes how small changes in the motor axis angles `(theta_dot)`, produce motion of the camera. It maps between motor axis rates and B frame angular velocity.
 
@@ -822,7 +864,8 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 | `omega_raw`    | vector | Raw angular velocity from device (proxy = `omega_ref`)            | Kalman Filter observation            |
 | `omega_op`     | vector | Control output velocity sent to motors                            | Motor commands     
 
-#### Conversion Functions
+**Conversion Functions**
+
 
 | From           | To             | Function                           | Notes |
 |----------------|----------------|------------------------------------|-------|
@@ -831,7 +874,8 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. Angular ve
 | `theta_dot`    | `omega_base`      | `= J(theta) · theta_dot` | joint rates → B frame angular velocity.  |
 | `omega_base`   | `theta_dot`      | `= J⁻¹(theta) · omega_base` | B frame angular velocity → joint rates. Used to calculate FF joint rates. |
 
-#### Variable Suffixes
+**Variable Suffixes**
+
 
 Suffixes distinguish the level of processing applied to a mechanical orientation variable.
 
@@ -849,9 +893,10 @@ Suffixes distinguish the level of processing applied to a mechanical orientation
 
 ---
 
-### 3.2 Topocentric Frame (T) - Representations and Conversions
+### Topocentric Frame (T)
 
-#### Sky Orientation and Angular Velocity
+**Sky Orientation and Angular Velocity**
+
 
 The Topocentric Frame represents the camera's sky orientation as either Az/Alt/Roll angles
 or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topocentric Frame Angluar Velocity typically represents the sidereal or orbital tracking velocity of a target object.
@@ -866,7 +911,8 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 | `cameraQ_C2T`  | quaternion | Sky orientation as quaternion rotating vectors from C→T; equivalent to alpha         | Composition, interpolation, kinematic chain, SLERP |
 | `omega_topo`      | vector | Angular velocity in Topocentric frame, computed from `cameraQ_C2T` change over time | Feed-forward starting point |
 
-#### Conversion Functions
+**Conversion Functions**
+
 
 | From           | To             | Function                           | Notes |
 |----------------|----------------|------------------------------------|-------|
@@ -875,9 +921,10 @@ or a quaternion. Both are equivalent, the choice is purely pragmatic. The Topoce
 
 ---
 
-### 3.3 Equatorial Frame (E) - Representations
+### Equatorial Frame (E)
 
-#### Equatorial Orientation
+**Equatorial Orientation**
+
 | Representation | Type   | Description                                                                                  | Use for                        |
 |----------------|--------|----------------------------------------------------------------------------------------------|--------------------------------|
 | `delta`        | angles | Equatorial orientation as `(RA, Dec, PA)`                                                    | Target coordinates, tracking   |
@@ -899,9 +946,10 @@ Conversion between T and E frames is handled by `pyephem` using the observer's s
 coordinates and time. Angles are always used in practice for the E frame.
 
 
-### 3.4 Galactic Frame (G) - Representations and Conversions
+### Galactic Frame (G)
 
-#### Galactic Orientation 
+**Galactic Orientation**
+
 
 The Galactic Frame represents the camera's orientation in the Milky Way reference system as *(l, b, GPA)* angles. This frame is centered on the Sun, aligned with the IAU-defined Galactic coordinate system.
 
@@ -917,7 +965,8 @@ A key distinction in this system is that **gamma_sp** and **gamma_pv** is used a
 
 ---
 
-#### Conversion Functions
+**Conversion Functions**
+
 
 | From         | To           | Function                  | Notes                                                    |
 | ------------ | ------------ | ------------------------- | -------------------------------------------------------- |
@@ -930,10 +979,10 @@ A key distinction in this system is that **gamma_sp** and **gamma_pv** is used a
 
 
 ---
-## 4. Kinemtaics Flows
+## Kinematic Flows
 
 
-### 4.1 Forward Kinematics — Motors → Sky Angular Position
+### Forward Kinematics
 
 Converts the raw IMU quaternion from the Polaris device into a fully corrected sky
 orientation. 
@@ -948,11 +997,11 @@ theta_state             KF smoothed motor morientation angles
 motorQ_state            KF smoother motor orientation quaternion C→B
 alpha_state             KF sky angles = q_to_azaltroll(motorQ_state) used in QUEST (p_az,p_alt,p_roll)
     │
-    ▼ Backlash Compensation              (corrQ_BLC)    B Frame   output shafts, while it acts (§2.7); identity otherwise
+    ▼ Backlash Compensation              (corrQ_BLC)    B Frame   output shafts, while it acts (Backlash Compensation); identity otherwise
     ▼ Worm Gear Correction               (corrQ_WFF)    B Frame   each motor's worm error, from the MCU's motor angles
     ▼ Mechanical Alignment Correction    (corrQ_MAC)    B Frame   M2/M3 offsets, M2 scale on the motor angles
     ▼ Sync Guiding + PEC Accum Corrections (q_syncguide_B) B Frame   PEC has no quaternion of its own —
-    ▼ Pulse Guiding Accum Corrections    (q_pulseguide_B)  B Frame   it folds into q_syncguide_B here, see §4.4-4.6
+    ▼ Pulse Guiding Accum Corrections    (q_pulseguide_B)  B Frame   it folds into q_syncguide_B here, see Sync Guide Ingestion to 518 Message Processing
 motorQ_pv              BLC, WFF, MAC, Sync/PEC and Pulse corrected only (B Frame)
 theta_pv               BLC, WFF, MAC, Sync/PEC and Pulse corrected only (B Frame)
     │
@@ -965,7 +1014,7 @@ alpha_pv               (a_az, a_alt, a_roll) = q_to_azaltroll(cameraQ_pv)
 delta_pv               (a_ra, a_dec, a_pa)   = pyephem(az, alt, roll), used as ASCOM co-ordinates
 ```
 
-### 4.2 Inverse Kinematics — Sky → Motors Angular Position
+### Inverse Position
 
 Converts a target sky orientation into the motor angles required to achieve it. Undoes
 corrections in exact reverse order of the forward chain. 
@@ -1004,8 +1053,8 @@ error_signal            = theta_ref - theta_pv
     ├── omega_kp        = +Kp · error_signal             Proportional
     ├── omega_ki        = +Ki · ∫ error_signal dt        Integral
     ├── omega_kd        = -Kd · (omega_op - omega_ff)    Derivative (damps velocity error vs FF, not raw output)
-    ├── omega_ff        = tracking/jog joint rates from feed_forward() (§4.3)
-    ├── omega_pec       = J(theta_pv)⁻¹ · omega_pec_B     PEC's own proactive rate, see §4.5
+    ├── omega_ff        = tracking/jog joint rates from feed_forward() (Inverse Velocity)
+    ├── omega_pec       = J(theta_pv)⁻¹ · omega_pec_B     PEC's own proactive rate, see PID Tick
     │
     ▼  PID + Feed Forward
 omega_tgt               = omega_kp + omega_ki + omega_kd + omega_ff - omega_pec
@@ -1020,7 +1069,7 @@ polaris_protocol         Slew SLOW and FAST commands
 
 ---
 
-### 4.3 Inverse Kinematics — Sky → Motors Angular Velocity (Feed Forward)
+### Inverse Velocity
 
 Converts the rate of change of the sky target into motor joint rates for sidereal tracking
 feed-forward. The Jacobian `J(theta_pv)` is expressed in the **B frame**, so `omega_topo`
@@ -1046,13 +1095,13 @@ omega_ff                Feed-forward motor joint rates
 
 ---
 
-### 4.4 Sync Guide Ingestion — Residual → `q_syncguide_B` and PEC Learning
+### Sync Guide Ingestion
 
 The interaction between Sync/Pulse Guiding and PEC is easy to misread because they don't hold
 separate state: PEC never gets its own correction quaternion. It learns a drift-rate model from
 guide residuals, then re-injects its predicted correction through the *exact same* function a
 manual sync guide uses (`accumulate_sync_guiding_residuals`), so both land in one accumulator,
-`q_syncguide_B`. The "Periodic Error Correction" step folded into `[SGC]` in §4.1's forward chain
+`q_syncguide_B`. The "Periodic Error Correction" step folded into `[SGC]` in the Forward Kinematics chain
 is this accumulator, not a separate quaternion.
 
 ```
@@ -1065,23 +1114,23 @@ dec_resid = clamp_error(a_dec,    Dec_pv)
     │
     ├─▼ accumulate_sync_guiding_residuals(ra_resid, dec_resid)
     │     q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees=ra_resid)     axes from equatorial_axes_B
-    │     q_dec_corr = Quaternion(axis=dec_axis_B, degrees=dec_resid)    (cached every 518 tick, see §4.6)
+    │     q_dec_corr = Quaternion(axis=dec_axis_B, degrees=dec_resid)    (cached every 518 tick, see 518 Message Processing)
     │     q_adj = (q_ra_corr · q_dec_corr).normalised
     │     q_syncguide_B ← (q_adj · q_syncguide_B).normalised             ← left-composition, B frame
     │     delta_guide_accum += [ra_resid, dec_resid]                     (telemetry only)
     │
     └─▼ update_pec_model(ra_resid, dec_resid)
           reject if |resid| > pec_max_resid_arcmin
-          PecAxis.ingest(resid, t, var_alpha, sse_alpha)   per-axis RLS or EMA fit update (§2.6.III)
+          PecAxis.ingest(resid, t, var_alpha, sse_alpha)   per-axis RLS or EMA fit update (PEC Drift Correction - Convergence)
           PecAxis.eval_inhibit(n, min_obs, max_rmse, min_r2)
                  → TOO_FEW_OBS | HIGH_RMSE | LOW_R2 | VALID
-          _pec_active = ra.converged() or dec.converged()  gates step_pec_drift() in §4.5
+          _pec_active = ra.converged() or dec.converged()  gates step_pec_drift() in PID Tick
           _pec_log()  → PECLOG entry
 ```
 
 Pulse guides train the same `PecAxis` models via `ingest_pulse_for_pec()` → `update_pec_model()`,
 from `process_pulse_guide_axis()`, whenever `Config.advanced_pulse_pec_tuning` is enabled — that's the
-"dual guiding support" in §2.6.II: one model, fed by whichever guide source is active.
+"dual guiding support" in Periodic Error Correction: one model, fed by whichever guide source is active.
 With `Config.pec_ignore_guider_calibration`, `GuiderCalibrationDetector` recognises a guider's
 calibration (PHD2, CCDciel) as 3+ identical same-axis, same-direction pulses: PEC is rolled back to
 its state before that run and learns nothing more until no repeated pulse has been seen for 20 s.
@@ -1094,7 +1143,7 @@ is unaffected by noise, guide pulses or a driver restart; they are cached per ta
 turned `pec_reversal_backlash_deg` (0.2°) past it, at most 30 minutes. A reversal too slow to take its slack up within
 30 minutes (e.g. M2 after a ZM2 roll, chosen to keep it still) doesn't pause: that drift lasts many time constants, and
 PEC should follow it. Learning also pauses while a motor that Backlash Compensation left uncompensated after a goto
-(e.g. M2 under 0.5"/s) crosses its slack (`BacklashCompensator.crossing_slack()`, §2.7.III): on 2026-10-18 M2 at 0.24"/s
+(e.g. M2 under 0.5"/s) crosses its slack (`BacklashCompensator.crossing_slack()`, see When is Backlash Compensation Active?): on 2026-10-18 M2 at 0.24"/s
 turned through its 432" slack under 6 s plate-solve syncs, and PEC learnt that as 50'/h of Dec drift, then fought the
 syncs for 30 minutes. While paused, each residual is logged (PECLOG `paused`, e.g.
 `'M2'`) but not learned, the rate already learned keeps being applied, and the first residual after the pause restarts
@@ -1105,13 +1154,13 @@ points (`motor_turns()`, refreshed every 5 minutes or when the target changes): 
 direction in 4 min; its gear backlash (up to 720") can show as drift for about 18 min`.
 With `Config.advanced_backlash`, the PID also drives each motor through its gear backlash at the end of a goto (not
 through a planned reversal: those are left to the guider), skipping a motor that will turn within 5 minutes, from the
-same turning points: see [§2.7 Backlash Compensation](#27-backlash-compensation) (`driver/control_backlash.py`).
+same turning points: see [Backlash Compensation](#backlash-compensation) (`driver/control_backlash.py`).
 The PEC code lives in `driver/control_pec.py` (`PecMixin`, mixed into `SyncManager`); the worm feed-forward and the
 worm profile test in `driver/control_worm.py` (`WormMixin`, `WormProfileTest`, `fit_worm_profile`).
 
 ---
 
-### 4.5 PID Tick — PEC Rate Evaluation → `q_syncguide_B` and `omega_tgt`
+### PID Tick
 
 Every control tick with a measurement, `PID_Controller.control_step_calculate()` calls `step_pec_drift()` first,
 ahead of `feed_forward()` / `pid()`. It steps the drift correction only while tracking with PEC Drift Correction on
@@ -1131,7 +1180,7 @@ PID_Controller.control_step_calculate()                          every ~200ms
     │         d = clip(rate · dt, −cap, +cap)                     capped correction step for this tick
     │
     │     if ra_applied or dec_applied:
-    │         accumulate_sync_guiding_residuals(d_ra, d_dec)      ← same fn as §4.4 — PEC's own predicted
+    │         accumulate_sync_guiding_residuals(d_ra, d_dec)      ← same fn as Sync Guide Ingestion — PEC's own predicted
     │                                                                step folds into q_syncguide_B here
     │         omega_pec_B = (d_ra/dt)·ra_axis_B + (d_dec/dt)·dec_axis_B     B frame, deg/sec
     │
@@ -1153,7 +1202,7 @@ it through the Jacobian and apply it proactively via `omega_tgt`, instead of wai
 loop to react to it after the fact.
 
 Note the `−` in `omega_tgt`'s formula: `error_signal = theta_ref (SP) − theta_pv (PV)`, and the
-correction above lands on the **PV** side (`q_syncguide_B` is folded into `motorQ_pv`, §4.6),
+correction above lands on the **PV** side (`q_syncguide_B` is folded into `motorQ_pv`, see 518 Message Processing),
 while `omega_pec` contributes on the **SP** side of that same subtraction, the same role
 `omega_ff` plays for sidereal tracking. A correction landing on the PV side and one landing on
 the SP side must carry opposite sign to represent the same physical correction consistently —
@@ -1161,7 +1210,7 @@ hence `+ omega_ff − omega_pec`, not `+ omega_pec`.
 
 ---
 
-### 4.6 518 Message Processing — `q_syncguide_B` Corrects `theta_pv`
+### 518 Message Processing
 
 ```
 Polaris._msg_handler("518", args)
@@ -1185,18 +1234,18 @@ cameraQ_pv, motorQ_pv  = (cameraQ_C2T_pv, motorQ_C2B_pv)
     ▼  update_sky_positions(motorQ_state, cameraQ_pv) → delta_pv, alpha_pv
     │
     ▼  PID_Controller.measure(delta_pv, alpha_pv, theta_pv, zeta_meas, measurement_lag_s)
-error_signal = theta_ref_backdated − theta_pv                   consumed by §4.5's next tick
-    ▼  control_step_calculate() / control_step_execute()                       — flow §4.5 above
+error_signal = theta_ref_backdated − theta_pv                   consumed by the next PID Tick
+    ▼  control_step_calculate() / control_step_execute()                       — PID Tick flow above
 ```
 
 Because `q_syncguide_B` is applied to `motorQ_state` *before* `theta_pv` is derived, every sync
 guide or PEC correction shows up as an instantaneous step in `theta_pv` on the very next `518`
 message — the mount does not have to physically move for the PV to reflect the correction; only
 `error_signal` (and hence the PID's real motor command) responds afterward, which is exactly the
-transient that §4.5's `omega_pec` feed-forward term exists to pre-empt.
+transient that PID Tick's `omega_pec` feed-forward term exists to pre-empt.
 
 ---
-## 5. Summary — Full Kinematic Chain
+## Full Kinematic Chain
 
 ```
 motorQ_raw          (C→B, raw from IMU)
