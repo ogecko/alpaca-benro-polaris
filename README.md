@@ -47,9 +47,11 @@
 </p>
 
 <p align="center">
-  Control the Benro Polaris Astro Edition from Stellarium, NINA, PHD2, CCDciel and other
-  ASCOM Alpaca applications, with Multi-Point Alignment, plate solving, sync and pulse guiding,
-  advanced motion control, orbital tracking and panoramas. The Polaris firmware is left untouched.
+The Alpaca Driver replaces the Benro app as the controller for the Benro Polaris Astro Edition, without modifying its firmware. Its own pointing model, tracking and guiding algorithms improve accuracy and minimise drift, and unlock features such as Multi-Point Alignment, plate solving, sync and pulse guiding, orbital tracking and precision panoramas. It integrates with Stellarium, NINA, PHD2, CCDciel and other ASCOM Alpaca applications.
+</p>
+
+<p align="center">
+Together, they turn the Polaris from a simple panorama platform into a capable deep-sky astrophotography mount, with accurate tracking, guided long exposures and advanced imaging workflows.
 </p>
 
 <p align="center">
