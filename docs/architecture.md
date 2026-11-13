@@ -1,6 +1,6 @@
 # Architecture
-[Hardware](#hardware-architectures) |
-[Software](#software-architecture) |
+[Hardware](#hardware-architectures) ·
+[Software](#software-architecture) ·
 [Development Setup](#development-setup)
 
 This page shows how the Alpaca Driver's hardware and software fit together, and how to set up a computer to work on the driver itself.

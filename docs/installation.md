@@ -1,11 +1,11 @@
 # Installation Guide 
-[Microsoft Win11](#to-install-on-windows-1011) | [Apple MacOS](./installation_macos.md) | [Raspberry Pi](./raspberrypi.md) | 
-[Startup](#starting-the-alpaca-pilot-app) | 
-[Deep-Sky Imaging](./dso-imaging.md) | 
-[Stellarium](#stellarium-desktop) | 
-[Sky Safari](#sky-safari-pro) | 
-[Nina](#installing-nina) | 
-[Architecture](./architecture.md) 
+[Microsoft Win11](#to-install-on-windows-1011) · [Apple MacOS](./installation_macos.md) · [Raspberry Pi](./raspberrypi.md) ·
+[Startup](#starting-the-alpaca-pilot-app) ·
+[Deep-Sky Imaging](./dso-imaging.md) ·
+[Stellarium](#stellarium-desktop) ·
+[Sky Safari](#sky-safari-pro) ·
+[Nina](#installing-nina) ·
+[Architecture](./architecture.md)
 
 
 

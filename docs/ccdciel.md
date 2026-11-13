@@ -1,5 +1,5 @@
 # Using CCDciel with Benro Polaris
-[Setup](#setup) | [Main Window](#main-window) | [Autofocus](#autofocus) | [Plate Solving](#plate-solving) | [Sync Guiding](./guiding-sync.md#sync-guiding-with-ccdciel) | [Pulse Guiding](#pulse-guiding) 
+[Setup](#setup) · [Main Window](#main-window) · [Autofocus](#autofocus) · [Plate Solving](#plate-solving) · [Sync Guiding](./guiding-sync.md#sync-guiding-with-ccdciel) · [Pulse Guiding](#pulse-guiding)
 
 
 ## Setup

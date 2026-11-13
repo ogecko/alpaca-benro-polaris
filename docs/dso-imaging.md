@@ -1,13 +1,13 @@
 # Deep-Sky Imaging
-[Imaging Apps](#choosing-an-imaging-app) |
-[Planning](#planning-a-session) |
-[Focal Length and Exposure](#focal-length-and-exposure) |
-[Setting Up](#setting-up-and-connecting) |
-[Focusing and Aligning](#focusing-and-aligning) |
-[Framing](#framing-the-target) |
-[Capturing](#capturing-the-sequence) |
-[Monitoring](#monitoring-and-refining) |
-[Calibration Frames](#calibration-frames) |
+[Imaging Apps](#choosing-an-imaging-app) ·
+[Planning](#planning-a-session) ·
+[Focal Length and Exposure](#focal-length-and-exposure) ·
+[Setting Up](#setting-up-and-connecting) ·
+[Focusing and Aligning](#focusing-and-aligning) ·
+[Framing](#framing-the-target) ·
+[Capturing](#capturing-the-sequence) ·
+[Monitoring](#monitoring-and-refining) ·
+[Calibration Frames](#calibration-frames) ·
 [Stacking and Processing](#stacking-and-processing)
 
 ![Deep-sky images captured with a Benro Polaris and the Alpaca Driver](images/abp-gallery.jpg)

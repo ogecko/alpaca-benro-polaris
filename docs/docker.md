@@ -1,8 +1,8 @@
 # Docker Installation Guide
-[Install Docker](#install-docker) |
-[Clone](#clone) |
-[Build](#build) |
-[Run](#run) |
+[Install Docker](#install-docker) ·
+[Clone](#clone) ·
+[Build](#build) ·
+[Run](#run) ·
 [Configuration Data and Logs](#configuration-data-and-logs)
 
 Docker provides a portable and consistent way to run the driver across supported operating systems and hardware architectures. Instead of installing Python and the driver's dependencies directly on the host system, Docker packages the driver and its runtime environment into a container.

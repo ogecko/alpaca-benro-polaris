@@ -1,9 +1,9 @@
 # Planetary Imaging
-[Focal Length](#choosing-a-focal-length) |
-[Pointing and Tracking](#pointing-and-tracking) |
-[Capturing Video](#capturing-video) |
-[Stacking](#stacking-with-autostakkert) |
-[Sharpening](#sharpening) |
+[Focal Length](#choosing-a-focal-length) ·
+[Pointing and Tracking](#pointing-and-tracking) ·
+[Capturing Video](#capturing-video) ·
+[Stacking](#stacking-with-autostakkert) ·
+[Sharpening](#sharpening) ·
 [Composing a Wider Shot](#composing-a-wider-shot)
 
 ![Saturn and its moons, captured on a Benro Polaris: the planet with an IMX585 camera at 800 mm, the moons with a Canon EOS R5 at 1600 mm](images/saturn-moons.jpg)

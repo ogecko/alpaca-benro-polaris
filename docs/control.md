@@ -1,14 +1,14 @@
 # Control Reference
-[Challenges](#challenges) | 
-[Rotator](#alpaca-rotator) | 
-[Alignment](#alignment-models) | 
-[Safety](#equipment-safety) | 
-[Filtering](#kalman-filter) | 
-[Calibration](#motor-speed-calibration) | 
-[Coordinated Speed](#coordinated-speed-control) | 
-[PID Controller](#pid-controller) | 
-[Dev: API Testing](#dev-pid-testing-via-api) | 
-[Dev: PID Tuning Utility](#dev-pid-tuning-utility) 
+[Challenges](#challenges) ·
+[Rotator](#alpaca-rotator) ·
+[Alignment](#alignment-models) ·
+[Safety](#equipment-safety) ·
+[Filtering](#kalman-filter) ·
+[Calibration](#motor-speed-calibration) ·
+[Coordinated Speed](#coordinated-speed-control) ·
+[PID Controller](#pid-controller) ·
+[Dev: API Testing](#dev-pid-testing-via-api) ·
+[Dev: PID Tuning Utility](#dev-pid-tuning-utility)
 
 ## Challenges
 >PODCAST LINK: [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)

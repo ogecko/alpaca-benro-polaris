@@ -1,8 +1,8 @@
 # Preparing the MiniPC
-[Choosing a MiniPC](#choosing-a-minipc) |
-[Powering](#powering-the-minipc) |
-[Connecting Up](#connecting-up-the-minipc) |
-[Setting Up Windows](#setting-up-windows) |
+[Choosing a MiniPC](#choosing-a-minipc) ·
+[Powering](#powering-the-minipc) ·
+[Connecting Up](#connecting-up-the-minipc) ·
+[Setting Up Windows](#setting-up-windows) ·
 [Optional Steps](#optional-steps)
 
 The recommended way to run the Alpaca Driver is on a MiniPC mounted on your tripod, which can then control all your astronomy equipment. This guide covers choosing, powering, connecting and setting up a MiniPC. For the other ways to run the driver, on a laptop, a Raspberry Pi or in a Docker container, see [Architecture](./architecture.md#hardware-architectures).

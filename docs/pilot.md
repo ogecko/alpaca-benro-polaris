@@ -1,10 +1,10 @@
 # Alpaca Pilot App
-[Purpose](#what-is-alpaca-pilot) | 
-[Launching](#launching-alpaca-pilot) | 
-[Connect](#connecting-polaris) | 
-[Dashboard](#using-the-dashboard) | 
-[Catalog](#using-the-catalog) | 
-[Panoramas](./panoramas.md) 
+[Purpose](#what-is-alpaca-pilot) ·
+[Launching](#launching-alpaca-pilot) ·
+[Connect](#connecting-polaris) ·
+[Dashboard](#using-the-dashboard) ·
+[Catalog](#using-the-catalog) ·
+[Panoramas](./panoramas.md)
 
 ## What is Alpaca Pilot?
 

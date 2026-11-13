@@ -1,5 +1,5 @@
 # Using Nina with Benro Polaris
-[Main NINA Tabs](#main-nina-tabs) | [Autofocus](#autofocus) | [Plate Solving](#plate-solving) | [Advanced Sequence](#advanced-sequence) 
+[Main NINA Tabs](#main-nina-tabs) · [Autofocus](#autofocus) · [Plate Solving](#plate-solving) · [Advanced Sequence](#advanced-sequence)
 
 ## Main NINA Tabs
 

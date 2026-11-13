@@ -1,9 +1,9 @@
 # Mac Setup Guide
-[Installing](#installing-the-driver) |
-[Running](#running-the-driver) |
-[Alpaca Pilot](#starting-alpaca-pilot) |
-[Connecting](#connecting-the-polaris) |
-[Updating](#updating-the-driver) |
+[Installing](#installing-the-driver) ·
+[Running](#running-the-driver) ·
+[Alpaca Pilot](#starting-alpaca-pilot) ·
+[Connecting](#connecting-the-polaris) ·
+[Updating](#updating-the-driver) ·
 [Troubleshooting](#troubleshooting)
 
 ## Video Demonstration

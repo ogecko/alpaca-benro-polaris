@@ -1,19 +1,19 @@
 # Kinematics Reference
-[Overview](#overview) | 
-[QUEST](#quest-alignment) |
-[SCC](#slew-and-center) |
-[MAC](#mechanical-alignment) |
-[Sync Guiding](#sync-guiding) |
-[Pulse Guiding](#pulse-guiding) |
-[PEC](#periodic-error-correction) |
-[Backlash](#backlash-compensation) |
-[Envelope](#reachable-envelope) |
-[Base Frame](#base-frame-b) | 
-[Topo Frame](#topocentric-frame-t) | 
-[Equatorial Frame](#equatorial-frame-e) | 
-[Forward Flow](#forward-kinematics) | 
-[Inverse Flow](#inverse-position) | 
-[Feed Forward](#inverse-velocity) | 
+[Overview](#overview) ·
+[QUEST](#quest-alignment) ·
+[SCC](#slew-and-center) ·
+[MAC](#mechanical-alignment) ·
+[Sync Guiding](#sync-guiding) ·
+[Pulse Guiding](#pulse-guiding) ·
+[PEC](#periodic-error-correction) ·
+[Backlash](#backlash-compensation) ·
+[Envelope](#reachable-envelope) ·
+[Base Frame](#base-frame-b) ·
+[Topo Frame](#topocentric-frame-t) ·
+[Equatorial Frame](#equatorial-frame-e) ·
+[Forward Flow](#forward-kinematics) ·
+[Inverse Flow](#inverse-position) ·
+[Feed Forward](#inverse-velocity)
 
 
 ## Overview

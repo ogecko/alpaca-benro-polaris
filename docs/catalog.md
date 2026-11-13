@@ -1,5 +1,5 @@
 # Catalog Reference
-[Extending the Catalog](#extending-the-catalog) | [Field Enumerations](#catalog-field-enumerations) | [Reference Catalogs](#reference-catalogs)
+[Extending the Catalog](#extending-the-catalog) · [Field Enumerations](#catalog-field-enumerations) · [Reference Catalogs](#reference-catalogs)
 
 This page explains how to extend the Alpaca Pilot's catalog with your own entries. It also enumerates the catalog field values and lists the cross referenced catalogues behind the entries. For how to search, filter and slew to catalog targets, see [Using the Catalog](./pilot.md#using-the-catalog) in the Alpaca Pilot Guide.
 

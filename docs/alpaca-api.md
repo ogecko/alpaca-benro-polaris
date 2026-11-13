@@ -1,5 +1,5 @@
 # Alpaca API Reference
-[Discovery](#discovery) | [Management](#management) | [Telescope](#telescope) | [Rotator](#rotator) | [Device Actions](#device-actions)
+[Discovery](#discovery) · [Management](#management) · [Telescope](#telescope) · [Rotator](#rotator) · [Device Actions](#device-actions)
 
 The Alpaca Driver presents the Benro Polaris to astronomy applications as two standard ASCOM Alpaca devices, a **Telescope** and a **Rotator**, together with a set of **Device Actions** for features that go beyond the ASCOM standard. Applications like NINA, PHD2, Stellarium and CCDciel make these calls for you. This page is for anyone who wants to script the mount directly, or understand what their applications are doing.
 

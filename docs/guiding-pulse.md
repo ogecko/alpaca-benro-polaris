@@ -1,9 +1,9 @@
 # Pulse Guiding
-[Introduction](#pulse-guiding-introduction) |
-[Prerequisites](#prerequisites) |
-[Equipment Setup](#equipment-setup) |
-[Calibration](#calibration) |
-[Guiding with PHD2](#guiding-with-phd2) |
+[Introduction](#pulse-guiding-introduction) ·
+[Prerequisites](#prerequisites) ·
+[Equipment Setup](#equipment-setup) ·
+[Calibration](#calibration) ·
+[Guiding with PHD2](#guiding-with-phd2) ·
 [Improving Guiding](#improving-guiding)
 
 This guide introduces how to use **PHD2** and pulse guiding with the **Alpaca Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse guiding, as well as those moving on from unguided imaging or [Sync Guiding](./guiding-sync.md).

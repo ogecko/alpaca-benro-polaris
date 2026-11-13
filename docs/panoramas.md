@@ -1,8 +1,8 @@
 # Creating Panoramas
-[Why the Alpaca Driver](#why-use-the-alpaca-driver) |
-[Defining a Grid](#defining-a-grid) |
-[Previewing](#previewing) |
-[Capturing](#capturing) |
+[Why the Alpaca Driver](#why-use-the-alpaca-driver) ·
+[Defining a Grid](#defining-a-grid) ·
+[Previewing](#previewing) ·
+[Capturing](#capturing) ·
 [Stitching](#stitching)
 
 ![A 13-panel Milky Way mosaic, framed in galactic co-ordinates with the Alpaca Driver's Panorama Grid](images/milky-way-mosaic.jpg)

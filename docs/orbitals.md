@@ -1,8 +1,8 @@
 # Satellite Imaging
-[Finding Satellites](#finding-satellites) |
-[Tracking a Satellite](#tracking-a-satellite) |
-[Capturing a Pass](#capturing-a-pass) |
-[Creating a Spin](#creating-a-spin) |
+[Finding Satellites](#finding-satellites) ·
+[Tracking a Satellite](#tracking-a-satellite) ·
+[Capturing a Pass](#capturing-a-pass) ·
+[Creating a Spin](#creating-a-spin) ·
 [Other Orbitals](#other-orbitals)
 
 ![Satellite imaging with a Benro Polaris and the Alpaca Driver: a spin around NGC 6134, and a tracked Starlink satellite](images/abp-satellites.jpg)

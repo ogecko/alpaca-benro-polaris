@@ -1,9 +1,9 @@
 # Sync Guiding
-[Choosing an Approach](#choosing-an-approach) |
-[How It Works](#how-sync-guiding-works) |
-[Periodic Error Correction](#periodic-error-correction) |
-[Worm Gear Calibration](#worm-gear-calibration) |
-[Sync Guiding with NINA](#sync-guiding-with-nina) |
+[Choosing an Approach](#choosing-an-approach) ·
+[How It Works](#how-sync-guiding-works) ·
+[Periodic Error Correction](#periodic-error-correction) ·
+[Worm Gear Calibration](#worm-gear-calibration) ·
+[Sync Guiding with NINA](#sync-guiding-with-nina) ·
 [Sync Guiding with CCDciel](#sync-guiding-with-ccdciel)
 
 Guiding corrects the tracking errors that remain after alignment. Multi-Point Alignment gives the Benro Polaris an accurate pointing model, but periodic error and other mechanical errors still make the target drift. The Polaris's periodic error is over 14 arc minutes, on a repeating 35-minute cycle, so without guiding, long exposures at long focal lengths show drift and trailed stars.
