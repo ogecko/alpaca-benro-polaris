@@ -3,6 +3,8 @@
 
 The Alpaca Driver presents the Benro Polaris to astronomy applications as two standard ASCOM Alpaca devices, a **Telescope** and a **Rotator**, together with a set of **Device Actions** for features that go beyond the ASCOM standard. Applications like NINA, PHD2, Stellarium and CCDciel make these calls for you. This page is for anyone who wants to script the mount directly, or understand what their applications are doing.
 
+Alpaca Pilot's own web server, REST proxy and WebSocket are not part of the ASCOM Alpaca standard, and are described in the [Pilot API Reference](./pilot-api.md).
+
 All requests go to the driver's Alpaca REST API on port `5555` (the `alpaca_restapi_port` setting), at `http://<driver address>:5555/api/v1/<device>/0/<member>`. The examples below use `ap.local` as the driver address; use the IP address of the computer running the driver if `ap.local` doesn't resolve on your network (see [Launching the Alpaca Pilot Application](./pilot.md#launching-alpaca-pilot)). Each request includes a `ClientID` and `ClientTransactionID`, and the driver must be connected to the Polaris for most calls to succeed.
 
 ## Discovery
@@ -32,7 +34,7 @@ Every device also has the members common to all ASCOM devices, such as `connecte
 
 ## Telescope
 
-The Telescope device implements the ASCOM **ITelescopeV3** interface. See the [ASCOM Telescope interface](https://ascom-standards.org/newdocs/telescope.html) for what each property and method does, and the [ASCOM Alpaca API reference](https://ascom-standards.org/api/) for the REST calls. Meridian flips are not supported, as the Polaris is an Alt/Az mount.
+The Telescope device implements the ASCOM **ITelescopeV3** interface. See the [ASCOM Telescope interface](https://ascom-standards.org/newdocs/telescope.html) for what each property and method does, and the [ASCOM Alpaca API reference](https://ascom-standards.org/api/) for the REST calls. Meridian flips are not supported, as the Polaris is an Alt/Az mount. The driver keeps every slew within what the Polaris can physically reach, where Altitude and Roll limit each other; see [Reachable Envelope](./kinematics.md#reachable-envelope).
 
 Read the Right Ascension the mount is pointing at, in hours:
 
@@ -70,6 +72,8 @@ curl -X PUT http://ap.local:5555/api/v1/rotator/0/moveabsolute \
      -d "Position=90&ClientID=1&ClientTransactionID=4"
 ```
 
+To set the Roll Angle directly, use the Rotator's `movemechanical` endpoint, or pass `roll` to [`Polaris:SlewAbsolute`](#polarisslewabsolute). Moving `moveabsolute` to 0 sets the Position Angle to 0, which only sets the Roll to 0 by coincidence.
+
 ## Device Actions
 
 Device Actions are the ASCOM standard's way for a driver to offer features that the standard interfaces don't cover. The Alpaca Driver's Device Actions belong to the Telescope device and are named `Polaris:<action>`. Alpaca Pilot uses many of them internally; the ones documented here are those that are useful in your own sequences and scripts.
@@ -85,6 +89,34 @@ Three approaches you can use Device Actions, include:
           -d "Action=Polaris:PanoSlew&ClientID=1&ClientTransactionID=5" \
           --data-urlencode 'Parameters={"panel": 1}'
      ```
+
+### Scripting Examples
+
+Device Actions can be combined with the standard ASCOM calls to script the driver. For example, to turn tracking on, read and change settings, and restart the driver (which keeps the alignment model):
+
+```bash
+BASE="http://ap.local:5555/api/v1/telescope/0"
+
+# Turn tracking on, then read it back
+curl -s -X PUT "$BASE/tracking" -d "Tracking=true" -d "ClientID=1" -d "ClientTransactionID=1"
+curl -s "$BASE/tracking?ClientID=1&ClientTransactionID=2"
+
+# Read some settings (Polaris:ConfigFetch returns all of them if configNames is left out)
+curl -s -X PUT "$BASE/action" \
+  -d 'Action=Polaris:ConfigFetch' \
+  -d 'Parameters={"configNames":["advanced_alignment","advanced_sync_guiding","advanced_pec_drift"]}' \
+  -d 'ClientID=1' -d 'ClientTransactionID=3'
+
+# Turn on Multi-Point Alignment, Sync Guiding and PEC Drift Correction
+curl -s -X PUT "$BASE/action" \
+  -d 'Action=Polaris:ConfigUpdate' \
+  -d 'Parameters={"advanced_alignment":true,"advanced_sync_guiding":true,"advanced_pec_drift":true}' \
+  -d 'ClientID=1' -d 'ClientTransactionID=4'
+
+# Restart the driver in place, keeping the alignment model
+curl -s -X PUT "$BASE/action" -d 'Action=Polaris:RestartDriver' -d 'Parameters={}' \
+  -d 'ClientID=1' -d 'ClientTransactionID=5'
+```
 
 ### Polaris:PanoGrid
 Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot. Any of these settings can be given, the rest keep their current values: `cols`, `rows` (the grid size), `hstep`, `vstep` (degrees between panel centres), `first` (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), `order` (0 Row-Major, 1 Column-Major, 2 Serpentine), `track` (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), `anchor` (what sits at the reference position: 0 the whole mosaic's centre, n panel n), `ref` (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and `r1`, `r2`, `r3` (the reference position in that frame, RA in hours). Use **Polaris:ConfigSave** to keep them for the next session.
@@ -190,3 +222,10 @@ Restore all Alpaca Driver settings back to the defaults from `config.toml`.
 | **Instruction** | **Device** | Action | Parameters |
 | --- | --- | --- | --- |
 | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigRestore` |  `{}` |
+
+### Polaris:RestartDriver
+Restart the Alpaca Driver in place, the same as the **RESTART** button on Alpaca Pilot's Connect page. The driver keeps its settings and Multi-Point Alignment model, and reconnects to the Polaris. Applications connected to the driver may need to reconnect.
+
+| **Instruction** | **Device** | Action | Parameters |
+| --- | --- | --- | --- |
+| **Utility > Device Action** | `Telescope` |  `Polaris:RestartDriver` |  `{}` |

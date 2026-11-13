@@ -42,6 +42,20 @@ The following diagram shows how the different software modules fit together.
 ## Development Setup
 The following steps are only needed if you want to use VS Code to make changes to the driver. No support is provided for modified drivers.
 
+### Running the Driver Natively
+For quick edit-and-test cycles, run the driver straight from the repository rather than as a service or in Docker:
+
+```bash
+cd alpaca-benro-polaris
+uv run driver
+```
+
+This needs [uv](https://docs.astral.sh/uv/) installed, and `uv sync` run once. The computer must already be connected to the Polaris Wi-Fi hotspot (`polaris_XXXXXX`). On Windows, Alpaca Pilot's Wi-Fi button does this for you through `driver/join_wifi.py`, which you can also run directly.
+
+Ports come from `driver/config.toml`, with any changes made in Alpaca Pilot saved to `data/config.pilot.json`. The REST API defaults to port `5555` and the Alpaca Pilot WebSocket to `5556`. On Linux and macOS, Alpaca Pilot's default ports (`80`, and `443` with HTTPS) need elevated privileges, so you may need to choose other ports.
+
+To restart the driver while keeping the alignment model, use the `Polaris:RestartDriver` Device Action (see [Scripting Examples](./alpaca-api.md#scripting-examples)) rather than stopping and starting the process.
+
 ### OpenSSH Server
 To use VS Code remotely from another computer, set up the OpenSSH server on Windows 11. Using PowerShell as Administrator, run the following commands:
 ```

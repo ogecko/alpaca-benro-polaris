@@ -45,6 +45,7 @@ nav = [
   { "Reference" = [
     "architecture.md",
     "alpaca-api.md",
+    "pilot-api.md",
     "catalog.md",
     "control.md",
     "kinematics.md",
