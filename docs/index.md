@@ -121,7 +121,7 @@ Other applications that support the ASCOM Alpaca standard should also work.
 
 ## Requirements
 
-- **A Benro Polaris Astro Edition.** The driver is tested on hardware versions 1.2 to 1.4 with firmware V6.0.0.40 to V6.0.0.54. See the [Release Notes](./release-notes-v2.2.0.md#tested-compatible-hardware-and-software) for the full list.
+- **A Benro Polaris Astro Edition.** The driver is tested on hardware versions 1.2 to 1.4 with firmware V6.0.0.40 to V6.0.0.54. See the [Release Notes](./release-notes-v2.2.0.md#tested-compatibility) for the full list.
 - **A camera and lens.** Any camera that NINA or CCDciel can control. Beta testers have used Canon, Sony, Nikon, Pentax and ZWO cameras with lenses up to 800 mm.
 - **A computer to run the driver.** A Windows 11 laptop, a mini-PC mounted on the tripod, a Mac, or a Raspberry Pi (Zero 2 W and up). [Architecture](./architecture.md#hardware-architectures) compares the options, and [Preparing the MiniPC](./hardware.md) sets up a fully self-contained MiniPC rig.
 

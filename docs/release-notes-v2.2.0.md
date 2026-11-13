@@ -30,7 +30,7 @@
 
 ## What's new in v2.2.0
 
-### Precision Tracking, PEC and Backlash Compensation
+### Tracking and PEC
 
 - **[Improved Tracking Accuracy]** Reduce tracking RMS error through synchronised kinematics, improved motor speed control and PID calculations, and more robust handling of delayed position updates.
 - **[Periodic Error Correction]** Combine drift learning, harmonic error modelling, worm-gear correction, and PID feed-forward to reduce periodic errors, residual drift, and star-shape distortions.
@@ -38,7 +38,7 @@
 - **[Sidereal Tracking]** Improve tracking smoothness and stability, including at low altitudes and zero roll.
 - **[Orbital Tracking]** Improve satellite tracking accuracy and allow live tuning of tracking, up to 5 seconds ahead of or behind orbital position.
 
-### Pointing, Alignment and Motion Control
+### Pointing and Alignment
 
 - **[Advanced Kinematics]** Support Topocentric, Equatorial, and Galactic coordinate frames, reachable target orientations, and improved forward and inverse kinematics.
 - **[Mechanical Alignment Correction]** Improve multi-point alignment, mechanical axis correction, and polar alignment accuracy using cleaner measurements and improved alignment fitting.
@@ -57,7 +57,7 @@
 - **[Backlash Compensation]** Ignore backlash pushthrough when learning periodic drift
 - **[Guiding Documentation]** Improve guidance for diagnosing common guiding and alignment problems.
 
-### Panorama Planning and Imaging Automation
+### Panoramas
 
 - **[Flexible Panorama Planning]** Configure, save, and load panorama presets, calculate sensor and grid fields of view, adjust panel spacing, and switch between landscape and portrait layouts.
 - **[Panorama Positioning]** Recenter panorama grids, configure reference roll and anchor positions, and support Topocentric, Equatorial, and Galactic reference frames.
@@ -65,7 +65,7 @@
 - **[Automated Imaging Workflows]** Expand Nina and CCDciel scripting for slews, sync guiding, panoramas, solve-and-center operations, and panel navigation.
 - **[Siril Processing]** Automate calibration, grouping, stacking, compositing, and stretching for multi-panel and Galactic panorama images.
 
-### Installation, Connectivity and Reliability
+### Installation
 
 - **[Simplified Installation]** Automate Windows and Raspberry Pi installation, Python environment setup, dependency management, driver updates, firewall configuration, and automatic startup.
 - **[Network Connectivity]** Improve Wi-Fi setup, network discovery, IPv6 support, mDNS hostname configuration, HTTPS certificates, and Raspberry Pi Bluetooth compatibility.
@@ -74,7 +74,7 @@
 - **[Recovery and State Persistence]** Save and restore multi-point alignment and tracking state across driver restarts
 - **[Device Management]** Add driver restart, stop, and host operating-system shutdown controls, plus connected-instance identification.
 
-### Dashboard, Diagnostics and Observing Tools
+### Dashboard and Diagnostics
 
 - **[GPS Location]** Locate the observing site with a GPS receiver plugged into the Alpaca Driver's computer (thanks to @rbaranga for authorship).
 - **[Operational Status]** Display alignment, guiding, PEC, tracking performance, device connectivity, and system status.
@@ -84,14 +84,14 @@
 - **[Observing Tools]** Add bright-object discovery, mountain-peak identification and elevation information, and improved site and equipment setup checks.
 - **[Offline Operation]** Persist observing locations, orbital data, and alignment models for use without continuous network access.
 
-### Application Integration and Automation
+### App Integration
 
 - **[ASCOM Alpaca Integration]** Improve driver discovery, connection stability, telescope-control compatibility, and browser-based communication.
 - **[Nina Device Actions]** Add absolute and relative multi-axis slews, abort-slew controls, and expanded panorama actions for Advanced Sequencer workflows.
 - **[Stellarium Integration]** Improve desktop telescope support, selection, stability, and configuration guidance.
 - **[CCDciel and PHD2 Integration]** Expand scripting, guiding workflows, and supporting documentation.
 
-### Utilities, Compatibility and Documentation
+### Utilities
 
 - **[Imaging Utilities]** Add FITS metadata extraction, mechanical correction calibration support, flat-frame capture, and Siril-compatible directory renaming.
 - **[Installation and Troubleshooting Guides]** Expand documentation for Windows, Raspberry Pi, Docker, network connectivity, guiding, alignment, kinematics, panorama workflows, and common errors.
@@ -99,7 +99,7 @@
 - **[Maintenance and Bug Fixes]** Improve driver connection management, dashboard interaction, alignment-state handling, and overall runtime robustness.
 
 
-### New Features (enabled by Nina)
+### NINA Features
 
 - **[Pano Actions]** Move Panorama Actions to top of Device Action List for easier access from Nina Dropdown.
 - **[Device Actions]** Additional Device Actions added for Nina Advanced Sequencer
@@ -108,11 +108,11 @@
     - **Polaris:AbortSlew** Stops all axis motion, turns off tracking, unparks the mount.
     - where: h=decimal hours, d=decimal degrees; h and d can also be strings with dms format eg "14:30:10" or "180d30m15s" or "90d30m"
 
-### New Features (enabled by Stellarium)
+### Stellarium Features
 
 - **[Stellarium 26.2]** Improved ASCOM Telescope support, fixing stability, and improving ease of telescope selection. 
 
-## Upgraded Win11 Requirements.txt Compatibility
+## Python Packages
 
 - **[Python 3.13.15]**: Upgraded Python support from 3.13.9.
 - **[Python 3.11]**: Minimum Python version supported.
@@ -125,8 +125,9 @@
 - **[idna 3.15]**: Made transitive dependency explicit in Alpaca Driver v2.2.
 - **[numpy 2.3.5]**: Downgraded from 2.4.2. Note 2.4+ requires x86-64-v2, SIGILLs on pre-2009 CPUs. See issue #89.
 
-## Documentation (Alpaca Driver)
+## Documentation
 
+- **[Documentation Site]**: The documentation is now a searchable website at [ogecko.github.io/alpaca-benro-polaris](https://ogecko.github.io/alpaca-benro-polaris/), with a version for each release. It is reorganised into Getting Started, Using the Driver, Reference and Help, with new guides for Deep-Sky, Planetary and Satellite Imaging and Preparing the MiniPC, new Architecture, Alpaca API and Catalog references, and troubleshooting split by topic
 - **[CCDciel Guide]**: Add the CCDciel users guide for the Benro Polaris (ccdciel.md)
 - **[Rotator Alignment]**: Add a section on the importance of Rotator Alignment, and how to perform a manual Position Angle Sync (control.md)
 - **[Kinematics Reference]**: Defines Reference Frames, Kinematic Flows and Correction Algorithms
@@ -141,7 +142,7 @@
 - **[Troublshooting C0]**: Improve communications reliability by reducing periodic network frequency scanning.
 - **[Troublshooting C6]**: Added troubleshooting C6 for Win11 wifi diagnostic commands
 
-## Bug Fixes (from v2.1.0 version)
+## Bug Fixes
 
 - **[fix #84]**: Driver can get confused as to the state of the L-Bracket setting on connection
 - **[fix #82]**: Correct dashboard Scale Label interaction (allow click when near zoom buttons, dont double fire slew)
@@ -149,7 +150,7 @@
 - **[fix #80]**: Refined connection management logic to minimize unnecessary reconnections and support manual connection handling
 - **[fix #79]**: Clear Pilot SYNC list cache when driver restarts or moves to single point alignment
 
-## Tested Compatible Hardware and Software
+## Tested Compatibility
 ### Photography Equipment
 
 * Benro Polaris Hw 1.4.1.4, Firmware V6.0.0.54, Astro V1.0.2.14 (JDM - Main Board replaced)
@@ -232,7 +233,7 @@
 * iPadOS v17.6.1
 * Raspberry Pi OS (64-bit) Debian Trixie
 * Raspberry Pi OS Lite (64-bit) Debian Trixie
-### Alpaca Pilot compatible Browsers
+### Browsers
 
 * Firefox version 115+ 
 * Google Chrome version 115+
@@ -249,7 +250,7 @@ Please let us know if you can try any of these features.
 
 - **[Python 3.14.0]**: Pyephem is does not have a compiled version for 3.14 as of end Nov 2025. Use Python 3.13.15 instead.
 
-## Potential Future Enhancements
+## Future Enhancements
 
 - **[Software Delivery]**: Deliver as an App rather than a zip file, eliminating the command line.
 - **[INDI support]**: Add support for INDI protocol, enabling apps like KStars.
