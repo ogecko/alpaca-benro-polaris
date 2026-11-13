@@ -1,170 +1,168 @@
 title = "Alpaca Benro Polaris Driver (Telescope)"
 
 [network]
-polaris_auto_retry = true                   # On connection failure, true=Continuously retry opening connection OR false=Use Alpaca Pilot to initiate reconnection, 
-enable_remote_shutdown = true               # Allow Alpaca Pilot (via Polaris:ShutdownOS) to shut down the host operating system the driver runs on.
-polaris_ip_address = '192.168.0.1'          # IP Address of the Benro Polaris on its WiFi Hotspot network.
-polaris_port = 9090                         # Port the Benro Polaris is listening on.
-polaris_wifi_password = ''                  # WPA2 password for the Polaris hotspot, used when the driver joins the host OS to it (Windows only). Leave blank -- the Polaris hotspot is always open in practice; kept for forward-compatibility.
-enable_restapi = true                       # Provide the Alpaca REST API Service (do not turn off).
-enable_socket = true                        # Provide the Alpaca Pilot SocketIO Service.
-enable_discovery = true                     # Provide the Alpaca Discovery Service.
-enable_mdns = true                          # Provide the mDNS Discovery Service for http://mdns_name.local.
-mdns_name = 'ap.local'                      # Name advertised on mDNS (will always have a .local postfix)
-enable_pilot = true                         # Provide the Alpaca Pilot Web Service.
-enable_synscan = true                       # Provide the SynSCAN/Stellarium API Service.
-enable_rest_https = false                   # Serve Alpaca REST-API over HTTPS (requires Nina>Options>Equipment>ASCOM Alpaca Disover>Use HTTPS - On).
-enable_https = false                        # Serve Alpaca Pilot WebServer/WebSockets over HTTPS/WSS, with self-signed certificate.
-alpaca_pilot_https_port = 443               # HTTPS port for the SPA when enable_https = true
-alpaca_pilot_http_port  = 80                # HTTP port for the SPA when enable_https = false
-alpaca_restapi_port = 5555                  # Port to expose Alpaca REST API Service on.
-alpaca_socket_port = 5556                   # Port to expose Alpaca Pilot SocketIO Service on.
-alpaca_discovery_port = 32227               # Port to expose Alpaca Discovery Service on.
-stellarium_synscan_port = 10001             # Port to expose the Stellarium/SynSCAN Telescope Control Service on.
-stellarium_synscan_ip_address = ''          # IP Address to expose this StellariumSynSCAN Service on. Loopback='127.0.0.1', Any Address=''.
-alpaca_restapi_ip_address = ''              # IP Address to expose this Alpaca REST API Service on. Loopback='127.0.0.1', Any Address=''.
-preset_action = ''                          # Action to trigger preset "<verb>_<type>", where <verb>="save" | "load" | "delete" and <type>="loc" | "pano"; auto-resets to ""
-preset_name = ''                            # name of the preset to take action on
+polaris_auto_retry = true                   # If the connection to the Polaris fails: true = keep retrying, false = wait for Alpaca Pilot to reconnect.
+enable_remote_shutdown = true               # Allow Alpaca Pilot to shut down the computer the driver runs on (Polaris:ShutdownOS).
+polaris_ip_address = '192.168.0.1'          # IP address of the Benro Polaris on its Wi-Fi hotspot.
+polaris_port = 9090                         # Port the Benro Polaris listens on.
+polaris_wifi_password = ''                  # WPA2 password for the Polaris hotspot, used when the driver joins it (Windows only). Leave blank: the hotspot is open.
+enable_restapi = true                       # Provide the Alpaca REST API service (required, don't turn off).
+enable_socket = true                        # Provide the Alpaca Pilot WebSocket service.
+enable_discovery = true                     # Provide the Alpaca discovery service, so applications can find the driver.
+enable_mdns = true                          # Advertise Alpaca Pilot on the local network over mDNS, as http://<mdns_name>.
+mdns_name = 'ap.local'                      # Name advertised over mDNS (always ends in .local).
+enable_pilot = true                         # Provide the Alpaca Pilot web server.
+enable_synscan = true                       # Provide the SynScan service, for Stellarium and SkySafari.
+enable_rest_https = false                   # Serve the Alpaca REST API over HTTPS (NINA then needs Options > Equipment > ASCOM Alpaca Discovery > Use HTTPS).
+enable_https = false                        # Serve Alpaca Pilot and its WebSocket over HTTPS/WSS, with a self-signed certificate.
+alpaca_pilot_https_port = 443               # Alpaca Pilot's HTTPS port, used when enable_https is true.
+alpaca_pilot_http_port  = 80                # Alpaca Pilot's HTTP port, used when enable_https is false.
+alpaca_restapi_port = 5555                  # Port for the Alpaca REST API.
+alpaca_socket_port = 5556                   # Port for the Alpaca Pilot WebSocket.
+alpaca_discovery_port = 32227               # UDP port for Alpaca discovery.
+stellarium_synscan_port = 10001             # Port for the SynScan service (Stellarium, SkySafari).
+stellarium_synscan_ip_address = ''          # IP address the SynScan service listens on: '' = all addresses, '127.0.0.1' = this computer only.
+alpaca_restapi_ip_address = ''              # IP address the Alpaca REST API listens on: '' = all addresses, '127.0.0.1' = this computer only.
+preset_action = ''                          # Set by Alpaca Pilot to act on a preset: '<verb>_<type>', with verb save, load or delete, and type loc or pano. Resets to ''.
+preset_name = ''                            # Name of the preset to act on.
 
 [server]
-location_source = 'browser'                 # Pilot's Locate: 'browser' (the browser's location services) or 'gps' (a GPS receiver)
-gps_provider = 'nmea'                        # GPS receiver protocol: nmea (serial/USB, all platforms), gpsd (Linux), ubx (serial)
-gpsd_host = '127.0.0.1'                     # GPSD server hostname or IP address
-gpsd_port = 2947                             # GPSD server TCP port
-gps_serial_device = ''                      # GPS serial port (e.g. COM9, /dev/ttyACM0): chosen in Pilot's GPS Receiver Settings
-gps_serial_baudrate = 9600                   # GPS serial baud rate
-gps_max_attempts = 5                        # Maximum GPS polls (1-20): 3 agreeing fixes are needed
-gps_retry_max_delay = 15.0                  # Maximum wait between polls; intervals double every two attempts
-location_list   = ''                        # pipe-separated sorted list of saved location names, for Pilot locations dropdown
-location = 'Sydney Observatory, Australia'  # Anything you want here. The site_lat/lon/ele are used in conversions between ra/dec and alt/az.
-site_latitude = -33.8598874                 # The geodetic(map) latitude (degrees, positive North, WGS84) of the site at which the telescope is located.
-site_longitude = 151.2021771                # The longitude (degrees, positive East, WGS84) of the site at which the telescope is located.
-site_elevation = 39                         # The elevation above mean sea level (meters) of the site at which the telescope is located.
-site_pressure = 1010                        # atmospheric pressure in milli Bars. Used to calculate atmospheric refraction. Default is standard atmosphere model used in aviation. A Value of 0 turns it off.
-focal_length = 800                          # The telescope's focal length, in miliimeters.
-focal_ratio = 11.0                          # The telescope's focal ratio ie focal_length / aperture_diameter.
-verbose_driver_exceptions = true            # Provide more detailed description of any Exceptions encountered in the driver.
-default_azimuth = '180'                     # String 'deg:mm:ss' used by Alpaca Pilot as default azimuth on Compass and Single Star Align 
-default_altitude = '45'                     # String 'deg:mm:ss' used by Alpaca Pilot as default altitude on Single Star Align
+location_source = 'browser'                 # Where Alpaca Pilot's Locate gets your position: 'browser' (the browser's location services) or 'gps' (a GPS receiver).
+gps_provider = 'nmea'                        # GPS receiver protocol: 'nmea' (serial or USB, all platforms), 'gpsd' (Linux) or 'ubx' (serial).
+gpsd_host = '127.0.0.1'                     # GPSD server hostname or IP address.
+gpsd_port = 2947                             # GPSD server TCP port.
+gps_serial_device = ''                      # GPS serial port (for example COM9 or /dev/ttyACM0), chosen in Alpaca Pilot's GPS Receiver settings.
+gps_serial_baudrate = 9600                   # GPS serial baud rate.
+gps_max_attempts = 5                        # Maximum GPS polls (1-20); three agreeing fixes are needed.
+gps_retry_max_delay = 15.0                  # Longest wait between GPS polls (seconds); the wait doubles every two attempts.
+location_list   = ''                        # Saved location names, sorted and separated by |, for Alpaca Pilot's locations list.
+location = 'Sydney Observatory, Australia'  # Name of your observing site (any text).
+site_latitude = -33.8598874                 # Site latitude (degrees, positive north, WGS84).
+site_longitude = 151.2021771                # Site longitude (degrees, positive east, WGS84).
+site_elevation = 39                         # Site elevation above mean sea level (metres).
+site_pressure = 1010                        # Atmospheric pressure (millibars), for the refraction correction. 1010 is the standard atmosphere; 0 turns the correction off.
+focal_length = 800                          # Focal length of your lens or telescope (mm).
+focal_ratio = 11.0                          # Focal ratio of your lens or telescope (focal length / aperture).
+verbose_driver_exceptions = true            # Give more detail when the driver reports an error.
+default_azimuth = '180'                     # Default azimuth for Alpaca Pilot's Compass and Single Star Alignment, as text: decimal degrees ('180') or deg:mm:ss ('180:30:00').
+default_altitude = '45'                     # Default altitude for Alpaca Pilot's Single Star Alignment, as text: decimal degrees ('45') or deg:mm:ss ('45:30:00').
 
 [panorama]
-pano_list = ''                              # pipe-separated sorted list of saved panorama presets, for Pilot panos dropdown
-pano_name = ''                              # Name of the panorama defined below
-sensor_size = 'Full Frame (36 × 24 mm)'     # Sensor size in mm. Only used in Panel Spacing Calculator. 
-panel_overlap = '30%'                       # Overlap betwen adjacent panels. Only used in Panel Spacing Calculator. 
-show_panels = false                         # Show Panorama Grid Panel Navigation on Main Dashboard  
-cols = 3                                    # Number of panels across the mosaic. Range: 2–14
-rows = 1                                    # Number of panels vertically. Range: 1–3
-hstep = 40.0                                # Angular distance, in decimal degrees, between the centers of adjacent panels, horizontally.
-vstep = 25.0                                # Angular distance, in decimal degrees, between the centers of adjacent panels, vertically.
-first = 0                                   # Defines which corner is assigned panel number one: 0=TopLeft, 1=TopRight, 2=BottomLeft, 3=BottomRight 
-order = 0                                   # Defines the sequence in which panels are captured: 0=Row-Major, 1=Column-Major, 2=Serpentine
-track = 0                                   # Defines how the mount sets roll and tracking after moving to each panel: 0=Foreground/notracking, 1=Horizon-Locked/tracked&zero-roll, 2=Celestrial/tracked
-anchor = 0                                  # Which part of the mosaic should be placed at the Reference Position: 0: Mosaic-Center, n=Panel-n
-ref_action = ''                             # set to "update" to set reference position to current mount orientation; auto-resets to ""
-ref = 0                                     # Defines Reference Frame: 0=Az/Alt/Roll, 1=RA/Dec/PA, 2=Glon/Glat/GPA, 3=M1/M2/M3 Motor Position
-r1 = 90.0                                   # Axis1 of Reference Position (Azimuth/RA/Glon/M1)
-r2 = 5.0                                    # Axis2 of Reference Position (Altitude/Dec/Glat/M2)
-r3 = 0.0                                    # Axis3 of Reference Position (Roll/PA/GPA/M3)
-panel = 3                                   # Current panel number: 0=Mosaic-Center, n=Panel-n
+pano_list = ''                              # Saved panorama names, sorted and separated by |, for Alpaca Pilot's panoramas list.
+pano_name = ''                              # Name of the panorama defined below.
+sensor_size = 'Full Frame (36 × 24 mm)'     # Camera sensor size, used only by the Panel Spacing Calculator.
+panel_overlap = '30%'                       # Overlap between adjacent panels, used only by the Panel Spacing Calculator.
+show_panels = false                         # Show the Panorama Grid's panel navigation on the Dashboard.
+cols = 3                                    # Number of panels across the mosaic (2-14).
+rows = 1                                    # Number of panels down the mosaic (1-3).
+hstep = 40.0                                # Horizontal distance between panel centres (degrees).
+vstep = 25.0                                # Vertical distance between panel centres (degrees).
+first = 0                                   # Which corner is panel 1: 0 = top left, 1 = top right, 2 = bottom left, 3 = bottom right.
+order = 0                                   # Order the panels are captured in: 0 = row by row, 1 = column by column, 2 = serpentine.
+track = 0                                   # Roll and tracking after moving to each panel: 0 = landscape, untracked; 1 = sky, horizon-locked; 2 = sky, celestial; 3 = sky, Milky Way.
+anchor = 0                                  # Which part of the mosaic sits at the reference position: 0 = mosaic centre, n = panel n.
+ref_action = ''                             # Set to 'update' to make the mount's current position the reference position. Resets to ''.
+ref = 0                                     # Reference frame: 0 = Az/Alt/Roll, 1 = RA/Dec/PA, 2 = galactic l/b/GPA, 3 = M1/M2/M3 motor position.
+r1 = 90.0                                   # Reference position, first axis (Azimuth, RA, galactic longitude or M1).
+r2 = 5.0                                    # Reference position, second axis (Altitude, Dec, galactic latitude or M2).
+r3 = 0.0                                    # Reference position, third axis (Roll, PA, galactic PA or M3).
+panel = 3                                   # Current panel: 0 = mosaic centre, n = panel n.
 
 [control]
-advanced_control = true                     # Used to disable all advanced control features, must be true to use any advanced feature
-advanced_kf = true                          # Enable the Kalman Filtering of measurement data to smooth out noise
-advanced_rotator = true                     # Enable the ASCOM Alpaca Rotator API for frame rotation control (requires advanced_tracking)
-advanced_slewing = true                     # Perform advanced control for move axis commands (no longer uses Benro Polaris tracking)
-advanced_goto = true                        # Perform advanced goto slewing in Alpaca Driver (no longer uses Benro Polaris goto)
-advanced_tracking = true                    # Perform advanced tracking of targets in Alpaca Driver (no longer uses Benro Polaris tracking)
-advanced_pulse_guiding = true               # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
-advanced_pulse_pec_tuning = true            # Enable the ASCOM Alpaca Pulse guiding API for tuning of the PEC model
-pec_ignore_guider_calibration = true        # PEC ignores a guider's calibration (PHD2, CCDciel), recognised as 3+ single-axis pulses, identical or each 1.5x the last
-advanced_sync_guiding = true                # Enable the ASCOM Alpaca Pulse guiding API for applications like PHD2 (requires advanced_tracking)
-advanced_alignment = true                   # Enable Multi-Point Alignment/Quest model vs Single Point Alignment/Polaris model
-advanced_scc_enabled = true                 # Enable correction to reduce the number of Slew & Center cycles. Method defined by advanced_scc_choice
-advanced_scc_choice = 2                     # 0 = Zero Last Residual, 1=Local Gausian Adjustment; 2=Sync Guiding Adjustment
-advanced_align_mac = true                   # Mechanical Alignment Correction: fit M2/M3 offsets (and the M2 scale) with the alignment (off: rotation-only QUEST)
-advanced_eq_mode = false                    # BETA EXPERIMENTAL: Enable for Polaris mounted on an equatorial wedge, with the M1 axis aligned to the celestial pole.
-advanced_eq_mode_visible = false            # BETA EXPERIMENTAL: Show the Equatorial Mode toggle in Pilot's settings (default is not visible)
-advanced_orbitals = true                    # Enable Orbitals and non Sidereal Tracking rates
-orbital_lead_sec = 0.3                      # ... aim this far ahead of an orbital body (s): the loop's dead time (0.2-0.4 s)
-advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guide corrections and correct it
-advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error from data/worm_profile.json
-coordinated_speed_control = true            # Enable shared-level motor speed controller, goto plans, acceleration-shaped jogs and Ki freeze during gotos
-advanced_backlash = true                    # Enable backlash compensation as a goto completes, pushing through gear slack (needs coordinated_speed_control; not through tracking reversals)
-backlash_deg = [0.04, 0.12, 0.08]           # ... each motor's gear backlash (deg, M1/M2/M3; worm profile tests measured ~125-160", 280-620", ~310")
-restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing (saved < 10 min ago)
-pec_tau_sec = 450                           # PEC smoothing time constant (seconds) of its EMA drift rate: 7.5 min
-pec_reversal_pause = true                   # PEC pauses learning while a motor reverses its tracking direction, ignoring backlash compensation
-pec_reversal_lead_sec = 120                 # ... from this long before the motor's turning point (its gear unloads as it slows)
-pec_reversal_backlash_deg = 0.2             # ... until it has turned this far past it (backlash measured at 150-620")
-kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.2547885891542383 ]
-kf_goto_noise_scale = 0.1                   # KF position measurement noise x this while a goto/rotate is in progress (tracking keeps kf_measure_noise)
-kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 0.0001,                0.0001,                0.0001 ]
-measurement_dt = 0.2                        # KF Polaris' microcontroller emits 518 position updates on this fixed hardware cadence (seconds)
-measurement_catchup_max_dt = 2.0            # KF Maximum delay allowed before genuine 518 protocol outage flagging
-pid_Kp = [1.0, 1.0, 1.0]                    # PID Proportional Gain for M1, M2, M3 - increase control in proportion to position deviation (error)
-pid_Ki = [0.07, 0.07, 0.07]                 # PID Integral Gain for M1, M2, M3 - increase control when error is accumulating and persistent
-pid_Kd = [0.5, 0.5, 0.8]                    # PID Derivative Gain for M1, M2, M3 - reduce control when angular velocity higher (damping)
-pid_Ke = 0.4                                # PID Expotential Smoothing Gain for OP (0=None, 0.4=mix 40% of old OP)
-pid_Kc = 0.75                               # PID Arc-minutes tollerance to accept as not deviating
-pid_Ka = 0.0                                # PID Maximum acceleration (0.5 to 5.0 degress/s2) on any motor axis (use 0.0 to set default of 5) must be float
-pid_Kv = 0.0                                # PID Maximum slew rate (0.0 to 8.5 degrees/s) on any motor axis (use 0.0 to set calibrated max) must be float
-pid_Kt = 0.2                                # PID dead time (s): measurements show a motor's response this late (their age);
-pid_Kl = 0.15                               # PID motor lag (s): the MCU eases a motor to a new speed with this time constant. Goto plans compare measurements with the plan through both (0.2-0.4 s in all on the mount)
-zeta_safety_margin = 10                     # Windup Prevention safety margin inside zeta limits
-z1_min_limit = -270                         # Z1 Axis Raw Motor Control minimum in degrees
-z1_max_limit = +270                         # Z1 Axis Raw Motor Control maximum in degrees
-z2_min_limit = -55                          # z2 Axis Raw Motor Control minimum in degrees
-z2_max_limit = +37                          # z2 Axis Raw Motor Control maximum in degrees
-z3_min_limit = -270                         # Z3 Axis Raw Motor Control minimum in degrees
-z3_max_limit = +270                         # Z3 Axis Raw Motor Control maximum in degrees
-m1_park = 0.0                               # Motor 1 position for saved Park Location
-m2_park = 0.0                               # Motor 2 position for saved Park Location
-m3_park = 0.0                               # Motor 3 position for saved Park Location
-guide_rate_ra = 1.0                         # Right Ascensiion guide rate multiple of sidereal rate
-guide_rate_dec = 1.0                        # Declination guide rate multiple of sidereal rate
+advanced_control = true                     # Turn on the driver's advanced control. Must be true for any of the advanced features below.
+advanced_kf = true                          # Smooth the Polaris's position measurements with a Kalman filter.
+advanced_rotator = true                     # Provide the ASCOM Alpaca Rotator, for framing by rotation (needs advanced_tracking).
+advanced_slewing = true                     # The driver controls move-axis (jog) commands, instead of the Polaris.
+advanced_goto = true                        # The driver controls gotos, instead of the Polaris.
+advanced_tracking = true                    # The driver controls tracking, instead of the Polaris.
+advanced_pulse_guiding = true               # Accept ASCOM Alpaca pulse guiding, from applications such as PHD2 (needs advanced_tracking).
+advanced_pulse_pec_tuning = true            # Use pulse guiding corrections to tune the PEC model.
+pec_ignore_guider_calibration = true        # PEC ignores a guider's calibration (PHD2, CCDciel), recognised as 3 or more single-axis pulses, each the same as or 1.5x the last.
+advanced_sync_guiding = true                # Sync Guiding: treat a plate-solve sync without a slew as a guiding correction (needs advanced_tracking).
+advanced_alignment = true                   # Use the Multi-Point Alignment (QUEST) model, instead of the Polaris's Single Point Alignment.
+advanced_scc_enabled = true                 # Slew and Center Correction: reduce the number of Slew and Center cycles, using the method set by advanced_scc_choice.
+advanced_scc_choice = 2                     # Slew and Center Correction method: 0 = zero last residual, 1 = local Gaussian adjustment, 2 = sync guiding adjustment.
+advanced_align_mac = true                   # Mechanical Alignment Correction: fit the M2/M3 offsets (and the M2 scale) with the alignment (false = rotation-only QUEST).
+advanced_eq_mode = false                    # Beta, experimental: for a Polaris on an equatorial wedge, with the M1 axis aligned to the celestial pole.
+advanced_eq_mode_visible = false            # Beta, experimental: show the Equatorial Mode switch in Alpaca Pilot's settings.
+advanced_orbitals = true                    # Track orbitals (the Sun, Moon, planets, satellites and comets) at their own, non-sidereal rates.
+orbital_lead_sec = 0.3                      # Aim this far ahead of an orbital (seconds), to make up for the control loop's delay (0.2-0.4 s).
+advanced_pec_drift = true                   # PEC Drift Correction: learn the slow drift from guiding corrections and correct it.
+advanced_pec_worm = true                    # PEC Worm Gear Correction: correct each motor's worm gear error, using data/worm_profile.json.
+coordinated_speed_control = true            # Coordinated speed control: shared motor speed control, planned gotos, acceleration-shaped jogs, and no PID integral build-up during gotos.
+advanced_backlash = true                    # Backlash Compensation: take up the gear slack as a goto finishes (needs coordinated_speed_control; not applied to tracking reversals).
+backlash_deg = [0.04, 0.12, 0.08]           # Each motor's gear backlash (degrees, M1/M2/M3); worm profile tests measured about 125-160", 280-620" and 310".
+restore_tracking_on_restart = true          # After a driver restart, resume the tracking it was doing, if it was saved less than 10 minutes ago.
+pec_tau_sec = 450                           # Smoothing time constant of PEC's drift rate estimate (seconds): 450 = 7.5 minutes.
+pec_reversal_pause = true                   # PEC pauses learning while a motor reverses its tracking direction (even with Backlash Compensation on).
+pec_reversal_lead_sec = 120                 # The PEC pause starts this long before the motor's turning point (seconds), as its gear unloads while it slows.
+pec_reversal_backlash_deg = 0.2             # The PEC pause ends once the motor has turned this far past its turning point (degrees; backlash measured at 150-620").
+kf_measure_noise = [ 0.0031622776601683794, 0.00630957344480193,   0.01584893192461114,    0.001584893192461114,  0.0031622776601683794, 0.2547885891542383 ] # Kalman filter measurement noise: position M1/M2/M3, then velocity M1/M2/M3.
+kf_goto_noise_scale = 0.1                   # During a goto or rotate, the Kalman filter's position measurement noise is multiplied by this (tracking keeps kf_measure_noise).
+kf_process_noise = [ 5.011872336272725e-05, 7.943282347242822e-05, 0.00012589254117941674, 0.0001,                0.0001,                0.0001 ] # Kalman filter process noise: position M1/M2/M3, then velocity M1/M2/M3.
+measurement_dt = 0.2                        # Interval between the Polaris's position (518) messages, fixed by its hardware (seconds).
+measurement_catchup_max_dt = 2.0            # Longest gap between position (518) messages before it's treated as an outage (seconds).
+pid_Kp = [1.0, 1.0, 1.0]                    # PID proportional gain, M1/M2/M3: more control in proportion to the position error.
+pid_Ki = [0.07, 0.07, 0.07]                 # PID integral gain, M1/M2/M3: more control while an error persists.
+pid_Kd = [0.5, 0.5, 0.8]                    # PID derivative gain, M1/M2/M3: damping, with less control when moving fast.
+pid_Ke = 0.4                                # PID output smoothing (0 = none, 0.4 = mix in 40% of the previous output).
+pid_Kc = 0.75                               # PID tolerance treated as on target (arc minutes).
+pid_Ka = 0.0                                # PID maximum acceleration on any motor (0.5-5.0 deg/s²; 0.0 = the default of 5). Must be a decimal.
+pid_Kv = 0.0                                # PID maximum slew rate on any motor (0.0-8.5 deg/s; 0.0 = the calibrated maximum). Must be a decimal.
+pid_Kt = 0.2                                # PID dead time (seconds): how late measurements show a motor's response.
+pid_Kl = 0.15                               # PID motor lag (seconds): the time constant with which a motor eases to a new speed. Goto plans allow for both (0.2-0.4 s in all on the mount).
+zeta_safety_margin = 10                     # Safety margin inside the motor limits below, to prevent cable wind-up (degrees).
+z1_min_limit = -270                         # M1 motor limit, minimum (degrees).
+z1_max_limit = +270                         # M1 motor limit, maximum (degrees).
+z2_min_limit = -55                          # M2 motor limit, minimum (degrees).
+z2_max_limit = +37                          # M2 motor limit, maximum (degrees).
+z3_min_limit = -270                         # M3 motor limit, minimum (degrees).
+z3_max_limit = +270                         # M3 motor limit, maximum (degrees).
+m1_park = 0.0                               # M1 motor angle of the saved park position (degrees).
+m2_park = 0.0                               # M2 motor angle of the saved park position (degrees).
+m3_park = 0.0                               # M3 motor angle of the saved park position (degrees).
+guide_rate_ra = 1.0                         # Right Ascension guide rate, as a multiple of the sidereal rate.
+guide_rate_dec = 1.0                        # Declination guide rate, as a multiple of the sidereal rate.
 
 
 [models]
 # Alignment model (Mechanical Alignment Correction, advanced_align_mac): the M2/M3 zero offsets are fitted at every
 # sync; the M2 scale (+0.3-2.2% on every Polaris measured) starts here and is refitted at each sync when significantly better.
-align_m2_scale    =     1.0                 # [%           ] default M2 scale: M2 turns this much further than its reported angle (about 45 deg)
+align_m2_scale    =     1.0                 # Starting M2 scale (%): M2 turns this much further than its reported angle (at about 45°).
 
 
 [device]
-tracking_settle_time = 16                   # The time (in seconds) to wait after sidereal tracking is re-enabled, before marking the slew as complete.
-aiming_adjustment_enabled = false           # Whether to make minor ajusttments to improve aiming.
-aiming_adjustment_time = 2                  # The time (in seconds) in the future to convert from ra/dec to az/alt, to cater for sidereal tracking settle time.
-aim_max_error_correction = 0.5              # The maximum angle (decimal degrees) that the driver will correct for when aiming at alzaz .
-aiming_adjustment_az = -0.0300750663        # The initial az aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
-aiming_adjustment_alt = 0.0195474932        # The initial alt aiming adjustment (in decimal degrees), reset to 0 if you dont want any initial adjustment.
+tracking_settle_time = 16                   # Time to wait after sidereal tracking restarts, before a slew is reported complete (seconds).
+aiming_adjustment_enabled = false           # Make small adjustments to improve aiming.
+aiming_adjustment_time = 2                  # How far ahead to convert RA/Dec to Az/Alt, allowing for tracking to settle (seconds).
+aim_max_error_correction = 0.5              # Largest aiming error the driver corrects when aiming at Az/Alt (degrees).
+aiming_adjustment_az = -0.0300750663        # Starting azimuth aiming adjustment (degrees); set to 0 for none.
+aiming_adjustment_alt = 0.0195474932        # Starting altitude aiming adjustment (degrees); set to 0 for none.
 
 [logging]
-log_dir = ''                                # Directory to store logs, '' is ../logs directory
-log_level = 'INFO'                          # Default log level, show info and above messages.
-log_to_file = true                          # log output to file alpaca.log, copying old logs to alpaca.1, ... alpaca.5
-log_to_stdout = true                        # log output to stdout.
+log_dir = ''                                # Folder for log files ('' = the logs folder next to the driver).
+log_level = 'INFO'                          # Lowest level of message to log, for example 'INFO'.
+log_to_file = true                          # Write the log to alpaca.log, keeping older logs as alpaca.1, alpaca.2 and so on (see num_keep_logs).
+log_to_stdout = true                        # Also write the log to the console.
 
-log_alpaca_protocol = true                  # log ASCOM Alpaca telescope protocol messages sent and received
-log_rotator_protocol = true                 # log ASCOM Alpaca rotator protocol messages sent and received
-log_alpaca_discovery = false                # log ASCOM Alpaca discovery and management protocol messages sent and received,
-                                             # and WebSocket client subscribe/unsubscribe/timeout activity
-log_synscan_protocol = true                 # log stellarium synscan and binary protocol messages sent and received
-log_alpaca_actions = true                   # log ASCOM Alpaca action protocol messages (extensions to standard); frequently-polled
-                                             # actions (eg Polaris:ConfigFetch) are governed by log_alpaca_polling instead
-log_polaris_ble = false                     # log Benro Polaris Bluetooth Low Energy messages sent and received
-log_polaris_protocol = false                # log Benro Polaris protocol messages sent and received
-log_pulse_guiding = false                   # log ASCOM Alpaca pulse guiding protocol messages
-log_alpaca_polling = false                  # log frequent polling messages from ASCOM Alpaca clients (eg Nina)
-log_synscan_polling = false                 # log frequent polling messages from SynScan clients (eg Stellarium)
-log_polaris_polling = false                 # log frequent polling messages from Benro Polaris
-log_quest_model = true                      # log weights in multi-point sync model
-log_orbital_queries = true                  # log information related to JPL and Celestrak orbital parameter queries
-log_gps_receiver = false                    # log what the GPS receiver sends (NMEA, UBX, GPSD) and each Locate attempt's fix
-log_pec = true                              # log information related to Predictive Error Correction
-log_heartbeat = false                       # log the stack trace whenever there is a heartbeat skip, and garbage collections over 100 ms
-log_position = false                        # log full KF (KFLOG) and PID (PIDLOG) telemetry to file every control tick (~200ms while tracking)
-log_hardware_unit_tests = false             # allow unit tests that send real protocol commands to the Polaris (they move the mount) to run
+log_alpaca_protocol = true                  # Log ASCOM Alpaca Telescope messages sent and received.
+log_rotator_protocol = true                 # Log ASCOM Alpaca Rotator messages sent and received.
+log_alpaca_discovery = false                # Log Alpaca discovery and management messages, and WebSocket subscribe, unsubscribe and timeout activity.
+log_synscan_protocol = true                 # Log Stellarium SynScan and binary protocol messages sent and received.
+log_alpaca_actions = true                   # Log Alpaca Device Actions (frequently polled actions, such as Polaris:ConfigFetch, follow log_alpaca_polling instead).
+log_polaris_ble = false                     # Log Benro Polaris Bluetooth Low Energy messages sent and received.
+log_polaris_protocol = false                # Log Benro Polaris protocol messages sent and received.
+log_pulse_guiding = false                   # Log ASCOM Alpaca pulse guiding messages.
+log_alpaca_polling = false                  # Log frequent polling from Alpaca applications (for example NINA).
+log_synscan_polling = false                 # Log frequent polling from SynScan applications (for example Stellarium).
+log_polaris_polling = false                 # Log frequent polling of the Benro Polaris.
+log_quest_model = true                      # Log the Multi-Point Alignment (QUEST) model's sync point weights.
+log_orbital_queries = true                  # Log JPL Horizons and CelesTrak orbit queries.
+log_gps_receiver = false                    # Log what the GPS receiver sends (NMEA, UBX, GPSD), and each Locate attempt's fix.
+log_pec = true                              # Log Periodic Error Correction.
+log_heartbeat = false                       # Log a stack trace whenever a heartbeat is skipped, and garbage collections over 100 ms.
+log_position = false                        # Log full Kalman filter (KFLOG) and PID (PIDLOG) telemetry every control tick (about 200 ms while tracking).
+log_hardware_unit_tests = false             # Allow unit tests that send real commands to the Polaris (they move the mount).
 
-max_size_mb = 20                            # maximum log file size.
-num_keep_logs = 20                          # maximum number of log files to rotate through.
+max_size_mb = 20                            # Maximum log file size (MB).
+num_keep_logs = 20                          # Number of old log files to keep.
