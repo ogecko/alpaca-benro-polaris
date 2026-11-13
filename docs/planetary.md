@@ -6,11 +6,11 @@
 [Sharpening](#sharpening) |
 [Composing a Wider Shot](#composing-a-wider-shot)
 
+![Saturn and its moons, captured on a Benro Polaris: the planet with an IMX585 camera at 800 mm, the moons with a Canon EOS R5 at 1600 mm](images/saturn-moons.jpg)
+
 Planets are small and bright, and at long focal lengths the atmosphere's turbulence (the "seeing") blurs and distorts them from moment to moment. Planetary imaging gets around this with **lucky imaging**: record a video of thousands of very short exposures, keep only the sharpest frames, and stack them into one detailed image. Deep-sky imaging works differently, with a smaller number of long exposures.
 
-The Benro Polaris and the Alpaca Driver handle the pointing and tracking, so you can concentrate on capturing and processing. The example below combines a stacked image of Saturn, composed with AutoStakkert!, with a deeper exposure that shows its moons.
-
-![Saturn and its moons, captured on a Benro Polaris: the planet with an IMX585 camera at 800 mm, the moons with a Canon EOS R5 at 1600 mm](images/saturn-moons.jpg)
+The Benro Polaris and the Alpaca Driver handle the pointing and tracking, so you can concentrate on capturing and processing. The example above combines a stacked image of Saturn, composed with AutoStakkert!, with a deeper exposure that shows its moons.
 
 ## Choosing a Focal Length
 

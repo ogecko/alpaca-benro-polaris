@@ -9,11 +9,11 @@
 [Calibration Frames](#calibration-frames) |
 [Stacking and Processing](#stacking-and-processing)
 
+![Deep-sky images captured with a Benro Polaris and the Alpaca Driver](images/abp-gallery.jpg)
+
 Deep-sky objects such as nebulae, galaxies and star clusters are faint, so deep-sky imaging builds up their light over a long total exposure. Instead of one very long exposure, you capture many shorter sub-exposures ("subs"), then stack them: stacking averages out the noise and reveals faint detail that no single sub shows. The Alpaca Driver turns the Benro Polaris into a mount that can do this, with accurate pointing from Multi-Point Alignment, plate solving to frame the target, and tracking and guiding that keep it steady through a long sequence.
 
-This guide outlines a typical deep-sky imaging session with the Benro Polaris, the Alpaca Driver and NINA. It assumes you're already familiar with operating Alpaca Pilot and NINA; see [Alpaca Pilot](./pilot.md) and [Using NINA](./nina.md) for those. The images below were all captured this way.
-
-![Deep-sky images captured with a Benro Polaris and the Alpaca Driver](images/abp-gallery.jpg)
+This guide outlines a typical deep-sky imaging session with the Benro Polaris, the Alpaca Driver and NINA. It assumes you're already familiar with operating Alpaca Pilot and NINA; see [Alpaca Pilot](./pilot.md) and [Using NINA](./nina.md) for those. The images above were all captured this way.
 
 ## Planning a Session
 

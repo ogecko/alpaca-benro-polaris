@@ -5,13 +5,13 @@
 [Creating a Spin](#creating-a-spin) |
 [Other Orbitals](#other-orbitals)
 
+![Satellite imaging with a Benro Polaris and the Alpaca Driver: a spin around NGC 6134, and a tracked Starlink satellite](images/abp-satellites.jpg)
+
 >VIDEO DEMO - [26 - Tracking Orbitals](https://youtu.be/no47ZNagEDk)
 
 Satellites such as the International Space Station (ISS) and Starlink cross the sky in a few minutes, far faster than the stars. The Alpaca Driver can track them: it fetches each satellite's orbit and updates the mount's target position every 200 milliseconds, so the satellite stays in the frame while the stars streak past. The driver can track over 32,000 artificial satellites, including space stations, rocket bodies and debris, as well as the Sun, Moon, planets, comets and asteroids.
 
 The same motion control can also create a "spin": a star-trail image made by rotating the mount during a sequence of exposures.
-
-![Satellite imaging with a Benro Polaris and the Alpaca Driver: a spin around NGC 6134, and a tracked Starlink satellite](images/abp-satellites.jpg)
 
 ## Finding Satellites
 
@@ -30,6 +30,9 @@ A low satellite pass lasts only a few minutes, so prepare everything before it r
 2. **Start tracking.** The driver fetches the satellite's latest orbital parameters from CelesTrak, and starts tracking it if it's more than 10° above the horizon. Alpaca Pilot switches to the Dashboard, where the status indicator shows the satellite's name, for example "ISS (ZARYA)".
 3. **Watch the status.** While the satellite is below 10° altitude, the status turns **orange** and shows where it is, for example "ISS (ZARYA) (Az 223° Alt -31°)". The mount keeps tracking the stars meanwhile. When the satellite rises above 10°, the mount automatically slews to it and starts tracking, and it stops again when the satellite sets.
 4. **Fine-tune the position.** Orbit data is never exact, so the satellite may sit slightly off-centre. Adjust the set point on the Dashboard's radial dials (or use the jogging keys) to centre it. The driver keeps tracking the satellite from that offset. To remove the offset, turn tracking off and back on.
+5. **Fine-tune the orbit offset.** A fast satellite can drift steadily along its path, ahead of or behind the centre of the frame. Click the M1, M2 and M3 motor dials on the Dashboard to open the status panel. While an orbital is being tracked, the **Tracking Performance** row shows an offset dial, set from -5 s to +5 s. It aims the mount this many seconds ahead of the satellite's predicted position. The default of +0.3 s makes up for the short delay in the mount's control loop. If the satellite trails behind, increase the offset; if it runs ahead, reduce it. The change applies straight away, and the **Deviation** chip beside the dial shows how far the mount is from where it's aiming.
+
+    ![The Tracking Performance offset dial, set to +0.30 s while tracking a Starlink satellite](images/pilot-orbital-lead.png)
 
 **Removing old satellites:** Every satellite you search for stays in the catalog list, and its orbit is cached so you can track it again without an internet connection. To remove one you no longer need, click the red bin icon (**Remove from orbital cache**) on its row, or click the satellite and choose **Remove**. Comets and asteroids you've searched for can be removed in the same way.
 
