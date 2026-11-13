@@ -37,15 +37,6 @@ nav = [
     { "Using CCDciel" = "ccdciel.md" },
     { "Using Guiding" = "guiding.md" },
   ] },
-  { "Help" = [
-    "troubleshooting.md",
-    { "Installation" = "troubleshooting-install.md" },
-    { "Benro Polaris" = "troubleshooting-polaris.md" },
-    { "Network" = "troubleshooting-network.md" },
-    { "NINA" = "troubleshooting-nina.md" },
-    { "Stellarium" = "troubleshooting-stellarium.md" },
-    "faq.md",
-  ] },
   { "Release Notes" = [
     { "v2.2.0" = "release-notes-v2.2.0.md" },
     { "v2.1.0" = "release-notes-v2.1.0.md" },
@@ -75,6 +66,15 @@ nav = [
     { "Podcast Oct 2024" = "podcast_2024_oct.md" },
     { "MLAstro SAL-33" = "ML_Astro_SAL-33.md" },
     { "Benro Sponsorship" = "benro.md" },
+  ] },
+  { "Help" = [
+    "troubleshooting.md",
+    { "Installation" = "troubleshooting-install.md" },
+    { "Benro Polaris" = "troubleshooting-polaris.md" },
+    { "Network" = "troubleshooting-network.md" },
+    { "NINA" = "troubleshooting-nina.md" },
+    { "Stellarium" = "troubleshooting-stellarium.md" },
+    "faq.md",
   ] },
 ]
 
