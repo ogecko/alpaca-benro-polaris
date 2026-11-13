@@ -55,7 +55,7 @@ curl -X PUT http://ap.local:5555/api/v1/telescope/0/slewtocoordinatesasync \
 
 ## Rotator
 
-The Rotator device implements the ASCOM **IRotatorV3** interface. See the [ASCOM Rotator interface](https://ascom-standards.org/newdocs/rotator.html) and the [ASCOM Alpaca API reference](https://ascom-standards.org/api/). Rotating the camera keeps the mount pointing at the same target. The Rotator's `Position` is the Position Angle of the camera on the sky, and its `MechanicalPosition` is the Roll Angle of the camera relative to the horizon (see [Roll Angle vs. Position Angle](./control.md#ii-key-concepts-roll-angle-vs-position-angle)).
+The Rotator device implements the ASCOM **IRotatorV3** interface. See the [ASCOM Rotator interface](https://ascom-standards.org/newdocs/rotator.html) and the [ASCOM Alpaca API reference](https://ascom-standards.org/api/). Rotating the camera keeps the mount pointing at the same target. The Rotator's `Position` is the Position Angle of the camera on the sky, and its `MechanicalPosition` is the Roll Angle of the camera relative to the horizon (see [Roll Angle vs. Position Angle](./control.md#roll-angle-vs-position-angle)).
 
 Read the current Position Angle, in degrees:
 

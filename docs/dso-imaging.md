@@ -102,7 +102,7 @@ This guide uses NINA, the recommended app: it's free and has an excellent user i
     - Decrease its Right Ascension by 1 or 2 hours, which points to where the target will be later in the session
     - Once the mount settles, plate-solve and sync again in NINA
 
-    A sync point along the target's path keeps the Multi-Point Alignment accurate as the target moves across the sky (see [Advanced Motion Control](./control.md)).
+    A sync point along the target's path keeps the Multi-Point Alignment accurate as the target moves across the sky (see [Control Reference](./control.md)).
 
 ## Framing the Target
 
@@ -139,7 +139,7 @@ You can check and refine the tracking during the sequence on Alpaca Pilot's **PI
     - **Angular Velocity (OP):** OP should be a steady horizontal line. Large oscillations may indicate instability. The PID controller works to close any gaps.
     - **RMS Error:** A quick measure of the tracking performance over the last 30 seconds. A value near **2 arcseconds** is ideal for high-quality tracking.
     - **Pulse Guiding:** Use **equatorial co-ordinates** to watch corrections from your guiding software. You should see the SP being "bumped" up and down as it corrects for the guide star's movement.
-    - **Advanced Tuning:** Experienced users can adjust the PID parameters to reduce oscillations and improve responsiveness (see [Advanced Motion Control](./control.md)).
+    - **Advanced Tuning:** Experienced users can adjust the PID parameters to reduce oscillations and improve responsiveness (see [Control Reference](./control.md)).
 * **Alignment page:**
     - **Sync Point Residuals:** Review the residuals to find misaligned sync points.
     - **Model Refinement:** Delete sync points with large residuals to improve the Multi-Point Alignment model.

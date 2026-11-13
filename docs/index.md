@@ -140,7 +140,7 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | [Preparing the MiniPC](./hardware.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
 | [Installation Guide](./installation.md) | Step-by-step install on Windows, plus [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md) |
 | [Alpaca Pilot Guide](./pilot.md) | The dashboard, catalog, alignment and panorama tools |
-| [Advanced Motion Control Guide](./control.md) | Alignment models, the rotator, PID tracking, PEC and orbital tracking |
+| [Control Reference](./control.md) | Alignment models, the rotator, safety limits, Kalman filter, speed calibration and PID tracking |
 | [Using Stellarium](./stellarium.md) | Connecting and controlling the Polaris from Stellarium |
 | [Using NINA](./nina.md) | Capturing, autofocus, plate solving and sequencing |
 | [Using CCDciel](./ccdciel.md) | Capturing, focusing, plate solving and guiding with CCDciel |

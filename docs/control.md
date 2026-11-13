@@ -1,16 +1,16 @@
-# Advanced Motion Control Guide
-[Challenges](#challenges-with-existing-control) | 
+# Control Reference
+[Challenges](#challenges) | 
 [Rotator](#alpaca-rotator) | 
 [Alignment](#alignment-models) | 
 [Safety](#equipment-safety) | 
 [Filtering](#kalman-filter) | 
 [Calibration](#motor-speed-calibration) | 
 [Coordinated Speed](#coordinated-speed-control) | 
-[PID Controller](#pid-controller-and-performance-tuning) | 
-[Dev: API Testing](#developer-automated-pid-testing-via-alpaca-api) | 
-[Dev: PID Tuning Utility](#developer-pid-tuning-utility) 
+[PID Controller](#pid-controller) | 
+[Dev: API Testing](#dev-pid-testing-via-api) | 
+[Dev: PID Tuning Utility](#dev-pid-tuning-utility) 
 
-# Challenges with existing Control
+## Challenges
 >PODCAST LINK: [20 - Deep Dive Podcast on Alpaca Benro Polaris V2.0](https://youtu.be/KUBCTnEsnlE)
 
 The Benro Polaris mount, especially with its Astro Attachment, is popular among amateur astrophotographers for its compact design and app-driven interface. But while the hardware is excellent, the software can leave many users frustrated.
@@ -29,7 +29,7 @@ This guide provides an overview of the **Advanced Control Features** of the Alpa
 - **[Alpaca Rotator](#alpaca-rotator):** Exposes the third (Astro) axis as an ASCOM Rotator so you can control roll or position angle for framing, mosaics and panoramas.
 - **[Slewing](./pilot.md#radial-dials):** Lets the driver's own motion controller handle manual slews, moving the set point by Az/Alt/Roll or RA/Dec/PA. No longer use Benro Polaris firmware for gotos or slews.
 - **[Advanced Goto](./kinematics.md#42-inverse-kinematics--sky--motors-angular-position):** Moves to targets along a shortest-path trajectory with optimised acceleration and deceleration, and preserves roll and tracking state.
-- **[PID Tracking](#pid-controller-and-performance-tuning):** Uses a closed-loop, three-axis PID controller with feed-forward to hold the mount on its target during tracking.
+- **[PID Tracking](#pid-controller):** Uses a closed-loop, three-axis PID controller with feed-forward to hold the mount on its target during tracking.
 - **[Orbitals Tracking](./orbitals.md):** Enables non-sidereal tracking of the Sun, Moon, planets, satellites, comets and asteroids.
 - **[Multi-Point Alignment](#alignment-models):** Uses the QUEST algorithm to build a correction model from three or more plate-solve syncs, compensating for tripod tilt, polar misalignment and cone error.
 - **[Mechanical Alignment Correction](./kinematics.md#23-mechanical-alignment-corrections-mac):** Fits M2 and M3 offsets (how the camera sits on the head) and the M2 scale with every alignment, cutting typical alignment and goto errors from about an arcdegree to a few arcminutes.
@@ -49,7 +49,7 @@ For a comprehensive technical reference on the updated kinematics, refer to [kin
 
 ---
 
-# Alpaca Rotator
+## Alpaca Rotator
 >VIDEO DEMO: [23 - Alpaca Rotator Framing in Nina and Stellarium](https://youtu.be/_Swd-jIyQis)
 
 
@@ -61,7 +61,7 @@ This guide outlines the purpose, setup, control concepts, and practical usage of
 
 ---
 
-## I. Introduction and Core Function
+### Introduction
 
 The Alpaca Rotator functionality unlocks and controls the third axis of the Benro Polaris mount.
 
@@ -72,11 +72,12 @@ The Alpaca Rotator functionality unlocks and controls the third axis of the Benr
 
 ---
 
-## II. Key Concepts: Roll Angle vs. Position Angle
+### Roll Angle vs Position Angle
 
 The Alpaca Driver allows control over rotation using two coordinate systems: Roll Angle (in the geographic system) and Position Angle (in the equatorial system).
 
-### Roll Angle (Az/Alt/Roll)
+**Roll Angle (Az/Alt/Roll)**
+
 
 The roll angle is generally considered **intuitive**.
 
@@ -84,7 +85,8 @@ The roll angle is generally considered **intuitive**.
 *   The driver automatically calculates how the mount needs to move all motors to achieve a specified roll (e.g., a 30° roll) while keeping the Azimuth and Altitude coordinates consistent.
 *   The roll angle is considered related to **Astro Axis**, but in reality it requires all motors to be moved in co-ordination.
 
-### Position Angle (RA/Dec/PA)
+**Position Angle (RA/Dec/PA)**
+
 
 Position angle is the angle between the direction to the celestial north and the top of the image frame, measured counterclockwise from north. The Position Angle (PA) is a **consistent reference** used for framing that is independent of the observer's location. It is often not as intuitive as the roll angle.
 
@@ -93,13 +95,15 @@ Position angle is the angle between the direction to the celestial north and the
 *   Angles **increase in a counter-clockwise fashion**.
 *   The Position Angle is equal to the Roll Angle plus the Parallactic Angle.
 
-### Parallactic Angle 
+**Parallactic Angle**
+
 
 The Parallactic Angle is the angle between the direction to the celestial north  and the zenith, measured at the position of a celestial object in the sky. It describes how the sky appears to rotate around the object. The Paralactive Angle is unique for every Azimuth/Altitude orientation of the mount. It can be displayed in applications like Stellarium. The Driver uses the Parallactic Angle to calculate the Position Angle.
 
-## III. Rotator Setup and Control
+### Rotator Setup
 
-### Connecting in NINA
+**Connecting in NINA**
+
 
 To enable rotator control in third-party applications like NINA (Nighttime Imaging 'N' Astronomy):
 
@@ -109,7 +113,8 @@ To enable rotator control in third-party applications like NINA (Nighttime Imagi
 2.  Perform a **device discovery** to find the Alpaca Rotator.
 3.  Connect to the device. NINA will then have **full control of the rotation axis**.
 
-### Control via Alpaca Pilot App
+**Control via Alpaca Pilot**
+
 
 The Alpaca Pilot App offers direct, real-time control over the rotation axis.
 
@@ -120,11 +125,12 @@ The Alpaca Pilot App offers direct, real-time control over the rotation axis.
 
 ---
 
-## IV. Rotator in Imaging Applications
+### Imaging Applications
 
 The Alpaca Rotator is crucial for advanced framing techniques, particularly when using software like NINA and Stellarium.
 
-### Framing with NINA
+**Framing with NINA**
+
 
 The rotator function is natively integrated with NINA’s framing capabilities.
 
@@ -134,7 +140,8 @@ The rotator function is natively integrated with NINA’s framing capabilities.
 2.  **Rotation View:** Enabling the **rotation view** within the Framing Assistant allows you to change the orientation of the image perspective, which makes the framing process easier.
 3.  **Sequenced Correction:** During an imaging sequence, after NINA performs a plate solve and determines the position angle of the captured image, it will **correct any angular offset** by issuing minor adjustments to the rotator to correctly position the panel.
 
-### Mosaics and Panoramas
+**Mosaics and Panoramas**
+
 The rotator enables precise, structured imaging for large targets.
 
 ![Rotator Mosaic](images/control-rotator3.png)
@@ -142,7 +149,8 @@ The rotator enables precise, structured imaging for large targets.
 *   **Tiled Mosaics:** When planning a tiled mosaic (e.g., three wide and two high), NINA calculates the Right Ascension and Declination for each panel.
 *   **Preserving Alignment:** By enabling **"preserve alignment"** in NINA, the system automatically recalculates the specific position angle for each individual panel, ensuring the overall mosaic results in a rectangular image.
 
-### Integrating with Stellarium
+**Integrating with Stellarium**
+
 
 To visualize your framing accurately in Stellarium, an adjustment is necessary.
 
@@ -162,12 +170,12 @@ If you have a physical camera rotator, note that rotating it will shift the posi
 ---
 
 
-# Alignment Models
+## Alignment Models
 >VIDEO DEMO: [24 - Multi Point Alignment and Tripod Tilt](https://youtu.be/4CMO0R_yphw)
 
 The V2.0 Alpaca Driver re-engineered the alignment and sync interfaces to support two distinct alignment methods, transforming how the Benro Polaris (BP) achieves accurate polar alignment. This guide outlines the features and operational principles of the two primary alignment modes; Single-Point and Multi-Point Alignment. 
 
-### I. Single-Point Alignment (SPA)
+### Single-Point Alignment
 
 Single-Point Alignment (SPA) is the more traditional alignment method supported by the  Driver. This is the default alignment method with the V2.0 Driver:
 
@@ -181,7 +189,7 @@ When using the Pilot App for initial setup, you can skip the Compass Align and S
 
 The Single Point Alignment is simpler to perform and is still a valid method for alignment of your Benro Polaris. Only progress to Multi Point Alignment when you are prepared to monitor and fine tune the alignment model.
 
-### II. Multi-Point Alignment (MPA) 
+### Multi-Point Alignment
 
 Multi-Point Alignment (MPA), is the advanced alignment feature recommended for achieving high precision:
 
@@ -193,9 +201,10 @@ Multi-Point Alignment (MPA), is the advanced alignment feature recommended for a
 
 Here is the procedure for performing Multi-Point Alignment and information regarding the necessary synchronization points, based on the version 2.0 driver and its integration with applications like NINA (Nighttime Imaging 'N' Astronomy).
 
-## III. Performing Multi-Point Alignment
+### Performing Alignment
 
-### A. Initial Mount Setup
+**Initial Mount Setup**
+
 
 Before starting the alignment process, ensure the mount is prepared and connected to the Alpaca Driver:
 
@@ -205,7 +214,8 @@ Before starting the alignment process, ensure the mount is prepared and connecte
 6.  **Focus:** Perform a NINA Autofocus run.
 7. **Start Tracking:** Enable sidereal tracking from Nina or Alpaca Pilot
 
-### B. Initiating Alignment via Plate Solving 
+**Initiating Alignment via Plate Solving**
+
 
 The Multi-Point Alignment model is built by performing synchronization (`SYNC`) operations, typically initiated after a **plate solve**. A single, accurate sync is generally sufficient to align the Polaris initially:
 
@@ -215,7 +225,8 @@ The Multi-Point Alignment model is built by performing synchronization (`SYNC`) 
     *   The Alpaca Driver automatically aligns the Benro Polaris with the resolved coordinates whenever a `Sync` command is performed.
 2.  **Alignment Confirmation:** Once this first plate-solve and sync is successful, the Polaris is now considered aligned.
 
-### C. Polar Alignment
+**Polar Alignment**
+
 
 To assist the multi-point model to be as polar aligned as possible, we recommend performing a plate-solve at your Celestrial Pole. This will ensure a point for the Celestrial Pole is in the model and help reduce residual error at that location. Use the following procedure:
 
@@ -225,7 +236,8 @@ To assist the multi-point model to be as polar aligned as possible, we recommend
 4. **Wait for Completion**: Ensure the mount has fully stopped before proceding
 5.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
 
-### D. Target Trajectory Alignment
+**Target Trajectory Alignment**
+
 
 Any remaining points in the model should be placed along the trajectory of your imaging target. You can perform just one plate-solve at your target, or if you are performing a long imaging session you may want to perform a couple of plate-solves along its trajectory. 
 
@@ -238,7 +250,8 @@ Any remaining points in the model should be placed along the trajectory of your 
 2. **Wait for Completion**: Ensure the mount has fully stopped before proceding
 5.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
 
-### E. Review Model Residuals
+**Review Model Residuals**
+
 
 After you add any additional sync points to the model, you should review the model residuals on the Alignment page in Alpaca Pilot. Each sync point in this list shows a **residual**; the angular difference between where the mount reported it was pointing and where the multi-point alignment (QUEST) model predicts it should point, given the other sync points. Lower residuals indicate a better fit.
 
@@ -252,7 +265,8 @@ Delete a sync point by clicking on the cross next to the point. Note that if tra
 
 A very good multi-point alignment model will have all sync points with residuals of arc-seconds, and none with arc-minutes or whole degrees of residuals.
 
-### F. Reseting Multi-Point Alignment on Re-Setup
+**Resetting Multi-Point Alignment on Re-Setup**
+
 
 From Alpaca Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. You can now restart the driver or reboot the MiniPC mid-session and resume imaging without losing your alignment.
 
@@ -264,10 +278,11 @@ However, if you physically move or re-level the tripod, the saved model will no 
 4. Perform a fresh Multi-Point Alignment as described in sections B–E above.
 
 
-## IV. Adding Sync Points to the model
+### Adding Sync Points
 By adding sync points, you help the Driver build a geometric model of your mount’s orientation relative to the sky. There are three approaches to adding sync points to the model.
 
-#### Method 1: Sync via Plate Solve
+**Method 1: Sync via Plate Solve**
+
 ![Alignment Sync](images/control-sync1.png)
 
 This is the most automated and accurate method. When your imaging software performs a **plate solve**, it determines the exact celestial coordinates your camera is pointing at. The Alpaca Driver uses this data to add a sync point to the alignment model.
@@ -276,7 +291,8 @@ This is the most automated and accurate method. When your imaging software perfo
 - How: After a successful plate solve, the Alpaca Driver automatically adds the sync point
 - Benefit: High-precision alignment with minimal manual input
 
-#### Method 2: Sync via RA/Dec/PA Coordinates 
+**Method 2: Sync via RA/Dec/PA Coordinates**
+
 ![Alignment Sync](images/control-sync2.png)
 
 You can manually add a sync point by specifying a known celestial target using **Right Ascension and Declination**.
@@ -293,7 +309,8 @@ Nina does not sync the plate-solved Position Angle with the Alpaca Driver. We re
 - Manually enter the Position Angle in decimal degrees.
 - Click the Rotator Sync button.
 
-#### Method 3: Sync via Geographic Landmark (Azimuth and Altitude)
+**Method 3: Sync via Geographic Landmark (Azimuth and Altitude)**
+
 ![Alignment Sync](images/control-sync3.png)
 
 The Alpaca Driver now supports syncing using **azimuth and altitude**, which means you can align to visible landmarks, even during the day or without a star field.  At your observing site, you might have a visible landmark like a high-tension power line or surveyers mark. If you point your camera directly at it:
@@ -304,7 +321,8 @@ The Alpaca Driver now supports syncing using **azimuth and altitude**, which mea
 
 ---
 
-#### Summary: Sync Methods Comparison
+**Summary: Sync Methods Comparison**
+
 
 | Method | Input Type | Best Use Case | Automation Level |
 |--------|------------|----------------|------------------|
@@ -315,7 +333,7 @@ The Alpaca Driver now supports syncing using **azimuth and altitude**, which mea
 
 
 
-## V. Reseting your Polaris Alignment
+### Resetting Alignment
 
 If you connect to the Polaris and notice that the **Azimuth, Altitude, or Roll coordinates** appear incorrect even when the mount is in the home position, you can reset the alignment to a known state using the following steps:
 
@@ -347,7 +365,7 @@ This procedure resets the single‑star alignment model in Polaris to the coordi
 
 ---
 
-# Equipment Safety
+## Equipment Safety
 
 >VIDEO DEMO: [25 - Home, Park and Motor Angle Limits](https://youtu.be/45EP-DExSOQ)
 
@@ -369,7 +387,7 @@ To prevent these issues, the driver now includes:
 - **Improved Park Functionality**  
     The Park feature now respects motor limit, allowing you to safely stow the mount at a custom location, again without risking cable wrap or tripod collisions.
 
-### A. Motor Angle Limits
+### Motor Angle Limits
 
 The driver tracks the actual physical rotation of the mount's motors (M1, M2, M3) using **Motor Angles**. Unlike standard coordinates (like Azimuth), which wrap around (e.g., 360° returns to 0°), the motor angle **does not wrap around**; it continuously records how far the motor has moved from its home position. These angles are also not dependant on one another, so the M1 angle is not effected by the Astro Axis.
 
@@ -384,7 +402,7 @@ You can define a **maximum amount of rotation** in each direction for each motor
 > **Important Safety Note:** Although these safety measures are built into V2.0, we advise against operating the Polaris **unattended**, as some failure modes may still be beyond the driver's control. 
 
 
-### B. Home Functionality
+### Home
 
 The new **Home** functionality moves the mount based entirely on motor angles:
 
@@ -392,7 +410,7 @@ The new **Home** functionality moves the mount based entirely on motor angles:
 *   **Orientation:** If your mount is set up pointing south, the Home position (0, 0, 0 motor angles) will typically result in an azimuth of $180^\circ$, an altitude of $45^\circ$, and a roll of $0^\circ$.
 *   **Alternative Reset:** If you need a complete the joystick double tap function of the Benro Polaris App, an **axis reset** function is still available, but it is located only on the Alpaca Pilot Connect page.
 
-### B. Park Functionality
+### Park
 
 The **Park** function provides a customisable, safe resting position for mounting and unmounting equipment.
 
@@ -400,7 +418,8 @@ The **Park** function provides a customisable, safe resting position for mountin
 *   **Default:** By default, the Park position is set to motor angles of $(0, 0, 0)$, making it identical to the Home position.
 *   **Customisation:** You can **customize** the Park angle from the **settings page**. This is often useful, particularly when using an L-mount for your camera.
 
-#### Setting a Custom Park Position:
+**Setting a Custom Park Position**
+
 
 1.  **Access Settings:** Navigate to the settings page within the Alpaca Pilot App.
 2.  **Adjust Motor Angles:** Use the diagrams to move the motor angles to a desired orientation.
@@ -408,7 +427,8 @@ The **Park** function provides a customisable, safe resting position for mountin
     *   *Example: Bring the M2 axis down to approximately $-45^\circ$ to make the plate level, facilitating camera mounting and unmounting.*
 3.  **Save:** Click the **Save** button to update the motor angles for the Park location.
 
-#### Unparking the Mount:
+**Unparking the Mount**
+
 
 1.  **Execution:** When the mount successfully reaches the custom Park location, a **yellow banner** will appear on the dashboard.
 2.  **Function Lock:** In the Park state, **most functions are disabled**.
@@ -418,7 +438,7 @@ The **Park** function provides a customisable, safe resting position for mountin
 <br>
 
 ---
-# Kalman Filter
+## Kalman Filter
 >VIDEO DEMO: [31 - Setting Overrides, Kalman Filtering and PWM](https://youtu.be/aDFKAWBNQHU)
 
 The **Kalman Filter** is a core component of the motion control system introduced in **Alpaca Driver v2.0**. It plays a critical role in improving the **accuracy, stability, and responsiveness** of the Polaris mount by filtering noisy sensor data and enhancing the system’s understanding of its own motion.
@@ -428,7 +448,7 @@ The **Kalman Filter** is a core component of the motion control system introduce
 
 ---
 
-## I. Purpose and Function
+### Purpose and Function
 
 The Kalman Filter is designed to solve a fundamental problem: **sensor noise**. The Polaris mount reports its orientation every 200 milliseconds, but these readings can fluctuate significantly — especially at arcsecond-level precision. The key benefits of the Kalman Filter include:
 
@@ -444,7 +464,7 @@ The Kalman Filter is designed to solve a fundamental problem: **sensor noise**. 
     This fusion produces a more reliable estimate of the mount’s true position and velocity.
 
 
-## II. Analogy: A Stabilizer in the Fog
+### An Analogy
 
 Imagine trying to track a fast-moving object while standing on a rocking boat in thick fog. Your view is shaky, your footing unstable, and your guesses are rough at best.
 
@@ -458,11 +478,12 @@ This is exactly what the Alpaca Driver does; giving your mount a steadier, smart
 
 This is particularly important for M3, whose position updates less frequently than the other motors. The Kalman Filter uses M3's velocity to predict its position between updates, helping maintain accurate pointing estimates during fast movements such as rolls and polar-alignment changes.
 
-## II. Tuning and Diagnostics
+### Tuning and Diagnostics
 
 While the default settings are well-optimized, the **Kalman Filter Tuning** page in the Alpaca Pilot App allow deeper insight and control. To access the Kalman Filter Tuning Page, Open the **Alpaca Pilot App** and naigate to  **KF Tuning** under the Performance Tuning in the Side Menu
 
-### A. What You Can Do
+**What You Can Do**
+
 
 - **Visualize performance** using real-time charts showing:
     - Blue line: raw sensor data
@@ -470,7 +491,8 @@ While the default settings are well-optimized, the **Kalman Filter Tuning** page
 - **Adjust filter parameters** to control how much trust is placed in raw telemetry vs predicted motion
 - **Test slow movement** to observe how the filter responds to subtle tracking changes
 
-### B. Example Parameters Explained
+**Example Parameters Explained**
+
 
 - **Angular Position Measurement Error**  
     This setting tells the filter how noisy you believe the raw data is.  
@@ -494,7 +516,7 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 <br>
 
 ---
-# Motor Speed Calibration
+## Motor Speed Calibration
 
 >VIDEO DEMO: [32 - Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
 
@@ -506,7 +528,7 @@ You can access the Motor Speed Calibration Tool by opening Alpaca Pilot and navi
 > **Note:** Calibration is optional. You can skip this step if you're not ready to dive in.
 
 
-## A. Preparing for the Test
+### Preparing for the Test
 
 Before running a motor speed calibration test:
 
@@ -515,7 +537,7 @@ Before running a motor speed calibration test:
 - You can perform this test **during the day**
 
 
-## B. Running the Calibration
+### Running the Calibration
 
 1. **Select an Axis**  
     Choose which motor axis to test:
@@ -533,7 +555,7 @@ Before running a motor speed calibration test:
     - Monitor the completion of each test in the table view.
     - You can ABORT and stop the tests at any time.
    
-## D. Reviewing Results
+### Reviewing Results
 
 After testing:
 
@@ -546,7 +568,7 @@ After testing:
 - **A Low %Change and Low Test Stdev** indicate a reliable test  
 > **WARNING:** If a test shows high standard deviation or unexpected large change, you can and should **retest that speed individually**. Select the test in the table and click Test again.
 
-## E. Approving Results
+### Approving Results
 
 Once satisfied with the results of the Motor Speed Calibration tests:
 
@@ -557,7 +579,7 @@ Once satisfied with the results of the Motor Speed Calibration tests:
 > NOTE: Each axis (M1, M2, M3) maintains its own calibration profile
 
 
-## D. Final Thoughts
+### Final Thoughts
 
 Calibrating your motor speed controller ensures:
 
@@ -575,11 +597,11 @@ Calibrating your motor speed controller ensures:
 
 
 ---
-# Coordinated Speed Control
+## Coordinated Speed Control
 
 **Coordinated Speed Control** changes how the driver commands the Polaris motors. The Polaris's slow speeds use one speed level shared by all three axes, so setting a speed on one motor changes the others. Coordinated Speed Control chooses that shared level for all three motors together, then fine-tunes each motor's speed by switching it between neighbouring speeds. It also plans every move as a smooth speed profile the motors can actually follow.
 
-## A. What It Changes
+### What It Changes
 
 - **Tracking:** Holds all three axes at their required speeds at the same time, which markedly improves tracking at low altitudes and near zero roll. It also responds faster to guiding corrections.
 - **Gotos:** Each goto is planned at the start, with a speed profile the motors can follow:
@@ -594,11 +616,11 @@ Calibrating your motor speed controller ensures:
 - **Goto Completion:** During a goto, the driver holds the PID integral to prevent integral windup from disturbing tracking afterwards. A goto is marked complete only when the mount reaches the target and the motors have settled. With Backlash Compensation enabled, this also requires the backlash to be taken up. If the goto has not completed within 45 seconds beyond its planned move time, the driver completes it anyway. The log records the outcome `GOTO complete on target`, `TIMED OUT` or `STOPPED AT A MOTOR LIMIT` along with the elapsed time and final error for each motor. A rotator move (roll or position angle) completes the same way, sharing the timeout, which restarts with each move requested: a goto timing out also completes a rotate asked for during it. It logs `ROTATE complete ...`, and until then the Pilot shows Rotating and ASCOM `IsMoving` is true.
 - **Faster Motions:** Above the slow-speed range (approximately 0.24°/s), the driver uses the Polaris's fast mode, allowing each motor to run at up to its own maximum speed.
 
-## B. Turning It On or Off
+### Turning It On or Off
 
 In Alpaca Pilot, open the **Settings** page and use the **Coordinated Speed Control** toggle under **Advanced Control Features**. The change takes effect immediately, with no restart. It is on by default; turn it off to return to the previous speed controller and motion planning.
 
-## C. Motor Speed Calibration
+### Calibration
 
 With Coordinated Speed Control on, slow speeds always come from the Polaris firmware's own speed table, so their calibration isn't used. Fast speeds use the [Motor Speed Calibration](#motor-speed-calibration) of each motor once its fast-speed tests are approved, and the built-in baseline until then. Calibrating the fast speeds makes the planned moves more accurate, so gotos finish closer to their planned times. A motor whose calibrated fast speeds don't rise with the commanded speed keeps the baseline, and the log warns about it.
 
@@ -607,19 +629,19 @@ With Coordinated Speed Control on, slow speeds always come from the Polaris firm
 
 
 ---
-# PID Controller and Performance Tuning
+## PID Controller
 
 >VIDEO DEMO: [33 - PID Control and Kinematics](https://youtu.be/6vJbSb0gl3M)
 
 The Proportional-Integral-Derivative (PID) Controller is the core component of the revised motion control system in the Alpaca Driver version 2.0. While the system works well with the default parameters, this section is designed for advanced users who wish to **diagnose poor tracking** or fine-tune the controller’s performance.
 
-## 1. Purpose and Role of the PID Controller
+### Purpose
 
 The PID Controller is responsible for **closed-loop speed regulation** and is essential for achieving stable tracking. It works by measuring the error between where the mount *should* be (the Set Point) and where it *actually* is (the Present Value).
 
 The driver utilizes a **3-axis PID controller** for closed-loop motor positioning and explicitly handles **zero crossover** to eliminate the need for traditional backlash correction. The PID controller sums up the proportional, integral, derivative, and feed-forward values to determine the precise **motor speed** required to drive each of the three motors in the Polaris head.
 
-## 2. Accessing the PID Tuning Interface
+### Tuning Interface
 
 You can access the PID tuning pages via the **Alpaca Pilot App**, which provides a detailed visualization of the controller’s real-time performance.
 
@@ -628,18 +650,20 @@ You can access the PID tuning pages via the **Alpaca Pilot App**, which provides
 
 The PID Tuning page provides an overview of all three axes, allowing you to monitor tracking performance. You can switch between viewing axes in three different domains a. equatorial (Right Ascension, Declination, Position Angle); b. topocentric (Azimuth, Altitude, Roll) and c. motor (M1, M2, M3) coordinates.
 
-## 3. Diagnosing Tracking Performance (Steady State)
+### Diagnosing Tracking
 
 To assess how well the mount is tracking, focus on the **RMS Error** and the behavior of the chart lines.
 
-### A. RMS Error
+**RMS Error**
+
 
 The RMS (Root Mean Square) error measures the running average of how far the mount’s position deviates from its intended position, measured in **arcseconds**.
 
 *   **Goal:** The lower the RMS error, the better.
 *   **Performance Benchmark:** An RMS error **under three arc seconds** is considered very good.
 
-### B. Analyzing the Position Charts (Top Charts)
+**Position Charts (Top Charts)**
+
 
 These charts display the target position versus the actual position for each coordinate.
 
@@ -648,7 +672,8 @@ These charts display the target position versus the actual position for each coo
 *   **Ideal Tracking:** The white line should **very closely track the green line**. Ideally, the white line should be slightly underneath the green line.
 *   **Warning Signs:** Watch for large swings, **oscillations, or zigzags** in the white line, which indicate a problem with tracking or control.
 
-### C. Analyzing the Velocity Charts (Bottom Charts)
+**Velocity Charts (Bottom Charts)**
+
 
 These charts show the movement and speed of the mount’s motors. They display four key signals used to blend the final motor speed output.
 
@@ -662,11 +687,12 @@ These charts show the movement and speed of the mount’s motors. They display f
 
 If the system is tracking well, the velocity graphs should be **smooth, straight, and steady**, indicating the mount is making precise, calm adjustments rather than overcorrecting or jittering.
 
-## 4. Understanding Dynamic Inputs and Tuning
+### Dynamic Inputs and Tuning
 
 The PID Tuning detail page (accessed by clicking **Tune** on an axis) allows you to view dynamic tests, simulating real-world commands. The goal of tuning is to ensure the mount responds quickly to commands without overshooting or oscillating.
 
-### A. Dynamic Tests (GoTo, Slew, Pulse Guide)
+**Dynamic Tests (Goto, Slew, Pulse Guide)**
+
 
 The PID controller is designed to react differently to these inputs:
 
@@ -674,7 +700,8 @@ The PID controller is designed to react differently to these inputs:
 *   **Slew (Ramp Input):** Holding a slew button (e.g., in the Alpaca Pilot Dashboard) causes the set point to move up on a **steady ramp** at the commanded slew rate (e.g., 1 degree per second).
 *   **Pulse Guiding (Velocity Input):** Simulates micro-corrections from guiding software (like PHD2) via the Pulse Guiding API. This appears as a **jump in speed** (velocity pulse) and a subsequent step in the set point for the duration of the pulse.
 
-### B. Adjusting PID Parameters
+**Adjusting PID Parameters**
+
 
 Tuning involves adjusting the proportional (KP), derivative (KD), and integral (KI) gains. Changes take effect **immediately** but are not persistent unless you manually click **Save** in the settings. The current recommended default parameters are set with **Kp=1.0, Ki=0.05, and Kd=0.5**.
 
@@ -689,11 +716,11 @@ Tuning involves adjusting the proportional (KP), derivative (KD), and integral (
 <br>
 
 ---
-# Developer: Automated PID Testing via Alpaca API
+## Dev: PID Testing via API
 
 This section documents how to control the driver programmatically for regression-testing the PID controller.
 
-## 1. Running the Driver Natively (WSL2/Linux/macOS)
+### Running the Driver Natively
 
 For fast iterate-test-repeat cycles, run the driver directly instead of via Docker:
 
@@ -710,7 +737,7 @@ Fixed ports regardless of config: REST API `5555`, Pilot WebSocket `5556`.
 
 Restart the running driver cleanly via the Alpaca custom action `Polaris:RestartDriver` (see §3) rather than killing/relaunching — it's an in-process `os.execv()` restart that preserves the alignment model.
 
-## 2. Monitoring Live PID Telemetry
+### Live PID Telemetry
 
 The Pilot UI's PID Tuning page (§ PID Controller and Performance Tuning, above) subscribes to a `pid` topic over the Alpaca Pilot WebSocket (`wss://localhost:5556/ws`). For scripted access without a browser, connect directly and subscribe the same way. The server expects a `ping` at least every ~10s or it drops the connection (`cleanup_inactive_clients` in `app_socket.py`).
 
@@ -771,7 +798,7 @@ while True:
 
 Other useful topics: `status` (mount/PEC/alignment state, `polaris.getStatus()`), `kf` (Kalman filter), `log` (general log stream).
 
-## 3. Controlling Tracking and Advanced Settings via API
+### Controlling via the API
 
 Standard ASCOM Alpaca `Telescope` device (`devicenumber=0`), plus custom `Polaris:*` actions. All PUTs are form-encoded with `ClientID`/`ClientTransactionID`. Topocentric Roll Angle is limited between -60 and +60. Topocentric Altitude is limited between 0 and 70 degrees.
 
@@ -802,7 +829,8 @@ curl -s -X PUT "$BASE/action" -d 'Action=Polaris:RestartDriver' -d 'Parameters={
   -d 'ClientID=1' -d 'ClientTransactionID=6'
 ```
 
-### Positioning with `Polaris:SlewAbsolute`
+**Positioning with `Polaris:SlewAbsolute`**
+
 
 Unlike the standard ASCOM `slewtoaltazasync` (Az/Alt only) or the Rotator device's `moveabsolute` (Position Angle only), the custom `Polaris:SlewAbsolute` action accepts any combination of the driver's 12 coordinate-axis keys in one call: `ra`, `dec`, `pa` (equatorial: RA/Dec/Position Angle), `az`, `alt`, `roll` (topocentric: Az/Alt/Roll Angle), `l`, `b`, `gpa` (galactic), and `m1`, `m2`, `m3` (raw motor angles). Values are decimal degrees (hours for `ra`) or `"dms"`/`"hms"`-style strings. Motor keys can't be combined with the other keys in one request. Set `isasync` to return immediately, or omit/`false` to block until the slew completes.
 
@@ -816,7 +844,7 @@ curl -s -X PUT "$BASE/action" \
 
 **Roll gotcha:** the Rotator device's `position`/`moveabsolute` properties operate on **Position Angle**, not Roll Angle (see § Roll Angle vs. Position Angle, above) — moving `moveabsolute` to `0` will *not* set Roll to `0` except by coincidence. To target Roll Angle directly, either pass `roll` to `Polaris:SlewAbsolute` as above, or use the Rotator device's `movemechanical`/`mechanicalposition` endpoints, which operate on Roll Angle directly.
 
-# Developer: PID tuning utility
+## Dev: PID Tuning Utility
 
 Standardized, repeatable test protocol for empirically tuning `pid_Kp`/`pid_Ki`/`pid_Kd`/`kf_measure_noise`/`kf_process_noise` parameters. Can cover testing for sidereal tracking, sync guiding, pulse guiding, and orbital tracking. 
 
@@ -826,7 +854,7 @@ for each run is saved to `captures/<run_id>.jsonl` (gitignored -- can grow large
 tuning sweep, but still survives locally) so it can be re-analyzed later without re-running
 on hardware.
 
-## Two test types
+### Two Test Types
 
 - **`steady`** -- high importance case. Undisturbed sidereal tracking at a fixed orientation; no
     injected disturbance. Measures steady-state RMS/max/mean position error per axis (M1/RA,
@@ -853,12 +881,13 @@ sync-guiding state with a tracking off/on toggle (per this document's "getting a
 baseline" note) before starting, so results aren't contaminated by a previous run's state or
 by real astronomical sync points.
 
-### MPA reset is destructive by default
+**MPA reset is destructive by default**
+
 
 Every run resets the alignment model to identity/empty by default, because results will depend on the live QUEST/MPA fit, and a growing pile of synthetic tuning-experiment sync points would otherwise contaminate it run over run. Use `--no-reset-alignment` to skip this (at the cost of run-to-run reproducibility for `sync`-kind
 tests).
 
-## Usage
+### Usage
 
 Requires the driver running natively and reachable at `localhost:5555`/`5556` (see §1 above).
 All commands below run from the repo root:
@@ -877,7 +906,8 @@ are currently live (still recorded in the result). Overrides are **not** persist
 `pre_settle + (events-1)*event_interval + 25`, or the last event(s) will look artificially
 "unsettled" just from running out of capture time (the harness warns if you undershoot this).
 
-### Examples
+**Examples**
+
 
 **Steady-state** -- undisturbed sidereal tracking, RMS/max/mean error per axis:
 
@@ -937,7 +967,7 @@ uv run python utility/pid_tuning/run_experiment.py \
     --kf-measure-noise 0.01,0.02,0.03,0.005,0.01,0.01
 ```
 
-## Reading results
+### Reading Results
 
 `results.jsonl` is one JSON object per line: label, test type, requested + actual
 orientation, the full gain set (`pid_Kp/Ki/Kd/Ka/Kv/Ke`), KF noise params
@@ -974,7 +1004,7 @@ host, this works directly, no republish needed, just refresh after regenerating:
 
 (confirmed working for this project's setup: `\\wsl.localhost\Ubuntu-26.04\home\jdm\projects\alpaca-benro-polaris\utility\pid_tuning\report.html`)
 
-## Orientation coverage
+### Orientation Coverage
 
 Test at more than one Az/Alt before trusting a gain change generally -- FF-model accuracy
 varies significantly with sky position (large near the horizon and toward the pole; see the
@@ -982,7 +1012,8 @@ orientation-sweep findings referenced in issue #88). A gain set tuned at one poi
 guaranteed to generalize; the moderate-altitude, away-from-horizon-and-pole points used so
 far in this investigation include Az240/Alt45, Az240/Alt45/Roll-60, and Az60/Alt50.
 
-### Observation: elevated RA/PA noise near meridian (Az≈178°)
+**Observation: elevated RA/PA noise near meridian (Az≈178°)**
+
 
 **Symptom:** at Az178/Alt51/Roll0 (near due south / meridian transit), equatorial-frame RA
 and PA tracking error is 3-4x worse than at every other orientation tested, while the
