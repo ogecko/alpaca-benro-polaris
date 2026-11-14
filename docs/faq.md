@@ -71,15 +71,16 @@ Here's some results from the Beta Testers:
 Keep in mind that longer focal lengths amplify any tracking errors, making precise polar alignment and potentially shorter exposures crucial.
 
 ### B3 - Better Aiming?
-Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially after re-engaging sidereal tracking post-slewing. The Alpaca Driver V2.0 dramatically enhances mount accuracy, stability and responsiveness. The new PID Motion control eliminates backlash compensation, improves aiming accuracy, manages acceleration profiles, and support real-time redirection.
+Yes, the Benro Polaris often exhibits consistent aiming inaccuracies, especially after re-engaging sidereal tracking post-slewing. The Alpaca Driver V2.2 dramatically enhances mount accuracy, stability and responsiveness. The new PID Motion control eliminates backlash compensation, improves aiming accuracy, manages acceleration profiles, and support real-time redirection.
 
 ### B4 - Better Tracking?
-Yes, significantly. Alpaca V2.0 introduces major improvements to tracking precision and capabilities. Key improvements include
+Yes, significantly. Alpaca V2.2 introduces major improvements to tracking precision and capabilities. Key improvements include
 
 - **PID Motion Control:** The Driver features a real-time PID-based motion controller that replaces the native Polaris firmware, delivering smoother tracking, faster recovery from disturbances.
 - **Plate-Solving:** By integrating with tools like ASTAP and NINA, the Driver enables precise target acquisition and automatic centering, correcting for mount misalignment.
 - **Multi-Point Alignment:** The Driver supports QUEST modeling, allowing users to build a multi-point sky model that compensates for polar misalignment, cone error, and mount flexure.
 - **Pulse-Guiding:** ASCOM Alpaca pulse-guiding support enables real-time corrections from guiding software like PHD2, improving long-exposure tracking accuracy and eliminating drift.
+- **Periodic Error Correction:** Designed specifically for the Benro Polaris's three independant motors.
 - **Orbital Tracking:** The Driver can track over 32,000 satellites, planets, and moons using real-time TLE data, updating mount setpoints every 200 ms for accurate tracking of fast-moving or dynamic targets.
 
 ### B5 - Heaviest Load?
