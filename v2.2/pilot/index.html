@@ -981,17 +981,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#using-https" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Using HTTPS
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2404,17 +2393,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#using-https" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Using HTTPS
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2830,7 +2808,7 @@
 <p><img alt="Power on Poalris and Enable Wifi" src="../images/pilot-connectc.png" /></p>
 <ul>
 <li>
-<p><strong>① Power On the Polaris:</strong> The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.</p>
+<p><strong>① Power On the Polaris:</strong> Power it on with a short press of the power button followed by a long press, releasing after three beeps (if it won't start, see <a href=".././troubleshooting-polaris/#b1---polaris-wont-start">Troubleshooting B1</a>). The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.</p>
 <p><em>Note: Bluthooth is only used for discovery and enabling Wifi. It is entirely optional. It is not used in normal operation of the Polaris.</em></p>
 </li>
 <li>
@@ -2938,9 +2916,8 @@
 <li>Resolving port conflicts with other services running on the same system</li>
 </ul>
 <p>Additionally, this dialog allows you to modify the Driver’s behavior regarding automatic reconnection to the Polaris mount. You can disable auto-reconnect if manual control is preferred or if the mount is temporarily unavailable.</p>
+<p>It's also where you download the driver's CA certificate and switch Alpaca Pilot to HTTPS. Alpaca Pilot runs over HTTP by default, and browsers restrict some features, such as location access and the clipboard, to HTTPS. See <a href=".././initial-setup/#using-https">Using HTTPS</a> in Initial Setup.</p>
 <p><img alt="Pilot connect" src="../images/pilot-connectf.png" /></p>
-<h3 id="using-https">Using HTTPS<a class="headerlink" href="#using-https" title="Permanent link">&para;</a></h3>
-<p>Alpaca Pilot runs over HTTP by default, and browsers restrict some features, such as location access and the clipboard, to HTTPS. To install the driver's certificate and switch Alpaca Pilot to HTTPS, see <a href=".././initial-setup/#using-https">Using HTTPS</a> in Initial Setup.</p>
 <p><br>
 <br></p>
 <h2 id="using-the-dashboard">Using the Dashboard<a class="headerlink" href="#using-the-dashboard" title="Permanent link">&para;</a></h2>

@@ -2256,8 +2256,9 @@
 <p>The driver needs your observing site's latitude and longitude to track accurately. Until they're set, Alpaca Pilot shows a <strong>PreSetup</strong> warning and won't move the mount. Set them in Alpaca Pilot's <strong>Settings</strong>, under <strong>Observing Site Information</strong>, in any of these ways:</p>
 <ul>
 <li><strong>Click on the map.</strong> Find your observing site on the map and click it.</li>
-<li><strong>Enter the coordinates.</strong> Type the <strong>Latitude</strong> and <strong>Longitude</strong> in decimal degrees, north and east positive.</li>
-<li><strong>Locate with the browser.</strong> Click <strong>Locate</strong> to use the location of the device running your browser. A phone or tablet uses its GPS, so open Alpaca Pilot on it at your site. A laptop or PC usually works out its location from the internet, which is often only approximate. Browsers only allow this over HTTPS, or over HTTP when the browser is on the same computer as the driver (<code>http://localhost</code>). From any other device, first set up <a href="#using-https">HTTPS</a>.</li>
+<li><strong>Enter the coordinates.</strong> Type the <strong>Latitude</strong> and <strong>Longitude</strong> in decimal degrees, north and east positive, based on the World Geodetic System <a href="https://en.wikipedia.org/wiki/World_Geodetic_System">WGS84</a>.</li>
+<li><strong>Locate with a mobile device.</strong> Using a phone or tablet, click <strong>Locate</strong> in its browser to use the GPS location of the device. Browsers only allow this over HTTPS and Location Services must be enabled. See <a href="#using-https">Using HTTPS</a>.</li>
+<li><strong>Locate with the browser.</strong> Using a laptop or desktop, click <strong>Locate</strong> to use the internet location of the device running your browser. Browsers only allow this over HTTPS, or over HTTP when the browser is on the same computer as the driver (<code>http://localhost</code>). See <a href="#using-https">Using HTTPS</a>.</li>
 <li><strong>Locate with a GPS receiver.</strong> At a dark site without internet, a USB GPS receiver plugged into the computer running the driver gives the site's latitude, longitude and elevation, over HTTP or HTTPS. See <a href="#gps-receiver">GPS Receiver</a> below.</li>
 </ul>
 <p>With internet, Alpaca Pilot fills in the site's elevation, pressure and name from a web service. Without it, the location is named by its coordinates. To keep several sites, click the save icon beside <strong>Location</strong>, then choose a site from the <strong>Location</strong> list next time.</p>
@@ -2327,6 +2328,7 @@
 <li><strong>Safari on iOS/iPadOS</strong>: Settings → Safari → Clear History and Website Data</li>
 </ul>
 <h3 id="gps-receiver">GPS Receiver<a class="headerlink" href="#gps-receiver" title="Permanent link">&para;</a></h3>
+<p>A USB GPS receiver plugged into the computer running the driver sets the site's latitude, longitude and elevation from GPS satellites, with no internet or HTTPS needed. It's the easiest way to set an accurate location at a dark site without internet. Any receiver that outputs standard NMEA sentences works, such as the inexpensive u-blox receivers.</p>
 <p><strong>Connecting the receiver:</strong></p>
 <ul>
 <li>Plug it directly into the computer running the driver. A cheap USB hub, and cameras or USB 3 cables close by, can block the GPS signal completely. In testing, a receiver that got a fix plugged directly into the computer never got one through a hub shared with a guide camera.</li>
