@@ -120,9 +120,13 @@ This direct communication allows Nina to
 * Download images directly to your mini-PC's hard drive
 
 ### N4 - NINA on Mobile?
-Nina is designed as a Windows application and works best on a desktop, laptop, or mini-PC. However, you can indirectly use Nina from your phone or tablet with a remote desktop app. These apps allow you to control a computer remotely over Wi-Fi or a mobile network.
+Nina is designed as a Windows application and works best on a desktop, laptop, or mini-PC. There are three ways to use it from your phone or tablet:
 
-Keep in mind that using Nina via remote desktop from a mobile device might not provide the ideal user experience due to the smaller screen size and potential lag. 
+* **Touch 'N' Stars:** a free Nina plugin that gives Nina a touch-friendly web interface. Install the **Advanced API** and **Touch 'N' Stars** plugins from Nina's Plugins tab, then open `http://<mini-PC IP address>:5000` in your phone or tablet's browser. You may need to allow it through the Windows firewall. It covers the common tasks (equipment, framing, sequences and autofocus) but is a companion to Nina rather than a full replacement.
+* **PI.N.S. (PI 'N' Stars):** a Linux version of Nina, based on Nina's code, designed to run on a Raspberry Pi and controlled through the Touch 'N' Stars interface. It's an option if you'd rather use a Raspberry Pi than a Windows mini-PC (see the [Raspberry Pi Setup Guide](raspberrypi.md) for running the Alpaca Driver on a Pi). It is a community project, not affiliated with the Nina authors, and hasn't yet been tested with the Alpaca Driver.
+* **Remote desktop:** a remote desktop app lets you control the mini-PC itself over Wi-Fi or a mobile network. Keep in mind this might not provide the ideal user experience on a phone due to the smaller screen size and potential lag.
+
+Links: [Touch 'N' Stars](https://github.com/Touch-N-Stars/Touch-N-Stars) · [PI.N.S.](https://github.com/MikeS11/pins)
 
 ### N5 - Image Metadata?
 Yes, Nina can do this! It has a handy plug-in called Session Manager that can record various metadata for each image, including:
