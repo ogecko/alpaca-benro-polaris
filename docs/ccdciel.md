@@ -72,7 +72,7 @@ CCDciel can drive a connected focuser to find the best focus, measuring the HFD 
 ### Manual Focus
 Point the camera at the sky and use the **Preview** panel in **Loop** mode. Start with 10-15 second exposures while stars are out-of-focus disks, then reduce to about 1 second as focus improves. Double-click a star near the image centre, check it is not saturated, and enable **Manual focus aid** on the **Focus** tab to magnify it. Adjust the focuser until the star is as small and bright as possible.
 
-### Calibration
+### Focuser Calibration
 Before using autofocus, run **Tools > Focuser calibration** with a focused, centred star field. Set the exposure, preferred move direction, step size and backlash (if known). CCDciel then moves the focuser in one direction and back, measuring the star diameter, to find the minimum HFD. If the forward and reverse curves don't line up, cancel, adjust the backlash and restart. When finished, the focuser is left at the minimum HFD and the recommended parameters are shown; click **Save** to store them in the auto-focus preferences.
 
 ### Running Autofocus
@@ -180,7 +180,7 @@ CCDciel's **Internal guider** uses a guide camera to watch a guide star and send
 * In Alpaca Pilot, **Sidereal Tracking** must be enabled, with the tracking rate set to **Sidereal**.
 * The **Guide Rate** is set on the Alpaca Pilot **Settings** page. The default **1.0x** works well; reduce it (e.g. 0.75x) if the guider pushes the mount around too much.
 
-### Calibration
+### Guider Calibration
 Calibrate once before guiding. Set the guide exposure to 3-5 seconds with the stars in focus, point at least 45 degrees away from the celestial pole, and click **Calibration**. The guider sends pulses in four directions and measures how the star moves; this takes a few minutes. The results are shown on the **Advanced** tab, where the East/West and North/South values should match.
 
 For the Benro Polaris:

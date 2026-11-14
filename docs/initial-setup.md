@@ -1,5 +1,5 @@
 # Initial Setup
-[Site Location](#site-location) · [NINA Templates](#nina-templates) · [Multi-Point Alignment](#multi-point-alignment) · [Speed Calibration](#motor-speed-calibration) · [Worm Gear Calibration](#worm-gear-calibration)
+[Site Location](#site-location) · [NINA Templates](#nina-templates) · [Multi-Point Alignment](#multi-point-alignment) · [Speed Calibration](#motor-speed-calibration) · [Worm Gear Calibration](#worm-gear-calibration) · [Guiding Calibration](#pulse-guiding-calibration)
 
 Once Alpaca Pilot is [connected to the Polaris](./pilot.md#connecting-polaris), these steps get the most out of the mount. Only the site location is required. The others improve pointing and tracking, and most of them only need doing once.
 
@@ -10,6 +10,7 @@ Once Alpaca Pilot is [connected to the Polaris](./pilot.md#connecting-polaris), 
 | [Multi-Point Alignment](#multi-point-alignment) | At the start of each imaging session | Recommended |
 | [Motor Speed Calibration](#motor-speed-calibration) | Once, to improve fast movement control | Optional |
 | [Worm Gear Calibration](#worm-gear-calibration) | Once, to improve unguided and sync-guided tracking | Optional |
+| [Pulse Guiding Calibration](#pulse-guiding-calibration) | At the start of each imaging session, if you pulse guide | Optional |
 
 ## Site Location
 
@@ -270,3 +271,14 @@ The results show each motor's measured wobble, for example `M3 85"@224` (85 arc 
 * On Alpaca Pilot's **Kinematics** page, the **PEC Worm** row shows the correction applied to each motor. It changes as the motors turn, M1 fastest while tracking.
 * On the same target, compare PHD2's RMS guiding error, or the size of the guide corrections, with PEC Worm Gear Correction on and off, for 10 to 15 minutes each. Switching it restarts PEC Drift Correction, so allow for that. With the correction on, the slow, regular oscillation in the guide corrections should shrink or disappear.
 * In PHD2 Log Viewer, use frequency analysis to compare the peak at the worm period, typically around 34 minutes (about 2,000 seconds), though it varies with the target's position. With the correction working, the peak should be much smaller or gone.
+
+## Pulse Guiding Calibration
+
+If you [pulse guide](./guiding-pulse.md) with a guide scope and guide camera, your guiding app must first calibrate: it sends guide pulses to the driver and watches how far, and in which direction, the guide star moves. From this it learns how to turn the guide star's drift into corrections in Right Ascension and Declination.
+
+On the Benro Polaris, each guide pulse becomes a mix of movements of all three motors, and that mix changes across the sky and with the camera's Position Angle. So calibrate at the start of each imaging session, near your imaging target, and again if guiding becomes unreliable or you image a target in a very different part of the sky. In PHD2, connecting to the Alpaca Rotator lets one calibration last the night.
+
+For how to calibrate, see:
+
+* **PHD2:** [Calibration](./guiding-pulse.md#calibration) in the Pulse Guiding guide, including when to [re-calibrate](./guiding-pulse.md#re-calibration).
+* **CCDciel:** [Guider Calibration](./ccdciel.md#guider-calibration) in the CCDciel guide.
