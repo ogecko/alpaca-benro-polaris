@@ -318,6 +318,8 @@ The driver tracks the actual physical rotation of the mount's motors (M1, M2, M3
 
 You can define a **maximum amount of rotation** in each direction for each motor angle to prevent potential twisting of cables.
 
+M2 also has a fixed mechanical range of −8° to +81.5°, which limits how Altitude and Roll can combine. The driver keeps every move within it automatically, rather than raising an alarm (see [Reachable Envelope](./kinematics.md#reachable-envelope)).
+
 1.  **Limit Breach:** If a motor axis **exceeds its defined rotation limit** (e.g., Motor 3 goes beyond $270^\circ$), the system will issue a **notification banner**, and **all control to the Polaris will be stopped**. This halt prevents further motion, including tracking, to protect the cables.
 2.  **Reviewing the Alarm:** You must click the **review button** on the banner, which takes you to the settings page, where you can inspect which alarm limit was exceeded (e.g., M3 current value > maximum limit).
 3.  **Resetting the Alarm:** You must click the **reset button** to acknowledge the limit breach. This action provides a **one-minute window** during which you can move the mount and correct the rotation.
