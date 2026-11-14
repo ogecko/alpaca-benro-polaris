@@ -144,13 +144,11 @@ A USB GPS receiver plugged into the computer running the driver sets the site's 
 The driver comes with two NINA Advanced Sequencer templates that run [Multi-Point Alignment](#multi-point-alignment) and the [Worm Gear Calibration](#worm-gear-calibration) for you. They're in the driver's `utility/nina` folder, and on [GitHub](https://github.com/ogecko/alpaca-benro-polaris/tree/dev2_2/utility/nina). To install them:
 
 1. In NINA's **Plugins** tab, install the **Device Actions and Commands** plugin, then restart NINA. The templates use its **Device Action** instruction to control the mount.
-2. Copy the two `.template.json` files from the driver's `utility/nina` folder into NINA's templates folder. This is usually:
-    * `Documents\N.I.N.A\Templates`, or
-    * `OneDrive\Documents\N.I.N.A\Templates`, if OneDrive backs up your Documents folder.
+2. In NINA's Advanced Sequencer, click **Load Complete Sequence from JSON**, and open `Multi-Point Alignment.template.json` from the folder `C:\Users\<Username>\alpaca-benro-polaris\utility\nina`, by default. 
+3. Click **Save current instruction as template**, on the sequence instruction title bar, to the right of the `Multi-Point Alignment` heading.
+4. Repeat steps 2 and 3 for `Worm Gear Calibration.template.json`.
 
-    To check, save a template from the Advanced Sequencer: the **Save As** dialog opens in the templates folder.
-
-3. In the Advanced Sequencer, the templates now appear in the **Templates** list, ready to drag into a sequence.
+Both templates now appear in the Advanced Sequencer's **Templates** list, ready to drag into a sequence.
 
 
 ## Multi-Point Alignment
