@@ -2692,7 +2692,7 @@
 <a href="#guiding-with-phd2">Guiding with PHD2</a> ·
 <a href="#improving-guiding">Improving Guiding</a></p>
 <p>This guide introduces how to use <strong>PHD2</strong> and pulse guiding with the <strong>Alpaca Driver</strong> on a <strong>Benro Polaris mount</strong>. It is intended for users who are new to pulse guiding, as well as those moving on from unguided imaging or <a href=".././guiding-sync/">Sync Guiding</a>.</p>
-<p>Use pulse guiding or sync guiding, not both: the guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back. To keep the target centred during a long pulse-guided session, use NINA's <strong>Center After Drift</strong> trigger instead.</p>
+<p>Use pulse guiding or sync guiding, not both: the guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back. To keep the target centred during a long pulse-guided session, use NINA's <strong>Center After Drift</strong> trigger instead. When the plate solve drifts past its threshold, NINA stops guiding, re-centres the target, and restarts guiding with a new lock position. Each re-centre is a slew, which resets the driver's PEC Drift Correction, so don't set the threshold too tight (about 0.3 to 0.5 arc minutes).</p>
 <h2 id="pulse-guiding-introduction">Pulse Guiding Introduction<a class="headerlink" href="#pulse-guiding-introduction" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/dn1nLxT5eWw">27 - Guiding the Alpaca Benro Polaris</a></p>
@@ -2877,7 +2877,7 @@ The following guiding solutions have been tested with v2.0:</p>
 <li>Adjust <strong>Gamma Adjustment Slider</strong> to make stars visible in PHD2.</li>
 <li>Click the <strong>Brain Button</strong> or choose <strong>Advanced Settings</strong> from the <strong>Guide</strong> menu<ul>
 <li>Select the <strong>Guiding</strong> tab of <strong>Advanced Settings</strong></li>
-<li>Enable <strong>Use Multiple Stars</strong> to improve guide star stability and robustness, particularly in poorer seeing or when individual stars fluctuate in brightness.</li>
+<li>Enable <strong>Use Multiple Stars</strong> to improve guide star stability and robustness, particularly in poorer seeing or when individual stars fluctuate in brightness. Averaging several stars smooths out the seeing, so the driver corrects the mount's real drift rather than chasing the turbulence.</li>
 <li>Enable <strong>Assume Dec orthogonal to RA</strong> to help PHD2 achieve a successful calibration.  Geometrically, Right Ascension and Declination are always perpendicular. However, guiding software works in camera pixel space, not celestial coordinates. Factors such as targets near the celestial poles, guide camera rotation, small mechanical tolerances, differential flexure, and polar misalignment can cause RA and Dec to appear non-orthogonal to the guider. With the Alpaca Driver’s multi-point alignment, you should have very good polar alignment. With a stable setup and non-polar targets, it’s generally safe to let PHD2 assume Dec is orthogonal to RA. This can help improve the chances of a good calibration.</li>
 <li>Ensure <strong>Focal Length</strong> and <strong>Pixel size</strong> is set correctly for your guide scope and guide camera</li>
 <li>Leave all remaining settings at default to start with

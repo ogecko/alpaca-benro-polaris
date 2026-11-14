@@ -2208,12 +2208,12 @@
 </ul>
 <p>Each correction also feeds Periodic Error Correction, which learns how the mount is drifting and corrects it continuously between syncs.</p>
 <h2 id="periodic-error-correction">Periodic Error Correction<a class="headerlink" href="#periodic-error-correction" title="Permanent link">&para;</a></h2>
-<p>Periodic Error Correction (PEC) anticipates the Polaris's tracking errors and corrects them before they show in your images, every 200 milliseconds. It has two parts, each with its own switch in Alpaca Pilot's settings:</p>
+<p>Periodic Error Correction (PEC) predicts the Polaris's tracking errors and corrects them before they show in your images. Switch on its two parts in Alpaca Pilot's settings:</p>
 <ul>
-<li><strong>PEC Worm Gear Correction</strong> corrects the wobble from each motor's worm gear, which repeats every 6° of the motor's rotation and can move the view by 30 to 150 arc seconds. It uses a profile of your mount's gears, measured once with the <a href=".././initial-setup/#worm-gear-calibration">Worm Gear Calibration</a>, and works with or without guiding.</li>
-<li><strong>PEC Drift Correction</strong> learns the slow drift that remains, from your guiding corrections, whether from sync guiding or pulse guiding. It starts correcting once it has received a few corrections and its estimate of the drift is reliable.</li>
+<li><strong>PEC Drift Correction</strong> learns the slow drift from your guiding corrections, whether from sync guiding or pulse guiding.</li>
+<li><strong>PEC Worm Gear Correction</strong> cancels the wobble from each motor's worm gear, with or without guiding. It needs a <a href=".././initial-setup/#worm-gear-calibration">Worm Gear Calibration</a> first.</li>
 </ul>
-<p>The <strong>PEC</strong> button on Alpaca Pilot's status panel switches both on and off together. For how PEC works in detail, see <a href=".././kinematics/#periodic-error-correction">Periodic Error Correction</a> in the Kinematics Reference.</p>
+<p>The <strong>PEC</strong> button on Alpaca Pilot's status panel switches both on and off together. For how PEC works, see <a href=".././kinematics/#periodic-error-correction">Periodic Error Correction</a> in the Kinematics Reference.</p>
 <h2 id="sync-guiding-with-nina">Sync Guiding with NINA<a class="headerlink" href="#sync-guiding-with-nina" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Switch on the features.</strong> In Alpaca Pilot's settings, switch on <strong>Multi-Point Alignment</strong>, <strong>Sync Guiding (Plate-solve)</strong> and <strong>PEC Drift Correction</strong> (and <strong>PEC Worm Gear Correction</strong>, once you have a worm gear profile).</li>
