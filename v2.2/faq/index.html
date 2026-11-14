@@ -2696,8 +2696,13 @@
 <li>Download images directly to your mini-PC's hard drive</li>
 </ul>
 <h3 id="n4---nina-on-mobile">N4 - NINA on Mobile?<a class="headerlink" href="#n4---nina-on-mobile" title="Permanent link">&para;</a></h3>
-<p>Nina is designed as a Windows application and works best on a desktop, laptop, or mini-PC. However, you can indirectly use Nina from your phone or tablet with a remote desktop app. These apps allow you to control a computer remotely over Wi-Fi or a mobile network.</p>
-<p>Keep in mind that using Nina via remote desktop from a mobile device might not provide the ideal user experience due to the smaller screen size and potential lag. </p>
+<p>Nina is designed as a Windows application and works best on a desktop, laptop, or mini-PC. There are three ways to use it from your phone or tablet:</p>
+<ul>
+<li><strong>Touch 'N' Stars:</strong> a free Nina plugin that gives Nina a touch-friendly web interface. Install the <strong>Advanced API</strong> and <strong>Touch 'N' Stars</strong> plugins from Nina's Plugins tab, then open <code>http://&lt;mini-PC IP address&gt;:5000</code> in your phone or tablet's browser. You may need to allow it through the Windows firewall. It covers the common tasks (equipment, framing, sequences and autofocus) but is a companion to Nina rather than a full replacement.</li>
+<li><strong>PI.N.S. (PI 'N' Stars):</strong> a Linux version of Nina, based on Nina's code, designed to run on a Raspberry Pi and controlled through the Touch 'N' Stars interface. It's an option if you'd rather use a Raspberry Pi than a Windows mini-PC (see the <a href="../raspberrypi/">Raspberry Pi Setup Guide</a> for running the Alpaca Driver on a Pi). It is a community project, not affiliated with the Nina authors, and hasn't yet been tested with the Alpaca Driver.</li>
+<li><strong>Remote desktop:</strong> a remote desktop app lets you control the mini-PC itself over Wi-Fi or a mobile network. Keep in mind this might not provide the ideal user experience on a phone due to the smaller screen size and potential lag.</li>
+</ul>
+<p>Links: <a href="https://github.com/Touch-N-Stars/Touch-N-Stars">Touch 'N' Stars</a> · <a href="https://github.com/MikeS11/pins">PI.N.S.</a></p>
 <h3 id="n5---image-metadata">N5 - Image Metadata?<a class="headerlink" href="#n5---image-metadata" title="Permanent link">&para;</a></h3>
 <p>Yes, Nina can do this! It has a handy plug-in called Session Manager that can record various metadata for each image, including:</p>
 <ul>
