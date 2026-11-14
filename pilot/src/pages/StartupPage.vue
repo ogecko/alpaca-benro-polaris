@@ -17,7 +17,7 @@
 
 <script setup lang="ts" >
 
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useDeviceStore } from 'src/stores/device'
 import { useRouter } from 'vue-router'
 
@@ -26,13 +26,21 @@ const router = useRouter()
 const dev = useDeviceStore()
 
 const show = ref(false)
+let dashboardTimer: ReturnType<typeof setTimeout> | undefined
 
 // ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
   await dev.connectRestAPI()
   show.value=true
-  setTimeout(() => { void router.push('/dashboard') }, 2000)  // 2 seconds delay
+  // After 2 seconds go to the dashboard, but only if the user is still on this banner page
+  dashboardTimer = setTimeout(() => {
+    if (router.currentRoute.value.path === '/') void router.push('/dashboard')
+  }, 2000)
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(dashboardTimer)
 })
 
 
