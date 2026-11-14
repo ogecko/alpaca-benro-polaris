@@ -50,21 +50,7 @@ This guide uses NINA, the recommended app: it's free and has an excellent user i
 
 ## Setting Up and Connecting
 
-1. **Start the Alpaca Driver.**
-    The driver starts by itself when the PC starts. If you skipped that during installation, launch it by double-clicking the desktop shortcut.
-2. **Open Alpaca Pilot.**
-    In your browser, navigate to the Alpaca Pilot App.
-3. **Power on the Polaris.**
-    Use a short press followed by a long press to power on the mount.
-4. **Confirm Wi-Fi connectivity.**
-    Check that your mini-PC keeps a stable Wi-Fi connection to the Polaris.
-5. **Connect and configure the Polaris.**
-    On Alpaca Pilot's Connect page:
-
-    - Set **Astro Mode**
-    - **Reset all axes** and wait for them to finish
-    - **Skip** the compass alignment
-    - **Skip** the single star alignment
+Start the Alpaca Driver, open Alpaca Pilot and power on the Polaris, then follow the steps on Alpaca Pilot's Connect page: set Astro Mode, reset the axes, and skip the compass and single star alignment. See [Connecting Polaris](./pilot.md#connecting-polaris) for each step. Check that your mini-PC keeps a stable Wi-Fi connection to the Polaris.
 
 ## Focusing and Aligning
 

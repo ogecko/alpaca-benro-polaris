@@ -15,8 +15,9 @@ Once Alpaca Pilot is [connected to the Polaris](./pilot.md#connecting-polaris), 
 The driver needs your observing site's latitude and longitude to track accurately. Until they're set, Alpaca Pilot shows a **PreSetup** warning and won't move the mount. Set them in Alpaca Pilot's **Settings**, under **Observing Site Information**, in any of these ways:
 
 * **Click on the map.** Find your observing site on the map and click it.
-* **Enter the coordinates.** Type the **Latitude** and **Longitude** in decimal degrees, north and east positive.
-* **Locate with the browser.** Click **Locate** to use the location of the device running your browser. A phone or tablet uses its GPS, so open Alpaca Pilot on it at your site. A laptop or PC usually works out its location from the internet, which is often only approximate. Browsers only allow this over HTTPS, or over HTTP when the browser is on the same computer as the driver (`http://localhost`). From any other device, first set up [HTTPS](#using-https).
+* **Enter the coordinates.** Type the **Latitude** and **Longitude** in decimal degrees, north and east positive, based on the World Geodetic System [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System).
+* **Locate with a mobile device.** Using a phone or tablet, click **Locate** in its browser to use the GPS location of the device. Browsers only allow this over HTTPS and Location Services must be enabled. See [Using HTTPS](#using-https).
+* **Locate with the browser.** Using a laptop or desktop, click **Locate** to use the internet location of the device running your browser. Browsers only allow this over HTTPS, or over HTTP when the browser is on the same computer as the driver (`http://localhost`). See [Using HTTPS](#using-https).
 * **Locate with a GPS receiver.** At a dark site without internet, a USB GPS receiver plugged into the computer running the driver gives the site's latitude, longitude and elevation, over HTTP or HTTPS. See [GPS Receiver](#gps-receiver) below.
 
 With internet, Alpaca Pilot fills in the site's elevation, pressure and name from a web service. Without it, the location is named by its coordinates. To keep several sites, click the save icon beside **Location**, then choose a site from the **Location** list next time.
@@ -92,6 +93,8 @@ On any device that connected to an earlier version of the driver, also clear tha
 * **Safari on iOS/iPadOS**: Settings → Safari → Clear History and Website Data
 
 ### GPS Receiver
+
+A USB GPS receiver plugged into the computer running the driver sets the site's latitude, longitude and elevation from GPS satellites, with no internet or HTTPS needed. It's the easiest way to set an accurate location at a dark site without internet. Any receiver that outputs standard NMEA sentences works, such as the inexpensive u-blox receivers.
 
 **Connecting the receiver:**
 

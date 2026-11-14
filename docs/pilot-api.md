@@ -19,7 +19,7 @@ The web server also listens on the other port and redirects to the active one: w
 
 ## HTTPS
 
-With **HTTPS** enabled in Alpaca Pilot (the `enable_https` setting), the web server and the WebSocket use HTTPS and secure WebSockets (`wss://`). The driver creates its own certificate authority and certificate, stored in the `data` folder. Browsers only trust them after you install the authority's certificate from `/alpaca_pilot_ca.crt`, as described in [Using HTTPS](./pilot.md#using-https). HTTPS lets phone browsers use location services, for example to set your observing site.
+With **HTTPS** enabled in Alpaca Pilot (the `enable_https` setting), the web server and the WebSocket use HTTPS and secure WebSockets (`wss://`). The driver creates its own certificate authority and certificate, stored in the `data` folder. Browsers only trust them after you install the authority's certificate from `/alpaca_pilot_ca.crt`, as described in [Using HTTPS](./initial-setup.md#using-https). HTTPS lets phone browsers use location services, for example to set your observing site.
 
 The Alpaca REST API on port `5555` has its own setting, `enable_rest_https`. If you turn it on, applications such as NINA must also be set to use HTTPS for Alpaca discovery.
 

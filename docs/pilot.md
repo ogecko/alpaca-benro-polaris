@@ -148,7 +148,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
 
 ![Power on Poalris and Enable Wifi](images/pilot-connectc.png)
 
-- **① Power On the Polaris:** The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.
+- **① Power On the Polaris:** Power it on with a short press of the power button followed by a long press, releasing after three beeps (if it won't start, see [Troubleshooting B1](./troubleshooting-polaris.md#b1---polaris-wont-start)). The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.
 
      *Note: Bluthooth is only used for discovery and enabling Wifi. It is entirely optional. It is not used in normal operation of the Polaris.*
 
@@ -237,14 +237,9 @@ This is primarily useful for:
 
 Additionally, this dialog allows you to modify the Driver’s behavior regarding automatic reconnection to the Polaris mount. You can disable auto-reconnect if manual control is preferred or if the mount is temporarily unavailable.
 
-
+It's also where you download the driver's CA certificate and switch Alpaca Pilot to HTTPS. Alpaca Pilot runs over HTTP by default, and browsers restrict some features, such as location access and the clipboard, to HTTPS. See [Using HTTPS](./initial-setup.md#using-https) in Initial Setup.
 
 ![Pilot connect](images/pilot-connectf.png)
-
-
-### Using HTTPS
-
-Alpaca Pilot runs over HTTP by default, and browsers restrict some features, such as location access and the clipboard, to HTTPS. To install the driver's certificate and switch Alpaca Pilot to HTTPS, see [Using HTTPS](./initial-setup.md#using-https) in Initial Setup.
 
 <br>
 <br>
