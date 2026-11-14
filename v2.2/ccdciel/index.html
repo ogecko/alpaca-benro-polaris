@@ -1182,10 +1182,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#calibration" class="md-nav__link">
+  <a href="#focuser-calibration" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Calibration
+        Focuser Calibration
       </span>
     </span>
   </a>
@@ -1354,10 +1354,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#calibration_1" class="md-nav__link">
+  <a href="#guider-calibration" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Calibration
+        Guider Calibration
       </span>
     </span>
   </a>
@@ -2379,10 +2379,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#calibration" class="md-nav__link">
+  <a href="#focuser-calibration" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Calibration
+        Focuser Calibration
       </span>
     </span>
   </a>
@@ -2551,10 +2551,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#calibration_1" class="md-nav__link">
+  <a href="#guider-calibration" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Calibration
+        Guider Calibration
       </span>
     </span>
   </a>
@@ -2734,7 +2734,7 @@
 <p>CCDciel can drive a connected focuser to find the best focus, measuring the HFD (Half Flux Diameter) of the stars in each image: the smaller the better. A focused lens is also needed before plate-solving will work.</p>
 <h3 id="manual-focus">Manual Focus<a class="headerlink" href="#manual-focus" title="Permanent link">&para;</a></h3>
 <p>Point the camera at the sky and use the <strong>Preview</strong> panel in <strong>Loop</strong> mode. Start with 10-15 second exposures while stars are out-of-focus disks, then reduce to about 1 second as focus improves. Double-click a star near the image centre, check it is not saturated, and enable <strong>Manual focus aid</strong> on the <strong>Focus</strong> tab to magnify it. Adjust the focuser until the star is as small and bright as possible.</p>
-<h3 id="calibration">Calibration<a class="headerlink" href="#calibration" title="Permanent link">&para;</a></h3>
+<h3 id="focuser-calibration">Focuser Calibration<a class="headerlink" href="#focuser-calibration" title="Permanent link">&para;</a></h3>
 <p>Before using autofocus, run <strong>Tools &gt; Focuser calibration</strong> with a focused, centred star field. Set the exposure, preferred move direction, step size and backlash (if known). CCDciel then moves the focuser in one direction and back, measuring the star diameter, to find the minimum HFD. If the forward and reverse curves don't line up, cancel, adjust the backlash and restart. When finished, the focuser is left at the minimum HFD and the recommended parameters are shown; click <strong>Save</strong> to store them in the auto-focus preferences.</p>
 <h3 id="running-autofocus">Running Autofocus<a class="headerlink" href="#running-autofocus" title="Permanent link">&para;</a></h3>
 <p>In <strong>Edit &gt; Preferences &gt; Auto-focus</strong>, choose the <strong>Dynamic</strong> method (it fits a curve through the HFD measurements). Test the calibrated parameters with the <strong>Autofocus</strong> button on the <strong>Focus</strong> tab. In a sequence, each plan step has its own autofocus settings.</p>
@@ -2902,7 +2902,7 @@
 <li>In Alpaca Pilot, <strong>Sidereal Tracking</strong> must be enabled, with the tracking rate set to <strong>Sidereal</strong>.</li>
 <li>The <strong>Guide Rate</strong> is set on the Alpaca Pilot <strong>Settings</strong> page. The default <strong>1.0x</strong> works well; reduce it (e.g. 0.75x) if the guider pushes the mount around too much.</li>
 </ul>
-<h3 id="calibration_1">Calibration<a class="headerlink" href="#calibration_1" title="Permanent link">&para;</a></h3>
+<h3 id="guider-calibration">Guider Calibration<a class="headerlink" href="#guider-calibration" title="Permanent link">&para;</a></h3>
 <p>Calibrate once before guiding. Set the guide exposure to 3-5 seconds with the stars in focus, point at least 45 degrees away from the celestial pole, and click <strong>Calibration</strong>. The guider sends pulses in four directions and measures how the star moves; this takes a few minutes. The results are shown on the <strong>Advanced</strong> tab, where the East/West and North/South values should match.</p>
 <p>For the Benro Polaris:</p>
 <ul>
