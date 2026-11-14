@@ -45,7 +45,7 @@ jobs:
           else
             git worktree add --orphan -b gh-pages pages
           fi
-      - run: python utility/docs/publish_version.py site pages ${{ steps.version.outputs.docs_version }}
+      - run: python utility/docs/publish_version.py pilot/dist/docs pages ${{ steps.version.outputs.docs_version }} docs/site-root
       - name: Commit and push the gh-pages branch
         working-directory: pages
         run: |

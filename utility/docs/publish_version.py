@@ -7,12 +7,14 @@ version selector understands):
   <pages>/v2.2/...       one folder per version, replaced each time that version is published
   <pages>/versions.json  the versions listed in the selector, newest first
   <pages>/index.html     redirects the site root to the newest version
+  <pages>/<file>         any files in an optional root folder (e.g. docs/site-root), such as the
+                         Google Search Console verification file, which must sit at the site root
 
 The pages tree is a checkout of the gh-pages branch, so older versions survive between builds.
 
 Usage (from the repo root):
-    MIKE_DOCS_VERSION=v2.2 uv run --group docs zensical build --clean
-    python utility/docs/publish_version.py site <gh-pages checkout> v2.2
+    MIKE_DOCS_VERSION=v2.2 uv run --group docs zensical build --clean      # builds pilot/dist/docs
+    python utility/docs/publish_version.py pilot/dist/docs <gh-pages checkout> v2.2 [docs/site-root]
 """
 import json
 import re
@@ -40,7 +42,7 @@ def version_key(version: str) -> tuple[int, int]:
     return int(major), int(minor)
 
 
-def publish(site: Path, pages: Path, version: str) -> None:
+def publish(site: Path, pages: Path, version: str, root_files: Path | None = None) -> None:
     if not VERSION.match(version):
         sys.exit(f'version must look like v2.2, not {version!r}')
 
@@ -52,8 +54,12 @@ def publish(site: Path, pages: Path, version: str) -> None:
     (pages / 'versions.json').write_text(json.dumps(entries, indent=2) + '\n', encoding='utf-8')
     (pages / 'index.html').write_text(REDIRECT.format(version=versions[0]), encoding='utf-8')
     (pages / '.nojekyll').touch()
+    if root_files:
+        for f in root_files.iterdir():
+            if f.is_file():
+                shutil.copy2(f, pages / f.name)
     print(f'Published {version}; site root redirects to {versions[0]}; versions: {", ".join(versions)}')
 
 
 if __name__ == '__main__':
-    publish(Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3])
+    publish(Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], Path(sys.argv[4]) if len(sys.argv) > 4 else None)

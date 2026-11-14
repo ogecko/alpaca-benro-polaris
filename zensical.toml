@@ -10,7 +10,13 @@ copyright = "Copyright &copy; 2024-2026 David Morrison"
 repo_url = "https://github.com/ogecko/alpaca-benro-polaris"
 repo_name = "ogecko/alpaca-benro-polaris"
 docs_dir = "docs"
-site_dir = "site"
+site_dir = "pilot/dist/docs"
+# Files in docs/site-root/ are published at the site root by utility/docs/publish_version.py,
+# and docs/README.md explains how the site is built and published
+exclude_docs = """
+site-root/
+README.md
+"""
 extra_css = ["stylesheets/extra.css"]
 
 nav = [

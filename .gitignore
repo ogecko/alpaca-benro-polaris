@@ -193,5 +193,3 @@ cython_debug/
 !utility/replay/logs/
 !utility/replay/logs/*.log
 
-# Zensical documentation site output (see zensical.toml)
-site/
