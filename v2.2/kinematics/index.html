@@ -3323,6 +3323,7 @@
 <h3 id="reachable-envelope">Reachable Envelope<a class="headerlink" href="#reachable-envelope" title="Permanent link">&para;</a></h3>
 <p><strong>What it is and What it Solves</strong></p>
 <p>The Benro Polaris's second motor axis (<code>M2</code> or <code>theta2</code>) has a mechanical range of only <strong>-8° to +81.5°</strong>, which directly constrains how far the mount can point in Altitude and Roll — the two are coupled by <code>cos(theta2) = cos(alt) · cos(roll)</code>, so the more roll a shot needs, the less altitude range is available, and vice versa. Because this trade-off is a genuine hardware limit rather than a software one, any target orientation outside it must either be resolved to the nearest reachable point, or reached by an alternate mechanical path. The chart below shows this envelope: the green area is directly reachable.</p>
+<p>The envelope is the mount's fixed mechanical range. The Motor Angle Limits you set for cable safety are separate, and stop the mount with an alarm if a motor goes past them (see <a href=".././control/#motor-angle-limits">Motor Angle Limits</a>).</p>
 <p><img alt="Software Layers" src="../images/abp-reachable.png" /></p>
 <p>Near the bottom edges of the envelope, the driver often has a choice between two valid solutions for a given (Altitude and Roll) target: an "unflipped" path, and a "flipped" path where <code>theta3</code> (the Astro axis) is rotated by approximately 180° to swing the boresight around from the opposite side. The flipped path trades a large Astro axis movement for access to orientations, particularly steep negative altitudes, that the unflipped path cannot reach at all.</p>
 <p><strong>Related Features</strong></p>
@@ -3429,74 +3430,8 @@
 </tbody>
 </table>
 <p>A value of <strong>1.0×</strong> means the mount is operating normally. A value of <strong>1.5×</strong> means the motors need to move about 50% more than they would in an ideal position. The table is the same for positive and negative roll angles. Only the <strong>amount of roll</strong> matters.</p>
-<p><strong>How to fix it:</strong></p>
-<p>There are two simple ways to make tracking easier:</p>
-<ol>
-<li><strong>Increase the camera's roll angle magnitude away from zero (horizontal)</strong>, or</li>
-<li><strong>Point the telescope higher in the sky.</strong></li>
-</ol>
-<p>Increasing the roll angle moves the mount away from the difficult pose where the two motors are working against each other. The table below shows approximately how much roll is needed to keep the motor amplification below different limits:</p>
-<table>
-<thead>
-<tr>
-<th>Telescope Altitude</th>
-<th style="text-align: right;">Maximum 1.5×</th>
-<th style="text-align: right;">Maximum 1.3×</th>
-<th style="text-align: right;">Maximum 1.2×</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>10°</td>
-<td style="text-align: right;">41° roll</td>
-<td style="text-align: right;">50° roll</td>
-<td style="text-align: right;">56° roll</td>
-</tr>
-<tr>
-<td>20°</td>
-<td style="text-align: right;">38° roll</td>
-<td style="text-align: right;">47° roll</td>
-<td style="text-align: right;">54° roll</td>
-</tr>
-<tr>
-<td>30°</td>
-<td style="text-align: right;">31° roll</td>
-<td style="text-align: right;">42° roll</td>
-<td style="text-align: right;">50° roll</td>
-</tr>
-<tr>
-<td>40°</td>
-<td style="text-align: right;">13° roll</td>
-<td style="text-align: right;">33° roll</td>
-<td style="text-align: right;">44° roll</td>
-</tr>
-<tr>
-<td>50°</td>
-<td style="text-align: right;">Any roll</td>
-<td style="text-align: right;">6° roll</td>
-<td style="text-align: right;">31° roll</td>
-</tr>
-<tr>
-<td>60° and above</td>
-<td style="text-align: right;">Any roll</td>
-<td style="text-align: right;">Any roll</td>
-<td style="text-align: right;">Any roll</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Practical recommendation:</strong></p>
-<p>When tracking targets below about <strong>40° altitude</strong>, use a <strong>large roll angle</strong> (typically <strong>40° to 60° in magnitude</strong>).</p>
-<p>Pay attention to the direction in which the roll angle changes during tracking:</p>
-<ul>
-<li>If the roll angle is <strong>increasing</strong>, choose <strong>−40° to −60°</strong>.</li>
-<li>If the roll angle is <strong>decreasing</strong>, choose <strong>+40° to +60°</strong>.</li>
-</ul>
-<p>Once the telescope is above about <strong>50° altitude</strong>, this problem is essentially eliminated. At higher altitudes, tracking amplification remains below <strong>1.3× regardless of the camera's roll angle</strong>, so no special adjustment is needed.</p>
-<p><strong>In short:</strong></p>
-<blockquote>
-<p><strong>If you're imaging low in the sky, use a large roll angle of &plusmn; 40° to 60° when possible.</strong> <br>
-<strong>The higher the target is in the sky, the less important camera roll angle becomes.</strong></p>
-</blockquote>
+<p><strong>How the driver handles it:</strong></p>
+<p>With <a href=".././control/#coordinated-speed-control">Coordinated Speed Control</a> on (the default), the driver holds all three motors at their required speeds together, so tracking stays accurate at low altitudes and near zero roll, with no special camera roll needed. With it off, tracking below about 40° altitude is easier with a large camera roll of ±40° to 60°.</p>
 <hr />
 <h2 id="reference-frames">Reference Frames<a class="headerlink" href="#reference-frames" title="Permanent link">&para;</a></h2>
 <p>Each frame has a fixed set of basis axes. The scale of each reference frame is arbitrary, since Polaris kinematic mathematics is angle-based, and quaternions are defined on a unit sphere. Vectors and quaternions are tagged with
