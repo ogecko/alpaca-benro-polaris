@@ -35,7 +35,7 @@ On every push to `main` or `dev2_2`, the GitHub Actions workflow `.github/workfl
 5. It checks out the `gh-pages` branch into a `pages` folder. That branch holds every version published so far.
 6. `utility/docs/publish_version.py` merges in this version:
     * it replaces `pages/v2.2/` with the new build, leaving other versions alone,
-    * it rewrites `versions.json` (the version selector) and the root `index.html` (which redirects to the newest version), and
+    * it rewrites `versions.json` (the version selector), the root `index.html` (which redirects to the newest version) and the root `sitemap.xml` (a sitemap index pointing at each version's `sitemap.xml`, so search engines find every version from one URL), and
     * it copies the files in `docs/site-root/`, such as the Google Search Console verification file, to the site root.
 7. It commits and pushes the updated `gh-pages` branch, so the next run starts from it.
 8. It deploys the `pages` folder to GitHub Pages.
