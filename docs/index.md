@@ -1,3 +1,7 @@
+---
+title: ASCOM Alpaca driver for the Benro Polaris
+---
+
 # Alpaca Benro Polaris Driver
 
 <p align="center">
