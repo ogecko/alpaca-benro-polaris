@@ -10,13 +10,13 @@
 
 ## Demonstration Videos
 
-* **YouTube Channel:** The Pilot sidebar's Videos link now points to the [full YouTube channel](https://www.youtube.com/@jdm5001/featured), including v2.2 videos:
-* **40 - Deep Dive Podcast:** Deep Dive Podcast on Alpaca Benro Polaris V2.2 at https://youtu.be/ouJ52WcTY2M
-* **41 - Installation on Win11:** Installation of Alpaca Driver v2.2 on Win11 at https://youtu.be/qXRiTLS2EaY
-* **42 - Installation on Raspberry Pi:** Installation of Alpaca Driver v2.2 on a Raspberry Pi at https://youtu.be/4_zNjTEfG6Y
-* **43 - Beta Preview:** Beta Preview Demonstration of v2.2 at https://youtu.be/YfUGk_6oSYE
-* **44 - Galactic Panorama Workflow:** Galactic Panorama Workflow at https://youtu.be/f1YoKFxFse4
-* **45 - Less Drift and Better Tracking:** Less Drift and Better Tracking on the Benro Polaris at https://youtu.be/ugxQ13Z1Mu4
+* **Pilot Videos:** Sidbar Video menu links to [full YouTube channel](https://www.youtube.com/@jdm5001/featured), with v2.2 videos:
+    * [40 - Deep Dive Podcast](https://youtu.be/ouJ52WcTY2M)
+    * [41 - Installation on Win11](https://youtu.be/qXRiTLS2EaY)
+    * [42 - Installation on Raspberry Pi](https://youtu.be/4_zNjTEfG6Y)
+    * [43 - Beta Preview](https://youtu.be/YfUGk_6oSYE)
+    * [44 - Galactic Panorama Workflow](https://youtu.be/f1YoKFxFse4)
+    * [45 - Less Drift and Better Tracking](https://youtu.be/ugxQ13Z1Mu4)
 
 ## Win11 Upgrade Instructions
 
