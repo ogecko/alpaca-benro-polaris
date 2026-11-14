@@ -50,12 +50,14 @@ nav = [
   ] },
   { "Reference" = [
     "architecture.md",
-    "alpaca-api.md",
-    "pilot-api.md",
-    "config.md",
-    "catalog.md",
     "control.md",
     "kinematics.md",
+    "catalog.md",
+    "alpaca-api.md",
+    "telescope-api.md",
+    "rotator-api.md",
+    "pilot-api.md",
+    "config.md",
   ] },
   { "Help" = [
     "troubleshooting.md",

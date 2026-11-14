@@ -29,3 +29,8 @@
   line-height: 1.35;
   vertical-align: baseline;
 }
+
+/* Reference tables: keep the code names in the first column (API members, settings) on one line */
+.md-typeset table:not([class]) td:first-child code {
+  white-space: nowrap;
+}

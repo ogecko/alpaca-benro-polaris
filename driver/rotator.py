@@ -63,24 +63,28 @@ class RotatorMetadata:
 
 @before(PreProcessRequest(maxdev,'log_alpaca_actions'))
 class action:
+    """Run a Device Action. The Rotator has none: the Alpaca Driver's Device Actions are on the Telescope."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class commandblind:
+    """Send a raw command to the device. Not implemented."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class commandbool:
+    """Send a raw command and return a boolean. Not implemented."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class commandstring:
+    """Send a raw command and return a string. Not implemented."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         resp.text = await MethodResponse(req, NotImplementedException())
 
@@ -88,41 +92,48 @@ class commandstring:
 # Connected, though common, is implemented in rotator.py
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class description:
+    """A description of the Rotator device."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(RotatorMetadata.Description, req)
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class driverinfo:
+    """Information about the driver, including the interface it implements (IRotatorV3)."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(RotatorMetadata.Info, req)
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class interfaceversion:
+    """The ASCOM Rotator interface version the driver implements: 3."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(RotatorMetadata.InterfaceVersion, req)
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class driverversion:
+    """The Alpaca Driver's version."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(RotatorMetadata.Version, req)
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class name:
+    """The Rotator's name, as shown in applications: Alpaca Benro Polaris Rotator."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(RotatorMetadata.Name, req)
 
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class supportedactions:
+    """The Device Actions the Rotator supports: none (an empty list)."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([], req)  # Not PropertyNotImplemented
 
 @before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class connected:
+    """Whether this client is connected to the Rotator. Set `Connected` to true or false to connect or disconnect; each `ClientID` connects separately."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         client = await get_request_field('ClientID', req)      # Raises 400 bad request if missing
         is_conn = polaris.connectionquery(client)
@@ -139,6 +150,7 @@ class connected:
 
 @before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class canreverse:
+    """Whether the Rotator supports reversing its direction: always true."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -147,6 +159,7 @@ class canreverse:
 
 @before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class reverse:
+    """Whether the Rotator's direction is reversed. Set with `Reverse`. The value is stored and reported, but the driver doesn't currently act on it."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -172,6 +185,7 @@ class reverse:
 
 @before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class ismoving:
+    """Whether the Rotator is rotating the camera."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -185,6 +199,7 @@ class ismoving:
 
 @before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class position:
+    """The camera's Position Angle on the sky, in degrees: its angle relative to celestial north."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -201,6 +216,7 @@ class position:
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class targetposition:
+    """The Position Angle the Rotator is moving to, in degrees."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -217,6 +233,7 @@ class targetposition:
 
 @before(PreProcessRequest(maxdev,'log_alpaca_polling'))
 class mechanicalposition:
+    """The camera's Roll Angle, in degrees: its angle relative to the horizon."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -230,6 +247,7 @@ class mechanicalposition:
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class movemechanical:
+    """Rotate the camera to a Roll Angle, given as `Position` in degrees (-180 to 360). Keeps the mount pointing at the same target. Needs Alpaca Rotator to be on in Alpaca Pilot's settings, and ends any sync guiding."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -251,6 +269,7 @@ class movemechanical:
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class moveabsolute:
+    """Rotate the camera to a Position Angle, given as `Position` in degrees (-180 to 360). Keeps the mount pointing at the same target. Needs Alpaca Rotator to be on, and ends any sync guiding."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -273,6 +292,7 @@ class moveabsolute:
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class move:
+    """Rotate the camera by `Position` degrees (-540 to 540), relative to its current Position Angle. Needs Alpaca Rotator to be on, and ends any sync guiding."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -294,6 +314,7 @@ class move:
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class sync:
+    """Tell the driver the camera's true Position Angle, given as `Position` in degrees (-180 to 360), for example from a plate solve. Adds a roll sync point to the Multi-Point Alignment model, so has no effect unless Multi-Point Alignment is on."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:
             resp.text = await PropertyResponse(None, req, NotConnectedException())
@@ -315,11 +336,13 @@ class sync:
 
 @before(PreProcessRequest(maxdev,'log_rotator_protocol'))
 class stepsize:
+    """The smallest rotation step, in degrees: one arc second (1/3600)."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse(1/3600, req)
 
 @before(PreProcessRequest(maxdev, 'log_rotator_protocol'))
 class halt:
+    """Stop rotating. This stops the whole mount, including any slew and tracking, the same as the Telescope's `abortslew`. Fails while the mount is parked."""
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:

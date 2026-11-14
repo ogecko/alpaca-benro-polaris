@@ -5,7 +5,7 @@ The Alpaca Driver presents the Benro Polaris to astronomy applications as two st
 
 Alpaca Pilot's own web server, REST proxy and WebSocket are not part of the ASCOM Alpaca standard, and are described in the [Pilot API Reference](./pilot-api.md).
 
-All requests go to the driver's Alpaca REST API on port `5555` (the `alpaca_restapi_port` setting), at `http://<driver address>:5555/api/v1/<device>/0/<member>`. The examples below use `ap.local` as the driver address; use the IP address of the computer running the driver if `ap.local` doesn't resolve on your network (see [Launching the Alpaca Pilot Application](./pilot.md#launching-alpaca-pilot)). Each request includes a `ClientID` and `ClientTransactionID`, and the driver must be connected to the Polaris for most calls to succeed.
+All requests go to the driver's Alpaca REST API on port `5555` (the `alpaca_restapi_port` setting), at `http://<driver address>:5555/api/v1/<device>/0/<member>`. The examples below use `ap.local` as the driver address; use the IP address of the computer running the driver if `ap.local` doesn't resolve on your network (see [Launching the Alpaca Pilot Application](./pilot.md#launching-alpaca-pilot)). Each request includes a `ClientID` and `ClientTransactionID`, and the driver must be connected to the Polaris for most calls to succeed. See the [ASCOM Alpaca API reference](https://ascom-standards.org/api/) for the REST protocol itself.
 
 ## Discovery
 
@@ -34,9 +34,9 @@ Every device also has the members common to all ASCOM devices, such as `connecte
 
 ## Telescope
 
-The Telescope device implements the ASCOM **ITelescopeV3** interface. See the [ASCOM Telescope interface](https://ascom-standards.org/newdocs/telescope.html) for what each property and method does, and the [ASCOM Alpaca API reference](https://ascom-standards.org/api/) for the REST calls. Meridian flips are not supported, as the Polaris is an Alt/Az mount. The driver keeps every slew within what the Polaris can physically reach, where Altitude and Roll limit each other; see [Reachable Envelope](./kinematics.md#reachable-envelope).
+The [Telescope API Reference](./telescope-api.md) lists each of the Telescope's members and what it does. Some examples:
 
-Read the Right Ascension the mount is pointing at, in hours:
+**Read the Right Ascension** the mount is pointing at, in hours:
 
 ```
 curl "http://ap.local:5555/api/v1/telescope/0/rightascension?ClientID=1&ClientTransactionID=1"
@@ -48,7 +48,7 @@ The response gives the value, along with any error:
 {"Value": 5.5881, "ClientTransactionID": 1, "ServerTransactionID": 42, "ErrorNumber": 0, "ErrorMessage": ""}
 ```
 
-Slew to the Orion Nebula (Right Ascension in hours, Declination in degrees):
+**Slew to the Orion Nebula** (Right Ascension in hours, Declination in degrees):
 
 ```
 curl -X PUT http://ap.local:5555/api/v1/telescope/0/slewtocoordinatesasync \
@@ -57,22 +57,22 @@ curl -X PUT http://ap.local:5555/api/v1/telescope/0/slewtocoordinatesasync \
 
 ## Rotator
 
-The Rotator device implements the ASCOM **IRotatorV3** interface. See the [ASCOM Rotator interface](https://ascom-standards.org/newdocs/rotator.html) and the [ASCOM Alpaca API reference](https://ascom-standards.org/api/). Rotating the camera keeps the mount pointing at the same target. The Rotator's `Position` is the Position Angle of the camera on the sky, and its `MechanicalPosition` is the Roll Angle of the camera relative to the horizon (see [Roll Angle vs. Position Angle](./control.md#roll-angle-vs-position-angle)).
+The [Rotator API Reference](./rotator-api.md) lists each of the Rotator's members and what it does. Some examples:
 
-Read the current Position Angle, in degrees:
+**Read the Position Angle** of the camera, in degrees:
 
 ```
 curl "http://ap.local:5555/api/v1/rotator/0/position?ClientID=1&ClientTransactionID=3"
 ```
 
-Rotate the camera to a Position Angle of 90°:
+**Rotate the camera** to a Position Angle of 90°:
 
 ```
 curl -X PUT http://ap.local:5555/api/v1/rotator/0/moveabsolute \
      -d "Position=90&ClientID=1&ClientTransactionID=4"
 ```
 
-To set the Roll Angle directly, use the Rotator's `movemechanical` endpoint, or pass `roll` to [`Polaris:SlewAbsolute`](#polarisslewabsolute). Moving `moveabsolute` to 0 sets the Position Angle to 0, which only sets the Roll to 0 by coincidence.
+To set the Roll Angle instead, use `movemechanical`, or pass `roll` to [`Polaris:SlewAbsolute`](#polarisslewabsolute).
 
 ## Device Actions
 

@@ -33,6 +33,8 @@ jobs:
         run: uv run --no-sync python utility/docs/check_docs.py
       - name: Check the Configuration Reference matches driver/config.toml
         run: uv run --no-sync python utility/docs/make_config_reference.py --check
+      - name: Check the Telescope and Rotator API References match the driver
+        run: uv run --no-sync python utility/docs/make_api_reference.py --check
       - id: version
         run: echo "docs_version=$(uv run --no-sync python utility/docs/check_docs.py --version)" >> "$GITHUB_OUTPUT"
       - run: uv run --no-sync zensical build --clean
