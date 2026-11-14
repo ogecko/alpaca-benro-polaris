@@ -2582,18 +2582,11 @@
 <p>The driver comes with two NINA Advanced Sequencer templates that run <a href="#multi-point-alignment">Multi-Point Alignment</a> and the <a href="#worm-gear-calibration">Worm Gear Calibration</a> for you. They're in the driver's <code>utility/nina</code> folder, and on <a href="https://github.com/ogecko/alpaca-benro-polaris/tree/dev2_2/utility/nina">GitHub</a>. To install them:</p>
 <ol>
 <li>In NINA's <strong>Plugins</strong> tab, install the <strong>Device Actions and Commands</strong> plugin, then restart NINA. The templates use its <strong>Device Action</strong> instruction to control the mount.</li>
-<li>
-<p>Copy the two <code>.template.json</code> files from the driver's <code>utility/nina</code> folder into NINA's templates folder. This is usually:</p>
-<ul>
-<li><code>Documents\N.I.N.A\Templates</code>, or</li>
-<li><code>OneDrive\Documents\N.I.N.A\Templates</code>, if OneDrive backs up your Documents folder.</li>
-</ul>
-<p>To check, save a template from the Advanced Sequencer: the <strong>Save As</strong> dialog opens in the templates folder.</p>
-</li>
-<li>
-<p>In the Advanced Sequencer, the templates now appear in the <strong>Templates</strong> list, ready to drag into a sequence.</p>
-</li>
+<li>In NINA's Advanced Sequencer, click <strong>Load Complete Sequence from JSON</strong>, and open <code>Multi-Point Alignment.template.json</code> from the folder <code>C:\Users\&lt;Username&gt;\alpaca-benro-polaris\utility\nina</code>, by default. </li>
+<li>Click <strong>Save current instruction as template</strong>, on the sequence instruction title bar, to the right of the <code>Multi-Point Alignment</code> heading.</li>
+<li>Repeat steps 2 and 3 for <code>Worm Gear Calibration.template.json</code>.</li>
 </ol>
+<p>Both templates now appear in the Advanced Sequencer's <strong>Templates</strong> list, ready to drag into a sequence.</p>
 <h2 id="multi-point-alignment">Multi-Point Alignment<a class="headerlink" href="#multi-point-alignment" title="Permanent link">&para;</a></h2>
 <blockquote>
 <p>VIDEO DEMO: <a href="https://youtu.be/4CMO0R_yphw">24 - Multi Point Alignment and Tripod Tilt</a></p>
