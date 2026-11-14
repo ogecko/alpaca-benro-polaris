@@ -178,6 +178,7 @@ This project would not exist without the help of many people.
 ### Technical Expertise
 
 * Vladimir Vyskocil - for his significant contribution to the project, the [Polaris protocol](https://github.com/vyskocil/Polaris/wiki/Polaris-protocol-commands), exploring an initial prototype, being a sounding board, and inspiration for this project.
+* rbaranga - for contributing the GPS Receiver support
 * Stefan Berg - for creating and maintaining N.i.n.a.
 * Robert B. Denny - for his work in writing a template for Alpaca drivers everywhere.
 * Steven Byrnes - and the SeeStar_alp driver developers for sharing their great work.
