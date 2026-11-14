@@ -6,7 +6,7 @@
 2. **Prepare a platform.** [MiniPC](./hardware.md) (recommended), Laptop, Mac, Pi or Docker.
 3. **Install the driver.** [Windows](./installation.md) · [macOS](./installation_macos.md) · [Raspberry Pi](./raspberrypi.md) · [Docker](./docker.md)
 4. **Connect with Alpaca Pilot.** [Connecting Polaris](./pilot.md#connecting-polaris)
-5. **Initial setup.** [Observing Site, Multi-Point Alignment, and Calibration](./initial-setup.md)
+5. **Initial setup.** [Site Location](./initial-setup.md#site-location) · [Alignment](./initial-setup.md#multi-point-alignment) · [Calibration](./initial-setup.md#motor-speed-calibration)
 6. **Add your astrophotography app.** [Stellarium](./stellarium.md) · [NINA](./nina.md) · [CCDciel](./ccdciel.md) · [PHD2](./guiding-pulse.md)
 7. **Capture images.** [Deep-sky](./dso-imaging.md) · [Planetary](./planetary.md) · [Satellites](./orbitals.md)
 
