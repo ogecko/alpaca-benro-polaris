@@ -48,7 +48,7 @@ The main menu of the **Alpaca Pilot** application provides centralized access to
 - **④ Connect:**  Initiates or terminates the connection to the Alpaca Driver and Polaris mount. This button reflects current connection status.
 
 - **⑤ Settings:** Opens the configuration panel where you can set observing site latitude/longitude, define the park position, adjust preferences, and enable standard and advanced features.
-> Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to [enable HTTPS in Alpaca Pilot](#using-https).
+> Note: Browsers only allow the **Locate** button in Settings over HTTPS, unless the browser is on the same computer as the driver. See [Using HTTPS](./initial-setup.md#using-https).
 
 - **⑥ Search Entry:** A text input field for searching catalog entries and targets. Supports shorthand formats and intelligent parsing for quick access to celestial objects.
 
@@ -221,15 +221,9 @@ Follow these steps to prepare your Benro Polaris mount for Astro Mode using the 
 
 
 
-- **⑤ Multi Point Alignment:** Click this Button to navigate to the Alignment Page. This will allow you to enable to Multi-Point Alignment and review model residuals. After 3 or more Sync Points are added to the model this indicator will turn green. If you are using Single Point Alignment, you can ignore this red indicator on the connect page.
+- **⑤ Multi Point Alignment:** Click this Button to navigate to the Alignment Page. This will allow you to enable to Multi-Point Alignment and review model residuals. After 3 or more Sync Points are added to the model this indicator will turn green (see [Multi-Point Alignment](./initial-setup.md#multi-point-alignment)). If you are using Single Point Alignment, you can ignore this red indicator on the connect page.
 
-- **Set Observing Site Location:** If the app displays a warning that **latitude and longitude are unset**, go to **Settings** in the menu bar.  
-    - Use the map to locate your observing site and click to set it, or click **Locate** to use the browser's location.  
-    - The app will attempt to auto-fill altitude, pressure, and location name via a web service. Without internet, the location is named by its coordinates.
-    - **GPS receiver (optional):** at a dark site without internet, a USB GPS receiver plugged into the computer running the Alpaca Driver can set the site instead. Click the arrow beside **Locate** and choose **Use GPS Receiver**. Choose its **Serial Port** (GPS receivers are marked in the list), then click **OK** and **Locate (GPS)**. The button shows its progress while it waits for three matching GPS fixes, then sets latitude, longitude and elevation.
-    - If the GPS receiver can't get a fix, give it a clear view of the sky. Its first fix after being plugged in can take several minutes. Plug it directly into the computer rather than a USB hub, and keep it away from cameras and their cables, which can block GPS signals.
-    - Linux also offers **GPS Daemon (GPSD)**, and the [Raspberry Pi guide](./raspberrypi.md#optional-gps-receiver) has Pi-specific notes.
-    - Click **Save** at the top of Settings so the location and GPS settings are kept after a restart.
+- **Set Observing Site Location:** If the app warns that **latitude and longitude are unset**, set them in **Settings** (see [Site Location](./initial-setup.md#site-location)).
 
 - **Begin Plate Solving:** With setup complete, you're ready to use the Driver and perform your first plate solve.
 
@@ -250,77 +244,7 @@ Additionally, this dialog allows you to modify the Driver’s behavior regarding
 
 ### Using HTTPS
 
-By default, Alpaca Pilot runs as an HTTP-based Single Page Application (SPA). As a result, your browser may display the site as **“Not Secure”** and restrict certain features such as location access and clipboard integration.
-
-Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser access and full functionality. When the Driver starts it will create self-signed certificates that are used for secure access. To use HTTPS you will need to download and install the CA Certificate and enable HTTPS in Alpaca Pilot.
-
-**Download the Certificate**
-
-
-1. Open the **Alpaca Pilot Connect** page.
-2. Open the **Network Services** dropdown dialog.
-3. Click **Download CA Certificate**.
-
-**Install on Windows**
-
-
-1. Open the downloaded `alpaca_pilot_ca.crt` file.
-2. Click **Install Certificate**.
-3. Select **Local Machine**, then click **Next**.
-4. Accept **User Access Control**, click **Yes**.
-4. Choose **Place all certificates in the following store**, then click **Browse**.
-5. Select **Trusted Root Certification Authorities**, then click **OK**.
-6. Click **Next**, then **Finish**.
-
-**Install on macOS**
-
-
-1. Open the downloaded `.crt` file — **Keychain Access** will launch automatically.
-2. Add the certificate to the **System** keychain.
-3. Locate `alpaca-pilot-ca` in the certificate list and double-click it.
-4. Expand the **Trust** section and set **When using this certificate** to **Always Trust**.
-5. Close the dialog and enter your password to confirm the changes.
-
-**Install on iOS**
-
-
-1. Open the **Alpaca Pilot Connect** page in **Safari** and download the CA certificate (Safari will prompt that a profile is ready to install).
-2. Go to **Settings → General → VPN & Device Management**, tap the **alpaca-pilot-ca** profile, then tap **Install** in the top-right corner (you'll be prompted for your device passcode).
-3. **This alone is not enough — the CA is installed but not yet trusted.** Go to **Settings → General → About → Certificate Trust Settings**.
-4. Under **Enable Full Trust for Root Certificates**, toggle **alpaca-pilot-ca** to **on**.
-
-
-**Restart Your Browser**
-
-
-* **Chrome:** Navigate to `chrome://restart`
-* **Safari:** Fully close Safari (swipe it away from the App Switcher)
-* **Firefox:**
-
-    1. Open `about:config`
-    2. Search for `security.enterprise_roots.enabled`
-    3. Set the value to `true`
-    4. Restart Firefox
-
-**Enable HTTPS**
-
-
-1. Open the **Alpaca Pilot Connect** page.
-2. Open the **Network Services** dropdown.
-3. Select **HTTPS**, then click **Save**.
-4. The Driver will restart with HTTPS enabled.
-5. Alpaca Pilot will detect the restart and redirect to HTTPS.
-
-**Certificate Warnings**
-
-If you're upgrading from an earlier driver version and still see certificate warnings or connection failures after following the steps above, the browser or the OS may be holding onto stale security state from before the upgrade.
-
-On Windows, do a full power-off rather than Restart. Windows 11 enables "Fast Startup" by default, which hibernates the session instead of fully reinitializing it on Restart. Leftover network state can persist across a restart; only a genuine power-off clears it. 
-
-On any device that connected to an earlier version of the driver, also clear that browser's site data
-
-* **Chrome/Edge**: Settings → Privacy and security → find the site under "All sites" and delete its data; 
-* **Safari on iOS/iPadOS**: Settings → Safari → Clear History and Website Data
+Alpaca Pilot runs over HTTP by default, and browsers restrict some features, such as location access and the clipboard, to HTTPS. To install the driver's certificate and switch Alpaca Pilot to HTTPS, see [Using HTTPS](./initial-setup.md#using-https) in Initial Setup.
 
 <br>
 <br>
@@ -359,7 +283,7 @@ The Status Indicator (a status chip in the top right-hand corner of the Dashboar
 -   **③ Parking:** The mount is moving into the customized park motor angle position.
 -   **④ Parked:** The mount has reached the set park location. A banner appears, and most functions are disabled until the mount is unparked.
 -   **⑤ Limit:** This indication appears on the dashboard when a **motor angle limit has been exceeded**. All control to the Polaris will be stopped. The user must click the reset button to acknowledge the limit.
--   **⑥ PreSetup:** This flag or alarm indication appears when the **observing site location (latitude, longitude)** has not been set. No action can be taken with the mount until the location is set.
+-   **⑥ PreSetup:** This flag or alarm indication appears when the **observing site location (latitude, longitude)** has not been set. No action can be taken with the mount until the location is set (see [Site Location](./initial-setup.md#site-location)).
 
 ![Dashboard indicators part 2](images/dashboard-indicators2.png)
 

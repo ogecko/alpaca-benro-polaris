@@ -197,83 +197,10 @@ Multi-Point Alignment (MPA), is the advanced alignment feature recommended for a
 *   **Benefit:** A major advantage of MPA is that users **no longer need to obsess over leveling their tripod**, as the model is designed to detect and correct for tilt.
 *   **Procedure:** To perform  Multi Point Alignment, you simply **perform multiple synced plate solves**. Each new sync automatically adds to the Driver's knowledge of the Polaris alignment at different orientations and times.
 
-Here is the procedure for performing Multi-Point Alignment and information regarding the necessary synchronization points, based on the version 2.0 driver and its integration with applications like NINA (Nighttime Imaging 'N' Astronomy).
 
 ### Performing Alignment
 
-**Initial Mount Setup**
-
-
-Before starting the alignment process, ensure the mount is prepared and connected to the Alpaca Driver:
-
-1.  **Polaris Mode:** Power on the Benro Polaris (BP) mount and use the BP App to switch it to **Astro Mode**.
-2.  **Skip Standard Alignment:** You can **skip** the standard Benro Polaris **Compass Align** and **Star Align** steps, as the driver will use default values (assuming the device is pointing South at 45 degrees altitude).
-5.  **Physical Setup:** Mount your camera, place the tripod outside, and **level the Benro Polaris as accurately as possible** (though the MPA model compensates for tilt, good leveling remains important for accuracy).
-6.  **Focus:** Perform a NINA Autofocus run.
-7. **Start Tracking:** Enable sidereal tracking from Nina or Alpaca Pilot
-
-**Initiating Alignment via Plate Solving**
-
-
-The Multi-Point Alignment model is built by performing synchronization (`SYNC`) operations, typically initiated after a **plate solve**. A single, accurate sync is generally sufficient to align the Polaris initially:
-
-1.  **Enable Multi-Point Alignment:** Use Alpaca Pilot App to enable MPA from either the Settings page or the Alignment page.
-1.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
-    *   Plate solving uses the camera image to identify the star patterns and precisely determine the mount’s orientation.
-    *   The Alpaca Driver automatically aligns the Benro Polaris with the resolved coordinates whenever a `Sync` command is performed.
-2.  **Alignment Confirmation:** Once this first plate-solve and sync is successful, the Polaris is now considered aligned.
-
-**Polar Alignment**
-
-
-To assist the multi-point model to be as polar aligned as possible, we recommend performing a plate-solve at your Celestrial Pole. This will ensure a point for the Celestrial Pole is in the model and help reduce residual error at that location. Use the following procedure:
-
-1. **Launch Alpaca Pilot**: from a web browser or via Nina Equipment setup cogs.
-2. **Search the catalog**: By typing 'pole' into the search bar
-3. **Initiate Navigation**: Once a target is selected, click the appropriate GOTO button to immediately navigate to that location. 
-4. **Wait for Completion**: Ensure the mount has fully stopped before proceding
-5.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
-
-**Target Trajectory Alignment**
-
-
-Any remaining points in the model should be placed along the trajectory of your imaging target. You can perform just one plate-solve at your target, or if you are performing a long imaging session you may want to perform a couple of plate-solves along its trajectory. 
-
-1. **Navigate to your target**: Use Alpaca Pilot, Stellarium or Nina to select and navigate to the current location of your target
-2. **Optionally Naviagate along target trajectory**: 
-    1. **Decrease Right Ascenscion** Use Alpaca Pilot to decrease the Right Ascension position by an hour or two. Enter 'd-2' into the Right Ascension setpoint field.
-    1. **Wait for Completion**: Ensure the mount has fully stopped before proceding
-    2.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
-    3. **Navigate back to your target**: Navigate back to the current location of your target
-2. **Wait for Completion**: Ensure the mount has fully stopped before proceding
-5.  **Manual Plate Solve and Sync:** Perform a **manually initiated plate-solve and sync**.
-
-**Review Model Residuals**
-
-
-After you add any additional sync points to the model, you should review the model residuals on the Alignment page in Alpaca Pilot. Each sync point in this list shows a **residual**; the angular difference between where the mount reported it was pointing and where the multi-point alignment (QUEST) model predicts it should point, given the other sync points. Lower residuals indicate a better fit.
-
-![Alignment Residuals](images/control-alignment1.png)
-
-Outlier residuals are flagged with an alert icon, **Amber** for residual above 5°, and **Red** for residual above 10°. The likely causes of high residuals include: poor centering before sync, mount movement during sync, sparce or clustered geometry, site location incorrect, or tripod movement. Amber and red sync points don't fit the alignment model well and should be reviewed for deletion, since including them will pull the model's accuracy down across the whole sky. 
-
-![Alignment Residuals](images/control-alignment1b.png)
-
-Delete a sync point by clicking on the cross next to the point. Note that if tracking is enabled when you delete a sync point, the model will adjust, and the mount will shift the head to its new understanding of where the current target is located. If this varies from its current location, then perform another manually initiated plate-solve and sync.
-
-A very good multi-point alignment model will have all sync points with residuals of arc-seconds, and none with arc-minutes or whole degrees of residuals.
-
-**Resetting Multi-Point Alignment on Re-Setup**
-
-
-From Alpaca Driver v2.2 onwards, the Multi-Point Alignment model is saved to disk and restored automatically on driver restart, so your alignment survives restarts without needing to re-sync. You can now restart the driver or reboot the MiniPC mid-session and resume imaging without losing your alignment.
-
-However, if you physically move or re-level the tripod, the saved model will no longer match your new setup and must be reset. To clear all sync points:
-
-1. Open Alpaca Pilot and navigate to the Alignment page.
-2. Switch to Single-Point Alignment. This clears all saved sync points.
-3. Switch back to Multi-Point Alignment.
-4. Perform a fresh Multi-Point Alignment as described in sections B–E above.
+The step-by-step procedure, including resetting the model after moving the tripod and reviewing residuals, is in [Multi-Point Alignment](./initial-setup.md#multi-point-alignment) in Initial Setup.
 
 
 ### Adding Sync Points
@@ -516,68 +443,9 @@ This value is a key parameter in the Kalman Filter algorithm that determines how
 ---
 ## Motor Speed Calibration
 
->VIDEO DEMO: [32 - Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
-
-
 The **Motor Speed Controller Calibration** feature in Alpaca Driver v2.0 allows advanced users to fine-tune motor behavior for their specific Polaris mount. While the system works well with default values, calibration can improve tracking precision, especially for long-exposure astrophotography.
 
-You can access the Motor Speed Calibration Tool by opening Alpaca Pilot and navigating to **Calibration** under **Performance Tuning** in the side menu  
-
-> **Note:** Calibration is optional. You can skip this step if you're not ready to dive in.
-
-
-### Preparing for the Test
-
-Before running a motor speed calibration test:
-
-- Ensure the **Polaris mount can move freely**
-- **Remove any camera or payload** to avoid strain
-- You can perform this test **during the day**
-
-
-### Running the Calibration
-
-1. **Select an Axis**  
-    Choose which motor axis to test:
-
-    - **M1** – Azimuth
-    - **M2** – Altitude
-    - **M3** – Rotation (Astro Axis)
-
-2. **Start the Test**  
-    - Click **Test** to begin
-    - If no specific test is selected, the driver will test **all available speeds**
-    - The mount will move through a series of commands, measuring actual speed at each step
-
-3. **Monitor Test Progress**  
-    - Monitor the completion of each test in the table view.
-    - You can ABORT and stop the tests at any time.
-   
-### Reviewing Results
-
-After testing:
-
-- View the **Results Table** showing:
-    - Commanded speed
-    - Measured speed
-    - % Change from baseline
-    - Standard deviation
-
-- **A Low %Change and Low Test Stdev** indicate a reliable test  
-> **WARNING:** If a test shows high standard deviation or unexpected large change, you can and should **retest that speed individually**. Select the test in the table and click Test again.
-
-### Approving Results
-
-Once satisfied with the results of the Motor Speed Calibration tests:
-
-- **Select individual tests** to approve, or leave all unselected to approve everything
-- Click **Approve** to apply the new calibration
-- The driver will now use these values instead of defaults
-
-> NOTE: Each axis (M1, M2, M3) maintains its own calibration profile
-
-
-### Final Thoughts
+Calibration is optional. For how to run, review and approve the tests, see [Motor Speed Calibration](./initial-setup.md#motor-speed-calibration) in Initial Setup.
 
 Calibrating your motor speed controller ensures:
 

@@ -93,7 +93,7 @@ Once the Alpaca Driver is running, you can access the Alpaca Pilot App from any 
 
 9. **(Optional) Enable HTTPS**
 
-    Browser features such as Location and Clipboard access only work over a secure (HTTPS) connection. If you need these features, follow the [Pilot User Guide – Using Alpaca Pilot over HTTPS](./pilot.md#using-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
+    Browser features such as Location and Clipboard access only work over a secure (HTTPS) connection. If you need these features, follow the [Using HTTPS](./initial-setup.md#using-https) to install the driver's CA certificate and switch Alpaca Pilot to HTTPS.
 
 ### Connecting the Polaris
 
@@ -124,7 +124,7 @@ Before you can use the Polaris, complete the following steps.
 
     For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#connecting-polaris).
 
-    Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have successfully aligned on three or more stars.
+    Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have added three or more sync points (see [Multi-Point Alignment](./initial-setup.md#multi-point-alignment)).
 
 14. **Verify the connection**
 

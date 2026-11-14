@@ -79,30 +79,8 @@ This guide uses NINA, the recommended app: it's free and has an excellent user i
     - Use your camera and lens to reach a rough focus
     - Run **NINA's Autofocus** for a precise focus
     - If you're guiding, focus and align your guide scope as well
-3. **First plate solve (anywhere, for Single Point Alignment).**
-    In NINA's Imaging tab:
-
-    - Click **Start Tracking**
-    - Open the Plate Solving panel
-    - Plate-solve and sync to achieve an initial alignment
-
-4. **Second plate solve (at the pole, for Multi-Point Alignment).**
-    In Alpaca Pilot:
-
-    - Enable **Multi-Point Alignment**
-    - Search for "pole" in the Alpaca Pilot catalog
-    - Goto your celestial pole and wait for the mount to settle
-
-    Then, in NINA, plate-solve and sync at the celestial pole.
-
-5. **Third plate solve (at the target's future position).**
-    In Alpaca Pilot:
-
-    - Goto your imaging target from the catalog
-    - Decrease its Right Ascension by 1 or 2 hours, which points to where the target will be later in the session
-    - Once the mount settles, plate-solve and sync again in NINA
-
-    A sync point along the target's path keeps the Multi-Point Alignment accurate as the target moves across the sky (see [Control Reference](./control.md)).
+3. **Align the mount.**
+    Follow [Multi-Point Alignment](./initial-setup.md#multi-point-alignment) in Initial Setup. In NINA's Imaging tab, click **Start Tracking**, then plate-solve and sync from the Plate Solving panel for each sync point: one wherever the mount is pointing, one at the celestial pole, and one along your target's path.
 
 ## Framing the Target
 

@@ -144,11 +144,12 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | [Preparing the MiniPC](./hardware.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
 | [Installation Guide](./installation.md) | Step-by-step install on Windows, plus [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md) |
 | [Alpaca Pilot Guide](./pilot.md) | The dashboard, catalog, alignment and panorama tools |
+| [Initial Setup](./initial-setup.md) | Setting the site location, Multi-Point Alignment, and calibrating the motor speeds and worm gears |
 | [Control Reference](./control.md) | Alignment models, the rotator, safety limits, Kalman filter, speed calibration and PID tracking |
 | [Using Stellarium](./stellarium.md) | Connecting and controlling the Polaris from Stellarium |
 | [Using NINA](./nina.md) | Capturing, autofocus, plate solving and sequencing |
 | [Using CCDciel](./ccdciel.md) | Capturing, focusing, plate solving and guiding with CCDciel |
-| [Sync Guiding](./guiding-sync.md) | Guiding with plate solves from your main camera, Periodic Error Correction and the worm gear calibration |
+| [Sync Guiding](./guiding-sync.md) | Guiding with plate solves from your main camera, and Periodic Error Correction |
 | [Pulse Guiding](./guiding-pulse.md) | Guiding with PHD2, a guide scope and camera, and improving guiding performance |
 | [Troubleshooting](./troubleshooting.md) and [FAQ](./faq.md) | Solutions to common problems, and answers to common questions |
 

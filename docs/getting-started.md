@@ -2,12 +2,13 @@
 
 ## Quick Start
 
-1. **Back the project.** The driver is distributed to backers of the [Kickstarter project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o). See the [LICENSE](https://github.com/ogecko/alpaca-benro-polaris/blob/main/LICENSE) for terms.
-2. **Choose your platform.** Run the driver on a MiniPC (recommended, see [Preparing the MiniPC](./hardware.md)), a Windows laptop, a Mac, a Raspberry Pi, or in a Docker container.
-3. **Install the driver.** Follow the guide for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) or [Docker](./docker.md).
-4. **Connect with Alpaca Pilot.** The [Alpaca Pilot Guide](./pilot.md) takes you from first connection through alignment to your first goto.
-5. **Add your imaging app.** Set up [NINA](./nina.md), [Stellarium](./stellarium.md), [CCDciel](./ccdciel.md) or [PHD2](./guiding-pulse.md).
-6. **Capture your first images.** Follow [Deep-Sky Imaging](./dso-imaging.md) for nebulae and galaxies, [Planetary Imaging](./planetary.md) for the planets, or [Satellite Imaging](./orbitals.md) for the ISS and Starlink satellites.
+1. **Back the project.** The driver is distributed for [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o) backers ([licence](https://github.com/ogecko/alpaca-benro-polaris/blob/main/LICENSE)).
+2. **Prepare a platform.** [MiniPC](./hardware.md) (recommended), Laptop, Mac, Pi or Docker.
+3. **Install the driver.** [Windows](./installation.md) · [macOS](./installation_macos.md) · [Raspberry Pi](./raspberrypi.md) · [Docker](./docker.md)
+4. **Connect with Alpaca Pilot.** [Connecting Polaris](./pilot.md#connecting-polaris)
+5. **Initial setup.** [Observing Site, Multi-Point Alignment, and Calibration](./initial-setup.md)
+6. **Add your astrophotography app.** [Stellarium](./stellarium.md) · [NINA](./nina.md) · [CCDciel](./ccdciel.md) · [PHD2](./guiding-pulse.md)
+7. **Capture images.** [Deep-sky](./dso-imaging.md) · [Planetary](./planetary.md) · [Satellites](./orbitals.md)
 
 If something goes wrong, the [Troubleshooting Guide](./troubleshooting.md) and [FAQ](./faq.md) cover the most common issues.
 
@@ -69,7 +70,7 @@ The installation process varies slightly depending on your chosen platform. Step
 
 1. Install the Driver: Run the setup script or commands for your platform. They download the driver from GitHub and install Python and the required libraries for you.
 2. Start the Driver: Run the Alpaca Driver on your device. Check the driver's log window for confirmation messages.
-3. Configure Settings: Open Alpaca Pilot in your web browser and use its Settings page to set your observing site location and other preferences. There is no need to edit configuration files by hand.
+3. Configure Settings: Open Alpaca Pilot in your web browser and use its Settings page to set your [observing site location](./initial-setup.md#site-location) and other preferences. There is no need to edit configuration files by hand.
 
 #### Connecting the Driver
 
@@ -151,7 +152,7 @@ Both approaches also feed the driver's Periodic Error Correction, which learns h
 
 To learn guiding, you can consider these resources:
 
-* Alpaca Documentation: [Sync Guiding](./guiding-sync.md) explains both approaches, Periodic Error Correction and the worm gear calibration, and [Pulse Guiding](./guiding-pulse.md) walks you through setting up PHD2, calibrating, pulse guiding and improving guiding performance with the Polaris.
+* Alpaca Documentation: [Sync Guiding](./guiding-sync.md) explains both approaches and Periodic Error Correction, [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) measures your mount's worm gears, and [Pulse Guiding](./guiding-pulse.md) walks you through setting up PHD2, calibrating, pulse guiding and improving guiding performance with the Polaris.
 * PHD2 Documentation: The [PHD2 User Manual](https://openphdguiding.org/manual/) covers every feature, and the [PHD2 Best Practices](https://openphdguiding.org/phd2-best-practices/) guide explains how to get good results quickly.
 * Online Communities and Forums: The [PHD2 user forum](https://groups.google.com/g/open-phd-guiding) is very active, and the developers will review your guide logs if you ask for help.
 

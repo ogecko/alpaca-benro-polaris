@@ -160,47 +160,7 @@ These instructions assume a fresh install of Raspberry Pi OS Lite, written using
 
 ## Optional GPS Receiver
 
-Alpaca Pilot's **Locate** button uses the browser's location by default, which needs internet and is often only approximate. At a dark site, a USB GPS receiver plugged into the Pi gives the observing site's latitude, longitude and elevation instead, with no internet needed. How to use it in Pilot is described in [Set Observing Site Location](./pilot.md#astro-mode-setup); the notes below are specific to the Pi.
-
-### Connecting the Receiver
-
-* **Pi Zero 2 W:** plug the receiver into the micro-USB port marked **USB** with an OTG adapter (not the **PWR** port). Other Pis: any USB port.
-* **Plug it directly into the Pi.** A cheap USB hub, and cameras or USB 3 cables close by, can block the GPS signal completely. In testing, a receiver that got a fix plugged directly into the computer never got one through a hub shared with a guide camera.
-* u-blox receivers appear as `/dev/ttyACM0`, and receivers using a CH340 USB-serial chip as `/dev/ttyUSB0`. To check, run `ls /dev/ttyACM* /dev/ttyUSB*`.
-* The Pi user running the driver must be in the `dialout` group to read the receiver. The default `pi` user already is. To check, run `groups`.
-
-### USB or Serial (NMEA)
-The driver reads the receiver directly. Nothing extra needs to be installed.
-
-1. In Pilot **Settings**, click the arrow beside **Locate** and choose **Use GPS Receiver**.
-2. Leave **Connection to GPS Receiver** as **USB / Serial (NMEA)**, and choose the **Serial Port**. GPS receivers are marked in the list, and if only one is plugged in it is chosen for you.
-3. Leave **Baud Rate** at `9600` unless your receiver's documentation says otherwise. u-blox receivers ignore it.
-4. Click **OK**, then **Locate (GPS)**.
-
-### GPS Daemon (GPSD)
-GPSD is a Linux service that shares a GPS receiver between programs, for example with KStars/Ekos, or to keep the Pi's clock on GPS time. Use it only if you need that: while GPSD is running it holds the receiver, so choose **GPS Daemon (GPSD)** in Pilot rather than USB / Serial.
-
-1. Install gpsd and its status client:
-    ```Bash
-    ./setup.sh -g
-    ```
-    The `-g` option adds the gpsd packages to setup's package installation; it does not select GPSD in Alpaca Pilot.
-
-2. Configure gpsd to use the receiver. Find its stable USB path with `ls -l /dev/serial/by-id/`, then set it in `/etc/default/gpsd`, for example:
-    ```Bash
-    DEVICES="/dev/serial/by-id/usb-your-receiver"
-    USBAUTO="false"
-    ```
-
-3. Start gpsd and confirm the receiver has a fix:
-    ```Bash
-    sudo systemctl enable --now gpsd.socket
-    sudo systemctl restart gpsd
-    cgps -s
-    ```
-    Exit `cgps` with **Ctrl+C** after confirming it reports a fix.
-
-4. In Pilot **Settings**, click the arrow beside **Locate**, choose **Use GPS Receiver**, and set **Connection to GPS Receiver** to **GPS Daemon (GPSD)**. The defaults (host `127.0.0.1`, port `2947`) are correct when gpsd runs on the Pi itself. Click **OK**, then **Locate (GPS)**.
+A USB GPS receiver plugged into the Pi sets the observing site's latitude, longitude and elevation with no internet needed. See [GPS Receiver](./initial-setup.md#gps-receiver) in Initial Setup, which includes notes for the Pi and for GPSD.
 
 ## Setup.sh Command Reference
 You won't normally need any of these options — running `./setup.sh` on its own (as in step 8 above) is enough for most people. They're here for reference if you want to customise something. Running `./setup.sh -h` on your own Pi always shows the same thing, straight from the script itself:
