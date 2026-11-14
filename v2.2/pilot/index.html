@@ -19,7 +19,7 @@
         <link rel="prev" href="../docker/">
       
       
-        <link rel="next" href="../panoramas/">
+        <link rel="next" href="../initial-setup/">
       
       
         
@@ -280,6 +280,8 @@
       
         
       
+        
+      
     
     
     
@@ -337,6 +339,10 @@
   
     
       
+      
+        
+      
+        
       
         
       
@@ -725,6 +731,8 @@
   
     
     
+      
+        
       
         
       
@@ -1170,6 +1178,33 @@
   
 </nav>
       
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../initial-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Initial Setup
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1653,6 +1688,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1729,6 +1768,87 @@
   
   
     <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Control Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../alpaca-api/" class="md-nav__link">
         
   
@@ -1737,6 +1857,60 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../telescope-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Telescope API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rotator-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Rotator API Reference
 
     
   </span>
@@ -1791,87 +1965,6 @@
     
   
   Configuration Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../catalog/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Catalog Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Control Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../kinematics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Kinematics Reference
 
     
   </span>
@@ -2568,6 +2661,8 @@
       
         
       
+        
+      
     
     
     
@@ -2644,7 +2739,7 @@
 <li>
 <p><strong>⑤ Settings:</strong> Opens the configuration panel where you can set observing site latitude/longitude, define the park position, adjust preferences, and enable standard and advanced features.</p>
 <blockquote>
-<p>Note: Location services are restricted in browsers on mobile phones and the Locate function in Settings will only work over HTTPS. Refer to the instructions below to <a href="#using-https">enable HTTPS in Alpaca Pilot</a>.</p>
+<p>Note: Browsers only allow the <strong>Locate</strong> button in Settings over HTTPS, unless the browser is on the same computer as the driver. See <a href=".././initial-setup/#using-https">Using HTTPS</a>.</p>
 </blockquote>
 </li>
 <li>
@@ -2826,18 +2921,10 @@
 </ul>
 </li>
 <li>
-<p><strong>⑤ Multi Point Alignment:</strong> Click this Button to navigate to the Alignment Page. This will allow you to enable to Multi-Point Alignment and review model residuals. After 3 or more Sync Points are added to the model this indicator will turn green. If you are using Single Point Alignment, you can ignore this red indicator on the connect page.</p>
+<p><strong>⑤ Multi Point Alignment:</strong> Click this Button to navigate to the Alignment Page. This will allow you to enable to Multi-Point Alignment and review model residuals. After 3 or more Sync Points are added to the model this indicator will turn green (see <a href=".././initial-setup/#multi-point-alignment">Multi-Point Alignment</a>). If you are using Single Point Alignment, you can ignore this red indicator on the connect page.</p>
 </li>
 <li>
-<p><strong>Set Observing Site Location:</strong> If the app displays a warning that <strong>latitude and longitude are unset</strong>, go to <strong>Settings</strong> in the menu bar.  </p>
-<ul>
-<li>Use the map to locate your observing site and click to set it, or click <strong>Locate</strong> to use the browser's location.  </li>
-<li>The app will attempt to auto-fill altitude, pressure, and location name via a web service. Without internet, the location is named by its coordinates.</li>
-<li><strong>GPS receiver (optional):</strong> at a dark site without internet, a USB GPS receiver plugged into the computer running the Alpaca Driver can set the site instead. Click the arrow beside <strong>Locate</strong> and choose <strong>Use GPS Receiver</strong>. Choose its <strong>Serial Port</strong> (GPS receivers are marked in the list), then click <strong>OK</strong> and <strong>Locate (GPS)</strong>. The button shows its progress while it waits for three matching GPS fixes, then sets latitude, longitude and elevation.</li>
-<li>If the GPS receiver can't get a fix, give it a clear view of the sky. Its first fix after being plugged in can take several minutes. Plug it directly into the computer rather than a USB hub, and keep it away from cameras and their cables, which can block GPS signals.</li>
-<li>Linux also offers <strong>GPS Daemon (GPSD)</strong>, and the <a href=".././raspberrypi/#optional-gps-receiver">Raspberry Pi guide</a> has Pi-specific notes.</li>
-<li>Click <strong>Save</strong> at the top of Settings so the location and GPS settings are kept after a restart.</li>
-</ul>
+<p><strong>Set Observing Site Location:</strong> If the app warns that <strong>latitude and longitude are unset</strong>, set them in <strong>Settings</strong> (see <a href=".././initial-setup/#site-location">Site Location</a>).</p>
 </li>
 <li>
 <p><strong>Begin Plate Solving:</strong> With setup complete, you're ready to use the Driver and perform your first plate solve.</p>
@@ -2853,69 +2940,7 @@
 <p>Additionally, this dialog allows you to modify the Driver’s behavior regarding automatic reconnection to the Polaris mount. You can disable auto-reconnect if manual control is preferred or if the mount is temporarily unavailable.</p>
 <p><img alt="Pilot connect" src="../images/pilot-connectf.png" /></p>
 <h3 id="using-https">Using HTTPS<a class="headerlink" href="#using-https" title="Permanent link">&para;</a></h3>
-<p>By default, Alpaca Pilot runs as an HTTP-based Single Page Application (SPA). As a result, your browser may display the site as <strong>“Not Secure”</strong> and restrict certain features such as location access and clipboard integration.</p>
-<p>Starting with version 2.2, Alpaca Pilot supports HTTPS, allowing secure browser access and full functionality. When the Driver starts it will create self-signed certificates that are used for secure access. To use HTTPS you will need to download and install the CA Certificate and enable HTTPS in Alpaca Pilot.</p>
-<p><strong>Download the Certificate</strong></p>
-<ol>
-<li>Open the <strong>Alpaca Pilot Connect</strong> page.</li>
-<li>Open the <strong>Network Services</strong> dropdown dialog.</li>
-<li>Click <strong>Download CA Certificate</strong>.</li>
-</ol>
-<p><strong>Install on Windows</strong></p>
-<ol>
-<li>Open the downloaded <code>alpaca_pilot_ca.crt</code> file.</li>
-<li>Click <strong>Install Certificate</strong>.</li>
-<li>Select <strong>Local Machine</strong>, then click <strong>Next</strong>.</li>
-<li>Accept <strong>User Access Control</strong>, click <strong>Yes</strong>.</li>
-<li>Choose <strong>Place all certificates in the following store</strong>, then click <strong>Browse</strong>.</li>
-<li>Select <strong>Trusted Root Certification Authorities</strong>, then click <strong>OK</strong>.</li>
-<li>Click <strong>Next</strong>, then <strong>Finish</strong>.</li>
-</ol>
-<p><strong>Install on macOS</strong></p>
-<ol>
-<li>Open the downloaded <code>.crt</code> file — <strong>Keychain Access</strong> will launch automatically.</li>
-<li>Add the certificate to the <strong>System</strong> keychain.</li>
-<li>Locate <code>alpaca-pilot-ca</code> in the certificate list and double-click it.</li>
-<li>Expand the <strong>Trust</strong> section and set <strong>When using this certificate</strong> to <strong>Always Trust</strong>.</li>
-<li>Close the dialog and enter your password to confirm the changes.</li>
-</ol>
-<p><strong>Install on iOS</strong></p>
-<ol>
-<li>Open the <strong>Alpaca Pilot Connect</strong> page in <strong>Safari</strong> and download the CA certificate (Safari will prompt that a profile is ready to install).</li>
-<li>Go to <strong>Settings → General → VPN &amp; Device Management</strong>, tap the <strong>alpaca-pilot-ca</strong> profile, then tap <strong>Install</strong> in the top-right corner (you'll be prompted for your device passcode).</li>
-<li><strong>This alone is not enough — the CA is installed but not yet trusted.</strong> Go to <strong>Settings → General → About → Certificate Trust Settings</strong>.</li>
-<li>Under <strong>Enable Full Trust for Root Certificates</strong>, toggle <strong>alpaca-pilot-ca</strong> to <strong>on</strong>.</li>
-</ol>
-<p><strong>Restart Your Browser</strong></p>
-<ul>
-<li><strong>Chrome:</strong> Navigate to <code>chrome://restart</code></li>
-<li><strong>Safari:</strong> Fully close Safari (swipe it away from the App Switcher)</li>
-<li>
-<p><strong>Firefox:</strong></p>
-<ol>
-<li>Open <code>about:config</code></li>
-<li>Search for <code>security.enterprise_roots.enabled</code></li>
-<li>Set the value to <code>true</code></li>
-<li>Restart Firefox</li>
-</ol>
-</li>
-</ul>
-<p><strong>Enable HTTPS</strong></p>
-<ol>
-<li>Open the <strong>Alpaca Pilot Connect</strong> page.</li>
-<li>Open the <strong>Network Services</strong> dropdown.</li>
-<li>Select <strong>HTTPS</strong>, then click <strong>Save</strong>.</li>
-<li>The Driver will restart with HTTPS enabled.</li>
-<li>Alpaca Pilot will detect the restart and redirect to HTTPS.</li>
-</ol>
-<p><strong>Certificate Warnings</strong></p>
-<p>If you're upgrading from an earlier driver version and still see certificate warnings or connection failures after following the steps above, the browser or the OS may be holding onto stale security state from before the upgrade.</p>
-<p>On Windows, do a full power-off rather than Restart. Windows 11 enables "Fast Startup" by default, which hibernates the session instead of fully reinitializing it on Restart. Leftover network state can persist across a restart; only a genuine power-off clears it. </p>
-<p>On any device that connected to an earlier version of the driver, also clear that browser's site data</p>
-<ul>
-<li><strong>Chrome/Edge</strong>: Settings → Privacy and security → find the site under "All sites" and delete its data; </li>
-<li><strong>Safari on iOS/iPadOS</strong>: Settings → Safari → Clear History and Website Data</li>
-</ul>
+<p>Alpaca Pilot runs over HTTP by default, and browsers restrict some features, such as location access and the clipboard, to HTTPS. To install the driver's certificate and switch Alpaca Pilot to HTTPS, see <a href=".././initial-setup/#using-https">Using HTTPS</a> in Initial Setup.</p>
 <p><br>
 <br></p>
 <h2 id="using-the-dashboard">Using the Dashboard<a class="headerlink" href="#using-the-dashboard" title="Permanent link">&para;</a></h2>
@@ -2950,7 +2975,7 @@
 <li><strong>③ Parking:</strong> The mount is moving into the customized park motor angle position.</li>
 <li><strong>④ Parked:</strong> The mount has reached the set park location. A banner appears, and most functions are disabled until the mount is unparked.</li>
 <li><strong>⑤ Limit:</strong> This indication appears on the dashboard when a <strong>motor angle limit has been exceeded</strong>. All control to the Polaris will be stopped. The user must click the reset button to acknowledge the limit.</li>
-<li><strong>⑥ PreSetup:</strong> This flag or alarm indication appears when the <strong>observing site location (latitude, longitude)</strong> has not been set. No action can be taken with the mount until the location is set.</li>
+<li><strong>⑥ PreSetup:</strong> This flag or alarm indication appears when the <strong>observing site location (latitude, longitude)</strong> has not been set. No action can be taken with the mount until the location is set (see <a href=".././initial-setup/#site-location">Site Location</a>).</li>
 </ul>
 <p><img alt="Dashboard indicators part 2" src="../images/dashboard-indicators2.png" /></p>
 <p>These indicators reflect the mount’s current motion or tracking mode:</p>
@@ -3198,13 +3223,13 @@ For a full list of supported catalogues, see the <strong>Reference Catalogues</s
         
         
           
-          <a href="../panoramas/" class="md-footer__link md-footer__link--next" aria-label="Next: Creating Panoramas">
+          <a href="../initial-setup/" class="md-footer__link md-footer__link--next" aria-label="Next: Initial Setup">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Creating Panoramas
+                Initial Setup
               </div>
             </div>
             <div class="md-footer__button md-icon">

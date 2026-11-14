@@ -280,6 +280,8 @@
       
         
       
+        
+      
     
     
     
@@ -337,6 +339,10 @@
   
     
       
+      
+        
+      
+        
       
         
       
@@ -746,6 +752,8 @@
       
         
       
+        
+      
     
     
     
@@ -806,6 +814,33 @@
     
   
   Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../initial-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Initial Setup
 
     
   </span>
@@ -1453,6 +1488,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1529,6 +1568,87 @@
   
   
     <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Control Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../alpaca-api/" class="md-nav__link">
         
   
@@ -1537,6 +1657,60 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../telescope-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Telescope API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rotator-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Rotator API Reference
 
     
   </span>
@@ -1591,87 +1765,6 @@
     
   
   Configuration Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../catalog/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Catalog Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Control Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../kinematics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Kinematics Reference
 
     
   </span>
@@ -2168,6 +2261,8 @@
       
         
       
+        
+      
     
     
     
@@ -2286,35 +2381,8 @@
 <li>If you're guiding, focus and align your guide scope as well</li>
 </ul>
 </li>
-<li>
-<p><strong>First plate solve (anywhere, for Single Point Alignment).</strong>
-    In NINA's Imaging tab:</p>
-<ul>
-<li>Click <strong>Start Tracking</strong></li>
-<li>Open the Plate Solving panel</li>
-<li>Plate-solve and sync to achieve an initial alignment</li>
-</ul>
-</li>
-<li>
-<p><strong>Second plate solve (at the pole, for Multi-Point Alignment).</strong>
-    In Alpaca Pilot:</p>
-<ul>
-<li>Enable <strong>Multi-Point Alignment</strong></li>
-<li>Search for "pole" in the Alpaca Pilot catalog</li>
-<li>Goto your celestial pole and wait for the mount to settle</li>
-</ul>
-<p>Then, in NINA, plate-solve and sync at the celestial pole.</p>
-</li>
-<li>
-<p><strong>Third plate solve (at the target's future position).</strong>
-    In Alpaca Pilot:</p>
-<ul>
-<li>Goto your imaging target from the catalog</li>
-<li>Decrease its Right Ascension by 1 or 2 hours, which points to where the target will be later in the session</li>
-<li>Once the mount settles, plate-solve and sync again in NINA</li>
-</ul>
-<p>A sync point along the target's path keeps the Multi-Point Alignment accurate as the target moves across the sky (see <a href=".././control/">Control Reference</a>).</p>
-</li>
+<li><strong>Align the mount.</strong>
+    Follow <a href=".././initial-setup/#multi-point-alignment">Multi-Point Alignment</a> in Initial Setup. In NINA's Imaging tab, click <strong>Start Tracking</strong>, then plate-solve and sync from the Plate Solving panel for each sync point: one wherever the mount is pointing, one at the celestial pole, and one along your target's path.</li>
 </ol>
 <h2 id="framing-the-target">Framing the Target<a class="headerlink" href="#framing-the-target" title="Permanent link">&para;</a></h2>
 <p>Use NINA's Sky Atlas or Stellarium to locate your target, then:</p>

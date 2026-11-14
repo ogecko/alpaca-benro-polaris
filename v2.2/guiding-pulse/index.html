@@ -280,6 +280,8 @@
       
         
       
+        
+      
     
     
     
@@ -337,6 +339,10 @@
   
     
       
+      
+        
+      
+        
       
         
       
@@ -746,6 +752,8 @@
       
         
       
+        
+      
     
     
     
@@ -806,6 +814,33 @@
     
   
   Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../initial-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Initial Setup
 
     
   </span>
@@ -1648,6 +1683,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1724,6 +1763,87 @@
   
   
     <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Control Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../alpaca-api/" class="md-nav__link">
         
   
@@ -1732,6 +1852,60 @@
     
   
   Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../telescope-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Telescope API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rotator-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Rotator API Reference
 
     
   </span>
@@ -1786,87 +1960,6 @@
     
   
   Configuration Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../catalog/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Catalog Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Control Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../kinematics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Kinematics Reference
 
     
   </span>
@@ -2558,6 +2651,8 @@
       
         
       
+        
+      
     
     
     
@@ -2940,7 +3035,7 @@ When PHD2 is connected to the <strong>Alpaca Benro Polaris Rotator</strong>, it 
 <ul>
 <li><strong>What you see:</strong> A slow, smooth wave in the guide graph, with a period of a few minutes to an hour or more. In the PHD2 Log Viewer's frequency analysis it shows as a peak, often around 30-40 minutes, but it varies with where the mount is pointing.</li>
 <li><strong>Cause:</strong> Each motor drives its axis through a worm gear (6°, 60 teeth). Small irregularities in the gear make each axis wobble by about 30-150 arc seconds, repeating every 6° of that motor's rotation. Because the wobble is tied to the motor angles, it repeats in the same way night after night.</li>
-<li><strong>Solution:</strong> Measure each motor's worm once with the <strong>M1-M2-M3-WORM-PROFILE</strong> test on Pilot's Speed Calibration page (see <a href=".././guiding-sync/#worm-gear-calibration">Worm Gear Calibration</a>) (about 20 minutes, using plate solves), approve the result, then switch on <strong>PEC Worm Gear Correction</strong>. The driver then removes the wobble before it happens, with or without guiding. See <a href=".././kinematics/#periodic-error-correction">Worm Gear Correction</a> for the test.</li>
+<li><strong>Solution:</strong> Measure each motor's worm once with the <strong>M1-M2-M3-WORM-PROFILE</strong> test on Pilot's Calibration page (see <a href=".././initial-setup/#worm-gear-calibration">Worm Gear Calibration</a>) (about 20 minutes, using plate solves), approve the result, then switch on <strong>PEC Worm Gear Correction</strong>. The driver then removes the wobble before it happens, with or without guiding. See <a href=".././kinematics/#periodic-error-correction">Worm Gear Correction</a> for the test.</li>
 <li><strong>Tips:</strong><ul>
 <li>PEC Drift Correction and PEC Worm Gear Correction work together: the worm correction removes the wave, and the drift correction learns what is left. The PEC button on Pilot's status panel switches both.</li>
 <li>The PEC switches are live settings. Press <strong>Save</strong> on the Config page to keep them after the driver restarts.</li>

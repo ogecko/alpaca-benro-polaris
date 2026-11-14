@@ -16,10 +16,10 @@
       
       
       
-        <link rel="prev" href="../architecture/">
+        <link rel="prev" href="../catalog/">
       
       
-        <link rel="next" href="../pilot-api/">
+        <link rel="next" href="../telescope-api/">
       
       
         
@@ -278,6 +278,8 @@
       
         
       
+        
+      
     
     
     
@@ -337,6 +339,10 @@
   
     
       
+      
+        
+      
+        
       
         
       
@@ -744,6 +750,8 @@
       
         
       
+        
+      
     
     
     
@@ -801,6 +809,33 @@
     
   
   Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../initial-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Initial Setup
 
     
   </span>
@@ -1293,6 +1328,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1353,6 +1392,87 @@
     
   
   Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Control Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
 
     
   </span>
@@ -1672,6 +1792,60 @@
   
   
     <li class="md-nav__item">
+      <a href="../telescope-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Telescope API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rotator-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Rotator API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../pilot-api/" class="md-nav__link">
         
   
@@ -1707,87 +1881,6 @@
     
   
   Configuration Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../catalog/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Catalog Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../control/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Control Reference
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-                
-              
-                
-                  
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../kinematics/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-  Kinematics Reference
 
     
   </span>
@@ -2394,6 +2487,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2429,7 +2526,7 @@
 <p><a href="#discovery">Discovery</a> · <a href="#management">Management</a> · <a href="#telescope">Telescope</a> · <a href="#rotator">Rotator</a> · <a href="#device-actions">Device Actions</a></p>
 <p>The Alpaca Driver presents the Benro Polaris to astronomy applications as two standard ASCOM Alpaca devices, a <strong>Telescope</strong> and a <strong>Rotator</strong>, together with a set of <strong>Device Actions</strong> for features that go beyond the ASCOM standard. Applications like NINA, PHD2, Stellarium and CCDciel make these calls for you. This page is for anyone who wants to script the mount directly, or understand what their applications are doing.</p>
 <p>Alpaca Pilot's own web server, REST proxy and WebSocket are not part of the ASCOM Alpaca standard, and are described in the <a href=".././pilot-api/">Pilot API Reference</a>.</p>
-<p>All requests go to the driver's Alpaca REST API on port <code>5555</code> (the <code>alpaca_restapi_port</code> setting), at <code>http://&lt;driver address&gt;:5555/api/v1/&lt;device&gt;/0/&lt;member&gt;</code>. The examples below use <code>ap.local</code> as the driver address; use the IP address of the computer running the driver if <code>ap.local</code> doesn't resolve on your network (see <a href=".././pilot/#launching-alpaca-pilot">Launching the Alpaca Pilot Application</a>). Each request includes a <code>ClientID</code> and <code>ClientTransactionID</code>, and the driver must be connected to the Polaris for most calls to succeed.</p>
+<p>All requests go to the driver's Alpaca REST API on port <code>5555</code> (the <code>alpaca_restapi_port</code> setting), at <code>http://&lt;driver address&gt;:5555/api/v1/&lt;device&gt;/0/&lt;member&gt;</code>. The examples below use <code>ap.local</code> as the driver address; use the IP address of the computer running the driver if <code>ap.local</code> doesn't resolve on your network (see <a href=".././pilot/#launching-alpaca-pilot">Launching the Alpaca Pilot Application</a>). Each request includes a <code>ClientID</code> and <code>ClientTransactionID</code>, and the driver must be connected to the Polaris for most calls to succeed. See the <a href="https://ascom-standards.org/api/">ASCOM Alpaca API reference</a> for the REST protocol itself.</p>
 <h2 id="discovery">Discovery<a class="headerlink" href="#discovery" title="Permanent link">&para;</a></h2>
 <p>Applications find the Alpaca Driver using ASCOM Alpaca discovery. They broadcast the message <code>alpacadiscovery1</code> on UDP port <code>32227</code> (the <code>alpaca_discovery_port</code> setting), and the driver replies with the port of its REST API, for example <code>{"AlpacaPort": 5555}</code>. This is how NINA and other Alpaca applications list the driver's devices without you entering its address. Discovery only works within your local network, so if an application can't find the driver, enter the driver's IP address and port <code>5555</code> instead. See the <a href="https://ascom-standards.org/api/">ASCOM Alpaca API reference</a> for the discovery protocol.</p>
 <h2 id="management">Management<a class="headerlink" href="#management" title="Permanent link">&para;</a></h2>
@@ -2445,27 +2542,27 @@
 <p>The Rotator is only listed when <strong>Alpaca Rotator</strong> is enabled under <strong>Advanced Control Features</strong> in Alpaca Pilot's Settings. <code>/management/v1/description</code> returns the driver's name, version and location, and <code>/management/apiversions</code> the Alpaca API versions it supports.</p>
 <p>Every device also has the members common to all ASCOM devices, such as <code>connected</code>, <code>name</code>, <code>description</code>, <code>driverinfo</code>, <code>driverversion</code> and <code>supportedactions</code>. For example, <code>GET /api/v1/telescope/0/supportedactions</code> lists all of the Telescope's Device Actions.</p>
 <h2 id="telescope">Telescope<a class="headerlink" href="#telescope" title="Permanent link">&para;</a></h2>
-<p>The Telescope device implements the ASCOM <strong>ITelescopeV3</strong> interface. See the <a href="https://ascom-standards.org/newdocs/telescope.html">ASCOM Telescope interface</a> for what each property and method does, and the <a href="https://ascom-standards.org/api/">ASCOM Alpaca API reference</a> for the REST calls. Meridian flips are not supported, as the Polaris is an Alt/Az mount. The driver keeps every slew within what the Polaris can physically reach, where Altitude and Roll limit each other; see <a href=".././kinematics/#reachable-envelope">Reachable Envelope</a>.</p>
-<p>Read the Right Ascension the mount is pointing at, in hours:</p>
+<p>The <a href=".././telescope-api/">Telescope API Reference</a> lists each of the Telescope's members and what it does. Some examples:</p>
+<p><strong>Read the Right Ascension</strong> the mount is pointing at, in hours:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>curl "http://ap.local:5555/api/v1/telescope/0/rightascension?ClientID=1&amp;ClientTransactionID=1"
 </span></code></pre></div>
 <p>The response gives the value, along with any error:</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="nt">"Value"</span><span class="p">:</span><span class="w"> </span><span class="mf">5.5881</span><span class="p">,</span><span class="w"> </span><span class="nt">"ClientTransactionID"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"ServerTransactionID"</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span><span class="w"> </span><span class="nt">"ErrorNumber"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"ErrorMessage"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">}</span>
 </span></code></pre></div>
-<p>Slew to the Orion Nebula (Right Ascension in hours, Declination in degrees):</p>
+<p><strong>Slew to the Orion Nebula</strong> (Right Ascension in hours, Declination in degrees):</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>curl -X PUT http://ap.local:5555/api/v1/telescope/0/slewtocoordinatesasync \
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>     -d "RightAscension=5.5881&amp;Declination=-5.391&amp;ClientID=1&amp;ClientTransactionID=2"
 </span></code></pre></div>
 <h2 id="rotator">Rotator<a class="headerlink" href="#rotator" title="Permanent link">&para;</a></h2>
-<p>The Rotator device implements the ASCOM <strong>IRotatorV3</strong> interface. See the <a href="https://ascom-standards.org/newdocs/rotator.html">ASCOM Rotator interface</a> and the <a href="https://ascom-standards.org/api/">ASCOM Alpaca API reference</a>. Rotating the camera keeps the mount pointing at the same target. The Rotator's <code>Position</code> is the Position Angle of the camera on the sky, and its <code>MechanicalPosition</code> is the Roll Angle of the camera relative to the horizon (see <a href=".././control/#roll-angle-vs-position-angle">Roll Angle vs. Position Angle</a>).</p>
-<p>Read the current Position Angle, in degrees:</p>
+<p>The <a href=".././rotator-api/">Rotator API Reference</a> lists each of the Rotator's members and what it does. Some examples:</p>
+<p><strong>Read the Position Angle</strong> of the camera, in degrees:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>curl "http://ap.local:5555/api/v1/rotator/0/position?ClientID=1&amp;ClientTransactionID=3"
 </span></code></pre></div>
-<p>Rotate the camera to a Position Angle of 90°:</p>
+<p><strong>Rotate the camera</strong> to a Position Angle of 90°:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl -X PUT http://ap.local:5555/api/v1/rotator/0/moveabsolute \
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>     -d "Position=90&amp;ClientID=1&amp;ClientTransactionID=4"
 </span></code></pre></div>
-<p>To set the Roll Angle directly, use the Rotator's <code>movemechanical</code> endpoint, or pass <code>roll</code> to <a href="#polarisslewabsolute"><code>Polaris:SlewAbsolute</code></a>. Moving <code>moveabsolute</code> to 0 sets the Position Angle to 0, which only sets the Roll to 0 by coincidence.</p>
+<p>To set the Roll Angle instead, use <code>movemechanical</code>, or pass <code>roll</code> to <a href="#polarisslewabsolute"><code>Polaris:SlewAbsolute</code></a>.</p>
 <h2 id="device-actions">Device Actions<a class="headerlink" href="#device-actions" title="Permanent link">&para;</a></h2>
 <p>Device Actions are the ASCOM standard's way for a driver to offer features that the standard interfaces don't cover. The Alpaca Driver's Device Actions belong to the Telescope device and are named <code>Polaris:&lt;action&gt;</code>. Alpaca Pilot uses many of them internally; the ones documented here are those that are useful in your own sequences and scripts.</p>
 <p>Three approaches you can use Device Actions, include:</p>
@@ -2896,7 +2993,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../architecture/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Architecture">
+          <a href="../catalog/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Catalog Reference">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -2906,20 +3003,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Architecture
+                Catalog Reference
               </div>
             </div>
           </a>
         
         
           
-          <a href="../pilot-api/" class="md-footer__link md-footer__link--next" aria-label="Next: Pilot API Reference">
+          <a href="../telescope-api/" class="md-footer__link md-footer__link--next" aria-label="Next: Telescope API Reference">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Pilot API Reference
+                Telescope API Reference
               </div>
             </div>
             <div class="md-footer__button md-icon">

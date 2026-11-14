@@ -1,0 +1,2551 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount">
+      
+      
+        <meta name="author" content="David Morrison">
+      
+      
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/initial-setup/">
+      
+      
+      
+        <link rel="prev" href="../pilot/">
+      
+      
+        <link rel="next" href="../panoramas/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/abp-icon.png">
+      <meta name="generator" content="zensical-0.1.1">
+    
+    
+      
+        <title>Initial Setup - Alpaca Benro Polaris Driver</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-header__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Alpaca Benro Polaris Driver
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Initial Setup
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../pilot/" class="md-tabs__link">
+          
+  
+  Using the Driver
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../release-notes-v2.2.0/" class="md-tabs__link">
+          
+  
+  Release Notes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../troubleshooting/" class="md-tabs__link">
+          
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Alpaca Benro Polaris Driver" class="md-nav__button md-logo" aria-label="Alpaca Benro Polaris Driver" data-md-component="logo">
+      
+  <img src="../images/abp-logo.png" alt="Alpaca Benro Polaris Driver">
+
+    </a>
+    Alpaca Benro Polaris Driver
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ogecko/alpaca-benro-polaris" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ogecko/alpaca-benro-polaris
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Getting Started
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Getting Started
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Start Here
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hardware/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Preparing the MiniPC
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Windows Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation_macos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  macOS Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../raspberrypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Raspberry Pi Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Docker Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using the Driver
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Using the Driver
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca Pilot App
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Initial Setup
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Initial Setup
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#site-location" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Site Location
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Site Location">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-https" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Using HTTPS
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gps-receiver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        GPS Receiver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-point-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Multi-Point Alignment
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#motor-speed-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Motor Speed Calibration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worm-gear-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Worm Gear Calibration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../panoramas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Creating Panoramas
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dso-imaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Deep-Sky Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../planetary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Planetary Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../orbitals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Satellite Imaging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Stellarium
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using Nina
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ccdciel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Using CCDciel
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sync Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guiding-pulse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pulse Guiding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release Notes
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Release Notes
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.2.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.1.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v2.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v2.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.1
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-notes-v1.0.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  v1.0.0
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Architecture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Control Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kinematics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Kinematics Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Catalog Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../alpaca-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Alpaca API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../telescope-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Telescope API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rotator-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Rotator API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pilot-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Pilot API Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Configuration Reference
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Help
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Help
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-polaris/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Benro Polaris
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-network/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Network
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-nina/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  NINA
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting-stellarium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Stellarium
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Frequently Asked Questions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#site-location" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Site Location
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Site Location">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-https" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Using HTTPS
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gps-receiver" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        GPS Receiver
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-point-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Multi-Point Alignment
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#motor-speed-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Motor Speed Calibration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worm-gear-calibration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Worm Gear Calibration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="./.." class="md-path__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      <li class="md-path__item">
+        <a href="../pilot/" class="md-path__link">
+          
+  
+  <span class="md-ellipsis">
+    Using the Driver
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="initial-setup">Initial Setup<a class="headerlink" href="#initial-setup" title="Permanent link">&para;</a></h1>
+<p><a href="#site-location">Site Location</a> · <a href="#multi-point-alignment">Multi-Point Alignment</a> · <a href="#motor-speed-calibration">Speed Calibration</a> · <a href="#worm-gear-calibration">Worm Gear Calibration</a></p>
+<p>Once Alpaca Pilot is <a href=".././pilot/#connecting-polaris">connected to the Polaris</a>, these steps get the most out of the mount. Only the site location is required. The others improve pointing and tracking, and most of them only need doing once.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>When</th>
+<th>Needed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#site-location">Site Location</a></td>
+<td>Whenever you change observing site</td>
+<td>Required</td>
+</tr>
+<tr>
+<td><a href="#multi-point-alignment">Multi-Point Alignment</a></td>
+<td>At the start of each imaging session</td>
+<td>Recommended</td>
+</tr>
+<tr>
+<td><a href="#motor-speed-calibration">Motor Speed Calibration</a></td>
+<td>Once, to improve fast movement control</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><a href="#worm-gear-calibration">Worm Gear Calibration</a></td>
+<td>Once, to improve unguided and sync-guided tracking</td>
+<td>Optional</td>
+</tr>
+</tbody>
+</table>
+<h2 id="site-location">Site Location<a class="headerlink" href="#site-location" title="Permanent link">&para;</a></h2>
+<p>The driver needs your observing site's latitude and longitude to track accurately. Until they're set, Alpaca Pilot shows a <strong>PreSetup</strong> warning and won't move the mount. Set them in Alpaca Pilot's <strong>Settings</strong>, under <strong>Observing Site Information</strong>, in any of these ways:</p>
+<ul>
+<li><strong>Click on the map.</strong> Find your observing site on the map and click it.</li>
+<li><strong>Enter the coordinates.</strong> Type the <strong>Latitude</strong> and <strong>Longitude</strong> in decimal degrees, north and east positive.</li>
+<li><strong>Locate with the browser.</strong> Click <strong>Locate</strong> to use the location of the device running your browser. A phone or tablet uses its GPS, so open Alpaca Pilot on it at your site. A laptop or PC usually works out its location from the internet, which is often only approximate. Browsers only allow this over HTTPS, or over HTTP when the browser is on the same computer as the driver (<code>http://localhost</code>). From any other device, first set up <a href="#using-https">HTTPS</a>.</li>
+<li><strong>Locate with a GPS receiver.</strong> At a dark site without internet, a USB GPS receiver plugged into the computer running the driver gives the site's latitude, longitude and elevation, over HTTP or HTTPS. See <a href="#gps-receiver">GPS Receiver</a> below.</li>
+</ul>
+<p>With internet, Alpaca Pilot fills in the site's elevation, pressure and name from a web service. Without it, the location is named by its coordinates. To keep several sites, click the save icon beside <strong>Location</strong>, then choose a site from the <strong>Location</strong> list next time.</p>
+<p>Click <strong>Save</strong> at the top of Settings, so the location is kept after the driver restarts.</p>
+<h3 id="using-https">Using HTTPS<a class="headerlink" href="#using-https" title="Permanent link">&para;</a></h3>
+<p>Alpaca Pilot runs over HTTP by default, so your browser may show it as <strong>"Not Secure"</strong>, and restricts some features to HTTPS: location access (the <strong>Locate</strong> button) and the clipboard (such as the Panorama Grid's <strong>Copy</strong> button). The one exception is a browser on the same computer as the driver, using <code>http://localhost</code>, which browsers treat as secure.</p>
+<p>Alpaca Pilot supports HTTPS from version 2.2. When the driver starts, it creates its own certificates for HTTPS. To use them, install the driver's CA certificate on each device you browse from, then turn on HTTPS in Alpaca Pilot.</p>
+<p><strong>Download the Certificate</strong></p>
+<ol>
+<li>Open the <strong>Alpaca Pilot Connect</strong> page.</li>
+<li>Open the <strong>Network Services</strong> dropdown dialog.</li>
+<li>Click <strong>Download CA Certificate</strong>.</li>
+</ol>
+<p><strong>Install on Windows</strong></p>
+<ol>
+<li>Open the downloaded <code>alpaca_pilot_ca.crt</code> file.</li>
+<li>Click <strong>Install Certificate</strong>.</li>
+<li>Select <strong>Local Machine</strong>, then click <strong>Next</strong>.</li>
+<li>Accept <strong>User Access Control</strong>, click <strong>Yes</strong>.</li>
+<li>Choose <strong>Place all certificates in the following store</strong>, then click <strong>Browse</strong>.</li>
+<li>Select <strong>Trusted Root Certification Authorities</strong>, then click <strong>OK</strong>.</li>
+<li>Click <strong>Next</strong>, then <strong>Finish</strong>.</li>
+</ol>
+<p><strong>Install on macOS</strong></p>
+<ol>
+<li>Open the downloaded <code>.crt</code> file — <strong>Keychain Access</strong> will launch automatically.</li>
+<li>Add the certificate to the <strong>System</strong> keychain.</li>
+<li>Locate <code>alpaca-pilot-ca</code> in the certificate list and double-click it.</li>
+<li>Expand the <strong>Trust</strong> section and set <strong>When using this certificate</strong> to <strong>Always Trust</strong>.</li>
+<li>Close the dialog and enter your password to confirm the changes.</li>
+</ol>
+<p><strong>Install on iOS</strong></p>
+<ol>
+<li>Open the <strong>Alpaca Pilot Connect</strong> page in <strong>Safari</strong> and download the CA certificate (Safari will prompt that a profile is ready to install).</li>
+<li>Go to <strong>Settings → General → VPN &amp; Device Management</strong>, tap the <strong>alpaca-pilot-ca</strong> profile, then tap <strong>Install</strong> in the top-right corner (you'll be prompted for your device passcode).</li>
+<li><strong>This alone is not enough — the CA is installed but not yet trusted.</strong> Go to <strong>Settings → General → About → Certificate Trust Settings</strong>.</li>
+<li>Under <strong>Enable Full Trust for Root Certificates</strong>, toggle <strong>alpaca-pilot-ca</strong> to <strong>on</strong>.</li>
+</ol>
+<p><strong>Restart Your Browser</strong></p>
+<ul>
+<li><strong>Chrome:</strong> Navigate to <code>chrome://restart</code></li>
+<li><strong>Safari:</strong> Fully close Safari (swipe it away from the App Switcher)</li>
+<li>
+<p><strong>Firefox:</strong></p>
+<ol>
+<li>Open <code>about:config</code></li>
+<li>Search for <code>security.enterprise_roots.enabled</code></li>
+<li>Set the value to <code>true</code></li>
+<li>Restart Firefox</li>
+</ol>
+</li>
+</ul>
+<p><strong>Enable HTTPS</strong></p>
+<ol>
+<li>Open the <strong>Alpaca Pilot Connect</strong> page.</li>
+<li>Open the <strong>Network Services</strong> dropdown.</li>
+<li>Select <strong>HTTPS</strong>, then click <strong>Save</strong>.</li>
+<li>The Driver will restart with HTTPS enabled.</li>
+<li>Alpaca Pilot will detect the restart and redirect to HTTPS.</li>
+</ol>
+<p><strong>Certificate Warnings</strong></p>
+<p>If you're upgrading from an earlier driver version and still see certificate warnings or connection failures after following the steps above, the browser or the OS may be holding onto stale security state from before the upgrade.</p>
+<p>On Windows, do a full power-off rather than Restart. Windows 11 enables "Fast Startup" by default, which hibernates the session instead of fully reinitializing it on Restart. Leftover network state can persist across a restart; only a genuine power-off clears it. </p>
+<p>On any device that connected to an earlier version of the driver, also clear that browser's site data</p>
+<ul>
+<li><strong>Chrome/Edge</strong>: Settings → Privacy and security → find the site under "All sites" and delete its data; </li>
+<li><strong>Safari on iOS/iPadOS</strong>: Settings → Safari → Clear History and Website Data</li>
+</ul>
+<h3 id="gps-receiver">GPS Receiver<a class="headerlink" href="#gps-receiver" title="Permanent link">&para;</a></h3>
+<p><strong>Connecting the receiver:</strong></p>
+<ul>
+<li>Plug it directly into the computer running the driver. A cheap USB hub, and cameras or USB 3 cables close by, can block the GPS signal completely. In testing, a receiver that got a fix plugged directly into the computer never got one through a hub shared with a guide camera.</li>
+<li>Give it a clear view of the sky. Its first fix after being plugged in can take several minutes.</li>
+</ul>
+<p><strong>Locating:</strong></p>
+<ol>
+<li>In Settings, click the arrow beside <strong>Locate</strong> and choose <strong>Use GPS Receiver</strong>.</li>
+<li>Leave <strong>Connection to GPS Receiver</strong> as <strong>USB / Serial (NMEA)</strong>, and choose the <strong>Serial Port</strong>. GPS receivers are marked in the list, and if only one is plugged in it's chosen for you.</li>
+<li>Leave <strong>Baud Rate</strong> at <code>9600</code> unless your receiver's documentation says otherwise. u-blox receivers ignore it.</li>
+<li>Click <strong>OK</strong>, then <strong>Locate (GPS)</strong>. The button shows its progress while it waits for three matching GPS fixes, then sets the latitude, longitude and elevation.</li>
+</ol>
+<p><strong>Linux and Raspberry Pi notes:</strong></p>
+<ul>
+<li>u-blox receivers appear as <code>/dev/ttyACM0</code>, and receivers with a CH340 USB-serial chip as <code>/dev/ttyUSB0</code>. To check, run <code>ls /dev/ttyACM* /dev/ttyUSB*</code>.</li>
+<li>The user running the driver must be in the <code>dialout</code> group to read the receiver. The Raspberry Pi's default <code>pi</code> user already is. To check, run <code>groups</code>.</li>
+<li>On a Raspberry Pi Zero 2 W, plug the receiver into the micro-USB port marked <strong>USB</strong> with an OTG adapter, not the <strong>PWR</strong> port.</li>
+</ul>
+<p><strong>GPS Daemon (GPSD), Linux only:</strong> GPSD is a Linux service that shares a GPS receiver between programs, for example with KStars/Ekos, or to keep the computer's clock on GPS time. Use it only if you need that: while GPSD is running it holds the receiver, so choose <strong>GPS Daemon (GPSD)</strong> in Alpaca Pilot rather than USB / Serial.</p>
+<ol>
+<li>
+<p>Install gpsd and its status client. On a Raspberry Pi, run:
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./setup.sh<span class="w"> </span>-g
+</span></code></pre></div>
+    The <code>-g</code> option adds the gpsd packages to setup's package installation; it doesn't select GPSD in Alpaca Pilot. On other Linux systems, install the <code>gpsd</code> and <code>gpsd-clients</code> packages.</p>
+</li>
+<li>
+<p>Configure gpsd to use the receiver. Find its stable USB path with <code>ls -l /dev/serial/by-id/</code>, then set it in <code>/etc/default/gpsd</code>, for example:
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nv">DEVICES</span><span class="o">=</span><span class="s2">"/dev/serial/by-id/usb-your-receiver"</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nv">USBAUTO</span><span class="o">=</span><span class="s2">"false"</span>
+</span></code></pre></div></p>
+</li>
+<li>
+<p>Start gpsd and confirm the receiver has a fix:
+    <div class="language-Bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>gpsd.socket
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>restart<span class="w"> </span>gpsd
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>cgps<span class="w"> </span>-s
+</span></code></pre></div>
+    Exit <code>cgps</code> with <strong>Ctrl+C</strong> after confirming it reports a fix.</p>
+</li>
+<li>
+<p>In Alpaca Pilot's Settings, click the arrow beside <strong>Locate</strong>, choose <strong>Use GPS Receiver</strong>, and set <strong>Connection to GPS Receiver</strong> to <strong>GPS Daemon (GPSD)</strong>. The defaults (host <code>127.0.0.1</code>, port <code>2947</code>) are correct when gpsd runs on the same computer as the driver. Click <strong>OK</strong>, then <strong>Locate (GPS)</strong>.</p>
+</li>
+</ol>
+<h2 id="multi-point-alignment">Multi-Point Alignment<a class="headerlink" href="#multi-point-alignment" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>VIDEO DEMO: <a href="https://youtu.be/4CMO0R_yphw">24 - Multi Point Alignment and Tripod Tilt</a></p>
+</blockquote>
+<p>Multi-Point Alignment builds a model of how the mount is set up from three or more sync points, and corrects for tripod tilt, polar misalignment and cone error. Without it, the driver uses Single-Point Alignment, where one plate-solve sync aligns the mount but the tripod must be accurately level. For how the two work, see <a href=".././control/#alignment-models">Alignment Models</a>.</p>
+<p>Align at the start of each imaging session. The model is saved, so it survives restarting the driver or the computer, but it must be reset whenever you move or re-level the tripod.</p>
+<p>Each step below ends with a <strong>plate solve and sync</strong>: your imaging app takes an image, works out exactly where it points, and syncs the mount to it. In NINA, use the Plate Solving panel on the Imaging tab (see <a href=".././nina/#manual-plate-solving">Manual Plate Solving</a>); in CCDciel, see <a href=".././ccdciel/#plate-solving">Plate Solving</a>. Without plate solving, you can sync on a known star instead (see <a href=".././pilot/#sync-with-a-target">Sync with a Target</a>), or on a landmark (see <a href=".././control/#adding-sync-points">Adding Sync Points</a>).</p>
+<p><strong>Before you start:</strong></p>
+<ol>
+<li>Complete the Connect page's steps in Alpaca Pilot: Astro Mode, reset the axes, and skip the compass and single star alignment (see <a href=".././pilot/#astro-mode-setup">Astro Mode Setup</a>).</li>
+<li>Level the tripod as well as you can. The model corrects for tilt, but good levelling still helps.</li>
+<li>Focus the camera, for example with NINA's Autofocus.</li>
+<li>Start tracking, from your imaging app or Alpaca Pilot.</li>
+</ol>
+<p><strong>Building the model:</strong></p>
+<ol>
+<li><strong>Turn on Multi-Point Alignment</strong> on Alpaca Pilot's Settings or Alignment page. If you've moved the tripod since the model was last used, reset it: on the Alignment page, switch to <strong>Single-Point Alignment</strong>, which clears the sync points, then back to <strong>Multi-Point Alignment</strong>.</li>
+<li><strong>First sync.</strong> Plate solve and sync wherever the mount is pointing. The mount is now aligned.</li>
+<li><strong>Celestial pole.</strong> Search for "pole" in Alpaca Pilot's catalog, goto it, and wait for the mount to stop. Then plate solve and sync. A point at the pole keeps the model accurately polar aligned.</li>
+<li><strong>Along the target's path.</strong> Goto your imaging target, then plate solve and sync. For a long session, also add a point where the target will be later: decrease its Right Ascension by an hour or two (enter <code>d-2</code> in Alpaca Pilot's Right Ascension setpoint), wait for the mount to stop, plate solve and sync, then goto the target again.</li>
+<li><strong>Sync the Position Angle</strong> (if you use the Alpaca Rotator). NINA doesn't sync the plate-solved Position Angle, so enter it on Alpaca Pilot's Alignment page once per session (see <a href=".././control/#adding-sync-points">Adding Sync Points</a>).</li>
+</ol>
+<p><strong>Reviewing the model:</strong></p>
+<p>On Alpaca Pilot's Alignment page, each sync point shows a <strong>residual</strong>: the angle between where the mount reported it was pointing and where the model, from the other sync points, predicts it was. Lower residuals mean a better fit. A very good model has residuals of arc seconds, with none of arc minutes or whole degrees.</p>
+<p><img alt="Alignment Residuals" src="../images/control-alignment1.png" /></p>
+<p>Residuals over 5° are flagged <strong>Amber</strong>, and over 10° <strong>Red</strong>. These points don't fit the model, and pull its accuracy down across the whole sky, so review them for deletion. They're usually caused by poor centring before the sync, the mount moving during it, sync points clustered together, an incorrect site location, or the tripod moving.</p>
+<p><img alt="Alignment Residuals" src="../images/control-alignment1b.png" /></p>
+<p>Delete a sync point by clicking the cross beside it. If the mount is tracking, the model adjusts and the mount moves to where it now thinks the target is. If that's off target, plate solve and sync again.</p>
+<h2 id="motor-speed-calibration">Motor Speed Calibration<a class="headerlink" href="#motor-speed-calibration" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p>VIDEO DEMO: <a href="https://youtu.be/U_0-mBDuTjE">32 - Calibrating Speed Control for your Polaris</a></p>
+</blockquote>
+<p>The driver works well with its default motor speeds, but measuring your own mount's speeds makes slews more accurate and tracking smoother. It only needs doing once, and can be done during the day. For how the calibration is used, see <a href=".././control/#motor-speed-calibration">Motor Speed Calibration</a> in the Control Reference.</p>
+<p><strong>Preparing:</strong> make sure the mount can move freely, and remove the camera and any other payload.</p>
+<p><strong>Running the tests:</strong></p>
+<ol>
+<li>In Alpaca Pilot, open <strong>Calibration</strong> under <strong>Performance Tuning</strong> in the side menu.</li>
+<li>Select a motor: <strong>M1</strong> (Azimuth), <strong>M2</strong> (Altitude) or <strong>M3</strong> (Rotation, the Astro Axis). Each motor has its own calibration.</li>
+<li>Click <strong>Test</strong>. With no test selected, the driver tests every speed, measuring the motor's actual speed at each.</li>
+<li>Watch each test complete in the table. Click <strong>Abort</strong> to stop at any time.</li>
+</ol>
+<p><strong>Reviewing the results:</strong> the table shows each test's commanded speed, measured speed, % change from the baseline, and standard deviation. A low % change and a low standard deviation mean a reliable test. If a test shows a high standard deviation or an unexpectedly large change, select it and click <strong>Test</strong> again to retest that speed.</p>
+<p><strong>Approving the results:</strong> select the tests to approve, or leave them all unselected to approve everything, then click <strong>Approve</strong>. The driver uses the approved speeds instead of its defaults from then on.</p>
+<h2 id="worm-gear-calibration">Worm Gear Calibration<a class="headerlink" href="#worm-gear-calibration" title="Permanent link">&para;</a></h2>
+<p>Each motor's worm gear makes the view wobble by 30 to 150 arc seconds, repeating every 6° of the motor's rotation. <strong>PEC Worm Gear Correction</strong> cancels this wobble using a profile of your mount's gears, which this calibration measures. It's worth doing if you image at longer focal lengths, with or without guiding (see <a href=".././guiding-sync/#periodic-error-correction">Periodic Error Correction</a>).</p>
+<p>The profile only needs measuring once, and again if you image with a very different lens. The driver combines up to five of your most recent approved tests, so repeating the test on another night improves the profile.</p>
+<p>The <strong>M1-M2-M3-WORM-PROFILE</strong> test moves the mount to about 50 positions up to ±7.5° from where it starts, and at each one waits for a plate-solve sync to measure where it really points. It takes about 20 minutes.</p>
+<p><strong>Choosing a lens:</strong> use a lens that gives an image scale of 2 to 5 arc seconds per pixel, which for most cameras is a 100 to 300 mm lens. For example, a 200 mm lens on an IMX585 camera gives 3 arc seconds per pixel over a 3.2° × 1.8° field. Use short exposures (2 to 5 s) with plenty of stars, so that each plate solve is quick and reliable.</p>
+<p><strong>Measuring the profile:</strong></p>
+<ol>
+<li>In Alpaca Pilot's <strong>Settings</strong>, set <strong>Focal Length</strong> and <strong>Focal Ratio</strong> to the lens you're using, for example 200 mm and f/4. Each lens keeps its own profile.</li>
+<li>Point the mount 30 to 45° above the horizon in the eastern or western sky (azimuth roughly 45 to 135° or 225 to 315°), at a field with plenty of stars and about ±9° of clear sky around it. Avoid due north or south and the area around the celestial pole.</li>
+<li>
+<p>Set up your imaging app to plate solve and sync repeatedly, about every 10 seconds, for about 20 minutes. In NINA, connect the camera, then the mount, and set the plate-solve exposure time to 1 s. Then in the Advanced Sequencer, create a loop of about 60 iterations, each running a <strong>Solve and Sync</strong> followed by a <strong>Wait for Time Span</strong> of about 10 seconds to let the mount settle.</p>
+<p><img alt="A NINA sequence for the worm gear calibration" src="../images/abp-nina-worm-profile.png" /></p>
+</li>
+<li>
+<p>Start the sequence, and keep it running until the test finishes.</p>
+</li>
+<li>In Alpaca Pilot, open <strong>Calibration</strong> under <strong>Performance Tuning</strong>, select the <strong>M1-M2-M3-WORM-PROFILE</strong> test, click <strong>Test</strong> and confirm. The driver starts tracking and rotates the camera to a roll of ±45°, then steps through the positions.</li>
+</ol>
+<p><strong>While the test runs</strong>, don't guide, slew, park or jog the mount, as any of these stops the test. Your syncs are only used as measurements, and don't change the alignment model. If no sync arrives for a minute, the test stops with <strong>NO DATA</strong>. When it finishes, stop the sequence.</p>
+<p><strong>Reviewing and approving the result:</strong> the results show each motor's measured wobble, for example <code>M3 85"@224</code> (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as <code>off</code> couldn't be measured reliably, and gets no correction. If the result looks reliable, approve it, then switch on <strong>PEC Worm Gear Correction</strong> in Settings. For how to read every column of the results, see <a href=".././kinematics/#periodic-error-correction">Periodic Error Correction</a> in the Kinematics Reference.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../pilot/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Alpaca Pilot App">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Alpaca Pilot App
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../panoramas/" class="md-footer__link md-footer__link--next" aria-label="Next: Creating Panoramas">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Creating Panoramas
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024-2026 David Morrison
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.tabs","navigation.tabs.sticky","navigation.top","navigation.tracking","search.highlight","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":{"provider":"mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -43,6 +43,9 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/hardware/</loc>
       </url>
       <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/initial-setup/</loc>
+      </url>
+      <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/installation/</loc>
       </url>
       <url>
@@ -88,7 +91,13 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/release-notes-v2.2.0/</loc>
       </url>
       <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/rotator-api/</loc>
+      </url>
+      <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/stellarium/</loc>
+      </url>
+      <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/telescope-api/</loc>
       </url>
       <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting-install/</loc>
