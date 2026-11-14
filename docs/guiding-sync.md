@@ -30,12 +30,12 @@ Each correction also feeds Periodic Error Correction, which learns how the mount
 
 ## Periodic Error Correction
 
-Periodic Error Correction (PEC) anticipates the Polaris's tracking errors and corrects them before they show in your images, every 200 milliseconds. It has two parts, each with its own switch in Alpaca Pilot's settings:
+Periodic Error Correction (PEC) predicts the Polaris's tracking errors and corrects them before they show in your images. Switch on its two parts in Alpaca Pilot's settings:
 
-* **PEC Worm Gear Correction** corrects the wobble from each motor's worm gear, which repeats every 6° of the motor's rotation and can move the view by 30 to 150 arc seconds. It uses a profile of your mount's gears, measured once with the [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration), and works with or without guiding.
-* **PEC Drift Correction** learns the slow drift that remains, from your guiding corrections, whether from sync guiding or pulse guiding. It starts correcting once it has received a few corrections and its estimate of the drift is reliable.
+* **PEC Drift Correction** learns the slow drift from your guiding corrections, whether from sync guiding or pulse guiding.
+* **PEC Worm Gear Correction** cancels the wobble from each motor's worm gear, with or without guiding. It needs a [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) first.
 
-The **PEC** button on Alpaca Pilot's status panel switches both on and off together. For how PEC works in detail, see [Periodic Error Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
+The **PEC** button on Alpaca Pilot's status panel switches both on and off together. For how PEC works, see [Periodic Error Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
 
 ## Sync Guiding with NINA
 

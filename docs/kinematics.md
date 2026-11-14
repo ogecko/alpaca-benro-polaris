@@ -241,7 +241,7 @@ The **Mechanical Alignment Correction** toggle in Pilot's Settings allows you to
 
 **Plate-Solved/Sync Guiding** is an innovative, hardware-free approach to auto-guiding that eliminates the need for a separate guide scope and camera. It solves the persistent problem of tracking drift and periodic error in the Benro Polaris by using the main imaging camera to periodically update its dynamic local alignment model. 
 
-Traditionally, the Polaris suffers from **periodic error (PEC)**, mechanical oscillations caused by gear irregularities, which have been measured at approximately **14+ arc minutes** with a primary period of **35 minutes**. Without constant correction, this error leads to noticeable star trails and tracking drift during long exposures. Plate-Solved/Sync Guiding solves this by integrating periodic plate-solve data directly into the motion control loop, acting as a high-precision pulse guide without additional hardware.
+Without constant correction, the Polaris's [periodic error](#periodic-error-correction) leads to noticeable star trails and tracking drift during long exposures. Plate-Solved/Sync Guiding solves this by integrating periodic plate-solve data directly into the motion control loop, acting as a high-precision pulse guide without additional hardware.
 
 **The Mechanism: From Sync to Pulse Guide**
 
@@ -257,24 +257,7 @@ This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to fun
 *   **Drift Reduction:** The residual data is fed into the **PID Controller**, which automatically adjusts motor speeds to "kill" the drift. 
 *   **Reduced Star Trails:** By proactively correcting for the worm gear error and inherent drift, exposures remain sharp even during lengthy imaging sessions.
 
-**Recommended Workflow: The Plate-Solve/Sync Guiding**
-
-To get the best results and maintain perfect centering without manual intervention, a simple automated workflow is recommended:
-
-1.  **Reset Multi-Point-Alignment** - To reset MPA, clear all old Sync points, or toggle MPA off then back on (this will clear all sync points). Enable Tracking.
-2.  **Perform Multi-Point-Alignment** - Slew and capture at least three sync-points. Ideally, at your celestial pole and along the future path of your DSO Target.
-3.  **Slew and Center on your target** - Use Nina to Slew and Center on your target.
-4.  **Initialise Sync Guiding Model** - On the Nina Image tab, use the Plate Solving Tool to manually perform several plate-solves, 30s apart. This is optional, but it can help initialise the PEC model faster.
-5.  **Configure your capture session** - Use Nina's Advanced Scheduler to perform "Smart Exposures", then a "Solve and Sync" every **1 to 3 minutes**.
-
-> **Note:** Don't use Sync Guiding at the same time as Pulse Guiding. The guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back, and the target drifts off center anyway (e.g. from flexure between guide scope and main scope). To keep the target centered during a long Pulse Guided session, use Nina's **Center After Drift** trigger instead. When the plate solve drifts past the threshold (about 0.3–0.5 arcmin), Nina stops guiding, re-centers the target, and restarts guiding with a new lock position. Each re-center is a slew, which resets the driver's PEC model, so avoid setting the threshold too tight.
-
-**Primary Benefits**
-
-
-*   **No Additional Hardware:** Eliminates the cost and weight of a dedicated guide scope and camera.
-*   **Superior Accuracy:** Plate-solves provide significantly more information and higher resolution than traditional guide star pulses.
-*   **Streamlined Operations:** No more repetitive "Slew and Center" iterations are needed; the guiding happens "in-place" as part of the normal imaging sequence.
+For how to set up and use sync guiding, see the [Sync Guiding](./guiding-sync.md) guide.
 
 
 ### Pulse Guiding
@@ -298,14 +281,7 @@ Starting with version 2.2, the driver utilizes a refined mathematical approach t
 *   **PID Feed-Forward Control:** The driver incorporates feed-forward logic specifically for pulses, allowing the motors to reach the required correction velocity almost instantaneously.
 *   **Integral Suspension:** To prevent "overshoot"—where the mount continues moving after a pulse ends—the driver **temporarily suspends the integration of the error term** (KI) during an active pulse. This ensures the correction is crisp and does not introduce new oscillations.
 
-**How to Use and Get the Best Results**
-
-For a comprehensive guide on hardware selection and software configuration, please refer to the [Pulse Guiding](./guiding-pulse.md) guide. To optimize the kinematic response of pulse guiding:
-
-*   **Set the Guide Rate:** A guide rate of **0.75x to 1.0x sidereal** is recommended. If the mount appears to "hunt" or oscillate, lowering this rate in the Alpaca Pilot settings can smooth the response.
-*   **Multi-Star Guiding:** Always enable "Use Multiple Stars" in your guiding software. This averages out atmospheric turbulence (seeing), providing the PID controller with a cleaner signal that represents true mechanical drift rather than "chasing the wind".
-*   **Monitor the PID Loop:** You can visualize pulse commands in real-time on the **PID Tuning page** in Alpaca Pilot, where they appear as dynamic shifts in the RA and Dec setpoints.
-*   **Don't Combine with Sync Guiding:** The guider pulls each sync correction straight back to its lock position. To keep the target centered during a long session, use Nina's **Center After Drift** trigger instead (see the note under Recommended Workflow in [Sync Guiding](#sync-guiding)).
+For how to set up and use pulse guiding, including the guide rate and PHD2 settings, see the [Pulse Guiding](./guiding-pulse.md) guide.
 
 **Primary Benefits**
 
@@ -327,14 +303,14 @@ For a comprehensive guide on hardware selection and software configuration, plea
 
 * **Worm gear error:** Each motor drives its axis through a worm gear. Small irregularities in the gear cause the pointing to wobble by about **30-150 arc seconds**. The wobble repeats every **6 degrees** of each motor's axis rotation. Its period in time depends on motor speed: a few minutes for a fast-moving motor, or hours for a slow one.
 
-Without correction, both errors produce irregular star shapes and trails, limiting exposure length. 
+Together they have been measured at over **14 arc minutes**, with a main period of about **35 minutes**. Without correction, both errors produce irregular star shapes and trails, limiting exposure length.
 
 **How does the Driver correct for Periodic Error?**
 
 The driver addresses periodic error in two layers. Both are applied every **200ms**:
 
 * **Drift correction** learns and corrects the slow changing drift based on guiding corrections from either **Pulse Guiding** or **Sync Guiding**.
-* **Worm gear correction** uses a fixed periodic correction profile for each motor of the mount (see Worm Gear Correction - Profile Calibration below).
+* **Worm gear correction** uses a fixed periodic correction profile for each motor of the mount (see Worm Gear Correction below).
 
 Each layer has its own switch in Pilot's settings, **PEC Drift Correction** and **PEC Worm Gear Correction** (`advanced_pec_drift`, `advanced_pec_worm`), so either can be compared on and off. The PEC button on Pilot's status panel switches both together.
 
@@ -366,20 +342,22 @@ Incoming data used in the estimate is filtered, and the model must first demonst
 
 > Note: Drift Correction applies only when PEC Drift Correction is switched on.
 
-**Worm Gear Correction - Profile Calibration**
+**Worm Gear Correction**
 
 
 The driver applies worm gear corrections once it has a profile of each motor's gearset. This correction is applied first and immediately, **without requiring any guiding**. Because the error is caused by the gears and its phase is relative to the motors' home position (0,0,0), it should repeat from night to night. Any remaining slowly changing drift is then learnt and corrected by PEC Drift Correction.
 
 > Note: Worm Gear Correction applies when PEC Worm Gear Correction is switched on and a `worm_profile.json` exists (switched on without a profile, the driver logs a warning and corrects nothing). It is independent of the Drift Correction switch.
 
-**1. Worm Profile Calibration Test**
+**How the profile is measured**
 
-The Worm Gear Profile is calibrated using a special speed calibration test called **M1-M2-M3-WORM-PROFILE**.
+The profile is measured with the **M1-M2-M3-WORM-PROFILE** test on Pilot's Calibration page. For how to run it, see [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) in Initial Setup.
 
-This test will move the mount to different positions up to +/- 7.5 degrees from its current orientation. At each new position it will wait for a solve and sync to confirm the true pointing orientation. Each time it receives a solve and sync, it will move onto the next position.
+The test enables tracking and rotates to Roll ±45° (on the side of 0 the camera is already on, keeping the same Az/Alt, and back again when the test finishes): at ±45° M1 and M3 move the view in clearly different directions, so their worms separate well. It also keeps each motor's steps within what it can reach at this pose. It then moves the mount to 51 positions (50 steps) up to ±7.5° from where it started, and at each one waits for a plate-solve sync to measure where the mount really points. Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/51`.
 
-**Choosing the lens and camera for the test**
+While the test runs, its syncs are used only as measurements, and don't change the pointing model. Any existing PEC, worm gear correction and Backlash Compensation are paused: the test approaches each position the tracking way and measures each motor's backlash itself. Each test records the Focal Length and Focal Ratio set in Pilot, so its results are pooled with the other tests for that lens (see *Profiles per lens* below).
+
+**Choosing the lens and camera**
 
 Each plate solve measures where the mount really points. The worm errors are 30-150 arc seconds, so each solve should be accurate to about 2 arc seconds or better. A plate solve locates the field to roughly a fifth of a pixel, so what matters is the **image scale** (arc seconds per pixel):
 
@@ -396,21 +374,7 @@ Each plate solve measures where the mount really points. The worm errors are 30-
 
 For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° field, which is well suited. A 50 mm lens will still complete the test, but with a less accurate profile.
 
-**Running the test:** see [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) in Initial Setup for the step-by-step procedure. Set the Focal Length and Focal Ratio first: each test records them, so its results are pooled with the other tests for that lens and build that lens's own profile (see *Profiles per lens* below).
-
-**What the test does:** the driver enables tracking and rotates to Roll ±45° (on the side of 0 the camera is already on, keeping the same Az/Alt, and back again when the test finishes): at ±45° M1 and M3 move the view in clearly different directions, so their worms separate well. It also keeps each motor's steps within what it can reach at this pose. It then takes measurements at 51 different positions (50 steps). Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/51`.
-
-**While the test is running:**
-
-* Your syncs are used only as measurements. They do not change the pointing model.
-* Any existing PEC, worm gear correction and Backlash Compensation are paused (the test approaches each position the tracking way and measures each motor's backlash itself).
-* **Don't guide, slew, park, or jog the mount.** Any of these actions stops the test.
-* If no Solve and Sync arrives for 1 minute, the test stops with **NO DATA**.
-* You can press **Stop** at any time.
-
-**When the test finishes:** stop the Solve and Sync loop; syncs after the test are ordinary alignment points.
-
-**2. Review the result.**
+**Reading the results**
 
 Every test and its measurements are retained in the history. Only approved tests contribute to the worm gear profiles used by the driver. The driver pools up to five of the most recent approved tests to produce a more reliable estimate of each motor's worm gear error.
 
@@ -455,8 +419,6 @@ The results are displayed in columns, with one line per motor under each heading
     * `POOR FIT` — no wobble could be distinguished reliably from noise, or the measurements scattered too much (e.g. wind, backlash).
     * `NO DATA` or `STOPPED` — too few plate solves were received.
 
-Running the test again at a different pose reduces the effect of measurement noise.
-
 **Forward and reverse profiles.** 
 
 A motor's worm gear error can differ depending on its direction of rotation because the load rests against a different side of the gear teeth. On the test mount, for example, M2 measured approximately 90" of wobble in the forward direction and 35" in reverse.
@@ -486,17 +448,11 @@ All tests, including their individual measurements, are retained in `worm_profil
 
 The status also indicates whether the latest test is `APPROVED` or `REJECTED`, or `COMPLETED` if it is a new test awaiting your decision.
 
-**3. Approve or reject it.**
+**Approving and rejecting**
 
-Click **Approve** to include the latest test in the approved test pool. The correction profiles are rebuilt from the approved tests and take effect immediately.
+Approving a test adds it to the approved test pool, and rejecting it takes it out again. The correction profiles are rebuilt from the approved tests each time, and take effect immediately. Rejected tests remain in the history for analysis, but never contribute to the correction profiles. A test with a poor individual fit can still be approved, but it contributes to the pooled profile only if its RMS is below 20".
 
-Press **Approve** again to reject the test and exclude it from the pool. The profiles are rebuilt without it. You can switch between approved and rejected states as often as needed.
-
-Rejected tests remain in the history for analysis but never contribute to the correction profiles.
-
-Reject tests that were compromised by conditions such as cloud, wind or a motor reversing during the test and introducing backlash-related errors. A test with a poor individual fit can still be approved, but it contributes to the pooled profile only if its RMS is below 20".
-
-**4. The correction takes effect immediately.**
+**Effect on the alignment model**
 
 Approving or rejecting a test determines which measurements contribute to the correction profile. Whether that profile is actively applied is controlled separately by the PEC Worm Gear Correction switch in Pilot's settings. Approving or rejecting a test does not change this switch.
 
@@ -504,22 +460,7 @@ Worm gear correction is also incorporated into the mount's alignment model. When
 
 Because sync points retain their raw motor angles, no re-alignment is required simply because the correction is toggled.
 
-**Recommended workflow**: Approve or reject tests before aligning and observing for the night, then perform a fresh Multi-Point Alignment. The test moves the mount well away from its existing alignment points, and a clean, well-distributed set of alignment points is more important than the correction profile itself.
-
 Approving or rejecting a test, or toggling the correction while guiding, can shift the pointing by up to the measured wobble amplitude and restarts the drift correction.
-
-To operate without worm gear correction, switch PEC Worm Gear Correction off in Pilot's settings.
-
-**5. Verify the correction.**
-
-There are two ways to check whether the correction is improving tracking:
-
-* On the **Kinematics** page, inspect the **PEC Worm** row to see the current correction applied to each motor. These values change as the motors turn, with M1 changing most rapidly during tracking.
-* On the same target, compare the PHD2 RMS guiding error, or the size of the guide corrections needed to maintain tracking, with worm gear correction enabled and disabled. Allow 10–15 minutes for each period. Switching the correction restarts the drift correction, so allow for that when comparing results.
-
-With worm gear correction enabled, the slow, regular oscillation in the guide corrections should become smaller or disappear.
-
-In PHD2 Log Viewer, use frequency analysis to compare the peak at the worm period. This is typically around 34 minutes (approximately 2,000 seconds), although the period varies with the target's position as the motor speeds change. With effective correction, this peak should be substantially reduced or disappear.
 
 **Important Considerations**
 

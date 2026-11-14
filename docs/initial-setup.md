@@ -198,7 +198,7 @@ The driver works well with its default motor speeds, but measuring your own moun
 
 ## Worm Gear Calibration
 
-Each motor's worm gear makes the view wobble by 30 to 150 arc seconds, repeating every 6° of the motor's rotation. **PEC Worm Gear Correction** cancels this wobble using a profile of your mount's gears, which this calibration measures. Of the two calibrations, it gives the biggest improvement, both unguided and with sync guiding, especially at longer focal lengths (see [Periodic Error Correction](./guiding-sync.md#periodic-error-correction)).
+Each motor's worm gear makes the view wobble by 30 to 150 arc seconds, repeating every 6° of the motor's rotation. **PEC Worm Gear Correction** cancels this wobble using a profile of your mount's gears, which this calibration measures. Of the two calibrations, it gives the biggest improvement, both unguided and with sync guiding, especially at longer focal lengths (see [Periodic Error Correction](./kinematics.md#periodic-error-correction)).
 
 The profile only needs measuring once, and again if you image with a very different lens. The driver combines up to five of your most recent approved tests, so repeating the test on another night improves the profile.
 
@@ -219,4 +219,15 @@ The **M1-M2-M3-WORM-PROFILE** test moves the mount to about 50 positions up to �
 
 **While the test runs**, don't guide, slew, park or jog the mount, as any of these stops the test. Your syncs are only used as measurements, and don't change the alignment model. If no sync arrives for a minute, the test stops with **NO DATA**. You can click **Stop** at any time. When it finishes, stop the sequence: syncs after the test are ordinary alignment points.
 
-**Reviewing and approving the result:** the results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. If the result looks reliable, approve it, then switch on **PEC Worm Gear Correction** in Settings. For how to read every column of the results, see [Periodic Error Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
+**Reviewing and approving the result:** the results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. For how to read every column, see [Worm Gear Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
+
+* If the result looks reliable, click **Approve**, then switch on **PEC Worm Gear Correction** in Settings. Click **Approve** again to reject the test, as often as you like.
+* Reject tests spoilt by cloud, wind, or a motor reversing during the test.
+* Approve or reject tests before you align for the night, then do a fresh [Multi-Point Alignment](#multi-point-alignment): the test moves the mount well away from your alignment points. Approving, rejecting or switching the correction while guiding can shift the pointing by up to the measured wobble, and restarts PEC Drift Correction.
+* To improve the profile, repeat the test on other nights and at different positions. Testing on both sides of the meridian lets the driver build separate profiles for each direction a motor turns.
+
+**Verifying the correction:**
+
+* On Alpaca Pilot's **Kinematics** page, the **PEC Worm** row shows the correction applied to each motor. It changes as the motors turn, M1 fastest while tracking.
+* On the same target, compare PHD2's RMS guiding error, or the size of the guide corrections, with PEC Worm Gear Correction on and off, for 10 to 15 minutes each. Switching it restarts PEC Drift Correction, so allow for that. With the correction on, the slow, regular oscillation in the guide corrections should shrink or disappear.
+* In PHD2 Log Viewer, use frequency analysis to compare the peak at the worm period, typically around 34 minutes (about 2,000 seconds), though it varies with the target's position. With the correction working, the peak should be much smaller or gone.
