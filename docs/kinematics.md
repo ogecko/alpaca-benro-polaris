@@ -714,39 +714,9 @@ The following table shows how much the motor movement is amplified at low altitu
 
 A value of **1.0×** means the mount is operating normally. A value of **1.5×** means the motors need to move about 50% more than they would in an ideal position. The table is the same for positive and negative roll angles. Only the **amount of roll** matters.
 
-**How to fix it:**
+**How the driver handles it:**
 
-There are two simple ways to make tracking easier:
-
-1. **Increase the camera's roll angle magnitude away from zero (horizontal)**, or
-2. **Point the telescope higher in the sky.**
-
-Increasing the roll angle moves the mount away from the difficult pose where the two motors are working against each other. The table below shows approximately how much roll is needed to keep the motor amplification below different limits:
-
-| Telescope Altitude | Maximum 1.5× | Maximum 1.3× | Maximum 1.2× |
-| ------------------ | -----------: | -----------: | -----------: |
-| 10°                |     41° roll |     50° roll |     56° roll |
-| 20°                |     38° roll |     47° roll |     54° roll |
-| 30°                |     31° roll |     42° roll |     50° roll |
-| 40°                |     13° roll |     33° roll |     44° roll |
-| 50°                |     Any roll |      6° roll |     31° roll |
-| 60° and above      |     Any roll |     Any roll |     Any roll |
-
-**Practical recommendation:**
-
-When tracking targets below about **40° altitude**, use a **large roll angle** (typically **40° to 60° in magnitude**).
-
-Pay attention to the direction in which the roll angle changes during tracking:
-
-* If the roll angle is **increasing**, choose **−40° to −60°**.
-* If the roll angle is **decreasing**, choose **+40° to +60°**.
-
-Once the telescope is above about **50° altitude**, this problem is essentially eliminated. At higher altitudes, tracking amplification remains below **1.3× regardless of the camera's roll angle**, so no special adjustment is needed.
-
-**In short:**
-
-> **If you're imaging low in the sky, use a large roll angle of +/- 40° to 60° when possible.** <br>
-> **The higher the target is in the sky, the less important camera roll angle becomes.**
+With [Coordinated Speed Control](./control.md#coordinated-speed-control) on (the default), the driver holds all three motors at their required speeds together, so tracking stays accurate at low altitudes and near zero roll, with no special camera roll needed. With it off, tracking below about 40° altitude is easier with a large camera roll of ±40° to 60°.
 
 
 
