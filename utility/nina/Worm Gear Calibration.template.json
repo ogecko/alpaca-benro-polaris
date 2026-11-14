@@ -1,0 +1,157 @@
+{
+  "$id": "1",
+  "$type": "NINA.Sequencer.Container.SequentialContainer, NINA.Sequencer",
+  "Strategy": {
+    "$type": "NINA.Sequencer.Container.ExecutionStrategy.SequentialStrategy, NINA.Sequencer"
+  },
+  "Name": "Worm Gear Calibration",
+  "Conditions": {
+    "$id": "2",
+    "$type": "System.Collections.ObjectModel.ObservableCollection`1[[NINA.Sequencer.Conditions.ISequenceCondition, NINA.Sequencer]], System.ObjectModel",
+    "$values": []
+  },
+  "IsExpanded": true,
+  "Items": {
+    "$id": "3",
+    "$type": "System.Collections.ObjectModel.ObservableCollection`1[[NINA.Sequencer.SequenceItem.ISequenceItem, NINA.Sequencer]], System.ObjectModel",
+    "$values": [
+      {
+        "$id": "4",
+        "$type": "DaleGhent.NINA.DeviceActionsCommands.DeviceActionInstruction, DaleGhent.NINA.DeviceActionsCommands",
+        "DeviceType": 9,
+        "ActionName": "Polaris:SpeedTestStart",
+        "ActionParameters": "{\"axis\":0,\"testNames\":[\"M1-M2-M3-WORM-PROFILE\"]}",
+        "SupportedActions": {
+          "$id": "5",
+          "$type": "NINA.Core.Utility.AsyncObservableCollection`1[[System.String, System.Private.CoreLib]], NINA.Core",
+          "$values": [
+            "Polaris:PanoGrid",
+            "Polaris:PanoSlew",
+            "Polaris:SlewAbsolute",
+            "Polaris:SlewRelative",
+            "Polaris:AbortSlew",
+            "Polaris:MoveAxis",
+            "Polaris:MoveMotor",
+            "Polaris:ResetAxes",
+            "Polaris:bleSelectDevice",
+            "Polaris:bleEnableWifi",
+            "Polaris:DeviceConnect",
+            "Polaris:DeviceDisconnect",
+            "Polaris:RestartDriver",
+            "Polaris:StopDriver",
+            "Polaris:ShutdownOS",
+            "Polaris:ShutdownMount",
+            "Polaris:SetMode",
+            "Polaris:SetCompass",
+            "Polaris:SetAlignment",
+            "Polaris:StatusFetch",
+            "Polaris:ConfigFetch",
+            "Polaris:ConfigUpdate",
+            "Polaris:ConfigSave",
+            "Polaris:ConfigRestore",
+            "Polaris:GpsLocate",
+            "Polaris:SerialPorts",
+            "Polaris:ReplayMark",
+            "Polaris:SpeedTestStart",
+            "Polaris:SpeedTestStop",
+            "Polaris:SpeedTestApprove",
+            "Polaris:SyncRoll",
+            "Polaris:SyncRemove",
+            "Polaris:J2000Sync",
+            "Polaris:J2000Goto",
+            "Polaris:Ack",
+            "Polaris:ResetSP",
+            "Polaris:SetLBracket",
+            "Polaris:GetCatalog",
+            "Polaris:GetOrbitals",
+            "Polaris:TrackOrbital",
+            "Polaris:RemoveOrbital",
+            "Polaris:PanoOffset"
+          ]
+        },
+        "Parent": {
+          "$ref": "1"
+        },
+        "ErrorBehavior": 0,
+        "Attempts": 1
+      },
+      {
+        "$id": "6",
+        "$type": "NINA.Sequencer.SequenceItem.Utility.WaitForTimeSpan, NINA.Sequencer",
+        "Time": 20.0,
+        "Parent": {
+          "$ref": "1"
+        },
+        "ErrorBehavior": 0,
+        "Attempts": 1
+      },
+      {
+        "$id": "7",
+        "$type": "NINA.Sequencer.Container.SequentialContainer, NINA.Sequencer",
+        "Strategy": {
+          "$type": "NINA.Sequencer.Container.ExecutionStrategy.SequentialStrategy, NINA.Sequencer"
+        },
+        "Name": "Sequential Instruction Set",
+        "Conditions": {
+          "$id": "8",
+          "$type": "System.Collections.ObjectModel.ObservableCollection`1[[NINA.Sequencer.Conditions.ISequenceCondition, NINA.Sequencer]], System.ObjectModel",
+          "$values": [
+            {
+              "$id": "9",
+              "$type": "NINA.Sequencer.Conditions.LoopCondition, NINA.Sequencer",
+              "CompletedIterations": 0,
+              "Iterations": 60,
+              "Parent": {
+                "$ref": "7"
+              }
+            }
+          ]
+        },
+        "IsExpanded": true,
+        "Items": {
+          "$id": "10",
+          "$type": "System.Collections.ObjectModel.ObservableCollection`1[[NINA.Sequencer.SequenceItem.ISequenceItem, NINA.Sequencer]], System.ObjectModel",
+          "$values": [
+            {
+              "$id": "11",
+              "$type": "NINA.Sequencer.SequenceItem.Platesolving.SolveAndSync, NINA.Sequencer",
+              "Parent": {
+                "$ref": "7"
+              },
+              "ErrorBehavior": 0,
+              "Attempts": 1
+            },
+            {
+              "$id": "12",
+              "$type": "NINA.Sequencer.SequenceItem.Utility.WaitForTimeSpan, NINA.Sequencer",
+              "Time": 7.0,
+              "Parent": {
+                "$ref": "7"
+              },
+              "ErrorBehavior": 0,
+              "Attempts": 1
+            }
+          ]
+        },
+        "Triggers": {
+          "$id": "13",
+          "$type": "System.Collections.ObjectModel.ObservableCollection`1[[NINA.Sequencer.Trigger.ISequenceTrigger, NINA.Sequencer]], System.ObjectModel",
+          "$values": []
+        },
+        "Parent": {
+          "$ref": "1"
+        },
+        "ErrorBehavior": 0,
+        "Attempts": 1
+      }
+    ]
+  },
+  "Triggers": {
+    "$id": "14",
+    "$type": "System.Collections.ObjectModel.ObservableCollection`1[[NINA.Sequencer.Trigger.ISequenceTrigger, NINA.Sequencer]], System.ObjectModel",
+    "$values": []
+  },
+  "Parent": null,
+  "ErrorBehavior": 0,
+  "Attempts": 1
+}

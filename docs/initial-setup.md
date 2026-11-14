@@ -1,11 +1,12 @@
 # Initial Setup
-[Site Location](#site-location) · [Multi-Point Alignment](#multi-point-alignment) · [Speed Calibration](#motor-speed-calibration) · [Worm Gear Calibration](#worm-gear-calibration)
+[Site Location](#site-location) · [NINA Templates](#nina-templates) · [Multi-Point Alignment](#multi-point-alignment) · [Speed Calibration](#motor-speed-calibration) · [Worm Gear Calibration](#worm-gear-calibration)
 
 Once Alpaca Pilot is [connected to the Polaris](./pilot.md#connecting-polaris), these steps get the most out of the mount. Only the site location is required. The others improve pointing and tracking, and most of them only need doing once.
 
 | Step | When | Needed? |
 |---|---|---|
 | [Site Location](#site-location) | Whenever you change observing site | Required |
+| [NINA Templates](#nina-templates) | Once, if you use NINA | Recommended |
 | [Multi-Point Alignment](#multi-point-alignment) | At the start of each imaging session | Recommended |
 | [Motor Speed Calibration](#motor-speed-calibration) | Once, to improve fast movement control | Optional |
 | [Worm Gear Calibration](#worm-gear-calibration) | Once, to improve unguided and sync-guided tracking | Optional |
@@ -138,42 +139,69 @@ A USB GPS receiver plugged into the computer running the driver sets the site's 
 
 4. In Alpaca Pilot's Settings, click the arrow beside **Locate**, choose **Use GPS Receiver**, and set **Connection to GPS Receiver** to **GPS Daemon (GPSD)**. The defaults (host `127.0.0.1`, port `2947`) are correct when gpsd runs on the same computer as the driver. Click **OK**, then **Locate (GPS)**.
 
+## NINA Templates
+
+The driver comes with two NINA Advanced Sequencer templates that run [Multi-Point Alignment](#multi-point-alignment) and the [Worm Gear Calibration](#worm-gear-calibration) for you. They're in the driver's `utility/nina` folder, and on [GitHub](https://github.com/ogecko/alpaca-benro-polaris/tree/dev2_2/utility/nina). To install them:
+
+1. In NINA's **Plugins** tab, install the **Device Actions and Commands** plugin, then restart NINA. The templates use its **Device Action** instruction to control the mount.
+2. Copy the two `.template.json` files from the driver's `utility/nina` folder into NINA's templates folder. This is usually:
+    * `Documents\N.I.N.A\Templates`, or
+    * `OneDrive\Documents\N.I.N.A\Templates`, if OneDrive backs up your Documents folder.
+
+    To check, save a template from the Advanced Sequencer: the **Save As** dialog opens in the templates folder.
+
+3. In the Advanced Sequencer, the templates now appear in the **Templates** list, ready to drag into a sequence.
+
+
 ## Multi-Point Alignment
 
 >VIDEO DEMO: [24 - Multi Point Alignment and Tripod Tilt](https://youtu.be/4CMO0R_yphw)
 
-Multi-Point Alignment builds a model of how the mount is set up from three or more sync points, and corrects for tripod tilt, polar misalignment and cone error. Without it, the driver uses Single-Point Alignment, where one plate-solve sync aligns the mount but the tripod must be accurately level. For how the two work, see [Alignment Models](./control.md#alignment-models).
+Multi-Point Alignment builds a model of how the mount is set up from several plate-solve syncs, and corrects for tripod tilt, polar misalignment and cone error. Without it, the driver uses Single-Point Alignment, where one sync aligns the mount but the tripod must be accurately level (see [Alignment Models](./control.md#alignment-models)).
 
-Align at the start of each imaging session. The model is saved, so it survives restarting the driver or the computer, but it must be reset whenever you move or re-level the tripod.
-
-Each step below ends with a **plate solve and sync**: your imaging app takes an image, works out exactly where it points, and syncs the mount to it. In NINA, use the Plate Solving panel on the Imaging tab (see [Manual Plate Solving](./nina.md#manual-plate-solving)); in CCDciel, see [Plate Solving](./ccdciel.md#plate-solving). Without plate solving, you can sync on a known star instead (see [Sync with a Target](./pilot.md#sync-with-a-target)), or on a landmark (see [Adding Sync Points](./control.md#adding-sync-points)).
+Align at the start of each imaging session. The model is saved, so it survives restarting the driver or the computer, but redo it whenever you move or re-level the tripod. Also redo it if tracking or pointing gets noticeably worse, or if the sync points are from an earlier night, as the tripod may have settled or shifted since.
 
 **Before you start:**
 
 1. Complete the Connect page's steps in Alpaca Pilot: Astro Mode, reset the axes, and skip the compass and single star alignment (see [Astro Mode Setup](./pilot.md#astro-mode-setup)).
-2. Level the tripod as well as you can. The model corrects for tilt, but good levelling still helps.
+2. Level the tripod as well as you can.
 3. Focus the camera, for example with NINA's Autofocus.
-4. Start tracking, from your imaging app or Alpaca Pilot.
 
-**Building the model:**
+### Aligning with NINA
 
-1. **Turn on Multi-Point Alignment** on Alpaca Pilot's Settings or Alignment page. If you've moved the tripod since the model was last used, reset it: on the Alignment page, switch to **Single-Point Alignment**, which clears the sync points, then back to **Multi-Point Alignment**.
-2. **First sync.** Plate solve and sync wherever the mount is pointing. The mount is now aligned.
-3. **Celestial pole.** Search for "pole" in Alpaca Pilot's catalog, goto it, and wait for the mount to stop. Then plate solve and sync. A point at the pole keeps the model accurately polar aligned.
-4. **Along the target's path.** Goto your imaging target, then plate solve and sync. For a long session, also add a point where the target will be later: decrease its Right Ascension by an hour or two (enter `d-2` in Alpaca Pilot's Right Ascension setpoint), wait for the mount to stop, plate solve and sync, then goto the target again.
-5. **Sync the Position Angle** (if you use the Alpaca Rotator). NINA doesn't sync the plate-solved Position Angle, so enter it on Alpaca Pilot's Alignment page once per session (see [Adding Sync Points](./control.md#adding-sync-points)).
+Run the **Multi-Point Alignment** [template](#nina-templates). It resets the model, starts tracking, then slews to the celestial pole and five points around the sky, plate solving and syncing at each.
 
-**Reviewing the model:**
+Before running it the first time, adjust it for your site:
 
-On Alpaca Pilot's Alignment page, each sync point shows a **residual**: the angle between where the mount reported it was pointing and where the model, from the other sync points, predicts it was. Lower residuals mean a better fit. A very good model has residuals of arc seconds, with none of arc minutes or whole degrees.
+* **The pole:** the first and last `Polaris:SlewAbsolute` instructions slew to `{"az":180,"alt":33,"roll":0}`, the pole for a site at 33° south. Set `alt` to your latitude without its sign, and `az` to `0` in the northern hemisphere or `180` in the southern.
+* **The other points:** move any that trees or buildings block, keeping them spread around the sky. In the northern hemisphere, spread them around north.
+* **The filter:** the template starts by switching to the **L** filter. Change this to suit your filter wheel, or delete it if you don't have one.
+
+### Aligning Manually
+
+You can also build the model yourself: point the mount at several places spread across the sky, and add each one to the model with a **plate solve and sync** from your imaging app (see [Manual Plate Solving](./nina.md#manual-plate-solving) in NINA, or [Plate Solving](./ccdciel.md#plate-solving) in CCDciel). Without plate solving, sync on a known star (see [Sync with a Target](./pilot.md#sync-with-a-target)) or a landmark (see [Adding Sync Points](./control.md#adding-sync-points)) instead. 
+
+You can choose any points, but a point at the celestial pole, and points along your target's path through the night, give the best accuracy for an imaging session:
+
+1. **Start tracking**, from your imaging app or Alpaca Pilot.
+2. **Turn on Multi-Point Alignment** on Alpaca Pilot's Alignment page. To reset an old model, switch to **Single-Point Alignment**, which clears the sync points, then back to **Multi-Point Alignment**.
+3. **First sync.** Plate solve and sync wherever the mount is pointing. The mount is now aligned.
+4. **Celestial pole.** Search for "pole" in Alpaca Pilot's catalog, goto it, and wait for the mount to stop. Then plate solve and sync. A point at the pole keeps the model accurately polar aligned.
+5. **Along the target's path.** Goto your imaging target, then plate solve and sync. For a long session, also add a point where the target will be later: decrease its Right Ascension by an hour or two (enter `d-2` in Alpaca Pilot's Right Ascension setpoint), plate solve and sync, then goto the target again.
+
+### Reviewing the Model
+
+On Alpaca Pilot's Alignment page, each sync point shows a **residual**: the angle between where the mount reported it was pointing and where the model, from the other sync points, predicts it was. A very good model has residuals of arc seconds, with none of arc minutes or whole degrees.
 
 ![Alignment Residuals](images/control-alignment1.png)
 
-Residuals over 5° are flagged **Amber**, and over 10° **Red**. These points don't fit the model, and pull its accuracy down across the whole sky, so review them for deletion. They're usually caused by poor centring before the sync, the mount moving during it, sync points clustered together, an incorrect site location, or the tripod moving.
+Residuals over 5° are flagged **Amber**, and over 10° **Red**. These points pull the model's accuracy down across the whole sky, so review them for deletion. They're usually caused by poor centring before the sync, the mount moving during it, sync points clustered together, an incorrect site location, or the tripod moving.
 
 ![Alignment Residuals](images/control-alignment1b.png)
 
-Delete a sync point by clicking the cross beside it. If the mount is tracking, the model adjusts and the mount moves to where it now thinks the target is. If that's off target, plate solve and sync again.
+Delete a sync point by clicking the cross beside it. If the mount is tracking, it moves to where the adjusted model thinks the target is. If that's off target, plate solve and sync again.
+
+If you use the Alpaca Rotator, also sync the Position Angle once per session: NINA doesn't sync the plate-solved Position Angle, so enter it on Alpaca Pilot's Alignment page (see [Adding Sync Points](./control.md#adding-sync-points)).
 
 ## Motor Speed Calibration
 
@@ -204,29 +232,41 @@ The profile only needs measuring once, and again if you image with a very differ
 
 The **M1-M2-M3-WORM-PROFILE** test moves the mount to about 50 positions up to ±7.5° from where it starts, and at each one waits for a plate-solve sync to measure where it really points. It takes about 20 minutes.
 
-**Choosing a lens:** use a lens that gives an image scale of 2 to 5 arc seconds per pixel, which for most cameras is a 100 to 300 mm lens. For example, a 200 mm lens on an IMX585 camera gives 3 arc seconds per pixel over a 3.2° × 1.8° field. Use short exposures (2 to 5 s) with plenty of stars, so that each plate solve is quick and reliable.
+**Before you start:**
 
-**Measuring the profile:**
+1. **Choose a lens** that gives an image scale of 2 to 5 arc seconds per pixel, which for most cameras is a 100 to 300 mm lens. For example, a 200 mm lens on an IMX585 camera gives 3 arc seconds per pixel over a 3.2° × 1.8° field.
+2. **Set the lens** in Alpaca Pilot's **Settings**: **Focal Length** and **Focal Ratio**, for example 200 mm and f/4. Each lens keeps its own profile, so if these are left at the defaults, the test is filed under the wrong lens.
+3. **Point the mount** 30 to 45° above the horizon in the eastern or western sky (azimuth roughly 45 to 135° or 225 to 315°), at a field with plenty of stars and about ±9° of clear sky around it. Avoid due north or south and the area around the celestial pole.
+4. **Use short plate-solve exposures**, such as 1 s, with plenty of stars, so each plate solve is quick and reliable.
 
-1. In Alpaca Pilot's **Settings**, set **Focal Length** and **Focal Ratio** to the lens you're using, for example 200 mm and f/4. Each lens keeps its own profile, so if these are left at the defaults, the test is filed under the wrong lens.
-2. Point the mount 30 to 45° above the horizon in the eastern or western sky (azimuth roughly 45 to 135° or 225 to 315°), at a field with plenty of stars and about ±9° of clear sky around it. Avoid due north or south and the area around the celestial pole.
-3. Set up your imaging app to plate solve and sync repeatedly, about every 10 seconds, for about 20 minutes. In NINA, connect the camera, then the mount, and set the plate-solve exposure time to 1 s. Then in the Advanced Sequencer, create a loop of about 60 iterations, each running a **Solve and Sync** followed by a **Wait for Time Span** of about 10 seconds to let the mount settle. If the test log shows many syncs discarded as "motors not settled", lengthen the wait a little.
+Run the calibration before Multi-Point Alignment, as the syncs at the end of the test add stray alignment points that a fresh alignment clears.
 
-    ![A NINA sequence for the worm gear calibration](images/abp-nina-worm-profile.png)
+### Measuring with NINA
 
-4. Start the sequence, and keep it running until the test finishes.
-5. In Alpaca Pilot, open **Calibration** under **Performance Tuning**, select the **M1-M2-M3-WORM-PROFILE** test, click **Test** and confirm. The driver starts tracking and rotates the camera to a roll of ±45°, then steps through the positions.
+Run the **Worm Gear Calibration** [template](#nina-templates), and let it finish. It starts the test, waits while the driver rotates the camera, then plate solves and syncs every few seconds until the test is done.
 
-**While the test runs**, don't guide, slew, park or jog the mount, as any of these stops the test. Your syncs are only used as measurements, and don't change the alignment model. If no sync arrives for a minute, the test stops with **NO DATA**. You can click **Stop** at any time. When it finishes, stop the sequence: syncs after the test are ordinary alignment points.
+![The NINA template for the worm gear calibration](images/abp-nina-worm-profile.png)
 
-**Reviewing and approving the result:** the results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. For how to read every column, see [Worm Gear Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
+### Measuring by Hand
+
+1. Set up your imaging app to plate solve and sync repeatedly, about every 10 seconds, for about 20 minutes, and start it.
+2. In Alpaca Pilot, open **Calibration** under **Performance Tuning**, select the **M1-M2-M3-WORM-PROFILE** test, click **Test** and confirm. The driver starts tracking and rotates the camera to a roll of ±45°, then steps through the positions.
+3. When the test finishes, stop the syncs.
+
+If the test log shows many syncs discarded as "motors not settled", lengthen the wait between syncs a little.
+
+**While the test runs**, with either method, don't guide, slew, park or jog the mount, as any of these stops the test. Your syncs are only used as measurements, and don't change the alignment model. If no sync arrives for a minute, the test stops with **NO DATA**. You can click **Stop** at any time.
+
+### Reviewing the Result
+
+The results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. For how to read every column, see [Worm Gear Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
 
 * If the result looks reliable, click **Approve**, then switch on **PEC Worm Gear Correction** in Settings. Click **Approve** again to reject the test, as often as you like.
 * Reject tests spoilt by cloud, wind, or a motor reversing during the test.
 * Approve or reject tests before you align for the night, then do a fresh [Multi-Point Alignment](#multi-point-alignment): the test moves the mount well away from your alignment points. Approving, rejecting or switching the correction while guiding can shift the pointing by up to the measured wobble, and restarts PEC Drift Correction.
 * To improve the profile, repeat the test on other nights and at different positions. Testing on both sides of the meridian lets the driver build separate profiles for each direction a motor turns.
 
-**Verifying the correction:**
+### Verifying the Correction
 
 * On Alpaca Pilot's **Kinematics** page, the **PEC Worm** row shows the correction applied to each motor. It changes as the motors turn, M1 fastest while tracking.
 * On the same target, compare PHD2's RMS guiding error, or the size of the guide corrections, with PEC Worm Gear Correction on and off, for 10 to 15 minutes each. Switching it restarts PEC Drift Correction, so allow for that. With the correction on, the slow, regular oscillation in the guide corrections should shrink or disappear.
