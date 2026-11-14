@@ -65,8 +65,8 @@ The maximum focal length you can effectively use with the Benro Polaris for astr
 
 Here's some results from the Beta Testers:
 
-* 800mm with Success: One user successfully captured deep-sky images using an 800mm lens and exposures up to 15 seconds. Stacking around 240 images resulted in a high-quality, hour-long exposure. 
-* 1750mm Equivalent Focal Length Achieved: Another user, Vladimir, pushed the limits further, achieving impressive results at an equivalent focal length of 1750mm by combining a Sigma 120-400mm lens with a 1.4x extender and a ZWO ASI585MC camera. This demonstrates the Benro Polaris's potential for longer focal lengths with the right equipment and settings. 
+* **800mm**: One user successfully captured deep-sky images using an 800mm lens and exposures of 20 seconds. Stacking around 180 images resulted in a high-quality, hour-long exposure. 
+* **2720mm**: Another user, pushed the limits further, achieving impressive results at an equivalent focal length of 2720mm by combining an EF 400mm lens, a 2x extender, a MiniCAM8 IMX 585 camera and a guide camera, taking 120s images of NGC 1970 The Thorny Blue Rose Nebula. This demonstrates the Benro Polaris's potential for longer focal lengths with the right equipment and settings. 
   
 Keep in mind that longer focal lengths amplify any tracking errors, making precise polar alignment and potentially shorter exposures crucial.
 
