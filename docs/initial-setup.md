@@ -164,6 +164,7 @@ Align at the start of each imaging session. The model is saved, so it survives r
 1. Complete the Connect page's steps in Alpaca Pilot: Astro Mode, reset the axes, and skip the compass and single star alignment (see [Astro Mode Setup](./pilot.md#astro-mode-setup)).
 2. Level the tripod as well as you can.
 3. Focus the camera, for example with NINA's Autofocus.
+4. Set up plate solving in your imaging app, and check that a manual plate solve and sync works (see [Plate Solving](./nina.md#plate-solving) in the NINA guide).
 
 ### Aligning with NINA
 
