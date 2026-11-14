@@ -208,15 +208,15 @@ The **M1-M2-M3-WORM-PROFILE** test moves the mount to about 50 positions up to �
 
 **Measuring the profile:**
 
-1. In Alpaca Pilot's **Settings**, set **Focal Length** and **Focal Ratio** to the lens you're using, for example 200 mm and f/4. Each lens keeps its own profile.
+1. In Alpaca Pilot's **Settings**, set **Focal Length** and **Focal Ratio** to the lens you're using, for example 200 mm and f/4. Each lens keeps its own profile, so if these are left at the defaults, the test is filed under the wrong lens.
 2. Point the mount 30 to 45° above the horizon in the eastern or western sky (azimuth roughly 45 to 135° or 225 to 315°), at a field with plenty of stars and about ±9° of clear sky around it. Avoid due north or south and the area around the celestial pole.
-3. Set up your imaging app to plate solve and sync repeatedly, about every 10 seconds, for about 20 minutes. In NINA, connect the camera, then the mount, and set the plate-solve exposure time to 1 s. Then in the Advanced Sequencer, create a loop of about 60 iterations, each running a **Solve and Sync** followed by a **Wait for Time Span** of about 10 seconds to let the mount settle.
+3. Set up your imaging app to plate solve and sync repeatedly, about every 10 seconds, for about 20 minutes. In NINA, connect the camera, then the mount, and set the plate-solve exposure time to 1 s. Then in the Advanced Sequencer, create a loop of about 60 iterations, each running a **Solve and Sync** followed by a **Wait for Time Span** of about 10 seconds to let the mount settle. If the test log shows many syncs discarded as "motors not settled", lengthen the wait a little.
 
     ![A NINA sequence for the worm gear calibration](images/abp-nina-worm-profile.png)
 
 4. Start the sequence, and keep it running until the test finishes.
 5. In Alpaca Pilot, open **Calibration** under **Performance Tuning**, select the **M1-M2-M3-WORM-PROFILE** test, click **Test** and confirm. The driver starts tracking and rotates the camera to a roll of ±45°, then steps through the positions.
 
-**While the test runs**, don't guide, slew, park or jog the mount, as any of these stops the test. Your syncs are only used as measurements, and don't change the alignment model. If no sync arrives for a minute, the test stops with **NO DATA**. When it finishes, stop the sequence.
+**While the test runs**, don't guide, slew, park or jog the mount, as any of these stops the test. Your syncs are only used as measurements, and don't change the alignment model. If no sync arrives for a minute, the test stops with **NO DATA**. You can click **Stop** at any time. When it finishes, stop the sequence: syncs after the test are ordinary alignment points.
 
 **Reviewing and approving the result:** the results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. If the result looks reliable, approve it, then switch on **PEC Worm Gear Correction** in Settings. For how to read every column of the results, see [Periodic Error Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.

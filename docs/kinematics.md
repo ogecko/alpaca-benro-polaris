@@ -83,14 +83,11 @@ QUEST operates by minimizing a **quadratic loss function**, which is essentially
 
 **How to Use QUEST and Get the Best Results**
 
-To achieve high-precision results, you must move from simply "syncing" to **strategic modeling**:
+For the step-by-step procedure, see [Multi-Point Alignment](./initial-setup.md#multi-point-alignment) in Initial Setup. The steps follow from how QUEST works:
 
-*   **Enable MPA:** Ensure Multi-Point Alignment is enabled in the Alpaca Pilot App settings or alignment page.
-*   **Point Selection (The Rule of Three):** You must provide **at least three sync points** to allow the QUEST algorithm to begin building a model.
-*   **Strategic Geometry:** 
-    *   **Celestial Pole:** Always perform a plate solve and sync at the **Celestial Pole** (North or South). This ensures the model has an anchored reference for Earth’s rotation axis.
-    *   **Target Trajectory (DSO Arc):** For the highest accuracy during imaging, place additional sync points **along the trajectory (arc)** that your target object will follow during the night. QUEST provides the best results when it is interpolating between points rather than extrapolating far away from them.
-*   **Monitor Residuals:** Use the **Alignment page in Alpaca Pilot** to review "model residuals". This shows how well the QUEST model fits each sync point. Aim for residuals in the **arc-seconds**; if a point shows residuals of whole degrees, it should be deleted as it is likely a bad solve.
+*   **At least three sync points:** QUEST needs three or more to begin building a model.
+*   **A point at the celestial pole** anchors the model to the Earth's rotation axis.
+*   **Points along the target's path:** QUEST is most accurate when it interpolates between sync points, rather than extrapolating beyond them.
 *   **Persistence:** From version 2.2 onwards, your QUEST model is **saved to disk**. You can restart the driver or your MiniPC mid-session without losing your refined alignment.
 
 
@@ -399,28 +396,9 @@ Each plate solve measures where the mount really points. The worm errors are 30-
 
 For example, an IMX585 with a 200 mm lens gives 3"/px over a 3.2° × 1.8° field, which is well suited. A 50 mm lens will still complete the test, but with a less accurate profile.
 
-**To perform the worm profile calibration:**
+**Running the test:** see [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) in Initial Setup for the step-by-step procedure. Set the Focal Length and Focal Ratio first: each test records them, so its results are pooled with the other tests for that lens and build that lens's own profile (see *Profiles per lens* below).
 
-1. On Pilot's **Settings** page, set **Focal Length** and **Focal Ratio** to the lens you are imaging with, for example 200 mm and F4. Each test records them, so its results are pooled with the other tests for that lens and build that lens's own profile (see *Profiles per lens* below). If they are left at the defaults, the test is filed under the wrong lens.
-
-2. Point the mount at a patch of sky **30-45° above the horizon** in the **eastern or western sky: Azimuth roughly 45-135° (east) or 225-315° (west)**, as shown in Pilot. Avoid due north or south and the area around the celestial pole. Choose a field with plenty of stars and about ±9° of clear sky around it (no trees or buildings), as the test moves the mount up to 7.5° each way.
-
-3. In NINA (or similar), create a looping sequence of around 60 iterations. 
-    * On the equipment tab, connect the Camera, then connect the Mount to the Alpaca Driver
-    * On the options/plate-solve tab, set your plate-solve exposure time to 1s
-    * Using the Advanced Sequencer create a Squential Instruction Set
-    * Set the Loop condition to "Loop for Iterations", 60 times
-    * Within the loop add instructions
-        * Run a repeating **Solve and Sync** using the short exposures. 
-        * Add a **Wait for Time Span** of around 10 seconds between syncs to allow the mount to settle. If the test log shows many syncs discarded as "motors not settled", increase it slightly.
-      
-    ![Worm Gear Corrections](images/abp-nina-worm-profile.png)
-
-4. Start the sequence of solve and syncs, and keep the sequence running until the test finishes.
-
-5. On the Alpaca Pilot, change to the **Speed Calibration** page, and select the **M1-M2-M3-WORM-PROFILE** test case, then press **Test** and confirm the execution. This one test measures all three motors, and takes about 20 minutes to complete.
-
-6. The driver will enable tracking and rotate to Roll ±45° (on the side of 0 the camera is already on, keeping the same Az/Alt, and back again when the test finishes): at ±45° M1 and M3 move the view in clearly different directions, so their worms separate well. It also keeps each motor's steps within what it can reach at this pose. It will then take measurements at 51 different positions (50 steps). Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/51`.
+**What the test does:** the driver enables tracking and rotates to Roll ±45° (on the side of 0 the camera is already on, keeping the same Az/Alt, and back again when the test finishes): at ±45° M1 and M3 move the view in clearly different directions, so their worms separate well. It also keeps each motor's steps within what it can reach at this pose. It then takes measurements at 51 different positions (50 steps). Steps that go against a motor's tracking direction overshoot and come back, so the mount may move twice per step. The status shows progress, for example `PENDING 12/51`.
 
 **While the test is running:**
 
