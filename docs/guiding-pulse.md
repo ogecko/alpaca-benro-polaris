@@ -252,7 +252,7 @@ To Calibrate **PHD2**, use the Calibration Assistant:
 
 PHD2 will perform a small slew to remove backlash, then start sending a sequence of pulse guide commands, monitoring how the mount moves in response to the commands. It will walk out the Right Ascension axis and back, then do the same for the Declination axis. You can monitor its progress with Alpaca Pilot. The process typically takes 1-3 minutes.
 
-Once the calibration process is complete, PHD2 will sumamrise the results in a popup window. You can then decide whether to **Accept calibration** or **Discard calibration**. You can also review the most recent calibration data by choosing **Review Calibration Data** from the **Tools** menu item.
+Once the calibration process is complete, you can also review the most recent calibration data by choosing **Review Calibration Data** from the **Tools** menu item.
 
 A good calibration looks like the following image. Red dots indicate measured position for declination change. Blue does indicate measured position for RA change. White dots indicate reverse measurements.
 ![PHD2 Calibration Results](images/phd2-calibration1.png)
