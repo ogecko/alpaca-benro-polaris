@@ -194,9 +194,11 @@ The driver works well with its default motor speeds, but measuring your own moun
 
 **Approving the results:** select the tests to approve, or leave them all unselected to approve everything, then click **Approve**. The driver uses the approved speeds instead of its defaults from then on.
 
+**Rerunning tests:** to rerun tests, select their checkboxes, click **Test** and confirm. Tests marked **HIGH STDEV** or **HIGH CHANGE** (more than 25% from the default) can't be approved: rerun them, or leave those speeds at their defaults. M3 is the hardest motor to measure, as it reports its position less often, so if its results stay unreliable, leave it at its defaults and let the PID controller correct for it. To reset every motor to its defaults, delete `data/speed_testdata.json`, and restart the driver.
+
 ## Worm Gear Calibration
 
-Each motor's worm gear makes the view wobble by 30 to 150 arc seconds, repeating every 6° of the motor's rotation. **PEC Worm Gear Correction** cancels this wobble using a profile of your mount's gears, which this calibration measures. It's worth doing if you image at longer focal lengths, with or without guiding (see [Periodic Error Correction](./guiding-sync.md#periodic-error-correction)).
+Each motor's worm gear makes the view wobble by 30 to 150 arc seconds, repeating every 6° of the motor's rotation. **PEC Worm Gear Correction** cancels this wobble using a profile of your mount's gears, which this calibration measures. Of the two calibrations, it gives the biggest improvement, both unguided and with sync guiding, especially at longer focal lengths (see [Periodic Error Correction](./guiding-sync.md#periodic-error-correction)).
 
 The profile only needs measuring once, and again if you image with a very different lens. The driver combines up to five of your most recent approved tests, so repeating the test on another night improves the profile.
 
