@@ -1,4 +1,4 @@
-# Installation Guide 
+# Windows Installation Guide
 [Microsoft Win11](#to-install-on-windows-1011) · [Apple MacOS](./install-macos.md) · [Raspberry Pi](./install-pi.md) ·
 [Startup](#starting-the-alpaca-pilot-app) ·
 [Deep-Sky Imaging](./img-dso.md) ·
