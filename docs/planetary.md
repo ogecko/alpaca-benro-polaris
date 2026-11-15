@@ -87,7 +87,7 @@ A planet's moons are far fainter than the planet itself, so an exposure long eno
 
 **3. Layer them in an image editor.**
 
-* **Bottom layer:** the colour stack of the moons.
+* **Bottom layer:** the colour stack of the moons and stars.
 * **Adjustment layer:** an exposure (or levels) adjustment, masked to the planet, that darkens the overexposed disc so it no longer glows or overwhelms the rest of the image. Feather the mask's edge so the change blends in smoothly.
 * **Top layer:** the monochrome planet, scaled and rotated to line up with the disc below, with its blend mode set to **Luminosity**. This layer supplies the planet's detail, while the colour shows through from the stack underneath.
 
