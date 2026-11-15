@@ -187,7 +187,7 @@ export const useConfigStore = defineStore('config', {
 
     async configUpdate(payload: Partial<ConfigResponse>) {
       try {
-        const updated = await dev.apiAction<ConfigResponse>('Polaris:ConfigUpdate', payload)
+        const updated = await dev.apiActionJSON<ConfigResponse>('Polaris:ConfigUpdate', payload)
         this.$patch(updated)
         console.log('configUpdate',updated)
         // Check if we need to refetch configured devices
@@ -216,7 +216,7 @@ export const useConfigStore = defineStore('config', {
     async configSave() {
       this.isSaving = true
       try {
-        await dev.apiAction<ConfigResponse>('Polaris:ConfigSave')
+        await dev.apiActionJSON<ConfigResponse>('Polaris:ConfigSave')
         if (this.isRestartRequired) {
           this.isRestartRequired = false
           await dev.apiAction<string>('Polaris:RestartDriver')
@@ -232,7 +232,7 @@ export const useConfigStore = defineStore('config', {
     async configRestore() {
       this.isRestoring = true
       try {
-        const response = await dev.apiAction<ConfigResponse>('Polaris:ConfigRestore');
+        const response = await dev.apiActionJSON<ConfigResponse>('Polaris:ConfigRestore');
         this.$patch(response)
         this.fetchedAt = Date.now()
         return true

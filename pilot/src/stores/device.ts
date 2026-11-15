@@ -316,6 +316,13 @@ export const useDeviceStore = defineStore('device', {
         return result.Value as T;
     },
 
+    // For the actions whose Value is a JSON string (ASCOM's Action returns a string): ConfigUpdate, ConfigSave and
+    // ConfigRestore. An object Value (a driver from before the change) is passed through as it is.
+    async apiActionJSON<T>(action: string, parameters: object | string = ' '): Promise<T> {
+        const value = await this.apiAction<unknown>(action, parameters);
+        return (typeof value === 'string' ? JSON.parse(value) : value) as T;
+    },
+
     async api<T>(
       resourcePath: string,
       body?: Record<string, unknown>   // implies a PUT when included, 

@@ -1766,22 +1766,24 @@ class action:
             return
 
         
+        # The config actions are used in NINA sequences, so their Value is a JSON string, as ASCOM's Action requires:
+        # NINA's Device Action failed on the JSON object they used to return. Pilot decodes it (dev.apiActionJSON).
         elif actionName == "Polaris:ConfigUpdate":
             # Apply changes to store in Config and make them live
             changed_params = Config.apply_changes(parameters)
             polaris.make_config_params_live(changed_params)
-            resp.text = await PropertyResponse(changed_params, req)
+            resp.text = await PropertyResponse(json.dumps(changed_params), req)
             return
 
         elif actionName == "Polaris:ConfigSave":
-            resp.text = await PropertyResponse(Config.save_pilot_overrides(), req)
+            resp.text = await PropertyResponse(json.dumps(Config.save_pilot_overrides()), req)
             return
 
         elif actionName == "Polaris:ConfigRestore":
             # Restore Config from config.toml and make them live
             changed_params = Config.restore_base()
             polaris.make_config_params_live(changed_params)
-            resp.text = await PropertyResponse(changed_params, req)
+            resp.text = await PropertyResponse(json.dumps(changed_params), req)
             return
 
         elif actionName == "Polaris:StatusFetch":       # (DO NOT USE) Replaced by WebSockets

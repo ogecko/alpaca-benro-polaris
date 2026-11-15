@@ -207,7 +207,7 @@ Update the Alpaca Driver configuration setting to the defined values. Any settin
 | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigUpdate` |  `{"m3_park": 90, "m2_park":-45}` |
 | **Utility > Device Action** | `Telescope` |  `Polaris:ConfigUpdate` |  `{"focal_length": 100}` |
 
-Note that the **Polaris:ConfigUpdate** action returns a value indicating what has been changed. Nina doesnt understand this reponse and marks the instruction execution return as an error. You can safely ignore this in the advanced sequence and mark the instruction as **On Error** `Continue`
+The action returns the settings it changed, as a JSON string, for example `{"pid_Kc": 15}`. **Polaris:ConfigSave** and **Polaris:ConfigRestore** return their settings the same way.
 
 ### Polaris:ConfigSave
 Save any modified Alpaca Driver settings to the file `config.pilot.json` in the data directory.
