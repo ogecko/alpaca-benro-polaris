@@ -2596,6 +2596,8 @@
 
 <h1 id="using-nina-with-benro-polaris">Using Nina with Benro Polaris<a class="headerlink" href="#using-nina-with-benro-polaris" title="Permanent link">&para;</a></h1>
 <p><a href="#main-nina-tabs">Main NINA Tabs</a> · <a href="#autofocus">Autofocus</a> · <a href="#plate-solving">Plate Solving</a> · <a href="#advanced-sequence">Advanced Sequence</a></p>
+<p><a href="https://nighttime-imaging.eu/">NINA</a> (Nighttime Imaging 'N' Astronomy) is free, open-source imaging software for Windows. It runs on the mini-PC or laptop alongside the Alpaca Driver, and connects to the Benro Polaris as an ASCOM telescope and rotator. With your camera connected too, NINA can find and frame targets, slew to them, plate solve and center, autofocus, and run whole imaging sessions unattended. This guide walks through NINA's main tabs, then sets up autofocus, plate solving and the Advanced Sequencer for the Polaris. For guiding and panoramas, see <a href=".././guiding-sync/">Sync Guiding</a> and <a href=".././panoramas/">Creating Panoramas</a>.</p>
+<p>NINA is a desktop application, but you can still control it from a phone or tablet at the tripod. The free <strong>Touch 'N' Stars</strong> plugin gives NINA a touch-friendly web interface. If you'd rather use a Raspberry Pi than a Windows mini-PC, <strong>PI.N.S. (PI 'N' Stars)</strong> is a community Linux version of NINA that runs on a Pi and uses the same Touch 'N' Stars interface, though it hasn't yet been tested with the Alpaca Driver. See <a href=".././faq/#n4---nina-on-mobile">FAQ N4</a> for both.</p>
 <h2 id="main-nina-tabs">Main NINA Tabs<a class="headerlink" href="#main-nina-tabs" title="Permanent link">&para;</a></h2>
 <p><strong>Video Demonstration: Capturing Images</strong></p>
 <p>You can view a demonstration of parts of this documentation in the following YouTube Video.</p>
@@ -2607,7 +2609,7 @@
 <p>The Sky Atlas tab allows you to search for various objects in the sky using its own database of deep sky objects. You can filter the list by object type, size, brightnness, and even how far it rises in the sky tonight. You can add a target to a sequence, set it up for framing, or slew the Benro Polaris to point at it. 
 <img alt="Sky Atlas" src="../images/abp-nina-all-atlas.png" /></p>
 <p><strong>Framing Images</strong></p>
-<p>The Framing Assistant tab allows you to visualize how you frame up your target. It can download an image of the target and frames your shot given a particular focal length, pixel size, and resolution. It also allows you to plan panoramas with multiple overlapping panels that end up as separate targets in your sequence. The Alpaca Driver does not currently support rotation.
+<p>The Framing Assistant tab allows you to visualize how you frame up your target. It can download an image of the target and frames your shot given a particular focal length, pixel size, and resolution. It also allows you to plan panoramas with multiple overlapping panels that end up as separate targets in your sequence. With the Polaris connected as a rotator, NINA can also rotate the camera to match the framed position angle (see <a href=".././control/#alpaca-rotator">Alpaca Rotator</a>).
 <img alt="Framing" src="../images/abp-nina-all-framing.png" /></p>
 <p><strong>Taking Flat Images</strong></p>
 <p>The Flat Wizard tab helps you take flat images by finding the optimal exposure settings for your camera. It takes a set of exposures and attempts to calculate the best exposure using extrapolation. It then takes a sequence of flats used with your stacking software.
