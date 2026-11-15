@@ -140,6 +140,8 @@ These deep-sky images were captured with a Benro Polaris and the Alpaca Driver, 
 | [CCDciel](https://www.ap-i.net/ccdciel/en/start) | Imaging, plate solving and guiding on Windows, macOS and Linux |
 | [PHD2](https://openphdguiding.org/) | Pulse guiding with a guide camera |
 | [ASTAP](https://www.hnsky.org/astap.htm) | Plate solving and stacking |
+| [SharpCap](https://www.sharpcap.co.uk/) | Planetary video capture with astronomy cameras |
+| [AutoStakkert!](https://www.autostakkert.com/) | Stacking the best frames of planetary videos |
 | [Siril](https://siril.org/) | Stacking and processing, including panoramas |
 | [Alpaca Pilot](./use-pilot.md) | Dashboard, catalog, alignment and diagnostics in any browser |
 
