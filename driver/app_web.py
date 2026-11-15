@@ -307,20 +307,20 @@ async def ensure_offline_docs(logger):
     zip_path = DOCS_DIST.with_name(DOCS_DIST.name + '.zip')
     try:
         DOCS_DIST.parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f'Offline docs {DOCS_VERSION} not found, downloading {DOCS_ZIP_URL}')
+        logger.info(f'==STARTUP== Offline docs {DOCS_VERSION} not found, downloading {DOCS_ZIP_URL}')
         timeout = aiohttp.ClientTimeout(total=600, sock_connect=10)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(DOCS_ZIP_URL) as resp:
                 if resp.status != 200:
-                    logger.info(f'Offline docs not downloaded: {DOCS_ZIP_URL} returned {resp.status}')
+                    logger.info(f'==STARTUP== Offline docs not downloaded: {DOCS_ZIP_URL} returned {resp.status}')
                     return
                 async with aiofiles.open(zip_path, 'wb') as f:
                     async for chunk in resp.content.iter_chunked(1 << 16):
                         await f.write(chunk)
         await asyncio.to_thread(_extract_docs_zip, zip_path, DOCS_DIST)
-        logger.info(f'Offline docs {DOCS_VERSION} downloaded to {DOCS_DIST}')
+        logger.info(f'==STARTUP== Offline docs {DOCS_VERSION} downloaded to {DOCS_DIST}')
     except Exception as e:
-        logger.info(f'Offline docs not downloaded, will retry next start ({type(e).__name__}: {e})')
+        logger.info(f'==STARTUP== Offline docs not downloaded, will retry next start ({type(e).__name__}: {e})')
     finally:
         zip_path.unlink(missing_ok=True)
 
