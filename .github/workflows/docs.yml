@@ -48,6 +48,18 @@ jobs:
             git worktree add --orphan -b gh-pages pages
           fi
       - run: python utility/docs/publish_version.py pilot/dist/docs pages ${{ steps.version.outputs.docs_version }} docs/site-root
+      # The driver downloads this once per version (driver/app_web.py ensure_offline_docs) and serves it
+      # at /docs/, so Pilot's documentation links still work without internet. It's a release asset,
+      # replaced on each build, rather than a file on gh-pages, whose history would keep every copy.
+      - name: Publish the offline docs zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: docs-${{ steps.version.outputs.docs_version }}
+        run: |
+          (cd pilot/dist/docs && zip -qr -X "$RUNNER_TEMP/offline-docs.zip" . -x 404.html)
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --target "$GITHUB_SHA" \
+            --title "Offline docs $TAG" --notes "Offline copy of the documentation, downloaded by the driver. Updated automatically."
+          gh release upload "$TAG" "$RUNNER_TEMP/offline-docs.zip" --clobber
       - name: Commit and push the gh-pages branch
         working-directory: pages
         run: |

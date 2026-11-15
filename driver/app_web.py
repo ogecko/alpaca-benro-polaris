@@ -21,7 +21,15 @@ import time
 
 SCRIPT_DIR = Path(__file__).resolve().parent            # Get the path to the current script
 QUASAR_DIST = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'spa'
+DOCS_ONLINE = 'https://ogecko.github.io/alpaca-benro-polaris/'
 DATA_DIR    = SCRIPT_DIR.parent / 'data'                # ../data relative to main.py location
+
+# Offline copy of the documentation, served at /docs/ for when the online site can't be reached.
+# Downloaded once per driver version (eg. v2.2), the first time the driver starts with internet.
+DOCS_VERSION = 'v' + '.'.join(DeviceMetadata.Version.split('.')[:2])   # '2.2.0 Release' -> 'v2.2'
+DOCS_DIST    = DATA_DIR / 'docs' / DOCS_VERSION
+DOCS_ZIP_URL = ('https://github.com/ogecko/alpaca-benro-polaris/releases/download/'
+                f'docs-{DOCS_VERSION}/offline-docs.zip')                  # published by .github/workflows/docs.yml
 
 TLS_CERT_PATH = DATA_DIR / 'alpaca_pilot.crt'      # server cert + CA chain (for uvicorn)
 TLS_KEY_PATH  = DATA_DIR / 'alpaca_pilot.key'      # server private key
@@ -274,6 +282,47 @@ def ensure_tls_cert(host: str, logger) -> bool:
     success = _load_or_generate_server_cert(host, ca_cert, ca_key, ca_name, logger)
     return success
 
+# ── Offline documentation ────────────────────────────────────────────────────────
+
+_docs_download_task = None      # keeps a reference so the background task isn't garbage collected
+
+def _extract_docs_zip(zip_path: Path, dest: Path):
+    """Unpack into a temporary folder, then rename into place, so a partial copy is never served."""
+    import zipfile, shutil
+    tmp = dest.with_name(dest.name + '.tmp')
+    shutil.rmtree(tmp, ignore_errors=True)
+    with zipfile.ZipFile(zip_path) as z:
+        z.extractall(tmp)           # zipfile strips absolute paths and '..' from member names
+    if not (tmp / 'index.html').is_file():
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise ValueError('index.html missing from the archive')
+    shutil.rmtree(dest, ignore_errors=True)
+    tmp.rename(dest)
+
+async def ensure_offline_docs(logger):
+    """Download the offline documentation once, if this driver version doesn't have it yet.
+    If there's no internet, try again next time the driver starts. Never updates an existing copy."""
+    if (DOCS_DIST / 'index.html').is_file():
+        return
+    zip_path = DOCS_DIST.with_name(DOCS_DIST.name + '.zip')
+    try:
+        DOCS_DIST.parent.mkdir(parents=True, exist_ok=True)
+        timeout = aiohttp.ClientTimeout(total=600, sock_connect=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(DOCS_ZIP_URL) as resp:
+                if resp.status != 200:
+                    logger.info(f'Offline docs not downloaded: {DOCS_ZIP_URL} returned {resp.status}')
+                    return
+                async with aiofiles.open(zip_path, 'wb') as f:
+                    async for chunk in resp.content.iter_chunked(1 << 16):
+                        await f.write(chunk)
+        await asyncio.to_thread(_extract_docs_zip, zip_path, DOCS_DIST)
+        logger.info(f'Offline docs {DOCS_VERSION} downloaded to {DOCS_DIST}')
+    except Exception as e:
+        logger.info(f'Offline docs not downloaded, will retry next start ({type(e).__name__}: {e})')
+    finally:
+        zip_path.unlink(missing_ok=True)
+
 # ── Falcon resources ─────────────────────────────────────────────────────────────
 
 class CACertDownloadResource:
@@ -307,6 +356,48 @@ class AsyncStaticResource:
         if not file_path.is_file():
             resp.status = '404 Not Found'
             return
+        resp.content_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
+        async with aiofiles.open(file_path, 'rb') as f:
+            resp.data = await f.read()
+
+
+class DocsStaticResource:
+    """
+    Serves the offline copy of the documentation site at /docs/, for use without internet.
+
+    The Zensical build uses relative links on every page, so the same build works here
+    and on GitHub Pages. Folder URLs must end in '/' for those relative links to resolve,
+    so '/docs' and '/docs/pilot' redirect to '/docs/' and '/docs/pilot/'. A missing page
+    gets a plain 404, not the site's 404.html, whose links are absolute to GitHub Pages.
+    """
+    def __init__(self, base_path: Path):
+        self.base_path = base_path.resolve()
+
+    async def on_get(self, req, resp, path=''):
+        if not (self.base_path / 'index.html').is_file():
+            resp.status = '404 Not Found'
+            resp.content_type = 'text/html'
+            resp.text = ('<p>The offline documentation hasn\'t been downloaded yet. It downloads '
+                         'automatically the next time the driver starts with internet. '
+                         f'See the <a href="{DOCS_ONLINE}">online documentation</a>.</p>')
+            return
+
+        file_path = (self.base_path / path).resolve()
+        if not file_path.is_relative_to(self.base_path):     # refuse '..' escapes
+            resp.status = '404 Not Found'
+            return
+
+        if file_path.is_dir():
+            if not req.path.endswith('/'):
+                resp.status = HTTP_301
+                resp.location = req.path + '/' + (f'?{req.query_string}' if req.query_string else '')
+                return
+            file_path = file_path / 'index.html'
+
+        if not file_path.is_file() or file_path == self.base_path / '404.html':
+            resp.status = '404 Not Found'
+            return
+
         resp.content_type = mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
         async with aiofiles.open(file_path, 'rb') as f:
             resp.data = await f.read()
@@ -509,6 +600,10 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
             await lifecycle.signal(LifecycleEvent.SHUTDOWN)
             return
 
+    # --- Offline docs (background, once per driver version) -------------------
+    global _docs_download_task
+    _docs_download_task = asyncio.create_task(ensure_offline_docs(logger))
+
     # --- TLS cert -----------------------------------------------------------
     tls_ok = Config.enable_https and ensure_tls_cert(bind_host, logger)
     version_resource = VersionResource()
@@ -517,6 +612,10 @@ async def alpaca_pilot_httpd(logger, lifecycle: LifecycleController):
     main_app = asgi.App()
     main_app.add_route('/icons/{filename}',    AsyncStaticResource(QUASAR_DIST / 'icons'))
     main_app.add_route('/assets/{filename}',   AsyncStaticResource(QUASAR_DIST / 'assets'))
+    docs_resource = DocsStaticResource(DOCS_DIST)
+    main_app.add_route('/docs',                docs_resource)
+    main_app.add_route('/docs/',               docs_resource)
+    main_app.add_route('/docs/{path:path}',    docs_resource)
     main_app.add_route('/{path}',              QuasarStaticResource())
     main_app.add_route('/',                    QuasarStaticResource())
     main_app.add_route('/alpaca_pilot_ca.crt', CACertDownloadResource())

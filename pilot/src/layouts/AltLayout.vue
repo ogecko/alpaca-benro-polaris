@@ -99,15 +99,16 @@
         <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
             Documentation
+            <span v-if="ui.docsMode === 'local'" class="text-caption text-weight-regular text-lowercase text-grey-6">(offline copy)</span>
           </q-item-label>
           <q-item
             v-for="link in links5"
             :key="link.text" v-ripple clickable 
             :to="link.to || undefined"
-            :tag="link.toExternal ? 'a' : 'router-link'" 
-            :href="link.toExternal || undefined" 
-            :target="link.toExternal ? '_blank' : undefined"
-            :rel="link.toExternal ? 'noopener' : undefined"
+            :tag="link.to ? 'router-link' : 'a'"
+            :href="link.docs !== undefined ? ui.docsUrl(link.docs) : (link.toExternal || undefined)"
+            :target="link.to ? undefined : '_blank'"
+            :rel="link.to ? undefined : 'noopener'"
             active-class="active-link-right"
           >
             <q-item-section avatar>
@@ -204,9 +205,18 @@ onMounted(() => {
   // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
   // socket.subscribe('status')
   vw.startVersionWatch()
+  void ui.checkDocsMode(true)
+  window.addEventListener('online', onNetworkChange)
+  window.addEventListener('offline', onNetworkChange)
 })
 
+// Re-decide between online and local docs whenever the network changes, and when the drawer opens if the last check is stale
+function onNetworkChange() { void ui.checkDocsMode(true) }
+watch(() => ui.showLeftDrawer, (open) => { if (open) void ui.checkDocsMode() })
+
 onUnmounted(() => {
+  window.removeEventListener('online', onNetworkChange)
+  window.removeEventListener('offline', onNetworkChange)
   socket.unsubscribe('status')
   socket.disconnectSocket()
   keyHandler.releaseAll()
@@ -356,13 +366,13 @@ const links4 = [
 ]
 
 const links5 = [
-  { icon: 'mdi-account-tie-hat', text: 'Pilot', toExternal: 'https://ogecko.github.io/alpaca-benro-polaris/v2.2/pilot/' },
-  { icon: 'mdi-camera-control', text: 'Control', toExternal: 'https://ogecko.github.io/alpaca-benro-polaris/v2.2/control/' },
+  { icon: 'mdi-account-tie-hat', text: 'Pilot', docs: 'pilot/' },
+  { icon: 'mdi-camera-control', text: 'Control', docs: 'control/' },
   { icon: 'mdi-alert', text: 'Warnings', to: '/warning' },
-  { icon: 'mdi-stethoscope', text: 'Troubleshooting', toExternal: 'https://ogecko.github.io/alpaca-benro-polaris/v2.2/troubleshooting/' },
+  { icon: 'mdi-stethoscope', text: 'Troubleshooting', docs: 'troubleshooting/' },
   { icon: 'mdi-alpha-k-box', text: 'Kickstarter', toExternal: 'https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=6bp9my' },
   { icon: 'mdi-youtube', text: 'Videos', toExternal: 'https://www.youtube.com/@jdm5001/featured' },
-  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', toExternal: 'https://ogecko.github.io/alpaca-benro-polaris/v2.2/faq/' },
+  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', docs: 'faq/' },
   { icon: 'mdi-information-variant', text: 'About', to: '/about' },
 ]
 

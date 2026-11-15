@@ -17,7 +17,7 @@
         <div class="q-gutter-md flex justify-end q-mr-md">
           <div class="col-auto q-gutter-sm flex justify-end items-center">
             <q-btn rounded  icon="mdi-information-variant-circle" color="grey-9" label="Reference Documentation" class="position-right" 
-                href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/kinematics/"  target="_blank" rel="noopener" />
+                :href="ui.docsUrl('kinematics/')"  target="_blank" rel="noopener" />
           </div>
         </div>
     </div>
@@ -326,12 +326,14 @@ import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { PollingManager } from 'src/utils/polling';
 import { useStatusStore } from 'src/stores/status'
 import { useConfigStore } from 'src/stores/config';
+import { useUIStore } from 'src/stores/ui'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import VField from 'src/components/VField.vue'
 
 
 const p = useStatusStore()
 const cfg = useConfigStore()
+const ui = useUIStore()
 const selected = ref([])
 const axis = ref<number>(0)
 const poll = new PollingManager()
