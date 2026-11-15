@@ -307,6 +307,7 @@ async def ensure_offline_docs(logger):
     zip_path = DOCS_DIST.with_name(DOCS_DIST.name + '.zip')
     try:
         DOCS_DIST.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(f'Offline docs {DOCS_VERSION} not found, downloading {DOCS_ZIP_URL}')
         timeout = aiohttp.ClientTimeout(total=600, sock_connect=10)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(DOCS_ZIP_URL) as resp:
