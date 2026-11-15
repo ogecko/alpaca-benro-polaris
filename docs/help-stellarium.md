@@ -1,7 +1,7 @@
 # Stellarium Troubleshooting
 Problems connecting Stellarium PLUS and Stellarium Desktop to the Alpaca Driver, and using Stellarium over Remote Desktop.
 
-See [Troubleshooting](./troubleshooting.md) for the other guides, and the [FAQ](./faq.md) for common questions.
+See [Troubleshooting](./help-troubleshooting.md) for the other guides, and the [FAQ](./help-faq.md) for common questions.
 
 ## S1 - Stellarium PLUS
 There are three approaches to connect StellariumPLUS to the Alpaca Driver, depending on your setup scenario.

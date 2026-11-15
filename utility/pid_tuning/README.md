@@ -43,7 +43,7 @@ tests).
 
 ## Usage
 
-Requires the driver running natively and reachable at `localhost:5555`/`5556` (see [Running the Driver Natively](../../docs/architecture.md#running-the-driver-natively)).
+Requires the driver running natively and reachable at `localhost:5555`/`5556` (see [Running the Driver Natively](../../docs/ref-architecture.md#running-the-driver-natively)).
 All commands below run from the repo root:
 
 ```bash
@@ -130,7 +130,7 @@ orientation, the full gain set (`pid_Kp/Ki/Kd/Ka/Kv/Ke`), KF noise params
 whether the MPA was reset, computed metrics, and (for `disturbance` runs) the disturbance
 kind/params and exact wall-clock time of each injected event. `captures/<run_id>.jsonl` has
 the raw deduplicated `pid`+`kf` telemetry records (same schema as the live websocket -- see
-[Live Telemetry](../../docs/pilot-api.md#websocket)) for anything not captured by the summary metrics.
+[Live Telemetry](../../docs/api-pilot.md#websocket)) for anything not captured by the summary metrics.
 
 `summarize.py` gives a compact, one-row-per-run comparison table (gains + headline outcome
 metric per axis) instead of reading raw nested JSON:

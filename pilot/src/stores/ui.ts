@@ -36,7 +36,7 @@ export const useUIStore = defineStore('ui', {
     docsCheckedAt: 0,
   }),
   getters: {
-    // URL for a documentation page, eg. docsUrl('pilot/') or docsUrl('initial-setup/#using-https')
+    // URL for a documentation page, eg. docsUrl('use-pilot/') or docsUrl('initial-setup/#using-https')
     docsUrl: (state) => (page = '') => (state.docsMode === 'local' ? DOCS_LOCAL : DOCS_ONLINE) + page,
   },
   actions: {

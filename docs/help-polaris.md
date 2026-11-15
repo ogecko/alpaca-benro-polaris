@@ -1,7 +1,7 @@
 # Benro Polaris Troubleshooting
 Problems with the Benro Polaris itself and the Benro app, including starting and charging the Polaris, its Wi-Fi and password, tracking quality and star alignment.
 
-See [Troubleshooting](./troubleshooting.md) for the other guides, and the [FAQ](./faq.md) for common questions.
+See [Troubleshooting](./help-troubleshooting.md) for the other guides, and the [FAQ](./help-faq.md) for common questions.
 
 ## B1 - Polaris Won't Start
 There is a known issue with the recommended Benro Polaris device startup procedure. "Power On. In the off state, double press and hold the [Power Button], and release it after hearing “beep beep beep” three times to turn on the device. ".  Its worse than an old lawnmower at starting. If your device doesnt start, try the following:

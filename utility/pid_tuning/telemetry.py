@@ -1,7 +1,7 @@
 """
 Capture live 'pid' + 'kf' telemetry from the Alpaca Pilot WebSocket for a fixed
 duration, deduplicating the backlog-replay that happens on every (re)subscribe
-(see docs/control.md section 2, and app_socket.py's PublishLogTopic.get_backlog).
+(see docs/ref-control.md section 2, and app_socket.py's PublishLogTopic.get_backlog).
 
 Records are returned as plain dicts: {"topic": "pid"|"kf", "t": <local wall
 clock time.time() when received>, **payload["data"]}.

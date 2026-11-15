@@ -1,9 +1,9 @@
 # Telescope API Reference
 [Telescope Members](#telescope-members) · [Common Members](#common-members)
 
-The Telescope points and tracks the mount. It implements the ASCOM **ITelescopeV3** interface: see the [ASCOM Telescope interface](https://ascom-standards.org/newdocs/telescope.html) for the standard behaviour of each member. It's an Alt/Az mount (`alignmentmode` 0), and its right ascension and declination are topocentric JNow, the equinox of date (`equatorialsystem` 1). For J2000 coordinates, use the `Polaris:J2000Goto` and `Polaris:J2000Sync` [Device Actions](./alpaca-api.md#device-actions). The driver keeps every slew within what the Polaris can physically reach, where Altitude and Roll limit each other (see [Reachable Envelope](./kinematics.md#reachable-envelope)).
+The Telescope points and tracks the mount. It implements the ASCOM **ITelescopeV3** interface: see the [ASCOM Telescope interface](https://ascom-standards.org/newdocs/telescope.html) for the standard behaviour of each member. It's an Alt/Az mount (`alignmentmode` 0), and its right ascension and declination are topocentric JNow, the equinox of date (`equatorialsystem` 1). For J2000 coordinates, use the `Polaris:J2000Goto` and `Polaris:J2000Sync` [Device Actions](./api-alpaca.md#device-actions). The driver keeps every slew within what the Polaris can physically reach, where Altitude and Roll limit each other (see [Reachable Envelope](./ref-kinematics.md#reachable-envelope)).
 
-Each member is at `http://<driver address>:5555/api/v1/telescope/0/<member>`. GET requests read a property; PUT requests change it or run a method, with the fields listed as form data. Every request also needs `ClientID` and `ClientTransactionID`; see the [Alpaca API Reference](./alpaca-api.md) for examples.
+Each member is at `http://<driver address>:5555/api/v1/telescope/0/<member>`. GET requests read a property; PUT requests change it or run a method, with the fields listed as form data. Every request also needs `ClientID` and `ClientTransactionID`; see the [Alpaca API Reference](./api-alpaca.md) for examples.
 
 This page is generated from the driver's code (`driver/telescope.py`) by `utility/docs/make_api_reference.py`: change the endpoint classes' docstrings rather than this page.
 
@@ -84,7 +84,7 @@ The members every ASCOM device has.
 
 | Member | Method | Fields | Description |
 |---|---|---|---|
-| `action` | PUT | `Action`, `Parameters` | Run a Device Action, named by `Action`, with its `Parameters` as a JSON string. See [Device Actions](./alpaca-api.md#device-actions). |
+| `action` | PUT | `Action`, `Parameters` | Run a Device Action, named by `Action`, with its `Parameters` as a JSON string. See [Device Actions](./api-alpaca.md#device-actions). |
 | `commandblind` | PUT |  | Send a raw command to the mount without waiting for a reply. *(Not implemented.)* |
 | `commandbool` | PUT |  | Send a raw command to the mount and return a true/false reply. *(Not implemented.)* |
 | `commandstring` | PUT |  | Send a raw command to the mount and return its text reply. *(Not implemented.)* |
@@ -94,4 +94,4 @@ The members every ASCOM device has.
 | `driverversion` | GET |  | The driver's version number. |
 | `interfaceversion` | GET |  | The version of the ASCOM Telescope interface the driver implements, 3 for ITelescopeV3. |
 | `name` | GET |  | The device's short name. |
-| `supportedactions` | GET |  | The Device Actions the driver supports, the `Polaris:` actions. See [Device Actions](./alpaca-api.md#device-actions). |
+| `supportedactions` | GET |  | The Device Actions the driver supports, the `Polaris:` actions. See [Device Actions](./api-alpaca.md#device-actions). |

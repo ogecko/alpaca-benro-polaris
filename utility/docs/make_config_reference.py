@@ -1,5 +1,5 @@
 """
-Generate docs/config.md, the Configuration Reference, from driver/config.toml.
+Generate docs/ref-config.md, the Configuration Reference, from driver/config.toml.
 
 Every setting's default comes from its value in config.toml, and its description from the comment
 on the same line, so improving a comment improves the reference too. A block of comment lines at
@@ -7,8 +7,8 @@ the start of a section becomes that section's introduction. Settings that need a
 the ones Alpaca Pilot asks to restart for (restartKeys in pilot/src/stores/config.ts).
 
 Usage (from the repo root):
-    python utility/docs/make_config_reference.py           # write docs/config.md
-    python utility/docs/make_config_reference.py --check   # exit 1 if docs/config.md is out of date
+    python utility/docs/make_config_reference.py           # write docs/ref-config.md
+    python utility/docs/make_config_reference.py --check   # exit 1 if docs/ref-config.md is out of date
 """
 import re
 import sys
@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / 'driver' / 'config.toml'
 PILOT_CONFIG = ROOT / 'pilot' / 'src' / 'stores' / 'config.ts'
-OUT = ROOT / 'docs' / 'config.md'
+OUT = ROOT / 'docs' / 'ref-config.md'
 
 KEY = re.compile(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=')
 SECTION = re.compile(r'^\[([a-z_]+)\]')
@@ -30,8 +30,8 @@ REDACTED = {'location', 'site_latitude', 'site_longitude', 'site_elevation'}
 SECTIONS = {
     'network': ('Network', 'How the driver connects to the Benro Polaris, and the services it provides to applications.'),
     'server': ('Site and Equipment', 'Your observing site, GPS receiver, and lens or telescope.'),
-    'panorama': ('Panorama', 'The Panorama Grid and the Panel Spacing Calculator. Alpaca Pilot sets most of these from its Panorama pages (see [Creating Panoramas](./panoramas.md)).'),
-    'control': ('Control', 'The driver\'s motion control: alignment, tracking, guiding, Periodic Error Correction, the Kalman filter, the PID controller and the motor limits. See the [Control Reference](./control.md) and [Kinematics Reference](./kinematics.md) for how they work.'),
+    'panorama': ('Panorama', 'The Panorama Grid and the Panel Spacing Calculator. Alpaca Pilot sets most of these from its Panorama pages (see [Creating Panoramas](./img-panoramas.md)).'),
+    'control': ('Control', 'The driver\'s motion control: alignment, tracking, guiding, Periodic Error Correction, the Kalman filter, the PID controller and the motor limits. See the [Control Reference](./ref-control.md) and [Kinematics Reference](./ref-kinematics.md) for how they work.'),
     'models': ('Models', ''),
     'device': ('Aiming', 'Small aiming adjustments.'),
     'logging': ('Logging', 'What the driver writes to its log. Most switches are for diagnosing problems, and can be left as they are.'),
@@ -44,7 +44,7 @@ This page lists every setting of the Alpaca Driver, with its default value. It i
 
 **Where settings live.** `driver/config.toml` holds the default for each setting, and is replaced when the driver is updated, so don't edit it to change a setting. Instead, change settings in Alpaca Pilot: most are on its Settings page, and some on its PID Tuning, Kalman, Panorama and Dashboard pages. Alpaca Pilot saves the settings you have changed to `data/config.pilot.json`, which the driver applies on top of the defaults each time it starts. Restoring the defaults deletes that file.
 
-**Changing settings from a script.** The `Polaris:ConfigFetch`, `Polaris:ConfigUpdate`, `Polaris:ConfigSave` and `Polaris:ConfigRestore` Device Actions read, change, save and restore settings (see the [Alpaca API Reference](./alpaca-api.md#device-actions)). A change takes effect straight away, except for the settings marked **Restart** below, which need a driver restart.
+**Changing settings from a script.** The `Polaris:ConfigFetch`, `Polaris:ConfigUpdate`, `Polaris:ConfigSave` and `Polaris:ConfigRestore` Device Actions read, change, save and restore settings (see the [Alpaca API Reference](./api-alpaca.md#device-actions)). A change takes effect straight away, except for the settings marked **Restart** below, which need a driver restart.
 '''
 
 

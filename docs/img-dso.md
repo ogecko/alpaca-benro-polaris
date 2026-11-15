@@ -22,7 +22,7 @@ The Benro Polaris app controls your camera well for panoramas, time-lapse and as
 * [APT](https://www.astrophotography.app/) - Astro Photography Tool (paid, ASCOM support)
 * [SGPro](https://www.sequencegeneratorpro.com/sgpro/) - Sequence Generator Pro (paid, ASCOM support)
 * [NINA](https://nighttime-imaging.eu/) - Nighttime Imaging 'N' Astronomy (free, ASCOM support, Windows)
-* [CCDciel](https://ap-i.net/ccdciel/en/start/) (free, ASCOM support, macOS, Linux and Windows): see [Using CCDciel](./ccdciel.md)
+* [CCDciel](https://ap-i.net/ccdciel/en/start/) (free, ASCOM support, macOS, Linux and Windows): see [Using CCDciel](./use-ccdciel.md)
 
 To find targets, start with Alpaca Pilot's catalog (see [Planning a Session](#planning-a-session)). With internet access, these are also useful:
 
@@ -30,13 +30,13 @@ To find targets, start with Alpaca Pilot's catalog (see [Planning a Session](#pl
 * [Telescopius](https://telescopius.com/) - A website with astronomy tools and a great catalog.
 * [The Sky Live](https://theskylive.com/whatsvisible) - A website that lists potential targets live.
 
-This guide uses NINA, the recommended app: it's free and has an excellent user interface. It outlines a typical deep-sky imaging session with the Benro Polaris, the Alpaca Driver and NINA, and assumes you're already familiar with operating Alpaca Pilot and NINA; see [Alpaca Pilot](./pilot.md) and [Using NINA](./nina.md) for those. The images above were all captured this way.
+This guide uses NINA, the recommended app: it's free and has an excellent user interface. It outlines a typical deep-sky imaging session with the Benro Polaris, the Alpaca Driver and NINA, and assumes you're already familiar with operating Alpaca Pilot and NINA; see [Alpaca Pilot](./use-pilot.md) and [Using NINA](./use-nina.md) for those. The images above were all captured this way.
 
 ## Planning a Session
 
 * **Choose a target.** Alpaca Pilot's catalog lists hundreds of imaging targets, and its rating, visibility and size filters help you find ones that suit your equipment and sky. NINA's Sky Atlas is another good source. Check that the target fits your field of view: a large nebula needs a shorter focal length than a small galaxy.
-* **Check its altitude.** The Polaris can't point higher than an altitude of 81.5°, and the more the camera is rolled, the lower that limit becomes (see [Reachable Envelope](./kinematics.md#reachable-envelope)). Choose targets that stay below it during your session, and above any trees or buildings. Targets low in the sky are dimmer and blurrier, so the best time to image is usually when the target is high, but still below that limit.
-* **Check the Moon.** Moonlight brightens the sky and washes out faint detail. For emission nebulae, narrowband filters (such as Hα, OIII and SII) cut through moonlight and light pollution. A catalog entry's **Class** field shows which narrowband emissions a nebula has, and how strong they are (see the [Catalog Reference](./catalog.md#class)).
+* **Check its altitude.** The Polaris can't point higher than an altitude of 81.5°, and the more the camera is rolled, the lower that limit becomes (see [Reachable Envelope](./ref-kinematics.md#reachable-envelope)). Choose targets that stay below it during your session, and above any trees or buildings. Targets low in the sky are dimmer and blurrier, so the best time to image is usually when the target is high, but still below that limit.
+* **Check the Moon.** Moonlight brightens the sky and washes out faint detail. For emission nebulae, narrowband filters (such as Hα, OIII and SII) cut through moonlight and light pollution. A catalog entry's **Class** field shows which narrowband emissions a nebula has, and how strong they are (see the [Catalog Reference](./ref-catalog.md#class)).
 
 ## Focal Length and Exposure
 
@@ -50,7 +50,7 @@ This guide uses NINA, the recommended app: it's free and has an excellent user i
 
 ## Setting Up and Connecting
 
-Start the Alpaca Driver, open Alpaca Pilot and power on the Polaris, then follow the steps on Alpaca Pilot's Connect page: set Astro Mode, reset the axes, and skip the compass and single star alignment. See [Connecting Polaris](./pilot.md#connecting-polaris) for each step. Check that your mini-PC keeps a stable Wi-Fi connection to the Polaris.
+Start the Alpaca Driver, open Alpaca Pilot and power on the Polaris, then follow the steps on Alpaca Pilot's Connect page: set Astro Mode, reset the axes, and skip the compass and single star alignment. See [Connecting Polaris](./use-pilot.md#connecting-polaris) for each step. Check that your mini-PC keeps a stable Wi-Fi connection to the Polaris.
 
 ## Focusing and Aligning
 
@@ -103,7 +103,7 @@ You can check and refine the tracking during the sequence on Alpaca Pilot's **PI
     - **Angular Velocity (OP):** OP should be a steady horizontal line. Large oscillations may indicate instability. The PID controller works to close any gaps.
     - **RMS Error:** A quick measure of the tracking performance over the last 30 seconds. A value near **2 arcseconds** is ideal for high-quality tracking.
     - **Pulse Guiding:** Use **equatorial co-ordinates** to watch corrections from your guiding software. You should see the SP being "bumped" up and down as it corrects for the guide star's movement.
-    - **Advanced Tuning:** Experienced users can adjust the PID parameters to reduce oscillations and improve responsiveness (see [Control Reference](./control.md)).
+    - **Advanced Tuning:** Experienced users can adjust the PID parameters to reduce oscillations and improve responsiveness (see [Control Reference](./ref-control.md)).
 * **Alignment page:**
     - **Sync Point Residuals:** Review the residuals to find misaligned sync points.
     - **Model Refinement:** Delete sync points with large residuals to improve the Multi-Point Alignment model.
@@ -113,7 +113,7 @@ You can check and refine the tracking during the sequence on Alpaca Pilot's **PI
 Calibration frames remove the camera's own noise, dust shadows and vignetting from your images. Capture them at the end of the session, with the same camera settings:
 
 * **Darks:** The same exposure time, gain and temperature as your subs, with the lens capped.
-* **Flats:** Evenly lit frames that record dust and vignetting. Don't change the focus or the camera's rotation before taking them. Stop tracking and raise the camera to point upwards, then cover the lens with a flat panel, or with a phone or tablet showing Alpaca Pilot's [Flat White](./pilot.md#flat-white) page, which fills the screen with white. NINA's **Flat Wizard** finds the right exposure for you.
+* **Flats:** Evenly lit frames that record dust and vignetting. Don't change the focus or the camera's rotation before taking them. Stop tracking and raise the camera to point upwards, then cover the lens with a flat panel, or with a phone or tablet showing Alpaca Pilot's [Flat White](./use-pilot.md#flat-white) page, which fills the screen with white. NINA's **Flat Wizard** finds the right exposure for you.
 * **Bias or dark flats:** Very short exposures (bias), or exposures matching your flats (dark flats), with the lens capped.
 
 ## Stacking and Processing

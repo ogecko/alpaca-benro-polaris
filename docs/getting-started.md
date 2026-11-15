@@ -3,14 +3,14 @@
 ## Quick Start
 
 1. **Back the project.** The driver is distributed for [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o) backers ([licence](https://github.com/ogecko/alpaca-benro-polaris/blob/main/LICENSE)).
-2. **Prepare a platform.** [MiniPC](./hardware.md), Windows Tablet, Laptop, Mac, Pi or Docker.
-3. **Install the driver.** [Windows](./installation-win.md) · [macOS](./installation-macos.md) · [Raspberry Pi](./installation-pi.md) · [Docker](./docker.md)
-4. **Connect with Alpaca Pilot.** [Connecting Polaris](./pilot.md#connecting-polaris)
+2. **Prepare a platform.** [MiniPC](./install-hardware.md), Windows Tablet, Laptop, Mac, Pi or Docker.
+3. **Install the driver.** [Windows](./install-win.md) · [macOS](./install-macos.md) · [Raspberry Pi](./install-pi.md) · [Docker](./install-docker.md)
+4. **Connect with Alpaca Pilot.** [Connecting Polaris](./use-pilot.md#connecting-polaris)
 5. **Initial setup.** [Site Location](./initial-setup.md#site-location) · [Alignment](./initial-setup.md#multi-point-alignment) · [Calibration](./initial-setup.md#motor-speed-calibration)
-6. **Add your astrophotography app.** [Stellarium](./stellarium.md) · [NINA](./nina.md) · [CCDciel](./ccdciel.md) · [PHD2](./guiding-pulse.md)
-7. **Capture images.** [Deep-sky](./dso-imaging.md) · [Planetary](./planetary.md) · [Satellites](./orbitals.md) · [Panoramas](./panoramas.md)
+6. **Add your astrophotography app.** [Stellarium](./use-stellarium.md) · [NINA](./use-nina.md) · [CCDciel](./use-ccdciel.md) · [PHD2](./guiding-pulse.md)
+7. **Capture images.** [Deep-sky](./img-dso.md) · [Planetary](./img-planetary.md) · [Satellites](./img-satellite.md) · [Panoramas](./img-panoramas.md)
 
-If something goes wrong, the [Troubleshooting Guide](./troubleshooting.md) and [FAQ](./faq.md) cover the most common issues.
+If something goes wrong, the [Troubleshooting Guide](./help-troubleshooting.md) and [FAQ](./help-faq.md) cover the most common issues.
 
 ## A Beginner's Guide
 So you've just got your hands on the Benro Polaris, congratulations! This guide will take you through the basics of astrophotography with the Polaris and introduce you to the world of Alpaca, a powerful tool that can elevate your astrophotography experience. Use it as a learning guide on the various topics to master to become better at astrophotography.
@@ -63,10 +63,10 @@ Once this is successful you may want to consider getting a Mini-PC and installin
 
 * A mini-PC allows you to use Nina to control the Polaris, camera, and potentially other equipment. It provides enhanced processing power, remote control, and a better overall user experience. Start by learning how to install and setup Nina. Then move on to learning how to perform an autofocus run, perform plate solving, create a sequence and capture images.
 
-More information on the Alpaca setup can be found in [Architecture](./architecture.md#hardware-architectures) and [Preparing the MiniPC](./hardware.md).
+More information on the Alpaca setup can be found in [Architecture](./ref-architecture.md#hardware-architectures) and [Preparing the MiniPC](./install-hardware.md).
   
 #### Installing the Driver
-The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./installation-win.md), [macOS](./installation-macos.md), [Raspberry Pi](./installation-pi.md) and [Docker](./docker.md), but here's a simplified overview:
+The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./install-win.md), [macOS](./install-macos.md), [Raspberry Pi](./install-pi.md) and [Docker](./install-docker.md), but here's a simplified overview:
 
 1. Install the Driver: Run the setup script or commands for your platform. They download the driver from GitHub and install Python and the required libraries for you.
 2. Start the Driver: Run the Alpaca Driver on your device. Check the driver's log window for confirmation messages.
@@ -78,7 +78,7 @@ The installation process varies slightly depending on your chosen platform. Step
 2. Connect: Use Alpaca Pilot to connect the driver to the Polaris.
 3. Enter Astro Mode: Switch to Astro Mode in Alpaca Pilot. You can skip the Benro app's compass and single star alignment, and use Multi-Point Alignment instead.
 
-More information on connecting can be found in the [Alpaca Pilot Guide](./pilot.md#connecting-polaris).
+More information on connecting can be found in the [Alpaca Pilot Guide](./use-pilot.md#connecting-polaris).
 
 ### Learning Stellarium
 Become familiar with using Stellarium to identify targets in the night sky and commanding the Polaris to point your camera to them. Some of the benefits you will get from using Stellarium include:
@@ -90,7 +90,7 @@ Become familiar with using Stellarium to identify targets in the night sky and c
   
 To enhance your understanding of Stellarium, consider exploring the following resources:
 
-* Alpaca Documentation: Includes a brief description on [Using Stellarium](./stellarium.md).
+* Alpaca Documentation: Includes a brief description on [Using Stellarium](./use-stellarium.md).
 * Stellarium's Official Website: The official website (https://stellarium.org/) offers comprehensive documentation, tutorials, and user guides to help you learn the software's features and functionalities.
 * Online Communities and Forums: Numerous online communities and forums dedicated to astronomy and astrophotography provide valuable insights, tips, and tutorials on using Stellarium.
 * YouTube Videos: Search for "Stellarium tutorials" on YouTube to find a wide range of video guides covering various aspects of the software.
@@ -100,7 +100,7 @@ These resources, combined with the insights from the sources, can help you learn
 ### Learning NINA
 Nina can be overwhelming at first, but start by simply connecting a camera and learning how to take images. As you become more familiar you can integrate other equipment and learn its more advanced features such as sequencing, autofocus, plate solving, polar alignment. 
 
-The Alpaca Documentation on [Using Nina](./nina.md) will guide you through: 
+The Alpaca Documentation on [Using Nina](./use-nina.md) will guide you through: 
 
 * Equipment Setup: The sources describe how to connect your camera and mount to NINA, providing guidance on the necessary steps and settings.
 * Finding Targets: You'll find explanations on using NINA's Sky Atlas to locate celestial objects and how to add them to your imaging sequence.
@@ -133,11 +133,11 @@ NINA has two sequencers. The Legacy Sequencer is a simple list of targets and ex
 
 The Advanced Sequencer can look complicated at first, but it isn't once you get the hang of it, and you will never go back to the Legacy Sequencer.
 
-The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's [Sync Guiding](./guiding-sync.md), which runs a Solve and Sync every few minutes during your sequence, and [Panorama Grids](./panoramas.md), which use the `Polaris:PanoGrid` and `Polaris:PanoSlew` Device Actions to step through each panel.
+The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's [Sync Guiding](./guiding-sync.md), which runs a Solve and Sync every few minutes during your sequence, and [Panorama Grids](./img-panoramas.md), which use the `Polaris:PanoGrid` and `Polaris:PanoSlew` Device Actions to step through each panel.
 
 To learn the Advanced Sequencer, you can consider these resources:
 
-* Alpaca Documentation: [Advanced Sequence](./nina.md#advanced-sequence) in the NINA guide describes the instructions that work with the Alpaca Driver, and the [Device Actions](./alpaca-api.md#device-actions) reference lists each Device Action with examples.
+* Alpaca Documentation: [Advanced Sequence](./use-nina.md#advanced-sequence) in the NINA guide describes the instructions that work with the Alpaca Driver, and the [Device Actions](./api-alpaca.md#device-actions) reference lists each Device Action with examples.
 * NINA Documentation: The [Advanced Sequencer](https://nighttime-imaging.eu/docs/master/site/sequencer/advanced/advanced/) section of the NINA documentation explains each instruction, condition and trigger.
 
 ### Learning Guiding
@@ -182,7 +182,7 @@ The Benro Polaris can also image the planets, and AutoStakkert! is the free prog
 * Stacking with AutoStakkert!: Analyse the video to grade every frame, stack the best 10 to 25 percent using a grid of alignment points, and use Drizzle 3.0x to recover finer detail.
 * Composing a Wider Shot: Combine the stacked planet with a longer exposure that shows its moons.
 
-The [Planetary Imaging](./planetary.md) guide covers each of these steps, using an image of Saturn and its moons as an example.
+The [Planetary Imaging](./img-planetary.md) guide covers each of these steps, using an image of Saturn and its moons as an example.
 
 ### Further Learning
 

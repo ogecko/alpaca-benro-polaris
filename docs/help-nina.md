@@ -1,7 +1,7 @@
 # NINA Troubleshooting
 Problems using NINA with the Alpaca Driver, including remote access to a MiniPC running NINA, choosing the mount, autofocus, plate solving and connecting cameras.
 
-See [Troubleshooting](./troubleshooting.md) for the other guides, and the [FAQ](./faq.md) for common questions.
+See [Troubleshooting](./help-troubleshooting.md) for the other guides, and the [FAQ](./help-faq.md) for common questions.
 
 ## N1 - Remote Desktop Fails
 

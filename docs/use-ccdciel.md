@@ -105,7 +105,7 @@ In a sequence, enable the target option **Use astrometry to refine the position*
 CCDciel scripts are written in Python. Enable the Script tool from the **Display** menu, then open the **Capture** tab on the right of the screen: under **Run Script** you can select a script and run it, or use **Edit**, **New** and **Copy** to open the script editor. Scripts can be run from there, or as part of a sequence: when a target starts, as a step of a plan, and at the start or end of the sequence. The commands available to scripts are listed in CCDciel's [Script reference](https://www.ap-i.net/ccdciel/en/documentation/jsonrpc_reference).
 
 ### Alpaca Driver Scripts
-CCDciel has no instruction for sending an Alpaca [Device Action](./alpaca-api.md#device-actions), so the [`utility/ccdciel`](https://github.com/ogecko/alpaca-benro-polaris/blob/main/utility/ccdciel) folder provides scripts that send the Alpaca Driver's most common ones:
+CCDciel has no instruction for sending an Alpaca [Device Action](./api-alpaca.md#device-actions), so the [`utility/ccdciel`](https://github.com/ogecko/alpaca-benro-polaris/blob/main/utility/ccdciel) folder provides scripts that send the Alpaca Driver's most common ones:
 
 | Script | Device Action | Arguments | What it does |
 |---|---|---|---|
@@ -126,7 +126,7 @@ The scripts read the Alpaca Driver's address from CCDciel's mount settings (**AS
 The `PolarisSyncGuide` script runs a plate-solve sync from a plan step, for sync guiding. See [Sync Guiding with CCDciel](./guiding-sync.md#sync-guiding-with-ccdciel) for how to set it up.
 
 ### Panoramas
-Use the Alpaca Driver's [Panorama Grid](./panoramas.md) for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the `PolarisPanoSlew` script to move the mount between its panels.
+Use the Alpaca Driver's [Panorama Grid](./img-panoramas.md) for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the `PolarisPanoSlew` script to move the mount between its panels.
 
 In CCDciel, add a `PolarisPanoSlew` step before each panel's light frames. With no argument, the script slews to the next panel, wrapping back to panel 1 after the last panel. You can also specify a panel number to slew directly to that panel. The step completes once the slew is finished.
 
@@ -150,14 +150,14 @@ To Slew to alternate coordinate reference frames supported by the Alpaca Driver,
 * **`PolarisSlewAbsolute`** slews to the coordinates given; coordinates not given keep their current value, e.g. `az=240 alt=45 roll=0` or `ra=10:45:03 dec=-59:41:04 pa=90`.
 * **`PolarisSlewRelative`** adds each value to the current target, e.g. `alt=0.5 roll=-10` or `ra=0:00:30`.
 * Mix any of the coordinate keys in one step, but not with the motor keys `m1`, `m2`, `m3`.
-* The driver keeps every slew within what the Benro Polaris can physically reach, where Altitude and Roll limit each other (see [Reachable Envelope](./kinematics.md#reachable-envelope)).
+* The driver keeps every slew within what the Benro Polaris can physically reach, where Altitude and Roll limit each other (see [Reachable Envelope](./ref-kinematics.md#reachable-envelope)).
 * The step finishes when the slew is complete.
 
 ### Other Device Actions
 To send a Device Action that has no script, such as `Polaris:TrackOrbital` or `Polaris:PanoGrid`, make your own script from `PolarisPanoSlew.py`:
 
 1. Copy `PolarisPanoSlew.py` to a new name, for example `PolarisTrackMoon.py`.
-2. In its `main()` function, replace the `Polaris:PanoSlew` call with the action and Parameters you want. The `alpaca_action()` function takes the action name and its Parameters, as listed in the [Device Actions reference](./alpaca-api.md#device-actions):
+2. In its `main()` function, replace the `Polaris:PanoSlew` call with the action and Parameters you want. The `alpaca_action()` function takes the action name and its Parameters, as listed in the [Device Actions reference](./api-alpaca.md#device-actions):
 
     ```python
     def main():

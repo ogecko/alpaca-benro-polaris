@@ -1,11 +1,11 @@
 # Installation Guide 
-[Microsoft Win11](#to-install-on-windows-1011) · [Apple MacOS](./installation-macos.md) · [Raspberry Pi](./installation-pi.md) ·
+[Microsoft Win11](#to-install-on-windows-1011) · [Apple MacOS](./install-macos.md) · [Raspberry Pi](./install-pi.md) ·
 [Startup](#starting-the-alpaca-pilot-app) ·
-[Deep-Sky Imaging](./dso-imaging.md) ·
+[Deep-Sky Imaging](./img-dso.md) ·
 [Stellarium](#stellarium-desktop) ·
 [Sky Safari](#sky-safari-pro) ·
 [Nina](#installing-nina) ·
-[Architecture](./architecture.md)
+[Architecture](./ref-architecture.md)
 
 
 
@@ -61,7 +61,7 @@ The `setup.bat` script installs and configures the Alpaca Driver. It uses [uv](h
 
     By default, the driver is installed in `C:\Users\<Username>\alpaca-benro-polaris`
 
-    If the driver does not start automatically, see [Troubleshooting A8](./troubleshooting-install.md#a8---no-start-at-boot).
+    If the driver does not start automatically, see [Troubleshooting A8](./help-install.md#a8---no-start-at-boot).
 
     <details markdown="1">
     <summary>Advanced options</summary>
@@ -155,13 +155,13 @@ Before you can use the Polaris, complete the following steps.
 
     Set up your Benro Polaris tripod head and turn on the device.
 
-    If you cannot turn on the Polaris, see [Troubleshooting B1](./troubleshooting-polaris.md#b1---polaris-wont-start).
+    If you cannot turn on the Polaris, see [Troubleshooting B1](./help-polaris.md#b1---polaris-wont-start).
 
 11. **Complete the connection procedure**
     
     On the **Connect** page in the Alpaca Pilot App, follow each step indicated by a checkmark.
 
-    For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#connecting-polaris).
+    For detailed instructions, see the [Pilot User Guide – Connecting Devices](./use-pilot.md#connecting-polaris).
 
     Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have added three or more sync points (see [Multi-Point Alignment](./initial-setup.md#multi-point-alignment)).
 
@@ -179,11 +179,11 @@ Before you can use the Polaris, complete the following steps.
 
 ## Troubleshooting
 
-If you do not see the `communications init... done` message, see [Troubleshooting C1](./troubleshooting-network.md#c1a---wi-fi-2-not-connected) for steps to diagnose and resolve connection problems.
+If you do not see the `communications init... done` message, see [Troubleshooting C1](./help-network.md#c1a---wi-fi-2-not-connected) for steps to diagnose and resolve connection problems.
 
 ## Next Steps
 
-To plan and run an imaging session, see [Deep-Sky Imaging](./dso-imaging.md) and [Planetary Imaging](./planetary.md).
+To plan and run an imaging session, see [Deep-Sky Imaging](./img-dso.md) and [Planetary Imaging](./img-planetary.md).
 
 ## Optional Steps
    

@@ -1,7 +1,7 @@
 # Installation Troubleshooting
 Problems installing, starting or updating the Alpaca Driver, including setup.bat, uv and Python packages, Windows security warnings, opening Alpaca Pilot and starting the driver at boot.
 
-See [Troubleshooting](./troubleshooting.md) for the other guides, and the [FAQ](./faq.md) for common questions.
+See [Troubleshooting](./help-troubleshooting.md) for the other guides, and the [FAQ](./help-faq.md) for common questions.
 
 ## A1 - Git or uv Won't Install
 `setup.bat` installs [Git](https://git-scm.com) with `winget` (built into Windows 11), and falls back to downloading the official Git installer, so it needs an internet connection. If it stops with `Git could not be installed` or `uv could not be installed`, install the missing tool yourself and run `setup.bat` again:
@@ -41,7 +41,7 @@ ModuleNotFoundError: No module named 'toml'
 
 This indicates that the required dependencies have not yet been installed.
 
-To resolve this, run `setup.bat` again (see the [Installation Guide](./installation-win.md)). It installs all the Python packages the Driver needs, including `toml`. If you only want to reinstall the packages, run this from the project root:
+To resolve this, run `setup.bat` again (see the [Installation Guide](./install-win.md)). It installs all the Python packages the Driver needs, including `toml`. If you only want to reinstall the packages, run this from the project root:
 
 ```command
 uv sync --locked
@@ -108,7 +108,7 @@ If Alpaca Pilot suddenly won't load in your normal browser window — even thoug
 3. Always type the address with its scheme explicitly, e.g. `http://192.168.50.161:8080` rather than just `192.168.50.161:8080` — some browsers default an unscoped address to `https://`.
 4. Close and fully reopen the browser afterwards.
 
-If Alpaca Pilot doesn't load in an Incognito/Private window either, the browser may not be able to find the driver at all: see [C7 - Can't Reach ap.local](./troubleshooting-network.md#c7---cant-reach-aplocal).
+If Alpaca Pilot doesn't load in an Incognito/Private window either, the browser may not be able to find the driver at all: see [C7 - Can't Reach ap.local](./help-network.md#c7---cant-reach-aplocal).
 
 
 ## A8 - No Start at Boot

@@ -1,11 +1,11 @@
 # Pilot API Reference
 [Web Server](#web-server) · [HTTPS](#https) · [REST Proxy](#rest-proxy) · [WebSocket](#websocket) · [Live Telemetry](#live-telemetry)
 
-Alongside its ASCOM Alpaca devices (see the [Alpaca API Reference](./alpaca-api.md)), the Alpaca Driver runs the services that Alpaca Pilot uses: a web server for the app itself, a proxy to the Alpaca REST API, and a WebSocket for live data. These are specific to the Alpaca Driver, not part of the ASCOM Alpaca standard. This page is for anyone who wants to script the driver, or build their own tools around it.
+Alongside its ASCOM Alpaca devices (see the [Alpaca API Reference](./api-alpaca.md)), the Alpaca Driver runs the services that Alpaca Pilot uses: a web server for the app itself, a proxy to the Alpaca REST API, and a WebSocket for live data. These are specific to the Alpaca Driver, not part of the ASCOM Alpaca standard. This page is for anyone who wants to script the driver, or build their own tools around it.
 
 ## Web Server
 
-The web server serves the Alpaca Pilot app on port `80` (the `alpaca_pilot_http_port` setting), or on port `443` when HTTPS is enabled (`alpaca_pilot_https_port`). It is advertised on the local network over mDNS as `ap.local` (the `mdns_name` setting); see [Launching Alpaca Pilot](./pilot.md#launching-alpaca-pilot) for the other ways to reach it.
+The web server serves the Alpaca Pilot app on port `80` (the `alpaca_pilot_http_port` setting), or on port `443` when HTTPS is enabled (`alpaca_pilot_https_port`). It is advertised on the local network over mDNS as `ap.local` (the `mdns_name` setting); see [Launching Alpaca Pilot](./use-pilot.md#launching-alpaca-pilot) for the other ways to reach it.
 
 | Path | Purpose |
 |---|---|

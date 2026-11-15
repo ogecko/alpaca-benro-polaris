@@ -1202,7 +1202,7 @@ _CONN_EVENT_PATTERNS = [
 # attempt_failed/reconnect_error/disconnect/wifi_join_failed/ble_* detail strings, then
 # cross-referencing driver/polaris.py's own `_format_connection_error()` (the only place
 # that turns a raw exception into the text that ends up in these log lines) and
-# docs/troubleshooting.md's C0/C1/C3 sections (written from field reports of the same
+# docs/help-troubleshooting.md's C0/C1/C3 sections (written from field reports of the same
 # failures) for what each one actually means and how to chase it down.
 #
 # Deliberately keyed on regexes matched against the *rendered* message, not the exception
@@ -1233,17 +1233,17 @@ _CONNECTION_ERROR_TAXONOMY = [
     ('WSAECONNRESET',
      'Peer forcibly reset an established connection (WSAECONNRESET/WinError 10054) -- often '
      'the OS/network stack timing out the socket after the event loop was starved too long '
-     'to service it. See docs/troubleshooting.md C3-1 (CPU/resource starvation).',
+     'to service it. See docs/help-troubleshooting.md C3-1 (CPU/resource starvation).',
      'peer_reset', re.compile(r'WinError\s*10054|winerror=10054')),
 
     ('NETNAME_DELETED',
      'The network adapter/name disappeared out from under the socket (WinError 64) -- '
-     'typically a Wi-Fi adapter reset or driver crash. See docs/troubleshooting.md C3-6.',
+     'typically a Wi-Fi adapter reset or driver crash. See docs/help-troubleshooting.md C3-6.',
      'adapter_reset', re.compile(r'WinError\s*64\b')),
 
     ('CONN_ABORTED_LOCAL',
      'Windows tore the TCP connection down locally (WinError 1236) -- most often a DHCP '
-     'lease rejection (DHCPNACK) or an adapter/IP change. See docs/troubleshooting.md C3-2.',
+     'lease rejection (DHCPNACK) or an adapter/IP change. See docs/help-troubleshooting.md C3-2.',
      'local_abort', re.compile(r'WinError\s*1236|winerror=1236')),
 
     ('CONN_REFUSED',
@@ -1253,18 +1253,18 @@ _CONNECTION_ERROR_TAXONOMY = [
 
     ('SEM_TIMEOUT',
      'A network operation timed out mid-flight (winerror=121, ERROR_SEM_TIMEOUT) -- usually '
-     'a degraded/weak Wi-Fi link rather than a hard disconnect. See docs/troubleshooting.md '
+     'a degraded/weak Wi-Fi link rather than a hard disconnect. See docs/help-troubleshooting.md '
      'C3-5 (RF interference/signal strength).',
      'link_degraded', re.compile(r'winerror=121\b|WinError\s*121\b')),
 
     ('NET_UNREACHABLE',
      'No route to the Polaris subnet at all -- the Wi-Fi adapter is not associated to the '
-     'Polaris hotspot. See docs/troubleshooting.md C1a.',
+     'Polaris hotspot. See docs/help-troubleshooting.md C1a.',
      'unreachable', re.compile(r'WinError\s*1231|errno=51\b')),
 
     ('HOST_UNREACHABLE',
      'Associated to the Polaris Wi-Fi but no IP route to the Polaris host -- wrong IP '
-     'config, IPv6-only association, or DHCP failure. See docs/troubleshooting.md C1b/C1c.',
+     'config, IPv6-only association, or DHCP failure. See docs/help-troubleshooting.md C1b/C1c.',
      'unreachable', re.compile(r'WinError\s*1232|errno=(?:60|64)\b')),
 
     ('CONNECT_TIMEOUT',
@@ -1332,7 +1332,7 @@ def classify_connection_error(detail, kind=None):
     if kind == 'wifi_join_failed':
         return ('WIFI_JOIN_FAILED',
                 "The host's own Wi-Fi join to the Polaris hotspot (netsh) failed -- see "
-                'docs/troubleshooting.md C0 (adapter compatibility) / C3-4 (adapter hardware).',
+                'docs/help-troubleshooting.md C0 (adapter compatibility) / C3-4 (adapter hardware).',
                 'wifi_join')
     for code, meaning, category, pattern in _CONNECTION_ERROR_TAXONOMY:
         if pattern.search(detail):
@@ -1409,7 +1409,7 @@ def load_connection_events(log_filenames, log_dir='.'):
     connect_attempt_failed, wifi_join_failed, cmd_timeout, send_error, ble_wifi_failed,
     ble_error) gets three extra columns via classify_connection_error() applied to its
     `detail`: 'error_code' (a short stable id, e.g. 'WSAECONNRESET'), 'error_meaning' (a
-    one-line human explanation, with a docs/troubleshooting.md section reference where one
+    one-line human explanation, with a docs/help-troubleshooting.md section reference where one
     exists), and 'error_category' (a coarser grouping for charting -- 'watchdog',
     'peer_reset', 'link_degraded', 'unreachable', 'wifi_join', 'ble', 'config_state',
     'other', ...). NaN for every other kind (driver_start, init_start/done, sync_observed,

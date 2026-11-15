@@ -2614,7 +2614,7 @@ class PID_Controller():
             "ω_op": self.omega_op.tolist(),
             # mode/age_518/connected let analysis tell a genuinely stale tick (control loop still
             # ticking on its own timer while 518 telemetry has stopped -- theta_pv frozen, see
-            # docs/control.md) from a fresh one, and a non-TRACK tick (slew/park/idle) from real
+            # docs/ref-control.md) from a fresh one, and a non-TRACK tick (slew/park/idle) from real
             # tracking -- both of which otherwise silently distort any std/variance-based metric
             # computed over a whole session.
             "mode": self.mode,

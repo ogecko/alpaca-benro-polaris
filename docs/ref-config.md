@@ -5,7 +5,7 @@ This page lists every setting of the Alpaca Driver, with its default value. It i
 
 **Where settings live.** `driver/config.toml` holds the default for each setting, and is replaced when the driver is updated, so don't edit it to change a setting. Instead, change settings in Alpaca Pilot: most are on its Settings page, and some on its PID Tuning, Kalman, Panorama and Dashboard pages. Alpaca Pilot saves the settings you have changed to `data/config.pilot.json`, which the driver applies on top of the defaults each time it starts. Restoring the defaults deletes that file.
 
-**Changing settings from a script.** The `Polaris:ConfigFetch`, `Polaris:ConfigUpdate`, `Polaris:ConfigSave` and `Polaris:ConfigRestore` Device Actions read, change, save and restore settings (see the [Alpaca API Reference](./alpaca-api.md#device-actions)). A change takes effect straight away, except for the settings marked **Restart** below, which need a driver restart.
+**Changing settings from a script.** The `Polaris:ConfigFetch`, `Polaris:ConfigUpdate`, `Polaris:ConfigSave` and `Polaris:ConfigRestore` Device Actions read, change, save and restore settings (see the [Alpaca API Reference](./api-alpaca.md#device-actions)). A change takes effect straight away, except for the settings marked **Restart** below, which need a driver restart.
 
 ## Network
 
@@ -70,7 +70,7 @@ These settings are in the `[server]` section of `config.toml`.
 
 ## Panorama
 
-The Panorama Grid and the Panel Spacing Calculator. Alpaca Pilot sets most of these from its Panorama pages (see [Creating Panoramas](./panoramas.md)).
+The Panorama Grid and the Panel Spacing Calculator. Alpaca Pilot sets most of these from its Panorama pages (see [Creating Panoramas](./img-panoramas.md)).
 
 These settings are in the `[panorama]` section of `config.toml`.
 
@@ -98,7 +98,7 @@ These settings are in the `[panorama]` section of `config.toml`.
 
 ## Control
 
-The driver's motion control: alignment, tracking, guiding, Periodic Error Correction, the Kalman filter, the PID controller and the motor limits. See the [Control Reference](./control.md) and [Kinematics Reference](./kinematics.md) for how they work.
+The driver's motion control: alignment, tracking, guiding, Periodic Error Correction, the Kalman filter, the PID controller and the motor limits. See the [Control Reference](./ref-control.md) and [Kinematics Reference](./ref-kinematics.md) for how they work.
 
 These settings are in the `[control]` section of `config.toml`.
 

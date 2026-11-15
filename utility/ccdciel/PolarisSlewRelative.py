@@ -1,7 +1,7 @@
 # PolarisSlewRelative - CCDciel script: move the Benro Polaris by the given offsets (Polaris:SlewRelative).
 #
 # Install: run install.bat (Windows), or copy this file to CCDciel's configuration folder as "PolarisSlewRelative.script".
-#          See docs/ccdciel.md, Scripting.
+#          See docs/use-ccdciel.md, Scripting.
 # Arguments: one or more key=value pairs, separated by spaces. Each value is added to the current target.
 #   Equatorial:  ra (hours)  dec  pa          Topocentric: az  alt  roll        Galactic: l  b  gpa
 #   Motors:      m1  m2  m3 (motor angles; can't be combined with the other keys)

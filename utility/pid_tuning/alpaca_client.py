@@ -3,7 +3,7 @@ Minimal Alpaca REST client for driving the live driver during PID tuning experim
 
 Talks to the standard ASCOM Alpaca Telescope device (devicenumber=0) plus the
 custom Polaris:* actions, and the Rotator device for Roll Angle. See
-docs/control.md "Developer: Automated PID/PEC Testing via Alpaca API" for the
+docs/ref-control.md "Developer: Automated PID/PEC Testing via Alpaca API" for the
 underlying protocol this wraps.
 """
 import itertools
@@ -64,7 +64,7 @@ def set_tracking(state: bool):
 
 def clean_tracking_baseline():
     """Toggle tracking off/on -- clears sync-guiding state (q_syncguide_B, PEC model)
-    in-memory, per docs/control.md section 4."""
+    in-memory, per docs/ref-control.md section 4."""
     set_tracking(False)
     set_tracking(True)
 
@@ -106,7 +106,7 @@ def slewing():
 
 def slew_absolute(az, alt, roll_deg, isasync=False):
     """Az/Alt/Roll slew via the custom Polaris:SlewAbsolute action -- see
-    docs/control.md "Positioning with Polaris:SlewAbsolute". Blocks until
+    docs/ref-control.md "Positioning with Polaris:SlewAbsolute". Blocks until
     complete unless isasync=True (a blocking slew can legitimately take well
     over 10s on real hardware, hence the generous timeout)."""
     timeout = 10 if isasync else 90
@@ -120,7 +120,7 @@ def sync_to_coordinates(ra_hours, dec_deg):
     the real alignment model. Use step_ra_arcsec() (Polaris:SlewRelative)
     instead, which moves the PID setpoint directly and never touches
     sync_history. Kept here only for the one-off PEC convergence test
-    described in docs/control.md section 4, where recording into the PEC
+    described in docs/ref-control.md section 4, where recording into the PEC
     model *is* the point."""
     return _put(TELESCOPE_BASE, "synctocoordinates", {"RightAscension": ra_hours, "Declination": dec_deg})
 

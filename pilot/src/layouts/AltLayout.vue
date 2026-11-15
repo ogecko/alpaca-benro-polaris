@@ -366,13 +366,13 @@ const links4 = [
 ]
 
 const links5 = [
-  { icon: 'mdi-account-tie-hat', text: 'Pilot', docs: 'pilot/' },
-  { icon: 'mdi-camera-control', text: 'Control', docs: 'control/' },
+  { icon: 'mdi-account-tie-hat', text: 'Pilot', docs: 'use-pilot/' },
+  { icon: 'mdi-camera-control', text: 'Control', docs: 'ref-control/' },
   { icon: 'mdi-alert', text: 'Warnings', to: '/warning' },
-  { icon: 'mdi-stethoscope', text: 'Troubleshooting', docs: 'troubleshooting/' },
+  { icon: 'mdi-stethoscope', text: 'Troubleshooting', docs: 'help-troubleshooting/' },
   { icon: 'mdi-alpha-k-box', text: 'Kickstarter', toExternal: 'https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=6bp9my' },
   { icon: 'mdi-youtube', text: 'Videos', toExternal: 'https://www.youtube.com/@jdm5001/featured' },
-  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', docs: 'faq/' },
+  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', docs: 'help-faq/' },
   { icon: 'mdi-information-variant', text: 'About', to: '/about' },
 ]
 

@@ -4,7 +4,7 @@
 [Connect](#connecting-polaris) ·
 [Dashboard](#using-the-dashboard) ·
 [Catalog](#using-the-catalog) ·
-[Panoramas](./panoramas.md)
+[Panoramas](./img-panoramas.md)
 
 ## What is Alpaca Pilot?
 
@@ -99,7 +99,7 @@ The Pilot application is very flexible, allowing users to open up multiple windo
 For example, you might choose to open the Catalog as a new window and position it off to the right, while keeping the main Dashboard open on the left. This configuration allows for streamlined workflows, such as performing quick searches for celestial objects in the Catalog while monitoring the mount's status and coordinates on the Dashboard as you navigate to the selected target.
 
 
-If Alpaca Pilot doesn't open at `http://ap.local`, see [C7 - Can't Reach ap.local](./troubleshooting-network.md#c7---cant-reach-aplocal), which explains mDNS, the other ways to reach Alpaca Pilot, and how to find the driver's IP address.
+If Alpaca Pilot doesn't open at `http://ap.local`, see [C7 - Can't Reach ap.local](./help-network.md#c7---cant-reach-aplocal), which explains mDNS, the other ways to reach Alpaca Pilot, and how to find the driver's IP address.
 
 
 
@@ -148,7 +148,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
 
 ![Power on Poalris and Enable Wifi](images/pilot-connectc.png)
 
-- **① Power On the Polaris:** Power it on with a short press of the power button followed by a long press, releasing after three beeps (if it won't start, see [Troubleshooting B1](./troubleshooting-polaris.md#b1---polaris-wont-start)). The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.
+- **① Power On the Polaris:** Power it on with a short press of the power button followed by a long press, releasing after three beeps (if it won't start, see [Troubleshooting B1](./help-polaris.md#b1---polaris-wont-start)). The Alpaca Driver uses Bluetooth Low Energy (BLE) to discover nearby Benro Polaris Devices. If none are discovered, check the power of your Benro Polaris Device.
 
      *Note: Bluthooth is only used for discovery and enabling Wifi. It is entirely optional. It is not used in normal operation of the Polaris.*
 
@@ -164,7 +164,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
     - on Win11, monitor the systems Wifi List for a polaris_xxxxxx hotspot, click on it, enable automatic connection, and click Connect. Once the host has connected to the Polaris Wifi Hotspot, it should appear as follows:
         ![alt text](images/abp-troubleshoot-wifi1.png)
 
-    - On Raspberry Pi, see [installation-pi.md's network troubleshooting](./installation-pi.md#p1---wi-fi-and-bluetooth) to join manually via `join_wifi.py` or `nmcli`. 
+    - On Raspberry Pi, see [install-pi.md's network troubleshooting](./install-pi.md#p1---wi-fi-and-bluetooth) to join manually via `join_wifi.py` or `nmcli`. 
 
 ### Establish Communications
 
@@ -188,7 +188,7 @@ Once Wifi network connectivity has been established to the Polaris, the Driver s
 <br>
 
    > **Troubleshooting Guide**
-   If you continue to experience issues connecting to the Polaris, consult the [Troubleshooting Guide](./troubleshooting.md) for diagnostic steps and solutions.
+   If you continue to experience issues connecting to the Polaris, consult the [Troubleshooting Guide](./help-troubleshooting.md) for diagnostic steps and solutions.
 
 <br>
 
@@ -449,13 +449,13 @@ If the object you have selected is **already visible in your camera’s field of
 
 
 
-For the full list of reference catalogues, and how to extend the catalog with your own entries, see the [Catalog Reference](./catalog.md).
+For the full list of reference catalogues, and how to extend the catalog with your own entries, see the [Catalog Reference](./ref-catalog.md).
 
 <br>
 <br>
 
 ## Creating Panoramas
-Alpaca Pilot's Panorama Grid lets you plan and capture multi-panel panoramas and mosaics. See [Creating Panoramas](./panoramas.md).
+Alpaca Pilot's Panorama Grid lets you plan and capture multi-panel panoramas and mosaics. See [Creating Panoramas](./img-panoramas.md).
 
 <br>
 <br>
@@ -465,7 +465,7 @@ The **Flat White** page turns a phone or tablet into a light source for taking f
 
 * Set the device's screen brightness to maximum, and turn off its night mode or blue-light filter, so the light is bright and neutral.
 * Hold the screen flat against the front of the lens or lens hood. A sheet of white paper or fabric between the screen and the lens helps to even out the light.
-* Take your flats with NINA's **Flat Wizard**, which finds the right exposure for you (see [Using NINA](./nina.md#main-nina-tabs)).
+* Take your flats with NINA's **Flat Wizard**, which finds the right exposure for you (see [Using NINA](./use-nina.md#main-nina-tabs)).
 * Tap the Alpaca Pilot icon in the top-left corner to return to the dashboard.
 
-See [Calibration Frames](./dso-imaging.md#calibration-frames) in the Deep-Sky Imaging guide for when to take your flats.
+See [Calibration Frames](./img-dso.md#calibration-frames) in the Deep-Sky Imaging guide for when to take your flats.

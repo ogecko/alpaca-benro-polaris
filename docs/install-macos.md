@@ -107,7 +107,7 @@ Before you can use the Polaris, complete the following steps.
 
     Set up your Benro Polaris tripod head and turn on the device.
 
-    If you cannot turn on the Polaris, see [Troubleshooting B1](./troubleshooting-polaris.md#b1---polaris-wont-start).
+    If you cannot turn on the Polaris, see [Troubleshooting B1](./help-polaris.md#b1---polaris-wont-start).
 
 12. **Enable and join the Polaris Wi-Fi**
 
@@ -122,7 +122,7 @@ Before you can use the Polaris, complete the following steps.
 
     On the **Connect** page in the Alpaca Pilot App, follow each step indicated by a checkmark.
 
-    For detailed instructions, see the [Pilot User Guide – Connecting Devices](./pilot.md#connecting-polaris).
+    For detailed instructions, see the [Pilot User Guide – Connecting Devices](./use-pilot.md#connecting-polaris).
 
     Make sure all applicable checkmarks are green. The final **Multi-Point Alignment** step will remain incomplete until you have added three or more sync points (see [Multi-Point Alignment](./initial-setup.md#multi-point-alignment)).
 
@@ -147,7 +147,7 @@ Your existing settings and data, including alignment and calibration data, are p
 
 ### Troubleshooting
 
-If you do not see the `communications init... done` message, see the [Troubleshooting Guide C1](./troubleshooting-network.md#c1a---wi-fi-2-not-connected) for steps to diagnose and resolve the problem.
+If you do not see the `communications init... done` message, see the [Troubleshooting Guide C1](./help-network.md#c1a---wi-fi-2-not-connected) for steps to diagnose and resolve the problem.
 
 ### Stellarium
 

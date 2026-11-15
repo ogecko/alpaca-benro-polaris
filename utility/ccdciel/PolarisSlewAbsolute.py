@@ -1,7 +1,7 @@
 # PolarisSlewAbsolute - CCDciel script: slew the Benro Polaris to the given coordinates (Polaris:SlewAbsolute).
 #
 # Install: run install.bat (Windows), or copy this file to CCDciel's configuration folder as "PolarisSlewAbsolute.script".
-#          See docs/ccdciel.md, Scripting.
+#          See docs/use-ccdciel.md, Scripting.
 # Arguments: one or more key=value pairs, separated by spaces. Keys not given keep their current value.
 #   Equatorial:  ra (hours)  dec  pa          Topocentric: az  alt  roll        Galactic: l  b  gpa
 #   Motors:      m1  m2  m3 (motor angles; can't be combined with the other keys)

@@ -3,9 +3,9 @@
 
 The Alpaca Driver presents the Benro Polaris to astronomy applications as two standard ASCOM Alpaca devices, a **Telescope** and a **Rotator**, together with a set of **Device Actions** for features that go beyond the ASCOM standard. Applications like NINA, PHD2, Stellarium and CCDciel make these calls for you. This page is for anyone who wants to script the mount directly, or understand what their applications are doing.
 
-Alpaca Pilot's own web server, REST proxy and WebSocket are not part of the ASCOM Alpaca standard, and are described in the [Pilot API Reference](./pilot-api.md).
+Alpaca Pilot's own web server, REST proxy and WebSocket are not part of the ASCOM Alpaca standard, and are described in the [Pilot API Reference](./api-pilot.md).
 
-All requests go to the driver's Alpaca REST API on port `5555` (the `alpaca_restapi_port` setting), at `http://<driver address>:5555/api/v1/<device>/0/<member>`. The examples below use `ap.local` as the driver address; use the IP address of the computer running the driver if `ap.local` doesn't resolve on your network (see [Launching the Alpaca Pilot Application](./pilot.md#launching-alpaca-pilot)). Each request includes a `ClientID` and `ClientTransactionID`, and the driver must be connected to the Polaris for most calls to succeed. See the [ASCOM Alpaca API reference](https://ascom-standards.org/api/) for the REST protocol itself.
+All requests go to the driver's Alpaca REST API on port `5555` (the `alpaca_restapi_port` setting), at `http://<driver address>:5555/api/v1/<device>/0/<member>`. The examples below use `ap.local` as the driver address; use the IP address of the computer running the driver if `ap.local` doesn't resolve on your network (see [Launching the Alpaca Pilot Application](./use-pilot.md#launching-alpaca-pilot)). Each request includes a `ClientID` and `ClientTransactionID`, and the driver must be connected to the Polaris for most calls to succeed. See the [ASCOM Alpaca API reference](https://ascom-standards.org/api/) for the REST protocol itself.
 
 ## Discovery
 
@@ -34,7 +34,7 @@ Every device also has the members common to all ASCOM devices, such as `connecte
 
 ## Telescope
 
-The [Telescope API Reference](./telescope-api.md) lists each of the Telescope's members and what it does. Some examples:
+The [Telescope API Reference](./api-telescope.md) lists each of the Telescope's members and what it does. Some examples:
 
 **Read the Right Ascension** the mount is pointing at, in hours:
 
@@ -57,7 +57,7 @@ curl -X PUT http://ap.local:5555/api/v1/telescope/0/slewtocoordinatesasync \
 
 ## Rotator
 
-The [Rotator API Reference](./rotator-api.md) lists each of the Rotator's members and what it does. Some examples:
+The [Rotator API Reference](./api-rotator.md) lists each of the Rotator's members and what it does. Some examples:
 
 **Read the Position Angle** of the camera, in degrees:
 
@@ -80,8 +80,8 @@ Device Actions are the ASCOM standard's way for a driver to offer features that 
 
 Three approaches you can use Device Actions, include:
 
-1. From NINA's [Advanced Sequencer](./nina.md#advanced-sequence), install the **Device Actions and Commands** plug-in, then add a **Utility > Device Action** instruction, set the Device to `Telescope`, and choose the Action and its Parameters as shown in the tables below. 
-2. From CCDciel, run one of the Alpaca Driver's scripts as a step of a plan, see [Scripting](./ccdciel.md#scripting) in the CCDciel guide.
+1. From NINA's [Advanced Sequencer](./use-nina.md#advanced-sequence), install the **Device Actions and Commands** plug-in, then add a **Utility > Device Action** instruction, set the Device to `Telescope`, and choose the Action and its Parameters as shown in the tables below. 
+2. From CCDciel, run one of the Alpaca Driver's scripts as a step of a plan, see [Scripting](./use-ccdciel.md#scripting) in the CCDciel guide.
 3. Call them directly through the REST API, with the Parameters as a JSON object:
 
      ```
@@ -119,7 +119,7 @@ curl -s -X PUT "$BASE/action" -d 'Action=Polaris:RestartDriver' -d 'Parameters={
 ```
 
 ### Polaris:PanoGrid
-Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot (see [Panorama](./config.md#panorama) in the Configuration Reference). Any of these settings can be given, the rest keep their current values: `cols`, `rows` (the grid size), `hstep`, `vstep` (degrees between panel centres), `first` (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), `order` (0 Row-Major, 1 Column-Major, 2 Serpentine), `track` (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), `anchor` (what sits at the reference position: 0 the whole mosaic's centre, n panel n), `ref` (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and `r1`, `r2`, `r3` (the reference position in that frame, RA in hours). Use **Polaris:ConfigSave** to keep them for the next session.
+Set up a panorama or mosaic grid, the same settings as the PanoGrid page in Alpaca Pilot (see [Panorama](./ref-config.md#panorama) in the Configuration Reference). Any of these settings can be given, the rest keep their current values: `cols`, `rows` (the grid size), `hstep`, `vstep` (degrees between panel centres), `first` (corner of panel 1: 0 Top Left, 1 Top Right, 2 Bottom Left, 3 Bottom Right), `order` (0 Row-Major, 1 Column-Major, 2 Serpentine), `track` (0 Landscape - Untracked, 1 Sky - Horizon-Locked, 2 Sky - Celestial, 3 Sky - Milky Way), `anchor` (what sits at the reference position: 0 the whole mosaic's centre, n panel n), `ref` (reference frame: 0 Az/Alt/Roll, 1 RA/Dec/PA, 2 Galactic, 3 Motor Position) and `r1`, `r2`, `r3` (the reference position in that frame, RA in hours). Use **Polaris:ConfigSave** to keep them for the next session.
 
 | **Instruction** | **Device** | Action | Parameters |
 | --- | --- | --- | --- |
@@ -198,7 +198,7 @@ Fetch the orbital parameters of an object, slew to its co-ordinates and start no
 | **Utility > Device Action** | `Telescope` |  `Polaris:TrackOrbital` |  `{"name": "25544", "category":6}` |
 
 ### Polaris:ConfigUpdate
-Update the Alpaca Driver configuration setting to the defined values. Any setting in the [Configuration Reference](./config.md) can be changed with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, (c) to alter the park position and (d) to alter the ASCOM focal length; use the following.
+Update the Alpaca Driver configuration setting to the defined values. Any setting in the [Configuration Reference](./ref-config.md) can be changed with this action. The Parameters field should be in JSON format defining a list of properties and values to change. Separate multiple property:values with a comma. For example to (a) enable multi-point alignment (b) reduce the goto tollerance to 15 arc-min, (c) to alter the park position and (d) to alter the ASCOM focal length; use the following.
 
 | **Instruction** | **Device** | Action | Parameters |
 | --- | --- | --- | --- |

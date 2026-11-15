@@ -1640,7 +1640,7 @@ class unpark:
 
 @before(PreProcessRequest(maxdev, 'log_alpaca_discovery'))
 class supportedactions:
-    """The Device Actions the driver supports, the `Polaris:` actions. See [Device Actions](./alpaca-api.md#device-actions)."""
+    """The Device Actions the driver supports, the `Polaris:` actions. See [Device Actions](./api-alpaca.md#device-actions)."""
     async def on_get(self, req: Request, resp: Response, devnum: int):
         resp.text = await PropertyResponse([
             "Polaris:PanoGrid", "Polaris:PanoSlew", "Polaris:SlewAbsolute", "Polaris:SlewRelative", "Polaris:AbortSlew",  
@@ -1673,7 +1673,7 @@ _silent_actions = {"Polaris:ReplayMark"}
 
 @before(PreProcessRequest(maxdev))
 class action:
-    """Run a Device Action, named by `Action`, with its `Parameters` as a JSON string. See [Device Actions](./alpaca-api.md#device-actions)."""
+    """Run a Device Action, named by `Action`, with its `Parameters` as a JSON string. See [Device Actions](./api-alpaca.md#device-actions)."""
     async def on_put(self, req: Request, resp: Response, devnum: int):
         actionName = await get_request_field('Action', req)
         raw_params = await get_request_field('Parameters', req)

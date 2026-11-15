@@ -5,7 +5,7 @@
 [Setting Up Windows](#setting-up-windows) ·
 [Optional Steps](#optional-steps)
 
-The recommended way to run the Alpaca Driver is on a MiniPC mounted on your tripod, which can then control all your astronomy equipment. This guide covers choosing, powering, connecting and setting up a MiniPC. For the other ways to run the driver, on a laptop, a Raspberry Pi or in a Docker container, see [Architecture](./architecture.md#hardware-architectures).
+The recommended way to run the Alpaca Driver is on a MiniPC mounted on your tripod, which can then control all your astronomy equipment. This guide covers choosing, powering, connecting and setting up a MiniPC. For the other ways to run the driver, on a laptop, a Raspberry Pi or in a Docker container, see [Architecture](./ref-architecture.md#hardware-architectures).
 
 ## Choosing a MiniPC
 The MiniPC should be small, fan-less, fast and power efficient. That way you can mount it on your tripod, it won't cause any vibrations, it can store and process your images, and it can run for a whole night on a battery. I'd recommend the [MeLE Mini PC Quieter 4C](https://www.amazon.com/MeLE-Mini-Quieter-4C-Astrophotography/dp/B0CP3YL6J7) (around US$200 from Amazon on sale). See Cuiv's review of the [Quieter 4C Mini-PC](https://www.youtube.com/watch?app=desktop&v=j8lcDyw1toQ).

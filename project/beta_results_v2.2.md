@@ -503,7 +503,7 @@ Notes: England, New 5nm filters.
 * Catalog Filter Persistence - something I noted from last night, if you set a filter in the catalogue, hit goto and then come back, the filter is then cleared on your return. 
     > JDM - fixed in dev2_2. Catalog Filters persist when returning to the main Catalog page, but reset when opening a specific catalog view (Stars, Nebulae, etc.).
 * Residuals - I had a residual with an orange triangle next to it. Obviously that means bad 😂. But I couldn't specifically find the meaning of it in the document. 
-    > JDM - Fixed in dev2_2. Expanded on meaning of outlier residuals in control.md at https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/control.md#e-review-model-residuals
+    > JDM - Fixed in dev2_2. Expanded on meaning of outlier residuals in ref-control.md at https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_2/docs/ref-control.md#e-review-model-residuals
 
 16 July 2026 - Galactic Panorama Video feedback
 

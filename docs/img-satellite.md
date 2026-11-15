@@ -39,7 +39,7 @@ A low satellite pass lasts only a few minutes, so prepare everything before it r
 ## Capturing a Pass
 
 * **Set up the sequence beforehand.** In NINA, prepare a sequence of short exposures, such as the 2 s exposures used for the Starlink image above, and start it just before the satellite rises above 10°. The whole pass may be over in a few minutes.
-* **Bright satellites:** For a detailed view of a bright satellite such as the ISS, record a **video** and use lucky imaging, as described in [Planetary Imaging](./planetary.md).
+* **Bright satellites:** For a detailed view of a bright satellite such as the ISS, record a **video** and use lucky imaging, as described in [Planetary Imaging](./img-planetary.md).
 * **Satellite trails:** Alternatively, keep sidereal tracking on, and let the satellite sweep across the star field as a trail.
 
 How long a pass lasts depends on the satellite's orbit:
@@ -74,7 +74,7 @@ Alpaca Pilot's catalog also tracks natural objects that move against the stars. 
 | **Solar** | The Sun | Follows the Sun. Requires a safety confirmation, and a proper solar filter. |
 | **Custom** | Planets, moons, satellites, comets, asteroids and other near-Earth objects | Follows the object using its orbit. |
 
-* **The Sun, Moon, planets and planetary moons** are listed in the catalog: filter by the **Planet** or **Moon** type. For imaging planets, see [Planetary Imaging](./planetary.md).
+* **The Sun, Moon, planets and planetary moons** are listed in the catalog: filter by the **Planet** or **Moon** type. For imaging planets, see [Planetary Imaging](./img-planetary.md).
 * **Comets, asteroids, dwarf planets and interstellar objects**: over 1 million of them can be found by name or designation, using NASA JPL Horizons. Find an object's ID on sites such as TheSkyLive.com, Eyes on Asteroids, MinorPlanetCenter.net, Sky-Tonight.com, AstroForumSpace.com or cobs.si, then enter it in the catalog search in one of these formats:
     * Long-period comets: "C/2025 A6", "C/2020 F3"
     * Short-period comets: "P/2023 R1"

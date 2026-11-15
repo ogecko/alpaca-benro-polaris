@@ -666,7 +666,7 @@ Reversal warnings are still issued approximately 5 minutes in advance, whether c
 
 The Benro Polaris's second motor axis (`M2` or `theta2`) has a mechanical range of only **-8° to +81.5°**, which directly constrains how far the mount can point in Altitude and Roll — the two are coupled by `cos(theta2) = cos(alt) · cos(roll)`, so the more roll a shot needs, the less altitude range is available, and vice versa. Because this trade-off is a genuine hardware limit rather than a software one, any target orientation outside it must either be resolved to the nearest reachable point, or reached by an alternate mechanical path. The chart below shows this envelope: the green area is directly reachable.
 
-The envelope is the mount's fixed mechanical range. The Motor Angle Limits you set for cable safety are separate, and stop the mount with an alarm if a motor goes past them (see [Motor Angle Limits](./control.md#motor-angle-limits)).
+The envelope is the mount's fixed mechanical range. The Motor Angle Limits you set for cable safety are separate, and stop the mount with an alarm if a motor goes past them (see [Motor Angle Limits](./ref-control.md#motor-angle-limits)).
 
 ![Software Layers](images/abp-reachable.png)
 
@@ -716,7 +716,7 @@ A value of **1.0×** means the mount is operating normally. A value of **1.5×**
 
 **How the driver handles it:**
 
-With [Coordinated Speed Control](./control.md#coordinated-speed-control) on (the default), the driver holds all three motors at their required speeds together, so tracking stays accurate at low altitudes and near zero roll, with no special camera roll needed. With it off, tracking below about 40° altitude is easier with a large camera roll of ±40° to 60°.
+With [Coordinated Speed Control](./ref-control.md#coordinated-speed-control) on (the default), the driver holds all three motors at their required speeds together, so tracking stays accurate at low altitudes and near zero roll, with no special camera roll needed. With it off, tracking below about 40° altitude is easier with a large camera roll of ±40° to 60°.
 
 
 

@@ -22,13 +22,13 @@ Planets are tiny: Jupiter's disc is less than 50 arcseconds across, Saturn's rin
 
 For example, the Saturn image above used a 400 mm f/5.6 lens with a 2× III extender (800 mm f/11) on a MiniCam8 camera, whose IMX585 sensor has 2.9 micron pixels. That's about f/3.8 per micron of pixel size, within the ideal range. The sensor's 3.4× crop factor makes 800 mm act like about 2,720 mm on a full-frame camera, giving about 0.75 arcseconds per pixel, so Saturn's rings span about 60 pixels. A full-frame Canon EOS R5, with 4.4 micron pixels, would cover them with about 40 pixels at the same focal length.
 
-Long lenses with extenders are heavy and sensitive to wind, so keep the payload balanced and within the Polaris's limits (see [FAQ B5](./faq.md#b5---heaviest-load)).
+Long lenses with extenders are heavy and sensitive to wind, so keep the payload balanced and within the Polaris's limits (see [FAQ B5](./help-faq.md#b5---heaviest-load)).
 
 ## Pointing and Tracking
 
-Find the planet in Alpaca Pilot's catalog: filter by the **Planet** type, or search by name. Its **Goto** slews to the planet and starts non-sidereal tracking at the planet's own rate, so it stays centred while you capture (see [Satellite Imaging](./orbitals.md#other-orbitals)). Planets also appear in Stellarium, but a goto from there tracks at the sidereal rate.
+Find the planet in Alpaca Pilot's catalog: filter by the **Planet** type, or search by name. Its **Goto** slews to the planet and starts non-sidereal tracking at the planet's own rate, so it stays centred while you capture (see [Satellite Imaging](./img-satellite.md#other-orbitals)). Planets also appear in Stellarium, but a goto from there tracks at the sidereal rate.
 
-* At planetary focal lengths the field of view is tiny, so align the mount well before slewing. A [Multi-Point Alignment](./control.md) with a sync near the planet puts it in the frame first time.
+* At planetary focal lengths the field of view is tiny, so align the mount well before slewing. A [Multi-Point Alignment](./ref-control.md) with a sync near the planet puts it in the frame first time.
 * You may need to fine-tune the planet's position with Alpaca Pilot's jogging keys: the **arrow keys** (or **W**, **A**, **S** and **D**) move the mount, and the number keys set the jogging speed, from **1** (slowest) to **9** (fastest). Use the slowest speeds at planetary focal lengths, where a small movement shifts the planet across the whole frame.
 * Centre the planet before you start recording, and re-centre between videos if it drifts.
 

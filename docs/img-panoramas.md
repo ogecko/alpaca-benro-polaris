@@ -184,7 +184,7 @@ As a reference, the following JSON Parameters example shows all available fields
 ```
 **Using CCDciel Sequencer**
 
-To define a Panorama Grid from CCDciel, make a script that sends the `Polaris:PanoGrid` device action and parameters to the Alpaca Driver, and add it as a script step in your plan (see [Other Device Actions](./ccdciel.md#other-device-actions)).
+To define a Panorama Grid from CCDciel, make a script that sends the `Polaris:PanoGrid` device action and parameters to the Alpaca Driver, and add it as a script step in your plan (see [Other Device Actions](./use-ccdciel.md#other-device-actions)).
 
 
 ## Previewing

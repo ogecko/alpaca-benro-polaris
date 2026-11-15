@@ -620,7 +620,7 @@ class PecMixin:
             "pec_accum": [round(float(pec_accum_ra*60), 4), round(float(pec_accum_dec*60), 4)],
 
             # arcmin, (resid + pec_accum) accumulated across every sync since the PEC model was last reset (goto/rotate/jog/stop-tracking/config change), not since the last sync
-            # The fit's training signal; deliberately doesn't shrink as PEC improves (see docs/control.md)
+            # The fit's training signal; deliberately doesn't shrink as PEC improves (see docs/ref-control.md)
             "total_accum": [round(float(ra._accum*60), 4), round(float(dec._accum*60), 4)],
 
             # degrees, current topocentric position
@@ -646,7 +646,7 @@ class PecMixin:
 
             # ra.converged() or dec.converged() -- gates step_pec_drift() as a
             # whole, but is not per-axis: check inhibit[0]/[1] for whether RA/Dec specifically
-            # is actually being corrected (see docs/control.md)
+            # is actually being corrected (see docs/ref-control.md)
             "pec_active": self._pec_active,
 
             # motors whose reversal, or slack crossing after a goto, pauses learning, e.g. 'M2' (pec_reversal_pause):

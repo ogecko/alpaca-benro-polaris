@@ -1,7 +1,7 @@
 # PolarisSyncGuide - CCDciel script: plate-solve the current image and sync the mount (Sync Guiding).
 #
 # Install: run install.bat (Windows), or copy this file to CCDciel's configuration folder as "PolarisSyncGuide.script".
-#          See docs/ccdciel.md, Scripting.
+#          See docs/use-ccdciel.md, Scripting.
 # Arguments: optional settle time in seconds (default 5) to wait after the sync.
 #
 # Run it from a plan step every 1 to 3 minutes of imaging. It solves the image already taken (no extra exposure)

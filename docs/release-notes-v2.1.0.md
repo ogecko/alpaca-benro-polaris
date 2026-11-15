@@ -29,7 +29,7 @@
 * Upgrade pip using the command `python -m pip install --upgrade pip`
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
-* Follow the standard [Installation Guide](./installation-win.md) to install the Alpaca Driver v2.1.0
+* Follow the standard [Installation Guide](./install-win.md) to install the Alpaca Driver v2.1.0
 * Install all pre-requisite python packages using the command `pip install -r platforms/win/requirements.txt`
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.x
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x
@@ -49,7 +49,7 @@
 - **[Sky Conditions]** Added a Sky Conditions page providing sunrise and sunset times, moonrise and moonset, eclipse data, cloud cover, jet stream forecasts, and light pollution information.
 - **[Aurora Resource]** Add Space Weather Prediction Center to Sky Condition Resources
 - **[Stop Driver]** The Alpaca Pilot Connect page now allows you to stop the Alpaca Driver directly.
-- **[Class Documentation]** Added definitions of Catalog Class object classification codes to pilot.md to help guide imaging and filter strategy.
+- **[Class Documentation]** Added definitions of Catalog Class object classification codes to use-pilot.md to help guide imaging and filter strategy.
 - **[Flat Frames]** Added a flat-frame orientation example to catalog.sample.json
 - **[Rename Dirs]** Utility to rename Nina image directories to match Siril expectation eg LIGHT -> lights, DARK -> darks, BIAS -> biases, FLAT -> flats
 - **[Config Updates]** Stream config updates so that all Alpaca Pilot Clients receive the new configuration settings immediately (used for Panoramas) 

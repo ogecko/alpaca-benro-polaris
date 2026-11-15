@@ -1,9 +1,9 @@
 # Rotator API Reference
 [Rotator Members](#rotator-members) · [Common Members](#common-members)
 
-The Rotator rotates the camera around the direction it's pointing, while the mount stays on target. It implements the ASCOM **IRotatorV3** interface: see the [ASCOM Rotator interface](https://ascom-standards.org/newdocs/rotator.html) for the standard behaviour of each member. Its `position` is the camera's Position Angle on the sky, and its `mechanicalposition` is the camera's Roll Angle relative to the horizon (see [Roll Angle vs Position Angle](./control.md#roll-angle-vs-position-angle)). So `moveabsolute` to 0 turns the top of the frame to celestial north, not level with the horizon: use `movemechanical` to set the Roll Angle.
+The Rotator rotates the camera around the direction it's pointing, while the mount stays on target. It implements the ASCOM **IRotatorV3** interface: see the [ASCOM Rotator interface](https://ascom-standards.org/newdocs/rotator.html) for the standard behaviour of each member. Its `position` is the camera's Position Angle on the sky, and its `mechanicalposition` is the camera's Roll Angle relative to the horizon (see [Roll Angle vs Position Angle](./ref-control.md#roll-angle-vs-position-angle)). So `moveabsolute` to 0 turns the top of the frame to celestial north, not level with the horizon: use `movemechanical` to set the Roll Angle.
 
-Each member is at `http://<driver address>:5555/api/v1/rotator/0/<member>`. GET requests read a property; PUT requests change it or run a method, with the fields listed as form data. Every request also needs `ClientID` and `ClientTransactionID`; see the [Alpaca API Reference](./alpaca-api.md) for examples.
+Each member is at `http://<driver address>:5555/api/v1/rotator/0/<member>`. GET requests read a property; PUT requests change it or run a method, with the fields listed as form data. Every request also needs `ClientID` and `ClientTransactionID`; see the [Alpaca API Reference](./api-alpaca.md) for examples.
 
 This page is generated from the driver's code (`driver/rotator.py`) by `utility/docs/make_api_reference.py`: change the endpoint classes' docstrings rather than this page.
 

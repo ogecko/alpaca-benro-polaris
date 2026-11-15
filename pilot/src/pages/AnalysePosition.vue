@@ -17,7 +17,7 @@
         <div class="q-gutter-md flex justify-end q-mr-md">
           <div class="col-auto q-gutter-sm flex justify-end items-center">
             <q-btn rounded  icon="mdi-information-variant-circle" color="grey-9" label="Reference Documentation" class="position-right" 
-                :href="ui.docsUrl('kinematics/')"  target="_blank" rel="noopener" />
+                :href="ui.docsUrl('ref-kinematics/')"  target="_blank" rel="noopener" />
           </div>
         </div>
     </div>

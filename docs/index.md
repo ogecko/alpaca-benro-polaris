@@ -12,7 +12,7 @@ The Alpaca Benro Polaris Driver is an open-source [ASCOM Alpaca](https://ascom-s
 
 The driver leaves the Polaris firmware untouched, replacing the Benro app as the mount's controller. It implements its own pointing model, tracking, and guiding algorithms to dramatically improve accuracy, minimise drift, and unlock advanced astrophotography capabilities.
 
-It integrates with popular astronomy applications, including [NINA](https://nighttime-imaging.eu/), [Stellarium](https://stellarium.org/en/), [PHD2](https://openphdguiding.org/), [CCDciel](https://www.ap-i.net/ccdciel/en/start), [SkySafari](https://skysafariastronomy.com/) and other ASCOM Alpaca applications. It also includes [Alpaca Pilot](./pilot.md), a browser app for controlling and monitoring the mount from a phone, tablet or PC.
+It integrates with popular astronomy applications, including [NINA](https://nighttime-imaging.eu/), [Stellarium](https://stellarium.org/en/), [PHD2](https://openphdguiding.org/), [CCDciel](https://www.ap-i.net/ccdciel/en/start), [SkySafari](https://skysafariastronomy.com/) and other ASCOM Alpaca applications. It also includes [Alpaca Pilot](./use-pilot.md), a browser app for controlling and monitoring the mount from a phone, tablet or PC.
 
 The driver transforms the Polaris from a simple panorama platform into a capable astrophotography mount, supporting guided deep-sky exposures of up to 300 seconds and complex, multi-layered panoramas aligned to galactic, equatorial, or topocentric coordinate systems.
 
@@ -139,7 +139,7 @@ These deep-sky images were captured with a Benro Polaris and the Alpaca Driver, 
 | [PHD2](https://openphdguiding.org/) | Pulse guiding with a guide scope and camera |
 | [ASTAP](https://www.hnsky.org/astap.htm) | Plate solving and stacking software |
 | [Siril](https://siril.org/) | Image stacking and processing, including panoramas |
-| [Alpaca Pilot](./pilot.md) | Dashboard, catalog, alignment, tuning and diagnostics, in any web browser |
+| [Alpaca Pilot](./use-pilot.md) | Dashboard, catalog, alignment, tuning and diagnostics, in any web browser |
 
 Other applications that support the ASCOM Alpaca standard should also work.
 
@@ -149,7 +149,7 @@ Other applications that support the ASCOM Alpaca standard should also work.
 
 - **A Benro Polaris Astro Edition.** The driver is tested on hardware versions 1.2 to 1.4 with firmware V6.0.0.40 to V6.0.0.54. See the [Release Notes](./release-notes-v2.2.0.md#tested-compatibility) for the full list.
 - **A camera and lens.** Any camera that NINA or CCDciel can control. Beta testers have used Canon, Sony, Nikon, Pentax and ZWO cameras with lenses up to 800 mm.
-- **A computer to run the driver.** A Windows 11 laptop, a mini-PC mounted on the tripod, a Mac, or a Raspberry Pi (Zero 2 W and up). [Architecture](./architecture.md#hardware-architectures) compares the options, and [Preparing the MiniPC](./hardware.md) sets up a fully self-contained MiniPC rig.
+- **A computer to run the driver.** A Windows 11 laptop, a mini-PC mounted on the tripod, a Mac, or a Raspberry Pi (Zero 2 W and up). [Architecture](./ref-architecture.md#hardware-architectures) compares the options, and [Preparing the MiniPC](./install-hardware.md) sets up a fully self-contained MiniPC rig.
 
 When you have these, follow the [Getting Started](./getting-started.md) guide.
 
@@ -163,17 +163,17 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | [Release Notes v2.2](./release-notes-v2.2.0.md) | New features, compatible hardware and software, bug fixes and known issues |
 | [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) | Demonstrations for [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake), [v2.0 and v2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), and [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics) |
 | [Getting Started](./getting-started.md) | Quick-start steps, then a beginner's learning plan for the Polaris, Alpaca, Stellarium, NINA and Siril |
-| [Preparing the MiniPC](./hardware.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
-| [Installation Guide](./installation-win.md) | Step-by-step install on Windows, plus [macOS](./installation-macos.md), [Raspberry Pi](./installation-pi.md) and [Docker](./docker.md) |
-| [Alpaca Pilot Guide](./pilot.md) | The dashboard, catalog, alignment and panorama tools |
+| [Preparing the MiniPC](./install-hardware.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
+| [Installation Guide](./install-win.md) | Step-by-step install on Windows, plus [macOS](./install-macos.md), [Raspberry Pi](./install-pi.md) and [Docker](./install-docker.md) |
+| [Alpaca Pilot Guide](./use-pilot.md) | The dashboard, catalog, alignment and panorama tools |
 | [Initial Setup](./initial-setup.md) | Setting the site location, Multi-Point Alignment, and calibrating the motor speeds and worm gears |
-| [Control Reference](./control.md) | Alignment models, the rotator, safety limits, Kalman filter, speed calibration and PID tracking |
-| [Using Stellarium](./stellarium.md) | Connecting and controlling the Polaris from Stellarium |
-| [Using NINA](./nina.md) | Capturing, autofocus, plate solving and sequencing |
-| [Using CCDciel](./ccdciel.md) | Capturing, focusing, plate solving and guiding with CCDciel |
+| [Control Reference](./ref-control.md) | Alignment models, the rotator, safety limits, Kalman filter, speed calibration and PID tracking |
+| [Using Stellarium](./use-stellarium.md) | Connecting and controlling the Polaris from Stellarium |
+| [Using NINA](./use-nina.md) | Capturing, autofocus, plate solving and sequencing |
+| [Using CCDciel](./use-ccdciel.md) | Capturing, focusing, plate solving and guiding with CCDciel |
 | [Sync Guiding](./guiding-sync.md) | Guiding with plate solves from your main camera, and Periodic Error Correction |
 | [Pulse Guiding](./guiding-pulse.md) | Guiding with PHD2, a guide scope and camera, and improving guiding performance |
-| [Troubleshooting](./troubleshooting.md) and [FAQ](./faq.md) | Solutions to common problems, and answers to common questions |
+| [Troubleshooting](./help-troubleshooting.md) and [FAQ](./help-faq.md) | Solutions to common problems, and answers to common questions |
 
 ## Support the Project
 

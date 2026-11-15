@@ -1,7 +1,7 @@
 # Network Troubleshooting
 Problems with the Wi-Fi connection between the driver's computer and the Benro Polaris, including reading the driver's log, connection dropouts, reaching Alpaca Pilot at ap.local, and diagnosing the network with PuTTY and PowerShell.
 
-See [Troubleshooting](./troubleshooting.md) for the other guides, and the [FAQ](./faq.md) for common questions.
+See [Troubleshooting](./help-troubleshooting.md) for the other guides, and the [FAQ](./help-faq.md) for common questions.
 
 ## C0 - PC Can't Join Wi-Fi
 There appears to be an issue with some types of Wifi Adapters being able to conenct with the Benro Polaris Wifi. If you cannot get Win11 to form a connection with the polaris_XXXXX Wifi, you may want to try using a USB Wifi Adapter. The following adapter is known to connect with Benro Polaris, [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/). 
@@ -548,7 +548,7 @@ You can use the following commands from a PowerShell window, to check the status
     ```
 
 ## C7 - Can't Reach ap.local
-If your browser can't open Alpaca Pilot at `http://ap.local`, the answers below explain why, and the other ways to reach it. If Alpaca Pilot opens in an Incognito/Private window but not in your normal one, see [A7 - Alpaca Pilot Won't Load](./troubleshooting-install.md#a7---alpaca-pilot-wont-load) instead.
+If your browser can't open Alpaca Pilot at `http://ap.local`, the answers below explain why, and the other ways to reach it. If Alpaca Pilot opens in an Incognito/Private window but not in your normal one, see [A7 - Alpaca Pilot Won't Load](./help-install.md#a7---alpaca-pilot-wont-load) instead.
 
 **What are `ap.local` and mDNS?**
 

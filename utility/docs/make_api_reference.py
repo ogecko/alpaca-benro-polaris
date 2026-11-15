@@ -23,20 +23,20 @@ COMMON = {'action', 'commandblind', 'commandbool', 'commandstring', 'connected',
 DEVICES = [
     {
         'module': ROOT / 'driver' / 'rotator.py',
-        'page': ROOT / 'docs' / 'rotator-api.md',
+        'page': ROOT / 'docs' / 'api-rotator.md',
         'device': 'rotator',
         'title': 'Rotator API Reference',
         'intro': (
             "The Rotator rotates the camera around the direction it's pointing, while the mount stays on target. "
             "It implements the ASCOM **IRotatorV3** interface: see the [ASCOM Rotator interface](https://ascom-standards.org/newdocs/rotator.html) "
             "for the standard behaviour of each member. Its `position` is the camera's Position Angle on the sky, and its `mechanicalposition` "
-            "is the camera's Roll Angle relative to the horizon (see [Roll Angle vs Position Angle](./control.md#roll-angle-vs-position-angle)). "
+            "is the camera's Roll Angle relative to the horizon (see [Roll Angle vs Position Angle](./ref-control.md#roll-angle-vs-position-angle)). "
             "So `moveabsolute` to 0 turns the top of the frame to celestial north, not level with the horizon: use `movemechanical` to set the Roll Angle."
         ),
     },
     {
         'module': ROOT / 'driver' / 'telescope.py',
-        'page': ROOT / 'docs' / 'telescope-api.md',
+        'page': ROOT / 'docs' / 'api-telescope.md',
         'device': 'telescope',
         'title': 'Telescope API Reference',
         'intro': (
@@ -44,8 +44,8 @@ DEVICES = [
             "It implements the ASCOM **ITelescopeV3** interface: see the [ASCOM Telescope interface](https://ascom-standards.org/newdocs/telescope.html) "
             "for the standard behaviour of each member. It's an Alt/Az mount (`alignmentmode` 0), and its right ascension and declination are "
             "topocentric JNow, the equinox of date (`equatorialsystem` 1). For J2000 coordinates, use the `Polaris:J2000Goto` and `Polaris:J2000Sync` "
-            "[Device Actions](./alpaca-api.md#device-actions). The driver keeps every slew within what the Polaris can physically reach, "
-            "where Altitude and Roll limit each other (see [Reachable Envelope](./kinematics.md#reachable-envelope))."
+            "[Device Actions](./api-alpaca.md#device-actions). The driver keeps every slew within what the Polaris can physically reach, "
+            "where Altitude and Roll limit each other (see [Reachable Envelope](./ref-kinematics.md#reachable-envelope))."
         ),
     },
 ]
@@ -55,7 +55,7 @@ HEADER = '''# {title}
 
 {intro}
 
-Each member is at `http://<driver address>:5555/api/v1/{device}/0/<member>`. GET requests read a property; PUT requests change it or run a method, with the fields listed as form data. Every request also needs `ClientID` and `ClientTransactionID`; see the [Alpaca API Reference](./alpaca-api.md) for examples.
+Each member is at `http://<driver address>:5555/api/v1/{device}/0/<member>`. GET requests read a property; PUT requests change it or run a method, with the fields listed as form data. Every request also needs `ClientID` and `ClientTransactionID`; see the [Alpaca API Reference](./api-alpaca.md) for examples.
 
 This page is generated from the driver's code (`{module}`) by `utility/docs/make_api_reference.py`: change the endpoint classes' docstrings rather than this page.
 '''

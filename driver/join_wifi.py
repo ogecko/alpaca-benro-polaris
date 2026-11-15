@@ -10,7 +10,7 @@ Owns WiFi-join logic for every platform the driver supports. Windows (via
 netsh wlan, mirroring what the Benro app does automatically before it opens
 a socket to the mount) and Linux/Raspberry Pi (via nmcli, NetworkManager
 being the network stack Raspberry Pi OS Trixie ships and this project
-targets -- see docs/installation-pi.md) are implemented. macOS has none yet and
+targets -- see docs/install-pi.md) are implemented. macOS has none yet and
 would need networksetup(8).
 
 The Linux path also assigns a static IP to the interface after joining

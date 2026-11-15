@@ -1,7 +1,7 @@
 # PolarisPanoSlew - CCDciel script: slew the Benro Polaris to the next panorama panel (Polaris:PanoSlew).
 #
 # Install: run install.bat (Windows), or copy this file to CCDciel's configuration folder as "PolarisPanoSlew.script".
-#          See docs/ccdciel.md, Scripting.
+#          See docs/use-ccdciel.md, Scripting.
 # Arguments: none to slew to the next panel of the grid defined in Alpaca Pilot (wrapping to panel 1 after the
 #          last), or a panel number to slew to that panel. Returns when the slew is complete.
 #

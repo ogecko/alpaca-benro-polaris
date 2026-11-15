@@ -25,7 +25,7 @@
 
 * Uninstall Python 3.12.7
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
-* Follow the standard [Installation Guide](./installation-win.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
+* Follow the standard [Installation Guide](./install-win.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.0
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.0
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.0

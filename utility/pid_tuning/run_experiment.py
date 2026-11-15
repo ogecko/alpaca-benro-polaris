@@ -2,7 +2,7 @@
 """
 Standardized, repeatable PID tuning experiment for TRACK mode.
 
-Two test types (see docs/control.md's PID/PEC sections for background):
+Two test types (see docs/ref-control.md's PID/PEC sections for background):
 
   steady       -- undisturbed sidereal tracking. No injected disturbance;
                   measures steady-state RMS/max error per axis. This is

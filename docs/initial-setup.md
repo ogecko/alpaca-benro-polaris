@@ -1,7 +1,7 @@
 # Initial Setup
 [Site Location](#site-location) · [NINA Templates](#nina-templates) · [Multi-Point Alignment](#multi-point-alignment) · [Speed Calibration](#motor-speed-calibration) · [Worm Gear Calibration](#worm-gear-calibration) · [Guiding Calibration](#pulse-guiding-calibration)
 
-Once Alpaca Pilot is [connected to the Polaris](./pilot.md#connecting-polaris), these steps get the most out of the mount. Only the site location is required. The others improve pointing and tracking, and most of them only need doing once.
+Once Alpaca Pilot is [connected to the Polaris](./use-pilot.md#connecting-polaris), these steps get the most out of the mount. Only the site location is required. The others improve pointing and tracking, and most of them only need doing once.
 
 | Step | When | Needed? |
 |---|---|---|
@@ -159,16 +159,16 @@ Both templates now appear in the Advanced Sequencer's **Templates** list, ready 
 
 >VIDEO DEMO: [24 - Multi Point Alignment and Tripod Tilt](https://youtu.be/4CMO0R_yphw)
 
-Multi-Point Alignment builds a model of how the mount is set up from several plate-solve syncs, and corrects for tripod tilt, polar misalignment and cone error. Without it, the driver uses Single-Point Alignment, where one sync aligns the mount but the tripod must be accurately level (see [Alignment Models](./control.md#alignment-models)).
+Multi-Point Alignment builds a model of how the mount is set up from several plate-solve syncs, and corrects for tripod tilt, polar misalignment and cone error. Without it, the driver uses Single-Point Alignment, where one sync aligns the mount but the tripod must be accurately level (see [Alignment Models](./ref-control.md#alignment-models)).
 
 Align at the start of each imaging session. The model is saved, so it survives restarting the driver or the computer, but redo it whenever you move or re-level the tripod. Also redo it if tracking or pointing gets noticeably worse, or if the sync points are from an earlier night, as the tripod may have settled or shifted since.
 
 **Before you start:**
 
-1. Complete the Connect page's steps in Alpaca Pilot: Astro Mode, reset the axes, and skip the compass and single star alignment (see [Astro Mode Setup](./pilot.md#astro-mode-setup)).
+1. Complete the Connect page's steps in Alpaca Pilot: Astro Mode, reset the axes, and skip the compass and single star alignment (see [Astro Mode Setup](./use-pilot.md#astro-mode-setup)).
 2. Level the tripod as well as you can.
 3. Focus the camera, for example with NINA's Autofocus.
-4. Set up plate solving in your imaging app, and check that a manual plate solve and sync works (see [Plate Solving](./nina.md#plate-solving) in the NINA guide).
+4. Set up plate solving in your imaging app, and check that a manual plate solve and sync works (see [Plate Solving](./use-nina.md#plate-solving) in the NINA guide).
 
 ### Aligning with NINA
 
@@ -182,7 +182,7 @@ Before running it the first time, adjust it for your site:
 
 ### Aligning Manually
 
-You can also build the model yourself: point the mount at several places spread across the sky, and add each one to the model with a **plate solve and sync** from your imaging app (see [Manual Plate Solving](./nina.md#manual-plate-solving) in NINA, or [Plate Solving](./ccdciel.md#plate-solving) in CCDciel). Without plate solving, sync on a known star (see [Sync with a Target](./pilot.md#sync-with-a-target)) or a landmark (see [Adding Sync Points](./control.md#adding-sync-points)) instead. 
+You can also build the model yourself: point the mount at several places spread across the sky, and add each one to the model with a **plate solve and sync** from your imaging app (see [Manual Plate Solving](./use-nina.md#manual-plate-solving) in NINA, or [Plate Solving](./use-ccdciel.md#plate-solving) in CCDciel). Without plate solving, sync on a known star (see [Sync with a Target](./use-pilot.md#sync-with-a-target)) or a landmark (see [Adding Sync Points](./ref-control.md#adding-sync-points)) instead. 
 
 You can choose any points, but a point at the celestial pole, and points along your target's path through the night, give the best accuracy for an imaging session:
 
@@ -204,13 +204,13 @@ Residuals over 5° are flagged **Amber**, and over 10° **Red**. These points pu
 
 Delete a sync point by clicking the cross beside it. If the mount is tracking, it moves to where the adjusted model thinks the target is. If that's off target, plate solve and sync again.
 
-If you use the Alpaca Rotator, also sync the Position Angle once per session: NINA doesn't sync the plate-solved Position Angle, so enter it on Alpaca Pilot's Alignment page (see [Adding Sync Points](./control.md#adding-sync-points)).
+If you use the Alpaca Rotator, also sync the Position Angle once per session: NINA doesn't sync the plate-solved Position Angle, so enter it on Alpaca Pilot's Alignment page (see [Adding Sync Points](./ref-control.md#adding-sync-points)).
 
 ## Motor Speed Calibration
 
 >VIDEO DEMO: [32 - Calibrating Speed Control for your Polaris](https://youtu.be/U_0-mBDuTjE)
 
-The driver works well with its default motor speeds, but measuring your own mount's speeds makes slews more accurate and tracking smoother. It only needs doing once, and can be done during the day. For how the calibration is used, see [Motor Speed Calibration](./control.md#motor-speed-calibration) in the Control Reference.
+The driver works well with its default motor speeds, but measuring your own mount's speeds makes slews more accurate and tracking smoother. It only needs doing once, and can be done during the day. For how the calibration is used, see [Motor Speed Calibration](./ref-control.md#motor-speed-calibration) in the Control Reference.
 
 **Preparing:** make sure the mount can move freely, and remove the camera and any other payload.
 
@@ -229,7 +229,7 @@ The driver works well with its default motor speeds, but measuring your own moun
 
 ## Worm Gear Calibration
 
-Each motor's worm gear makes the view wobble by 30 to 150 arc seconds, repeating every 6° of the motor's rotation. **PEC Worm Gear Correction** cancels this wobble using a profile of your mount's gears, which this calibration measures. Of the two calibrations, it gives the biggest improvement, both unguided and with sync guiding, especially at longer focal lengths (see [Periodic Error Correction](./kinematics.md#periodic-error-correction)).
+Each motor's worm gear makes the view wobble by 30 to 150 arc seconds, repeating every 6° of the motor's rotation. **PEC Worm Gear Correction** cancels this wobble using a profile of your mount's gears, which this calibration measures. Of the two calibrations, it gives the biggest improvement, both unguided and with sync guiding, especially at longer focal lengths (see [Periodic Error Correction](./ref-kinematics.md#periodic-error-correction)).
 
 The profile only needs measuring once, and again if you image with a very different lens. The driver combines up to five of your most recent approved tests, so repeating the test on another night improves the profile.
 
@@ -262,7 +262,7 @@ If the test log shows many syncs discarded as "motors not settled", lengthen the
 
 ### Reviewing the Result
 
-The results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. For how to read every column, see [Worm Gear Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
+The results show each motor's measured wobble, for example `M3 85"@224` (85 arc seconds of wobble, peaking at 224° of the worm's cycle), and how reliable each measurement is. A motor shown as `off` couldn't be measured reliably, and gets no correction. For how to read every column, see [Worm Gear Correction](./ref-kinematics.md#periodic-error-correction) in the Kinematics Reference.
 
 * If the result looks reliable, click **Approve**, then switch on **PEC Worm Gear Correction** in Settings. Click **Approve** again to reject the test, as often as you like.
 * Reject tests spoilt by cloud, wind, or a motor reversing during the test.
@@ -284,4 +284,4 @@ On the Benro Polaris, each guide pulse becomes a mix of movements of all three m
 For how to calibrate, see:
 
 * **PHD2:** [Calibration](./guiding-pulse.md#calibration) in the Pulse Guiding guide, including when to [re-calibrate](./guiding-pulse.md#re-calibration).
-* **CCDciel:** [Guider Calibration](./ccdciel.md#guider-calibration) in the CCDciel guide.
+* **CCDciel:** [Guider Calibration](./use-ccdciel.md#guider-calibration) in the CCDciel guide.

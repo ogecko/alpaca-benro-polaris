@@ -22,7 +22,7 @@
 
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
-* Follow the standard [Installation Guide](./installation-win.md) to install the Alpaca Driver v2.2.0. The new `setup.bat` installs Git, uv, Python and every pre-requisite package for you, so there is no need to install or upgrade Python or pip yourself.
+* Follow the standard [Installation Guide](./install-win.md) to install the Alpaca Driver v2.2.0. The new `setup.bat` installs Git, uv, Python and every pre-requisite package for you, so there is no need to install or upgrade Python or pip yourself.
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.x
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
@@ -128,15 +128,15 @@
 ## Documentation
 
 - **[Documentation Site]**: The documentation is now a searchable website at [ogecko.github.io/alpaca-benro-polaris](https://ogecko.github.io/alpaca-benro-polaris/), with a version for each release. It is reorganised into Getting Started, Using the Driver, Reference and Help, with new guides for Deep-Sky, Planetary and Satellite Imaging and Preparing the MiniPC, new Architecture, Alpaca API and Catalog references, and troubleshooting split by topic
-- **[CCDciel Guide]**: Add the CCDciel users guide for the Benro Polaris (ccdciel.md)
-- **[Rotator Alignment]**: Add a section on the importance of Rotator Alignment, and how to perform a manual Position Angle Sync (control.md)
+- **[CCDciel Guide]**: Add the CCDciel users guide for the Benro Polaris (use-ccdciel.md)
+- **[Rotator Alignment]**: Add a section on the importance of Rotator Alignment, and how to perform a manual Position Angle Sync (ref-control.md)
 - **[Kinematics Reference]**: Defines Reference Frames, Kinematic Flows and Correction Algorithms
-- **[Microsoft Account]**: Prevent Windows from syncing Wi-Fi settings across PCs using the same Microsoft account (hardware.md)
-- **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (installation-win.md, Step 5)
+- **[Microsoft Account]**: Prevent Windows from syncing Wi-Fi settings across PCs using the same Microsoft account (install-hardware.md)
+- **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (install-win.md, Step 5)
 - **[Guiding 16-bit]**: Describe how to configure the guide camera as a 16-bit camera (guiding.md, Section 3.1)
 - **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location (guiding.md, Section 4)
-- **[Persit Alignment]**: Document the need to reset Multi-Point Alignment on new setup (control.md, section Alignment III.F)
-- **[Pano Orbitals]**: Descrone how to capture the moon or other orbitals in a workflow (pilot.md, Section 4.4)
+- **[Persit Alignment]**: Document the need to reset Multi-Point Alignment on new setup (ref-control.md, section Alignment III.F)
+- **[Pano Orbitals]**: Descrone how to capture the moon or other orbitals in a workflow (use-pilot.md, Section 4.4)
 - **[Troublshooting A6]**: How to troublshoot shortcut error messages on Windows
 - **[Troublshooting B8]**: Single Star Alignment Will Not Complete
 - **[Troublshooting C0]**: Improve communications reliability by reducing periodic network frequency scanning.

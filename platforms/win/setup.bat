@@ -323,7 +323,7 @@ rem --managed-python: use a uv-managed Python 3.13 (downloaded if needed), so th
 rem depends on, or is broken by changes to, any other Python installed on this PC.
 uv sync --no-dev --locked --managed-python --no-build-package numpy --no-build-package scipy %TO%
 if errorlevel 1 (
-    echo Error: uv sync failed. If it cannot download packages, see docs\troubleshooting.md A2.
+    echo Error: uv sync failed. If it cannot download packages, see docs\help-troubleshooting.md A2.
     goto fail_pop
 )
 
@@ -408,7 +408,7 @@ if errorlevel 1 (
 ) else (
     echo Error: this PC can reach github.com, but Git cannot. Security software or a firewall is probably
     echo blocking Git. Allow "%ProgramFiles%\Git\mingw64\libexec\git-core\git-remote-https.exe" ^(and git.exe^) in it,
-    echo then re-run setup.bat. See docs\troubleshooting.md A9.
+    echo then re-run setup.bat. See docs\help-troubleshooting.md A9.
 )
 exit /b 1
 

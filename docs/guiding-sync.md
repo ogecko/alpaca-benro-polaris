@@ -35,7 +35,7 @@ Periodic Error Correction (PEC) predicts the Polaris's tracking errors and corre
 * **PEC Drift Correction** learns the slow drift from your guiding corrections, whether from sync guiding or pulse guiding.
 * **PEC Worm Gear Correction** cancels the wobble from each motor's worm gear, with or without guiding. It needs a [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) first.
 
-The **PEC** button on Alpaca Pilot's status panel switches both on and off together. For how PEC works, see [Periodic Error Correction](./kinematics.md#periodic-error-correction) in the Kinematics Reference.
+The **PEC** button on Alpaca Pilot's status panel switches both on and off together. For how PEC works, see [Periodic Error Correction](./ref-kinematics.md#periodic-error-correction) in the Kinematics Reference.
 
 ## Sync Guiding with NINA
 
@@ -50,7 +50,7 @@ The **PEC** button on Alpaca Pilot's status panel switches both on and off toget
 CCDciel can also sync guide, using the Alpaca Driver's `PolarisSyncGuide` script:
 
 * In Alpaca Pilot, enable **Multi-Point Alignment** and **Sync Guiding (Plate-solve)**.
-* Install the Alpaca Driver's CCDciel scripts (see [Alpaca Driver Scripts](./ccdciel.md#alpaca-driver-scripts)), then add a `PolarisSyncGuide` step to your plan after the light frames, so it runs every 1 to 3 minutes of imaging. It solves the image just taken (no extra exposure) with CCDciel's `Astrometry_sync` command.
+* Install the Alpaca Driver's CCDciel scripts (see [Alpaca Driver Scripts](./use-ccdciel.md#alpaca-driver-scripts)), then add a `PolarisSyncGuide` step to your plan after the light frames, so it runs every 1 to 3 minutes of imaging. It solves the image just taken (no extra exposure) with CCDciel's `Astrometry_sync` command.
 * After a goto, the first sync adds an alignment point and turns sync guiding on; the following syncs are used as guiding corrections (if within 3 degrees).
 * After a sync the driver moves the mount back onto its target, so the script waits a few seconds (the settle argument) before the next exposure.
 * Sync guiding with CCDciel is new: please report how it works for you.
