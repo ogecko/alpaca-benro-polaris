@@ -58,12 +58,13 @@ jobs:
       - name: Publish the offline docs zip
         env:
           GH_TOKEN: ${{ github.token }}
-          ZIP: offline-docs-${{ steps.version.outputs.docs_version }}.zip
+          # Not named ZIP: Info-ZIP's zip reads a $ZIP environment variable as extra command-line arguments
+          DOCS_ZIP: offline-docs-${{ steps.version.outputs.docs_version }}.zip
         run: |
-          (cd pilot/dist/docs && zip -qr -X "$RUNNER_TEMP/$ZIP" . -x 404.html)
+          (cd pilot/dist/docs && zip -qr -X "$RUNNER_TEMP/$DOCS_ZIP" . -x 404.html)
           gh release view offline-docs >/dev/null 2>&1 || gh release create offline-docs --prerelease --target "$GITHUB_SHA" \
             --title "Offline docs" --notes "Offline copies of the documentation, one zip per driver version, downloaded by the driver. Updated automatically."
-          gh release upload offline-docs "$RUNNER_TEMP/$ZIP" --clobber
+          gh release upload offline-docs "$RUNNER_TEMP/$DOCS_ZIP" --clobber
       - name: Commit and push the gh-pages branch
         working-directory: pages
         run: |
