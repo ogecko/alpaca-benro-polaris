@@ -129,17 +129,21 @@ These deep-sky images were captured with a Benro Polaris and the Alpaca Driver, 
 
 ## Compatible Software
 
+<div class="compact" markdown>
+
 | Application | What it does with the Polaris |
 |---|---|
-| [Stellarium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) | Slew from your phone or tablet over Wi-Fi |
-| [Stellarium Desktop](https://stellarium.org/en/) | Full planetarium software with point and click slewing and live mount position on the sky |
-| [SkySafari 7](https://skysafariastronomy.com/) | Alternate mobile planetarium and telescope control |
-| [NINA](https://nighttime-imaging.eu/) | Full imaging automation: sequencing, plate solving, autofocus, framing, rotator, sync guiding |
-| [CCDciel](https://www.ap-i.net/ccdciel/en/start) | Imaging, focusing, plate solving, sync guiding and pulse guiding (Windows, macOS, Linux) |
-| [PHD2](https://openphdguiding.org/) | Pulse guiding with a guide scope and camera |
-| [ASTAP](https://www.hnsky.org/astap.htm) | Plate solving and stacking software |
-| [Siril](https://siril.org/) | Image stacking and processing, including panoramas |
-| [Alpaca Pilot](./use-pilot.md) | Dashboard, catalog, alignment, tuning and diagnostics, in any web browser |
+| [Stellarium Mobile PLUS](https://stellarium-labs.com/stellarium-mobile-plus/) | Slew from your phone or tablet |
+| [Stellarium Desktop](https://stellarium.org/en/) | Point-and-click slewing, with the mount's live position on the sky |
+| [SkySafari 7](https://skysafariastronomy.com/) | Mobile planetarium and slewing |
+| [NINA](https://nighttime-imaging.eu/) | Imaging automation: sequencing, plate solving, framing, rotator and sync guiding |
+| [CCDciel](https://www.ap-i.net/ccdciel/en/start) | Imaging, plate solving and guiding on Windows, macOS and Linux |
+| [PHD2](https://openphdguiding.org/) | Pulse guiding with a guide camera |
+| [ASTAP](https://www.hnsky.org/astap.htm) | Plate solving and stacking |
+| [Siril](https://siril.org/) | Stacking and processing, including panoramas |
+| [Alpaca Pilot](./use-pilot.md) | Dashboard, catalog, alignment and diagnostics in any browser |
+
+</div>
 
 Other applications that support the ASCOM Alpaca standard should also work.
 
@@ -158,22 +162,30 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 ## Documentation
 
 
+<div class="compact" markdown>
+
 | Guide | What's inside |
 |---|---|
-| [Release Notes v2.2](./release-notes-v2.2.0.md) | New features, compatible hardware and software, bug fixes and known issues |
-| [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) | Demonstrations for [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake), [v2.0 and v2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), and [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics) |
-| [Getting Started](./getting-started.md) | Quick-start steps, then a beginner's learning plan for the Polaris, Alpaca, Stellarium, NINA and Siril |
-| [Preparing the MiniPC](./install-minipc.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
-| [Installation Guide](./install-win.md) | Step-by-step install on Windows, plus [macOS](./install-macos.md), [Raspberry Pi](./install-pi.md) and [Docker](./install-docker.md) |
-| [Alpaca Pilot Guide](./use-pilot.md) | The dashboard, catalog, alignment and panorama tools |
-| [Initial Setup](./initial-setup.md) | Setting the site location, Multi-Point Alignment, and calibrating the motor speeds and worm gears |
-| [Control Reference](./ref-control.md) | Alignment models, the rotator, safety limits, Kalman filter, speed calibration and PID tracking |
-| [Using Stellarium](./use-stellarium.md) | Connecting and controlling the Polaris from Stellarium |
-| [Using NINA](./use-nina.md) | Capturing, autofocus, plate solving and sequencing |
-| [Using CCDciel](./use-ccdciel.md) | Capturing, focusing, plate solving and guiding with CCDciel |
-| [Sync Guiding](./use-sync-guiding.md) | Guiding with plate solves from your main camera, and Periodic Error Correction |
-| [Pulse Guiding](./use-pulse-guiding.md) | Guiding with PHD2, a guide scope and camera, and improving guiding performance |
-| [Troubleshooting](./help-troubleshooting.md) and [FAQ](./help-faq.md) | Solutions to common problems, and answers to common questions |
+| **Getting Started** | |
+| [Release Notes v2.2](./release-notes-v2.2.0.md) | New features, compatibility, fixes and known issues |
+| [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) | Demos for [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake), [v2.0/2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D) and [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics) |
+| [Installation](./getting-started.md#installing-the-driver) | [Quick-start](./getting-started.md#quick-start) steps, and guides for [MiniPC](./install-minipc.md), [Windows](./install-win.md), [macOS](./install-macos.md), [Pi](./install-pi.md) and [Docker](./install-docker.md) |
+| [Initial Setup](./initial-setup.md) | Site location, alignment, and motor speed and worm gear calibration |
+| **Using the Driver** | |
+| [Alpaca Pilot](./use-pilot.md) | The driver's web app for controlling the Polaris from any browser |
+| [Imaging](./img-dso.md) | [Deep-Sky](./img-dso.md), [Planetary](./img-planetary.md), [Satellite](./img-satellite.md) and [Panorama](./img-panoramas.md) workflows |
+| [Applications](./use-nina.md) | Using [Stellarium](./use-stellarium.md), [NINA](./use-nina.md) and [CCDciel](./use-ccdciel.md) with the Polaris |
+| [Guiding](./use-sync-guiding.md) | [Sync Guiding](./use-sync-guiding.md) with plate solves, or [Pulse Guiding](./use-pulse-guiding.md) with PHD2 |
+| **Reference** | |
+| [Architecture](./ref-architecture.md) | How the hardware and software fit together |
+| [Control](./ref-control.md), [Kinematics](./ref-kinematics.md) | Alignment, tracking, PID, Kalman filter, mount geometry and corrections |
+| [Config](./ref-config.md), [Catalog](./ref-catalog.md) | Every driver setting, and adding your own catalog entries |
+| [APIs](./api-alpaca.md) | [Alpaca](./api-alpaca.md), [Telescope](./api-telescope.md), [Rotator](./api-rotator.md) and [Pilot](./api-pilot.md) references |
+| **Help** | |
+| [Troubleshooting](./help-troubleshooting.md) | [Install](./help-install.md), [Polaris](./help-polaris.md), [Network](./help-network.md), [NINA](./help-nina.md) and [Stellarium](./help-stellarium.md) problems |
+| [FAQ](./help-faq.md) | Answers to common questions |
+
+</div>
 
 ## Support the Project
 
