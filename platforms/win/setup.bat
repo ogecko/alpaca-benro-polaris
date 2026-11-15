@@ -296,6 +296,8 @@ reg add "%REG_KEY%" /v InstallDir /t REG_SZ /d "%REPO%" /f >nul
 %V% Install folder: %REPO%
 rem Stop a running driver now: it locks files in .venv, which would break uv sync below.
 call :helper stop_driver
+rem Remove the offline docs, so the driver downloads a fresh copy when it next starts (driver\app_web.py).
+if exist "pilot\dist\docs" rmdir /s /q "pilot\dist\docs" >nul 2>&1
 if not exist data mkdir data
 if not exist logs mkdir logs
 

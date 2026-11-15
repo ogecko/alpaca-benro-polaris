@@ -226,6 +226,9 @@ else
     echo "~/.bashrc already contains venv activation — skipping."
 fi
 
+# Remove the offline docs, so the driver downloads a fresh copy when it next starts (driver/app_web.py).
+rm -rf "$src_home/pilot/dist/docs"
+
 echo "==SETUP== 4. Sync the python dependencies needed for the application with uv (creates $src_home/.venv)."
 uv sync --no-dev --locked --no-build-package numpy --no-build-package scipy
 source "$src_home/.venv/bin/activate"
