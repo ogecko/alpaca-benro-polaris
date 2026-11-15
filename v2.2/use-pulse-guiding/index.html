@@ -12,11 +12,11 @@
         <meta name="author" content="David Morrison">
       
       
-        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding-pulse/">
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/use-pulse-guiding/">
       
       
       
-        <link rel="prev" href="../guiding-sync/">
+        <link rel="prev" href="../use-sync-guiding/">
       
       
         <link rel="next" href="../release-notes-v2.2.0/">
@@ -1049,7 +1049,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-sync/" class="md-nav__link">
+      <a href="../use-sync-guiding/" class="md-nav__link">
         
   
   
@@ -2691,7 +2691,7 @@
 <a href="#calibration">Calibration</a> ·
 <a href="#guiding-with-phd2">Guiding with PHD2</a> ·
 <a href="#improving-guiding">Improving Guiding</a></p>
-<p>This guide introduces how to use <strong>PHD2</strong> and pulse guiding with the <strong>Alpaca Driver</strong> on a <strong>Benro Polaris mount</strong>. It is intended for users who are new to pulse guiding, as well as those moving on from unguided imaging or <a href=".././guiding-sync/">Sync Guiding</a>.</p>
+<p>This guide introduces how to use <strong>PHD2</strong> and pulse guiding with the <strong>Alpaca Driver</strong> on a <strong>Benro Polaris mount</strong>. It is intended for users who are new to pulse guiding, as well as those moving on from unguided imaging or <a href=".././use-sync-guiding/">Sync Guiding</a>.</p>
 <p>Use pulse guiding or sync guiding, not both: the guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back. To keep the target centred during a long pulse-guided session, use NINA's <strong>Center After Drift</strong> trigger instead. When the plate solve drifts past its threshold, NINA stops guiding, re-centres the target, and restarts guiding with a new lock position. Each re-centre is a slew, which resets the driver's PEC Drift Correction, so don't set the threshold too tight (about 0.3 to 0.5 arc minutes).</p>
 <h2 id="pulse-guiding-introduction">Pulse Guiding Introduction<a class="headerlink" href="#pulse-guiding-introduction" title="Permanent link">&para;</a></h2>
 <blockquote>
@@ -3194,7 +3194,7 @@ When PHD2 is connected to the <strong>Alpaca Benro Polaris Rotator</strong>, it 
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../guiding-sync/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Sync Guiding">
+          <a href="../use-sync-guiding/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Sync Guiding">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>

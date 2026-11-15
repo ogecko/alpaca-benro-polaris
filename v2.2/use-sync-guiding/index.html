@@ -12,14 +12,14 @@
         <meta name="author" content="David Morrison">
       
       
-        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding-sync/">
+        <link rel="canonical" href="https://ogecko.github.io/alpaca-benro-polaris/v2.2/use-sync-guiding/">
       
       
       
         <link rel="prev" href="../use-ccdciel/">
       
       
-        <link rel="next" href="../guiding-pulse/">
+        <link rel="next" href="../use-pulse-guiding/">
       
       
         
@@ -1178,7 +1178,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-pulse/" class="md-nav__link">
+      <a href="../use-pulse-guiding/" class="md-nav__link">
         
   
   
@@ -2195,7 +2195,7 @@
 <p>The Alpaca Driver supports two approaches to guiding:</p>
 <ul>
 <li><strong>Sync Guiding</strong> needs no extra hardware. Your imaging software plate-solves an image from your main camera every 1 to 3 minutes and syncs the result, and the driver corrects the drift. It's the easiest way to start, and it suits sub-exposures of up to a few minutes.</li>
-<li><strong><a href=".././guiding-pulse/">Pulse Guiding</a></strong> uses a small guide scope and guide camera with PHD2, which corrects the mount every few seconds, within each exposure. It suits the longest focal lengths and exposures, up to about 300 seconds.</li>
+<li><strong><a href=".././use-pulse-guiding/">Pulse Guiding</a></strong> uses a small guide scope and guide camera with PHD2, which corrects the mount every few seconds, within each exposure. It suits the longest focal lengths and exposures, up to about 300 seconds.</li>
 </ul>
 <p><img alt="Sync guiding or pulse guiding" src="../images/phd2-choice.png" /></p>
 <p>Use one approach or the other, not both. Running them together makes them fight: the guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back. To keep the target centred during a long pulse-guided session, use NINA's <strong>Center After Drift</strong> trigger instead.</p>
@@ -2289,7 +2289,7 @@
         
         
           
-          <a href="../guiding-pulse/" class="md-footer__link md-footer__link--next" aria-label="Next: Pulse Guiding">
+          <a href="../use-pulse-guiding/" class="md-footer__link md-footer__link--next" aria-label="Next: Pulse Guiding">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next

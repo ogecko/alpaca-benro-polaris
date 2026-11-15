@@ -1273,7 +1273,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-sync/" class="md-nav__link">
+      <a href="../use-sync-guiding/" class="md-nav__link">
         
   
   
@@ -1300,7 +1300,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-pulse/" class="md-nav__link">
+      <a href="../use-pulse-guiding/" class="md-nav__link">
         
   
   
@@ -2426,7 +2426,7 @@
 <li><strong>Install the driver.</strong> <a href=".././install-win/">Windows</a> · <a href=".././install-macos/">macOS</a> · <a href=".././install-pi/">Raspberry Pi</a> · <a href=".././install-docker/">Docker</a></li>
 <li><strong>Connect with Alpaca Pilot.</strong> <a href=".././use-pilot/#connecting-polaris">Connecting Polaris</a></li>
 <li><strong>Initial setup.</strong> <a href=".././initial-setup/#site-location">Site Location</a> · <a href=".././initial-setup/#multi-point-alignment">Alignment</a> · <a href=".././initial-setup/#motor-speed-calibration">Calibration</a></li>
-<li><strong>Add your astrophotography app.</strong> <a href=".././use-stellarium/">Stellarium</a> · <a href=".././use-nina/">NINA</a> · <a href=".././use-ccdciel/">CCDciel</a> · <a href=".././guiding-pulse/">PHD2</a></li>
+<li><strong>Add your astrophotography app.</strong> <a href=".././use-stellarium/">Stellarium</a> · <a href=".././use-nina/">NINA</a> · <a href=".././use-ccdciel/">CCDciel</a> · <a href=".././use-pulse-guiding/">PHD2</a></li>
 <li><strong>Capture images.</strong> <a href=".././img-dso/">Deep-sky</a> · <a href=".././img-planetary/">Planetary</a> · <a href=".././img-satellite/">Satellites</a> · <a href=".././img-panoramas/">Panoramas</a></li>
 </ol>
 <p>If something goes wrong, the <a href=".././help-troubleshooting/">Troubleshooting Guide</a> and <a href=".././help-faq/">FAQ</a> cover the most common issues.</p>
@@ -2542,7 +2542,7 @@ Chris Woodhouse’s NINA 17-part series covers everything</li>
 <li>Reuse Your Workflows: Save a sequence as a template and reuse it for each new target.</li>
 </ul>
 <p>The Advanced Sequencer can look complicated at first, but it isn't once you get the hang of it, and you will never go back to the Legacy Sequencer.</p>
-<p>The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's <a href=".././guiding-sync/">Sync Guiding</a>, which runs a Solve and Sync every few minutes during your sequence, and <a href=".././img-panoramas/">Panorama Grids</a>, which use the <code>Polaris:PanoGrid</code> and <code>Polaris:PanoSlew</code> Device Actions to step through each panel.</p>
+<p>The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's <a href=".././use-sync-guiding/">Sync Guiding</a>, which runs a Solve and Sync every few minutes during your sequence, and <a href=".././img-panoramas/">Panorama Grids</a>, which use the <code>Polaris:PanoGrid</code> and <code>Polaris:PanoSlew</code> Device Actions to step through each panel.</p>
 <p>To learn the Advanced Sequencer, you can consider these resources:</p>
 <ul>
 <li>Alpaca Documentation: <a href=".././use-nina/#advanced-sequence">Advanced Sequence</a> in the NINA guide describes the instructions that work with the Alpaca Driver, and the <a href=".././api-alpaca/#device-actions">Device Actions</a> reference lists each Device Action with examples.</li>
@@ -2558,7 +2558,7 @@ Chris Woodhouse’s NINA 17-part series covers everything</li>
 <p>Both approaches also feed the driver's Periodic Error Correction, which learns how your Polaris drifts and corrects for it before it shows up in your images.</p>
 <p>To learn guiding, you can consider these resources:</p>
 <ul>
-<li>Alpaca Documentation: <a href=".././guiding-sync/">Sync Guiding</a> explains both approaches and Periodic Error Correction, <a href=".././initial-setup/#worm-gear-calibration">Worm Gear Calibration</a> measures your mount's worm gears, and <a href=".././guiding-pulse/">Pulse Guiding</a> walks you through setting up PHD2, calibrating, pulse guiding and improving guiding performance with the Polaris.</li>
+<li>Alpaca Documentation: <a href=".././use-sync-guiding/">Sync Guiding</a> explains both approaches and Periodic Error Correction, <a href=".././initial-setup/#worm-gear-calibration">Worm Gear Calibration</a> measures your mount's worm gears, and <a href=".././use-pulse-guiding/">Pulse Guiding</a> walks you through setting up PHD2, calibrating, pulse guiding and improving guiding performance with the Polaris.</li>
 <li>PHD2 Documentation: The <a href="https://openphdguiding.org/manual/">PHD2 User Manual</a> covers every feature, and the <a href="https://openphdguiding.org/phd2-best-practices/">PHD2 Best Practices</a> guide explains how to get good results quickly.</li>
 <li>Online Communities and Forums: The <a href="https://groups.google.com/g/open-phd-guiding">PHD2 user forum</a> is very active, and the developers will review your guide logs if you ask for help.</li>
 </ul>

@@ -19,7 +19,7 @@
         <link rel="prev" href="../use-nina/">
       
       
-        <link rel="next" href="../guiding-sync/">
+        <link rel="next" href="../use-sync-guiding/">
       
       
         
@@ -1396,7 +1396,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-sync/" class="md-nav__link">
+      <a href="../use-sync-guiding/" class="md-nav__link">
         
   
   
@@ -1423,7 +1423,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-pulse/" class="md-nav__link">
+      <a href="../use-pulse-guiding/" class="md-nav__link">
         
   
   
@@ -2675,7 +2675,7 @@
 
 
 <h1 id="using-ccdciel-with-benro-polaris">Using CCDciel with Benro Polaris<a class="headerlink" href="#using-ccdciel-with-benro-polaris" title="Permanent link">&para;</a></h1>
-<p><a href="#setup">Setup</a> · <a href="#main-window">Main Window</a> · <a href="#autofocus">Autofocus</a> · <a href="#plate-solving">Plate Solving</a> · <a href=".././guiding-sync/#sync-guiding-with-ccdciel">Sync Guiding</a> · <a href="#pulse-guiding">Pulse Guiding</a></p>
+<p><a href="#setup">Setup</a> · <a href="#main-window">Main Window</a> · <a href="#autofocus">Autofocus</a> · <a href="#plate-solving">Plate Solving</a> · <a href=".././use-sync-guiding/#sync-guiding-with-ccdciel">Sync Guiding</a> · <a href="#pulse-guiding">Pulse Guiding</a></p>
 <h2 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h2>
 <p>The Benro Polaris App does a great job controlling your camera to take sequences of images for panoramas, time-lapse, and astrophotography. It exposes many camera features and makes them easy to setup and use. Unfortunately, it doesn't stretch or process images, show RAW files, or make it easy to customize file names or copy them off for stacking.</p>
 <p>If you want to go beyond the native app, several software options provide more tailored control of your camera, especially for astrophotography. Some include:</p>
@@ -2773,7 +2773,7 @@
 <td><code>PolarisSyncGuide</code></td>
 <td>none (CCDciel's plate-solve and sync)</td>
 <td>settle seconds (optional, default 5)</td>
-<td>Plate-solves the current image and syncs the mount, for <a href=".././guiding-sync/#sync-guiding-with-ccdciel">Sync Guiding</a></td>
+<td>Plate-solves the current image and syncs the mount, for <a href=".././use-sync-guiding/#sync-guiding-with-ccdciel">Sync Guiding</a></td>
 </tr>
 <tr>
 <td><code>PolarisPanoSlew</code></td>
@@ -2800,7 +2800,7 @@
 <p>The scripts read the Alpaca Driver's address from CCDciel's mount settings (<strong>ASCOM Alpaca</strong> tab), so nothing needs editing. They use only standard Python, so they run with the Python included with CCDciel.</p>
 <p><strong>Using:</strong> add a script step to a plan, with the script's name and its arguments, or test a script from <strong>Run Script</strong> on the <strong>Capture</strong> tab. Each script writes what it did to the CCDciel log, and fails the step if the action fails.</p>
 <h3 id="sync-guiding">Sync Guiding<a class="headerlink" href="#sync-guiding" title="Permanent link">&para;</a></h3>
-<p>The <code>PolarisSyncGuide</code> script runs a plate-solve sync from a plan step, for sync guiding. See <a href=".././guiding-sync/#sync-guiding-with-ccdciel">Sync Guiding with CCDciel</a> for how to set it up.</p>
+<p>The <code>PolarisSyncGuide</code> script runs a plate-solve sync from a plan step, for sync guiding. See <a href=".././use-sync-guiding/#sync-guiding-with-ccdciel">Sync Guiding with CCDciel</a> for how to set it up.</p>
 <h3 id="panoramas">Panoramas<a class="headerlink" href="#panoramas" title="Permanent link">&para;</a></h3>
 <p>Use the Alpaca Driver's <a href=".././img-panoramas/">Panorama Grid</a> for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the <code>PolarisPanoSlew</code> script to move the mount between its panels.</p>
 <p>In CCDciel, add a <code>PolarisPanoSlew</code> step before each panel's light frames. With no argument, the script slews to the next panel, wrapping back to panel 1 after the last panel. You can also specify a panel number to slew directly to that panel. The step completes once the slew is finished.</p>
@@ -2967,7 +2967,7 @@
         
         
           
-          <a href="../guiding-sync/" class="md-footer__link md-footer__link--next" aria-label="Next: Sync Guiding">
+          <a href="../use-sync-guiding/" class="md-footer__link md-footer__link--next" aria-label="Next: Sync Guiding">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next

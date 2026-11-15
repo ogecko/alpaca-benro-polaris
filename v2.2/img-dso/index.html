@@ -1206,7 +1206,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-sync/" class="md-nav__link">
+      <a href="../use-sync-guiding/" class="md-nav__link">
         
   
   
@@ -1233,7 +1233,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-pulse/" class="md-nav__link">
+      <a href="../use-pulse-guiding/" class="md-nav__link">
         
   
   
@@ -2334,8 +2334,8 @@
 <li><strong>Focal length:</strong> Most of the images above were taken with 200 mm to 400 mm camera lenses. Lenses up to about 800 mm work with the Polaris, but longer focal lengths show tracking errors more, so start shorter. A small-sensor astronomy camera makes a lens act longer: on an IMX585 sensor, with its 3.4× crop factor, a 400 mm lens frames like about 1,360 mm on a full-frame camera.</li>
 <li><strong>Sub-exposure length:</strong> How long each sub can be depends on how well the target is held still:<ul>
 <li>Without guiding, keep subs short, typically 15 to 60 seconds, and re-centre the target regularly.</li>
-<li>With <a href=".././guiding-sync/">Sync Guiding</a>, NINA plate-solves your own images every 1 to 3 minutes and the driver corrects any drift, so subs can be longer.</li>
-<li>With <a href=".././guiding-pulse/">Pulse Guiding</a>, using a guide scope and PHD2, subs of up to about 300 seconds are possible.</li>
+<li>With <a href=".././use-sync-guiding/">Sync Guiding</a>, NINA plate-solves your own images every 1 to 3 minutes and the driver corrects any drift, so subs can be longer.</li>
+<li>With <a href=".././use-pulse-guiding/">Pulse Guiding</a>, using a guide scope and PHD2, subs of up to about 300 seconds are possible.</li>
 </ul>
 </li>
 <li><strong>Gain or ISO:</strong> Set the gain (or ISO) so that the histogram's peak sits clear of the left-hand side, without saturating more than the brightest stars.</li>
@@ -2392,7 +2392,7 @@
 <li><strong>Sync Guiding</strong> needs no extra hardware. Add a <strong>Solve and Sync</strong> instruction that runs every 1 to 3 minutes in NINA's Advanced Sequencer.</li>
 <li><strong>Pulse Guiding</strong> uses a guide scope and camera with PHD2.</li>
 </ul>
-<p><a href=".././guiding-sync/">Sync Guiding</a> and <a href=".././guiding-pulse/">Pulse Guiding</a> explain each approach. Don't combine them, and avoid dithering, which hasn't shown a benefit on the Polaris.</p>
+<p><a href=".././use-sync-guiding/">Sync Guiding</a> and <a href=".././use-pulse-guiding/">Pulse Guiding</a> explain each approach. Don't combine them, and avoid dithering, which hasn't shown a benefit on the Polaris.</p>
 <h2 id="monitoring-and-refining">Monitoring and Refining<a class="headerlink" href="#monitoring-and-refining" title="Permanent link">&para;</a></h2>
 <p>You can check and refine the tracking during the sequence on Alpaca Pilot's <strong>PID Tuning</strong> and <strong>Alignment</strong> pages.</p>
 <ul>

@@ -1044,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-sync/" class="md-nav__link">
+      <a href="../use-sync-guiding/" class="md-nav__link">
         
   
   
@@ -1071,7 +1071,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-pulse/" class="md-nav__link">
+      <a href="../use-pulse-guiding/" class="md-nav__link">
         
   
   
@@ -2954,7 +2954,7 @@
 <li><strong>Drift Reduction:</strong> The residual data is fed into the <strong>PID Controller</strong>, which automatically adjusts motor speeds to "kill" the drift. </li>
 <li><strong>Reduced Star Trails:</strong> By proactively correcting for the worm gear error and inherent drift, exposures remain sharp even during lengthy imaging sessions.</li>
 </ul>
-<p>For how to set up and use sync guiding, see the <a href=".././guiding-sync/">Sync Guiding</a> guide.</p>
+<p>For how to set up and use sync guiding, see the <a href=".././use-sync-guiding/">Sync Guiding</a> guide.</p>
 <h3 id="pulse-guiding">Pulse Guiding<a class="headerlink" href="#pulse-guiding" title="Permanent link">&para;</a></h3>
 <p><strong>What it is and What it Solves</strong></p>
 <p><strong>Pulse Guiding</strong> is a high-speed feedback mechanism that allows external guiding software to make micro-adjustments to the mount's tracking in real-time. While <strong>QUEST Alignment</strong> and <strong>Mechanical Corrections</strong> provide a robust global model, they cannot account for dynamic, unpredictable factors such as atmospheric refraction, subtle mechanical "sticktion," or high-frequency periodic error.</p>
@@ -2968,7 +2968,7 @@
 <li><strong>PID Feed-Forward Control:</strong> The driver incorporates feed-forward logic specifically for pulses, allowing the motors to reach the required correction velocity almost instantaneously.</li>
 <li><strong>Integral Suspension:</strong> To prevent "overshoot"—where the mount continues moving after a pulse ends—the driver <strong>temporarily suspends the integration of the error term</strong> (KI) during an active pulse. This ensures the correction is crisp and does not introduce new oscillations.</li>
 </ul>
-<p>For how to set up and use pulse guiding, including the guide rate and PHD2 settings, see the <a href=".././guiding-pulse/">Pulse Guiding</a> guide.</p>
+<p>For how to set up and use pulse guiding, including the guide rate and PHD2 settings, see the <a href=".././use-pulse-guiding/">Pulse Guiding</a> guide.</p>
 <p><strong>Primary Benefits</strong></p>
 <ul>
 <li><strong>Sub-Exposure Correction:</strong> The main benefit of pulse guiding is the ability to correct tracking errors <strong>within a single exposure</strong>. This prevents small drifts from turning stars into "footballs" or trails before the frame is completed.</li>
@@ -3255,7 +3255,7 @@
 <ul>
 <li><strong>Slew &amp; Center errors:</strong> A goto may finish with the gears unloaded in the tracking direction, causing the camera to shift as tracking takes up the slack.</li>
 <li><strong>Drift during tracking reversals:</strong> When a motor reverses direction, the camera may temporarily stop moving, causing tracking to drift as the slack is taken up.</li>
-<li><strong>Low-speed guiding oscillations:</strong> Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see <a href=".././guiding-pulse/#gear-backlash">Gear Backlash</a> in the Pulse Guiding guide).</li>
+<li><strong>Low-speed guiding oscillations:</strong> Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see <a href=".././use-pulse-guiding/#gear-backlash">Gear Backlash</a> in the Pulse Guiding guide).</li>
 </ul>
 <p><strong>How does Backlash Compensation Work?</strong></p>
 <p>When enabled, the driver estimates the camera's position beyond the gearbox and accounts for mechanical slack in its position control.</p>

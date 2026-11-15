@@ -1044,7 +1044,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-sync/" class="md-nav__link">
+      <a href="../use-sync-guiding/" class="md-nav__link">
         
   
   
@@ -1071,7 +1071,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../guiding-pulse/" class="md-nav__link">
+      <a href="../use-pulse-guiding/" class="md-nav__link">
         
   
   
@@ -2858,8 +2858,8 @@
 <li><strong><a href=".././ref-kinematics/#slew-and-center">Slew &amp; Center Correction</a>:</strong> Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).</li>
 <li><strong><a href=".././ref-kinematics/#periodic-error-correction">PEC Drift Correction</a>:</strong> Learns the remaining slow drift in RA and Dec from guiding corrections and applies proactive fixes every 200 ms.</li>
 <li><strong><a href=".././ref-kinematics/#periodic-error-correction">PEC Worm Gear Correction</a>:</strong> Corrects each motor's worm gear wobble (repeating every 6° of motor rotation, typically around 35 minutes while tracking) from a profile measured once by a calibration test, with no guiding needed.</li>
-<li><strong><a href=".././guiding-sync/">Sync Guiding (Plate-solve)</a>:</strong> Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.</li>
-<li><strong><a href=".././guiding-pulse/">Pulse Guiding (Guide-camera)</a>:</strong> Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).</li>
+<li><strong><a href=".././use-sync-guiding/">Sync Guiding (Plate-solve)</a>:</strong> Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.</li>
+<li><strong><a href=".././use-pulse-guiding/">Pulse Guiding (Guide-camera)</a>:</strong> Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).</li>
 <li><strong><a href="#coordinated-speed-control">Coordinated Speed Control</a>:</strong> Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.</li>
 <li><strong><a href=".././ref-kinematics/#backlash-compensation">Backlash Compensation</a>:</strong> Drives each motor through its gear backlash at the end of a goto, so Slew &amp; Center corrections land first time (not through a tracking reversal, which is left to the guider).</li>
 </ul>

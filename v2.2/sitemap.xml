@@ -19,12 +19,6 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/getting-started/</loc>
       </url>
       <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding-pulse/</loc>
-      </url>
-      <url>
-        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/guiding-sync/</loc>
-      </url>
-      <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/help-faq/</loc>
       </url>
       <url>
@@ -115,6 +109,12 @@
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/use-pilot/</loc>
       </url>
       <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/use-pulse-guiding/</loc>
+      </url>
+      <url>
         <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/use-stellarium/</loc>
+      </url>
+      <url>
+        <loc>https://ogecko.github.io/alpaca-benro-polaris/v2.2/use-sync-guiding/</loc>
       </url>
 </urlset>
