@@ -20,7 +20,7 @@ Planets are tiny: Jupiter's disc is less than 50 arcseconds across, Saturn's rin
 * **Prefer a small camera with small pixels.** A small-sensor astronomy camera puts far more pixels on the planet than a full-frame camera at the same focal length. Its crop factor makes the focal length act much longer.
 * **Aim for an f-ratio of about 3 to 5 times the pixel size** in microns. Beyond that, the image just gets dimmer and blurrier without showing more detail.
 
-For example, the Saturn image above used a 400 mm f/5.6 lens with a 2× III extender (800 mm f/11) on a MiniCam8 camera, whose IMX585 sensor has 2.9 micron pixels. That's about f/3.8 per micron of pixel size, within the ideal range. The sensor's 3.4× crop factor makes 800 mm act like about 2,700 mm on a full-frame camera, giving about 0.75 arcseconds per pixel, so Saturn's rings span about 60 pixels. A full-frame Canon EOS R5, with 4.4 micron pixels, would cover them with about 40 pixels at the same focal length.
+For example, the Saturn image above used a 400 mm f/5.6 lens with a 2× III extender (800 mm f/11) on a MiniCam8 camera, whose IMX585 sensor has 2.9 micron pixels. That's about f/3.8 per micron of pixel size, within the ideal range. The sensor's 3.4× crop factor makes 800 mm act like about 2,720 mm on a full-frame camera, giving about 0.75 arcseconds per pixel, so Saturn's rings span about 60 pixels. A full-frame Canon EOS R5, with 4.4 micron pixels, would cover them with about 40 pixels at the same focal length.
 
 Long lenses with extenders are heavy and sensitive to wind, so keep the payload balanced and within the Polaris's limits (see [FAQ B5](./faq.md#b5---heaviest-load)).
 
@@ -79,9 +79,16 @@ A stacked planet looks soft until it's sharpened. The wavelet sharpening in [Reg
 
 ## Composing a Wider Shot
 
-A planet's moons are far fainter than the planet itself, so an exposure long enough to show them overexposes the planet into a featureless disc. The example above combines two images:
+A planet's moons are far fainter than the planet itself, so an exposure long enough to show them overexposes the planet into a featureless disc. The example above combines two separate images, each exposed for its own subject.
 
-* **The moons:** a stack of longer exposures (23 × 5 s at 1600 mm f/22 on a Canon EOS R5), which shows the moons and nearby stars, but overexposes Saturn.
-* **The planet:** a short-exposure video captured with the MiniCam8 at 800 mm and stacked with AutoStakkert!, which shows Saturn's rings and bands.
+**1. Create the colour image of the moons.** Take a set of longer exposures that show the moons and nearby stars, and stack them (for example in [Siril](https://siril.org/)). The example used 23 × 5 s at 1600 mm f/22 on a Canon EOS R5. Saturn is overexposed in this image, but it still provides the planet's colour.
 
-To combine them, stack the longer exposures (for example in [Siril](https://siril.org/)), then use an image editor to place the stacked planet over the overexposed disc on its own layer, scaled and rotated to match. Blend the edge with a soft layer mask. To label the moons, check their positions for the time of capture in Stellarium or [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/).
+**2. Create the detailed image of the planet.** Capture a short-exposure video of the planet, stack it with AutoStakkert!, and sharpen it as described above. The example used a monochrome video from the MiniCam8 at 800 mm (about 2,720 mm full-frame equivalent). Expose it for the planet itself, so the rings and bands show clearly without clipping.
+
+**3. Layer them in an image editor.**
+
+* **Bottom layer:** the colour stack of the moons.
+* **Adjustment layer:** an exposure (or levels) adjustment, masked to the planet, that darkens the overexposed disc so it no longer glows or overwhelms the rest of the image. Feather the mask's edge so the change blends in smoothly.
+* **Top layer:** the monochrome planet, scaled and rotated to line up with the disc below, with its blend mode set to **Luminosity**. This layer supplies the planet's detail, while the colour shows through from the stack underneath.
+
+To label the moons, check their positions for the time of capture in Stellarium or [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/).
