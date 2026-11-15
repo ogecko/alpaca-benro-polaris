@@ -29,7 +29,7 @@ DATA_DIR    = SCRIPT_DIR.parent / 'data'                # ../data relative to ma
 DOCS_VERSION = 'v' + '.'.join(DeviceMetadata.Version.split('.')[:2])   # '2.2.0 Release' -> 'v2.2'
 DOCS_DIST    = SCRIPT_DIR.parent / 'pilot' / 'dist' / 'docs' / DOCS_VERSION   # gitignored, like the rest of pilot/dist except spa
 DOCS_ZIP_URL = ('https://github.com/ogecko/alpaca-benro-polaris/releases/download/'
-                f'docs-{DOCS_VERSION}/offline-docs.zip')                  # published by .github/workflows/docs.yml
+                f'offline-docs/offline-docs-{DOCS_VERSION}.zip')          # published by .github/workflows/docs.yml
 
 TLS_CERT_PATH = DATA_DIR / 'alpaca_pilot.crt'      # server cert + CA chain (for uvicorn)
 TLS_KEY_PATH  = DATA_DIR / 'alpaca_pilot.key'      # server private key
