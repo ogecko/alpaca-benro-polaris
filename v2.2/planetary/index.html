@@ -2279,7 +2279,7 @@
 <li><strong>Prefer a small camera with small pixels.</strong> A small-sensor astronomy camera puts far more pixels on the planet than a full-frame camera at the same focal length. Its crop factor makes the focal length act much longer.</li>
 <li><strong>Aim for an f-ratio of about 3 to 5 times the pixel size</strong> in microns. Beyond that, the image just gets dimmer and blurrier without showing more detail.</li>
 </ul>
-<p>For example, the Saturn image above used a 400 mm f/5.6 lens with a 2× III extender (800 mm f/11) on a MiniCam8 camera, whose IMX585 sensor has 2.9 micron pixels. That's about f/3.8 per micron of pixel size, within the ideal range. The sensor's 3.4× crop factor makes 800 mm act like about 2,700 mm on a full-frame camera, giving about 0.75 arcseconds per pixel, so Saturn's rings span about 60 pixels. A full-frame Canon EOS R5, with 4.4 micron pixels, would cover them with about 40 pixels at the same focal length.</p>
+<p>For example, the Saturn image above used a 400 mm f/5.6 lens with a 2× III extender (800 mm f/11) on a MiniCam8 camera, whose IMX585 sensor has 2.9 micron pixels. That's about f/3.8 per micron of pixel size, within the ideal range. The sensor's 3.4× crop factor makes 800 mm act like about 2,720 mm on a full-frame camera, giving about 0.75 arcseconds per pixel, so Saturn's rings span about 60 pixels. A full-frame Canon EOS R5, with 4.4 micron pixels, would cover them with about 40 pixels at the same focal length.</p>
 <p>Long lenses with extenders are heavy and sensitive to wind, so keep the payload balanced and within the Polaris's limits (see <a href=".././faq/#b5---heaviest-load">FAQ B5</a>).</p>
 <h2 id="pointing-and-tracking">Pointing and Tracking<a class="headerlink" href="#pointing-and-tracking" title="Permanent link">&para;</a></h2>
 <p>Find the planet in Alpaca Pilot's catalog: filter by the <strong>Planet</strong> type, or search by name. Its <strong>Goto</strong> slews to the planet and starts non-sidereal tracking at the planet's own rate, so it stays centred while you capture (see <a href=".././orbitals/#other-orbitals">Satellite Imaging</a>). Planets also appear in Stellarium, but a goto from there tracks at the sidereal rate.</p>
@@ -2327,12 +2327,16 @@
 <h2 id="sharpening">Sharpening<a class="headerlink" href="#sharpening" title="Permanent link">&para;</a></h2>
 <p>A stacked planet looks soft until it's sharpened. The wavelet sharpening in <a href="https://www.astronomie.be/registax/">RegiStax</a> (free) is the usual next step. Sharpen gently, adjust the colour balance, and stop before rings and noise appear around the planet's edge.</p>
 <h2 id="composing-a-wider-shot">Composing a Wider Shot<a class="headerlink" href="#composing-a-wider-shot" title="Permanent link">&para;</a></h2>
-<p>A planet's moons are far fainter than the planet itself, so an exposure long enough to show them overexposes the planet into a featureless disc. The example above combines two images:</p>
+<p>A planet's moons are far fainter than the planet itself, so an exposure long enough to show them overexposes the planet into a featureless disc. The example above combines two separate images, each exposed for its own subject.</p>
+<p><strong>1. Create the colour image of the moons.</strong> Take a set of longer exposures that show the moons and nearby stars, and stack them (for example in <a href="https://siril.org/">Siril</a>). The example used 23 × 5 s at 1600 mm f/22 on a Canon EOS R5. Saturn is overexposed in this image, but it still provides the planet's colour.</p>
+<p><strong>2. Create the detailed image of the planet.</strong> Capture a short-exposure video of the planet, stack it with AutoStakkert!, and sharpen it as described above. The example used a monochrome video from the MiniCam8 at 800 mm (about 2,720 mm full-frame equivalent). Expose it for the planet itself, so the rings and bands show clearly without clipping.</p>
+<p><strong>3. Layer them in an image editor.</strong></p>
 <ul>
-<li><strong>The moons:</strong> a stack of longer exposures (23 × 5 s at 1600 mm f/22 on a Canon EOS R5), which shows the moons and nearby stars, but overexposes Saturn.</li>
-<li><strong>The planet:</strong> a short-exposure video captured with the MiniCam8 at 800 mm and stacked with AutoStakkert!, which shows Saturn's rings and bands.</li>
+<li><strong>Bottom layer:</strong> the colour stack of the moons.</li>
+<li><strong>Adjustment layer:</strong> an exposure (or levels) adjustment, masked to the planet, that darkens the overexposed disc so it no longer glows or overwhelms the rest of the image. Feather the mask's edge so the change blends in smoothly.</li>
+<li><strong>Top layer:</strong> the monochrome planet, scaled and rotated to line up with the disc below, with its blend mode set to <strong>Luminosity</strong>. This layer supplies the planet's detail, while the colour shows through from the stack underneath.</li>
 </ul>
-<p>To combine them, stack the longer exposures (for example in <a href="https://siril.org/">Siril</a>), then use an image editor to place the stacked planet over the overexposed disc on its own layer, scaled and rotated to match. Blend the edge with a soft layer mask. To label the moons, check their positions for the time of capture in Stellarium or <a href="https://ssd.jpl.nasa.gov/horizons/">JPL Horizons</a>.</p>
+<p>To label the moons, check their positions for the time of capture in Stellarium or <a href="https://ssd.jpl.nasa.gov/horizons/">JPL Horizons</a>.</p>
 
 
 
