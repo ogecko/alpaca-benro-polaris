@@ -1,5 +1,5 @@
 # Using CCDciel with Benro Polaris
-[Setup](#setup) · [Main Window](#main-window) · [Autofocus](#autofocus) · [Plate Solving](#plate-solving) · [Sync Guiding](./guiding-sync.md#sync-guiding-with-ccdciel) · [Pulse Guiding](#pulse-guiding)
+[Setup](#setup) · [Main Window](#main-window) · [Autofocus](#autofocus) · [Plate Solving](#plate-solving) · [Sync Guiding](./use-sync-guiding.md#sync-guiding-with-ccdciel) · [Pulse Guiding](#pulse-guiding)
 
 
 ## Setup
@@ -109,7 +109,7 @@ CCDciel has no instruction for sending an Alpaca [Device Action](./api-alpaca.md
 
 | Script | Device Action | Arguments | What it does |
 |---|---|---|---|
-| `PolarisSyncGuide` | none (CCDciel's plate-solve and sync) | settle seconds (optional, default 5) | Plate-solves the current image and syncs the mount, for [Sync Guiding](./guiding-sync.md#sync-guiding-with-ccdciel) |
+| `PolarisSyncGuide` | none (CCDciel's plate-solve and sync) | settle seconds (optional, default 5) | Plate-solves the current image and syncs the mount, for [Sync Guiding](./use-sync-guiding.md#sync-guiding-with-ccdciel) |
 | `PolarisPanoSlew` | `Polaris:PanoSlew` | panel number (optional) | Slews to the next [panorama](#panoramas) panel, or to the given panel |
 | `PolarisSlewAbsolute` | `Polaris:SlewAbsolute` | `key=value` coordinates | Slews to the given coordinates, see [Slewing](#slewing) |
 | `PolarisSlewRelative` | `Polaris:SlewRelative` | `key=value` offsets | Moves by the given offsets, see [Slewing](#slewing) |
@@ -123,7 +123,7 @@ The scripts read the Alpaca Driver's address from CCDciel's mount settings (**AS
 **Using:** add a script step to a plan, with the script's name and its arguments, or test a script from **Run Script** on the **Capture** tab. Each script writes what it did to the CCDciel log, and fails the step if the action fails.
 
 ### Sync Guiding
-The `PolarisSyncGuide` script runs a plate-solve sync from a plan step, for sync guiding. See [Sync Guiding with CCDciel](./guiding-sync.md#sync-guiding-with-ccdciel) for how to set it up.
+The `PolarisSyncGuide` script runs a plate-solve sync from a plan step, for sync guiding. See [Sync Guiding with CCDciel](./use-sync-guiding.md#sync-guiding-with-ccdciel) for how to set it up.
 
 ### Panoramas
 Use the Alpaca Driver's [Panorama Grid](./img-panoramas.md) for advanced panorama workflows. Define the grid in Alpaca Pilot, then use the `PolarisPanoSlew` script to move the mount between its panels.

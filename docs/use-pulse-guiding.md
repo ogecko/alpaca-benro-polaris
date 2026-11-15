@@ -6,7 +6,7 @@
 [Guiding with PHD2](#guiding-with-phd2) ·
 [Improving Guiding](#improving-guiding)
 
-This guide introduces how to use **PHD2** and pulse guiding with the **Alpaca Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse guiding, as well as those moving on from unguided imaging or [Sync Guiding](./guiding-sync.md).
+This guide introduces how to use **PHD2** and pulse guiding with the **Alpaca Driver** on a **Benro Polaris mount**. It is intended for users who are new to pulse guiding, as well as those moving on from unguided imaging or [Sync Guiding](./use-sync-guiding.md).
 
 Use pulse guiding or sync guiding, not both: the guider holds its guide star at the lock position it set when guiding started, so it pulls each sync correction straight back. To keep the target centred during a long pulse-guided session, use NINA's **Center After Drift** trigger instead. When the plate solve drifts past its threshold, NINA stops guiding, re-centres the target, and restarts guiding with a new lock position. Each re-centre is a slew, which resets the driver's PEC Drift Correction, so don't set the threshold too tight (about 0.3 to 0.5 arc minutes).
 

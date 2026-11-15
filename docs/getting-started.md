@@ -7,7 +7,7 @@
 3. **Install the driver.** [Windows](./install-win.md) · [macOS](./install-macos.md) · [Raspberry Pi](./install-pi.md) · [Docker](./install-docker.md)
 4. **Connect with Alpaca Pilot.** [Connecting Polaris](./use-pilot.md#connecting-polaris)
 5. **Initial setup.** [Site Location](./initial-setup.md#site-location) · [Alignment](./initial-setup.md#multi-point-alignment) · [Calibration](./initial-setup.md#motor-speed-calibration)
-6. **Add your astrophotography app.** [Stellarium](./use-stellarium.md) · [NINA](./use-nina.md) · [CCDciel](./use-ccdciel.md) · [PHD2](./guiding-pulse.md)
+6. **Add your astrophotography app.** [Stellarium](./use-stellarium.md) · [NINA](./use-nina.md) · [CCDciel](./use-ccdciel.md) · [PHD2](./use-pulse-guiding.md)
 7. **Capture images.** [Deep-sky](./img-dso.md) · [Planetary](./img-planetary.md) · [Satellites](./img-satellite.md) · [Panoramas](./img-panoramas.md)
 
 If something goes wrong, the [Troubleshooting Guide](./help-troubleshooting.md) and [FAQ](./help-faq.md) cover the most common issues.
@@ -133,7 +133,7 @@ NINA has two sequencers. The Legacy Sequencer is a simple list of targets and ex
 
 The Advanced Sequencer can look complicated at first, but it isn't once you get the hang of it, and you will never go back to the Legacy Sequencer.
 
-The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's [Sync Guiding](./guiding-sync.md), which runs a Solve and Sync every few minutes during your sequence, and [Panorama Grids](./img-panoramas.md), which use the `Polaris:PanoGrid` and `Polaris:PanoSlew` Device Actions to step through each panel.
+The Advanced Sequencer also gives you access to the Device Actions exposed by the Alpaca Driver, which go beyond the ASCOM standard. Together, they are needed to use the Alpaca Driver's [Sync Guiding](./use-sync-guiding.md), which runs a Solve and Sync every few minutes during your sequence, and [Panorama Grids](./img-panoramas.md), which use the `Polaris:PanoGrid` and `Polaris:PanoSlew` Device Actions to step through each panel.
 
 To learn the Advanced Sequencer, you can consider these resources:
 
@@ -152,7 +152,7 @@ Both approaches also feed the driver's Periodic Error Correction, which learns h
 
 To learn guiding, you can consider these resources:
 
-* Alpaca Documentation: [Sync Guiding](./guiding-sync.md) explains both approaches and Periodic Error Correction, [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) measures your mount's worm gears, and [Pulse Guiding](./guiding-pulse.md) walks you through setting up PHD2, calibrating, pulse guiding and improving guiding performance with the Polaris.
+* Alpaca Documentation: [Sync Guiding](./use-sync-guiding.md) explains both approaches and Periodic Error Correction, [Worm Gear Calibration](./initial-setup.md#worm-gear-calibration) measures your mount's worm gears, and [Pulse Guiding](./use-pulse-guiding.md) walks you through setting up PHD2, calibrating, pulse guiding and improving guiding performance with the Polaris.
 * PHD2 Documentation: The [PHD2 User Manual](https://openphdguiding.org/manual/) covers every feature, and the [PHD2 Best Practices](https://openphdguiding.org/phd2-best-practices/) guide explains how to get good results quickly.
 * Online Communities and Forums: The [PHD2 user forum](https://groups.google.com/g/open-phd-guiding) is very active, and the developers will review your guide logs if you ask for help.
 

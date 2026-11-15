@@ -34,8 +34,8 @@ This guide provides an overview of the **Advanced Control Features** of the Alpa
 - **[Slew & Center Correction](./ref-kinematics.md#slew-and-center):** Reduces the number of corrective slews needed to centre a target, using either Zero Last Residual, Local Gaussian Adjustment or Sync Guiding Adjustment (recommeded).
 - **[PEC Drift Correction](./ref-kinematics.md#periodic-error-correction):** Learns the remaining slow drift in RA and Dec from guiding corrections and applies proactive fixes every 200 ms.
 - **[PEC Worm Gear Correction](./ref-kinematics.md#periodic-error-correction):** Corrects each motor's worm gear wobble (repeating every 6° of motor rotation, typically around 35 minutes while tracking) from a profile measured once by a calibration test, with no guiding needed.
-- **[Sync Guiding (Plate-solve)](./guiding-sync.md):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
-- **[Pulse Guiding (Guide-camera)](./guiding-pulse.md):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
+- **[Sync Guiding (Plate-solve)](./use-sync-guiding.md):** Treats a plate-solve sync taken without slewing as a guiding correction, so you can guide with the main camera and no guide scope.
+- **[Pulse Guiding (Guide-camera)](./use-pulse-guiding.md):** Accepts micro-corrections from guiding software such as PHD2 during exposures, with separate RA and Dec guide rates (0.75x to 1.0x sidereal is recommended).
 - **[Coordinated Speed Control](#coordinated-speed-control):** Drives all three motors together within the Polaris's shared slow-speed setting, and plans gotos, roll changes and jogs as smooth motor speed profiles, for steadier tracking and less drift and overshoot.
 - **[Backlash Compensation](./ref-kinematics.md#backlash-compensation):** Drives each motor through its gear backlash at the end of a goto, so Slew & Center corrections land first time (not through a tracking reversal, which is left to the guider).
 

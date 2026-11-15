@@ -39,8 +39,8 @@ nav = [
     { "Using Stellarium" = "use-stellarium.md" },
     { "Using Nina" = "use-nina.md" },
     { "Using CCDciel" = "use-ccdciel.md" },
-    { "Sync Guiding" = "guiding-sync.md" },
-    { "Pulse Guiding" = "guiding-pulse.md" },
+    { "Sync Guiding" = "use-sync-guiding.md" },
+    { "Pulse Guiding" = "use-pulse-guiding.md" },
   ] },
   { "Release Notes" = [
     { "v2.2.0" = "release-notes-v2.2.0.md" },

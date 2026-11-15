@@ -12,7 +12,7 @@ Guiding corrects the tracking errors that remain after alignment. Multi-Point Al
 The Alpaca Driver supports two approaches to guiding:
 
 * **Sync Guiding** needs no extra hardware. Your imaging software plate-solves an image from your main camera every 1 to 3 minutes and syncs the result, and the driver corrects the drift. It's the easiest way to start, and it suits sub-exposures of up to a few minutes.
-* **[Pulse Guiding](./guiding-pulse.md)** uses a small guide scope and guide camera with PHD2, which corrects the mount every few seconds, within each exposure. It suits the longest focal lengths and exposures, up to about 300 seconds.
+* **[Pulse Guiding](./use-pulse-guiding.md)** uses a small guide scope and guide camera with PHD2, which corrects the mount every few seconds, within each exposure. It suits the longest focal lengths and exposures, up to about 300 seconds.
 
 ![Sync guiding or pulse guiding](images/phd2-choice.png)
 

@@ -277,11 +277,11 @@ The results show each motor's measured wobble, for example `M3 85"@224` (85 arc 
 
 ## Pulse Guiding Calibration
 
-If you [pulse guide](./guiding-pulse.md) with a guide scope and guide camera, your guiding app must first calibrate: it sends guide pulses to the driver and watches how far, and in which direction, the guide star moves. From this it learns how to turn the guide star's drift into corrections in Right Ascension and Declination.
+If you [pulse guide](./use-pulse-guiding.md) with a guide scope and guide camera, your guiding app must first calibrate: it sends guide pulses to the driver and watches how far, and in which direction, the guide star moves. From this it learns how to turn the guide star's drift into corrections in Right Ascension and Declination.
 
 On the Benro Polaris, each guide pulse becomes a mix of movements of all three motors, and that mix changes across the sky and with the camera's Position Angle. So calibrate at the start of each imaging session, near your imaging target, and again if guiding becomes unreliable or you image a target in a very different part of the sky. In PHD2, connecting to the Alpaca Rotator lets one calibration last the night.
 
 For how to calibrate, see:
 
-* **PHD2:** [Calibration](./guiding-pulse.md#calibration) in the Pulse Guiding guide, including when to [re-calibrate](./guiding-pulse.md#re-calibration).
+* **PHD2:** [Calibration](./use-pulse-guiding.md#calibration) in the Pulse Guiding guide, including when to [re-calibrate](./use-pulse-guiding.md#re-calibration).
 * **CCDciel:** [Guider Calibration](./use-ccdciel.md#guider-calibration) in the CCDciel guide.

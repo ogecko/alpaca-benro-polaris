@@ -50,7 +50,7 @@ This page is generated from the driver's code (`driver/telescope.py`) by `utilit
 | `ispulseguiding` | GET |  | Whether a `pulseguide` move is under way. |
 | `moveaxis` | PUT | `Axis`, `Rate` | Move one `Axis` at a steady `Rate` in degrees per second: axis 0 is Azimuth, 1 Altitude and 2 Roll. The rate is 0.1 to 9, negative to reverse, or 0 to stop. Ends any sync guiding. Fails while parked, or while a goto is under way. |
 | `park` | PUT |  | Move the mount to its park position, set with `setpark`, and stop tracking. |
-| `pulseguide` | PUT | `Direction`, `Duration` | Nudge the mount at the guide rate in a `Direction` (0 North, 1 South, 2 East, 3 West) for a `Duration` in milliseconds (1 to 10000). Fails unless the mount is tracking, or while it's parked or slewing. See [Pulse Guiding](./guiding-pulse.md). |
+| `pulseguide` | PUT | `Direction`, `Duration` | Nudge the mount at the guide rate in a `Direction` (0 North, 1 South, 2 East, 3 West) for a `Duration` in milliseconds (1 to 10000). Fails unless the mount is tracking, or while it's parked or slewing. See [Pulse Guiding](./use-pulse-guiding.md). |
 | `rightascension` | GET |  | The right ascension the mount is pointing at, in hours (topocentric JNow). |
 | `rightascensionrate` | GET / PUT |  | The right ascension tracking rate offset, in seconds per sidereal second. Always 0: it can't be changed. |
 | `setpark` | PUT |  | Make the mount's current position its park position. Fails while slewing. |

@@ -1271,7 +1271,7 @@ class park:
 
 @before(PreProcessRequest(maxdev, 'log_pulse_guiding'))
 class pulseguide:
-    """Nudge the mount at the guide rate in a `Direction` (0 North, 1 South, 2 East, 3 West) for a `Duration` in milliseconds (1 to 10000). Fails unless the mount is tracking, or while it's parked or slewing. See [Pulse Guiding](./guiding-pulse.md)."""
+    """Nudge the mount at the guide rate in a `Direction` (0 North, 1 South, 2 East, 3 West) for a `Duration` in milliseconds (1 to 10000). Fails unless the mount is tracking, or while it's parked or slewing. See [Pulse Guiding](./use-pulse-guiding.md)."""
 
     async def on_put(self, req: Request, resp: Response, devnum: int):
         if not polaris.connected:

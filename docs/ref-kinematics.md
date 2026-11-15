@@ -257,7 +257,7 @@ This guiding method allows the **QUEST (QUaternion ESTimator)** algorithm to fun
 *   **Drift Reduction:** The residual data is fed into the **PID Controller**, which automatically adjusts motor speeds to "kill" the drift. 
 *   **Reduced Star Trails:** By proactively correcting for the worm gear error and inherent drift, exposures remain sharp even during lengthy imaging sessions.
 
-For how to set up and use sync guiding, see the [Sync Guiding](./guiding-sync.md) guide.
+For how to set up and use sync guiding, see the [Sync Guiding](./use-sync-guiding.md) guide.
 
 
 ### Pulse Guiding
@@ -281,7 +281,7 @@ Starting with version 2.2, the driver utilizes a refined mathematical approach t
 *   **PID Feed-Forward Control:** The driver incorporates feed-forward logic specifically for pulses, allowing the motors to reach the required correction velocity almost instantaneously.
 *   **Integral Suspension:** To prevent "overshoot"—where the mount continues moving after a pulse ends—the driver **temporarily suspends the integration of the error term** (KI) during an active pulse. This ensures the correction is crisp and does not introduce new oscillations.
 
-For how to set up and use pulse guiding, including the guide rate and PHD2 settings, see the [Pulse Guiding](./guiding-pulse.md) guide.
+For how to set up and use pulse guiding, including the guide rate and PHD2 settings, see the [Pulse Guiding](./use-pulse-guiding.md) guide.
 
 **Primary Benefits**
 
@@ -577,7 +577,7 @@ Backlash can cause:
 
 - **Slew & Center errors:** A goto may finish with the gears unloaded in the tracking direction, causing the camera to shift as tracking takes up the slack.
 - **Drift during tracking reversals:** When a motor reverses direction, the camera may temporarily stop moving, causing tracking to drift as the slack is taken up.
-- **Low-speed guiding oscillations:** Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see [Gear Backlash](./guiding-pulse.md#gear-backlash) in the Pulse Guiding guide).
+- **Low-speed guiding oscillations:** Guide pulses can repeatedly reverse a barely moving motor. This is a guiding issue, addressed through guider settings rather than backlash compensation (see [Gear Backlash](./use-pulse-guiding.md#gear-backlash) in the Pulse Guiding guide).
 
 
 **How does Backlash Compensation Work?**
