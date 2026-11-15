@@ -53,12 +53,12 @@ nav = [
     "ref-architecture.md",
     "ref-control.md",
     "ref-kinematics.md",
+    "ref-config.md",
     "ref-catalog.md",
     "api-alpaca.md",
     "api-telescope.md",
     "api-rotator.md",
     "api-pilot.md",
-    "ref-config.md",
   ] },
   { "Help" = [
     "help-troubleshooting.md",
