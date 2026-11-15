@@ -1,6 +1,10 @@
 # Using Nina with Benro Polaris
 [Main NINA Tabs](#main-nina-tabs) · [Autofocus](#autofocus) · [Plate Solving](#plate-solving) · [Advanced Sequence](#advanced-sequence)
 
+[NINA](https://nighttime-imaging.eu/) (Nighttime Imaging 'N' Astronomy) is free, open-source imaging software for Windows. It runs on the mini-PC or laptop alongside the Alpaca Driver, and connects to the Benro Polaris as an ASCOM telescope and rotator. With your camera connected too, NINA can find and frame targets, slew to them, plate solve and center, autofocus, and run whole imaging sessions unattended. This guide walks through NINA's main tabs, then sets up autofocus, plate solving and the Advanced Sequencer for the Polaris. For guiding and panoramas, see [Sync Guiding](./guiding-sync.md) and [Creating Panoramas](./panoramas.md).
+
+NINA is a desktop application, but you can still control it from a phone or tablet at the tripod. The free **Touch 'N' Stars** plugin gives NINA a touch-friendly web interface. If you'd rather use a Raspberry Pi than a Windows mini-PC, **PI.N.S. (PI 'N' Stars)** is a community Linux version of NINA that runs on a Pi and uses the same Touch 'N' Stars interface, though it hasn't yet been tested with the Alpaca Driver. See [FAQ N4](./faq.md#n4---nina-on-mobile) for both.
+
 ## Main NINA Tabs
 
 **Video Demonstration: Capturing Images**
@@ -21,7 +25,7 @@ The Sky Atlas tab allows you to search for various objects in the sky using its 
 
 **Framing Images**
 
-The Framing Assistant tab allows you to visualize how you frame up your target. It can download an image of the target and frames your shot given a particular focal length, pixel size, and resolution. It also allows you to plan panoramas with multiple overlapping panels that end up as separate targets in your sequence. The Alpaca Driver does not currently support rotation.
+The Framing Assistant tab allows you to visualize how you frame up your target. It can download an image of the target and frames your shot given a particular focal length, pixel size, and resolution. It also allows you to plan panoramas with multiple overlapping panels that end up as separate targets in your sequence. With the Polaris connected as a rotator, NINA can also rotate the camera to match the framed position angle (see [Alpaca Rotator](./control.md#alpaca-rotator)).
 ![Framing](images/abp-nina-all-framing.png)
 
 **Taking Flat Images**
