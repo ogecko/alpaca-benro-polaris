@@ -149,7 +149,8 @@ The driver comes with two NINA Advanced Sequencer templates that run [Multi-Poin
 ![Load Sequence](./images/abp-nina-template.png)
 3. Click **Save current instruction as template**, on the sequence instruction title bar, to the right of the `Multi-Point Alignment` heading.
 ![Save Template](./images/abp-nina-template2.png)
-5. Repeat steps 2 and 3 for `Worm Gear Calibration.template.json`.
+5. Repeat steps 2 and 3 for `Slew, Center, PEC, SyncGuide.template.json`.
+6. Repeat steps 2 and 3 for `Worm Gear Calibration.template.json`.
 
 Both templates now appear in the Advanced Sequencer's **Templates** list, ready to drag into a sequence.
 
