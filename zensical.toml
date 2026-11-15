@@ -24,9 +24,9 @@ nav = [
   { "Getting Started" = [
     { "Start Here" = "getting-started.md" },
     { "Preparing the MiniPC" = "hardware.md" },
-    { "Windows Installation" = "installation.md" },
-    { "macOS Installation" = "installation_macos.md" },
-    { "Raspberry Pi Installation" = "raspberrypi.md" },
+    { "Windows Installation" = "installation-win.md" },
+    { "macOS Installation" = "installation-macos.md" },
+    { "Raspberry Pi Installation" = "installation-pi.md" },
     { "Docker Installation" = "docker.md" },
   ] },
   { "Using the Driver" = [

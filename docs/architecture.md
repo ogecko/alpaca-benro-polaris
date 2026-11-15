@@ -16,7 +16,7 @@ If you want to run the Alpaca Driver on a phone or iPad, please read [FAQ A3](./
 Some laptop Wi-Fi controllers don't support connecting to the Benro Polaris Wi-Fi, so you may also need a USB Wi-Fi adapter such as the [TP-Link AC600 USB WiFi Adapter](https://www.amazon.com/wireless-USB-WiFi-Adapter-PC/dp/B07P5PRK7J/) (about US$17 from Amazon).
 
 ### Raspberry Pi
-You can install the Alpaca Driver on a Raspberry Pi, so that other applications on your network can control the Benro Polaris. See the [Raspberry Pi Setup Guide](./raspberrypi.md) for more information.
+You can install the Alpaca Driver on a Raspberry Pi, so that other applications on your network can control the Benro Polaris. See the [Raspberry Pi Setup Guide](./installation-pi.md) for more information.
 
 ![Hardware Architecture: Raspberry Pi](images/abp-hardware2.png)
 

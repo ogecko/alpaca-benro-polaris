@@ -164,7 +164,7 @@ If a connection issue is detected, a warning banner will appear. You can then na
     - on Win11, monitor the systems Wifi List for a polaris_xxxxxx hotspot, click on it, enable automatic connection, and click Connect. Once the host has connected to the Polaris Wifi Hotspot, it should appear as follows:
         ![alt text](images/abp-troubleshoot-wifi1.png)
 
-    - On Raspberry Pi, see [raspberrypi.md's network troubleshooting](./raspberrypi.md#p1---wi-fi-and-bluetooth) to join manually via `join_wifi.py` or `nmcli`. 
+    - On Raspberry Pi, see [installation-pi.md's network troubleshooting](./installation-pi.md#p1---wi-fi-and-bluetooth) to join manually via `join_wifi.py` or `nmcli`. 
 
 ### Establish Communications
 

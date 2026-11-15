@@ -1,5 +1,5 @@
 # Installation Guide 
-[Microsoft Win11](#to-install-on-windows-1011) · [Apple MacOS](./installation_macos.md) · [Raspberry Pi](./raspberrypi.md) ·
+[Microsoft Win11](#to-install-on-windows-1011) · [Apple MacOS](./installation-macos.md) · [Raspberry Pi](./installation-pi.md) ·
 [Startup](#starting-the-alpaca-pilot-app) ·
 [Deep-Sky Imaging](./dso-imaging.md) ·
 [Stellarium](#stellarium-desktop) ·
@@ -37,7 +37,7 @@ The `setup.bat` script installs and configures the Alpaca Driver. It uses [uv](h
     Copy and paste the following command into the Command Prompt, then press **Enter**: 
 
     ```text
-    curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/main/platforms/win/setup.bat
+    curl -fL -o setup.bat https://raw.githubusercontent.com/ogecko/alpaca-benro-polaris/dev2_2/platforms/win/setup.bat
     ```
 
 4. **Run the setup script**

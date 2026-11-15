@@ -4,7 +4,7 @@
 
 1. **Back the project.** The driver is distributed for [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o) backers ([licence](https://github.com/ogecko/alpaca-benro-polaris/blob/main/LICENSE)).
 2. **Prepare a platform.** [MiniPC](./hardware.md), Windows Tablet, Laptop, Mac, Pi or Docker.
-3. **Install the driver.** [Windows](./installation.md) · [macOS](./installation_macos.md) · [Raspberry Pi](./raspberrypi.md) · [Docker](./docker.md)
+3. **Install the driver.** [Windows](./installation-win.md) · [macOS](./installation-macos.md) · [Raspberry Pi](./installation-pi.md) · [Docker](./docker.md)
 4. **Connect with Alpaca Pilot.** [Connecting Polaris](./pilot.md#connecting-polaris)
 5. **Initial setup.** [Site Location](./initial-setup.md#site-location) · [Alignment](./initial-setup.md#multi-point-alignment) · [Calibration](./initial-setup.md#motor-speed-calibration)
 6. **Add your astrophotography app.** [Stellarium](./stellarium.md) · [NINA](./nina.md) · [CCDciel](./ccdciel.md) · [PHD2](./guiding-pulse.md)
@@ -66,7 +66,7 @@ Once this is successful you may want to consider getting a Mini-PC and installin
 More information on the Alpaca setup can be found in [Architecture](./architecture.md#hardware-architectures) and [Preparing the MiniPC](./hardware.md).
   
 #### Installing the Driver
-The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./installation.md), [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md), but here's a simplified overview:
+The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./installation-win.md), [macOS](./installation-macos.md), [Raspberry Pi](./installation-pi.md) and [Docker](./docker.md), but here's a simplified overview:
 
 1. Install the Driver: Run the setup script or commands for your platform. They download the driver from GitHub and install Python and the required libraries for you.
 2. Start the Driver: Run the Alpaca Driver on your device. Check the driver's log window for confirmation messages.

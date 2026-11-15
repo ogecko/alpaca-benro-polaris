@@ -20,8 +20,8 @@
   - [ ] No AI findings that have not been addressed
   - [ ] Confirmed any open GitHub issues are acceptable for release
 - [ ] Final Changes - git checkout dev2_2, git pull origin dev2_2
-  - [ ] Check version # in readme.md, release-notes-vX.X.X.md, shy.py, installation.md, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
-  - [ ] Check download links in release-notes-vX.X.X.md, installation.md x 2
+  - [ ] Check version # in readme.md, release-notes-vX.X.X.md, shy.py, installation-win.md, AboutPage.vue, AltLayout.vue, package.json, abp-overview.png
+  - [ ] Check download links in release-notes-vX.X.X.md, installation-win.md x 2
   - [ ] Build Pilot for release
   - [ ] Confirm all Alpaca ConformU tests pass
   - [ ] Confirm all Alpaca Driver unit tests pass
@@ -84,7 +84,7 @@ The initial phase will focus on implementing the extended Meade LX200 protocol o
 - Solve engine choice: evaluate tetra3 (Apache-2.0, pure Python) vs cedar-solve/cedar-detect (faster, but cedar-detect is FSL-licensed) against our licensing/distribution needs. Also weigh a portable core (e.g. Rust, compiled to native arm64 for the Pi and to WASM for the browser) so the same solver can run in Alpaca Pilot. See item 6, Plate-Solving Synergy. Decide before deeper integration.
 - Solve database: build a star-pattern database sized to typical cameras used with the Polaris (a one-time generation step). Generate it from the same merged Gaia/Hipparcos/Pilot star catalog as the item 6 Sky Map, so the map and the solver share one reference catalog. Confirm database file size and solve accuracy on real sample images, not synthetic ones. Explore whether ASTAP databases could be used.
 - On-device performance: run centroid-extraction + solve as a standalone script directly on a Pi Zero 2W (not a dev machine) to get real timing/memory numbers. Target: comparable to or better than cedar-solve's published ~200ms Pi Zero 2 benchmark.
-- Concurrency check: run the solve prototype alongside the live `polaris-driver` service and confirm combined memory stays within the Pi Zero 2W's ~416MB usable budget (see the `top` benchmark already in `docs/raspberrypi.md`).
+- Concurrency check: run the solve prototype alongside the live `polaris-driver` service and confirm combined memory stays within the Pi Zero 2W's ~416MB usable budget (see the `top` benchmark already in `docs/installation-pi.md`).
 
 ### Phase 1 — Standalone CLI Prototype
 Build a one-off utility (alongside existing scripts in `utility/`) that: fetches the most recent Polaris JPG, extracts star centroids, plate-solves, and prints RA/Dec/rotation. Compare against the Driver's own QUEST-modeled pointing for the same moment. No Driver integration yet — this phase only proves the algorithm and timing on real hardware.
@@ -133,7 +133,7 @@ Add Camera ConformU checks alongside the existing Telescope/Rotator checks alrea
 
 ### Phase 0 — Risk Reduction Prototypes
 - Build PHD2 from source for our actual Debian Trixie arm64 image and confirm it runs at all (compiling on-device may be too slow/memory-heavy for the Zero 2W — test whether cross-compiling on a Pi 4 or dev machine is needed instead).
-- USB power budget: the Zero 2W's single micro-USB OTG port already carries the TPLink Wifi adapter (per `docs/raspberrypi.md`). Prototype a *powered* USB hub carrying both the Wifi adapter and a guide camera; watch `dmesg`/`lsusb` for brownout disconnects under sustained use.
+- USB power budget: the Zero 2W's single micro-USB OTG port already carries the TPLink Wifi adapter (per `docs/installation-pi.md`). Prototype a *powered* USB hub carrying both the Wifi adapter and a guide camera; watch `dmesg`/`lsusb` for brownout disconnects under sustained use.
 - Guide camera capture: validate the specific guide camera model captures reliably on this OS/arch (native SDK or INDI driver) completely independent of PHD2 first.
 - Mount bridge: PHD2 on Linux has no ASCOM (Windows-only) and no native Alpaca chooser — it expects INDI for mount control. Prototype a minimal INDI "telescope" device that only implements guide-pulse properties (`TELESCOPE_TIMED_GUIDE_NS/WE`) and forwards them to the Driver's existing Alpaca `PulseGuide` endpoint. Validate with a generic INDI test client before involving PHD2.
 - Headless operation: confirm PHD2 runs under Xvfb on the Lite (no-desktop) OS image, remains reachable over its Server API (TCP 4400), and can be viewed/controlled remotely via VNC for the one-time setup steps.
@@ -151,7 +151,7 @@ Connect PHD2 → bridge → Driver end-to-end on the Pi. Perform calibration per
 Package the bridge (and Xvfb) as systemd services alongside `polaris-driver.service`, so a normal session needs VNC only for the one-off setup/calibration steps, not for ongoing guiding. Test an unattended multi-hour session.
 
 ### Phase 5 — Docs & Hardware Guidance
-Document the required powered USB hub, tested guide camera models, and setup workflow in `docs/hardware.md` / `docs/guiding-pulse.md` / `docs/raspberrypi.md`.
+Document the required powered USB hub, tested guide camera models, and setup workflow in `docs/hardware.md` / `docs/guiding-pulse.md` / `docs/installation-pi.md`.
 
 
 ## 6. UX Rationalisation

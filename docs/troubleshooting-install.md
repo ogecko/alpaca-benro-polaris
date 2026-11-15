@@ -41,7 +41,7 @@ ModuleNotFoundError: No module named 'toml'
 
 This indicates that the required dependencies have not yet been installed.
 
-To resolve this, run `setup.bat` again (see the [Installation Guide](./installation.md)). It installs all the Python packages the Driver needs, including `toml`. If you only want to reinstall the packages, run this from the project root:
+To resolve this, run `setup.bat` again (see the [Installation Guide](./installation-win.md)). It installs all the Python packages the Driver needs, including `toml`. If you only want to reinstall the packages, run this from the project root:
 
 ```command
 uv sync --locked

@@ -29,7 +29,7 @@
 * Upgrade pip using the command `python -m pip install --upgrade pip`
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the Alpaca Driver v2.1.0
+* Follow the standard [Installation Guide](./installation-win.md) to install the Alpaca Driver v2.1.0
 * Install all pre-requisite python packages using the command `pip install -r platforms/win/requirements.txt`
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.x
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x

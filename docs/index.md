@@ -164,7 +164,7 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) | Demonstrations for [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake), [v2.0 and v2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), and [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics) |
 | [Getting Started](./getting-started.md) | Quick-start steps, then a beginner's learning plan for the Polaris, Alpaca, Stellarium, NINA and Siril |
 | [Preparing the MiniPC](./hardware.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
-| [Installation Guide](./installation.md) | Step-by-step install on Windows, plus [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md) |
+| [Installation Guide](./installation-win.md) | Step-by-step install on Windows, plus [macOS](./installation-macos.md), [Raspberry Pi](./installation-pi.md) and [Docker](./docker.md) |
 | [Alpaca Pilot Guide](./pilot.md) | The dashboard, catalog, alignment and panorama tools |
 | [Initial Setup](./initial-setup.md) | Setting the site location, Multi-Point Alignment, and calibrating the motor speeds and worm gears |
 | [Control Reference](./control.md) | Alignment models, the rotator, safety limits, Kalman filter, speed calibration and PID tracking |

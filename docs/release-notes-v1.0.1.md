@@ -11,7 +11,7 @@
 
 * Uninstall Python 3.12.7
 * Remove old `C:\Users\Nina\Documents\alpaca-benro-polaris-main>` directory.
-* Follow the standard [Installation Guide](./installation.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
+* Follow the standard [Installation Guide](./installation-win.md) to install the new version of Python, the Alpaca Driver and its requirements.txt
 
 ## NINA Features
 
@@ -53,7 +53,7 @@
 - **[Troubleshoot N7]**: Add a link to ASCOM Sony Drivers.
 - **[Troubleshoot N8]**: Add information on how to connect Nikon D850 to Nina.
 - **[Troubleshoot N9]**: Add fix for integration issue between Nina and Stellarium.
-- **[ASCOM Release]**: Add a link to the ASCOM Releases GitHub repository in installation.md
+- **[ASCOM Release]**: Add a link to the ASCOM Releases GitHub repository in installation-win.md
   
 ## Untested New Features
 Please let us know if you can try any of these features.
