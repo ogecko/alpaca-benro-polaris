@@ -3,7 +3,7 @@
 ## Quick Start
 
 1. **Back the project.** The driver is distributed for [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o) backers ([licence](https://github.com/ogecko/alpaca-benro-polaris/blob/main/LICENSE)).
-2. **Prepare a platform.** [MiniPC](./hardware.md) (recommended), Laptop, Mac, Pi or Docker.
+2. **Prepare a platform.** [MiniPC](./hardware.md), Windows Tablet, Laptop, Mac, Pi or Docker.
 3. **Install the driver.** [Windows](./installation.md) · [macOS](./installation_macos.md) · [Raspberry Pi](./raspberrypi.md) · [Docker](./docker.md)
 4. **Connect with Alpaca Pilot.** [Connecting Polaris](./pilot.md#connecting-polaris)
 5. **Initial setup.** [Site Location](./initial-setup.md#site-location) · [Alignment](./initial-setup.md#multi-point-alignment) · [Calibration](./initial-setup.md#motor-speed-calibration)
