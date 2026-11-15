@@ -17,7 +17,7 @@ It integrates with popular astronomy applications, including [NINA](https://nigh
 The driver transforms the Polaris from a simple panorama platform into a capable astrophotography mount, supporting guided deep-sky exposures of up to 300 seconds and complex, multi-layered panoramas aligned to galactic, equatorial, or topocentric coordinate systems.
 
 
-[Getting Started](./getting-started.md) · [Features](#features) · [Gallery](#gallery) · [Documentation](#documentation) · [Videos](https://www.youtube.com/@jdm5001/featured)
+[Getting Started](./getting-started.md) · [Features](#features) · [Gallery](#gallery) · [Documentation](#documentation) · Video Playlists ([v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake), [v2.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d))
 
 </br>
 
@@ -139,7 +139,7 @@ When you have these, follow the [Getting Started](./getting-started.md) guide.
 | Guide | What's inside |
 |---|---|
 | [Release Notes v2.2](./release-notes-v2.2.0.md) | New features, compatible hardware and software, bug fixes and known issues |
-| [Video Playlists](https://www.youtube.com/@jdm5001/featured) | Demonstrations for [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics), [v2.0 and v2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), and [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) |
+| [Video Playlists](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake) | Demonstrations for [v2.2](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFjg4Jb2zVQf3a41sgI5Ake), [v2.0 and v2.1](https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D), and [v1.0](https://www.youtube.com/playlist?list=PL5B1qfE_F9mEwhNBDOyi76xihVkCnHX-d) (the basics) |
 | [Getting Started](./getting-started.md) | Quick-start steps, then a beginner's learning plan for the Polaris, Alpaca, Stellarium, NINA and Siril |
 | [Preparing the MiniPC](./hardware.md) | Choosing, powering, connecting and setting up a MiniPC to run the driver and NINA |
 | [Installation Guide](./installation.md) | Step-by-step install on Windows, plus [macOS](./installation_macos.md), [Raspberry Pi](./raspberrypi.md) and [Docker](./docker.md) |
