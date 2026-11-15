@@ -43,9 +43,9 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
       <sub>Hands-free focus runs with NINA and Hocus Focus, or CCDceil</sub>
     </td>
     <td align="center" width="25%">
-      <img src="images/icons/nina.svg" width="64" alt=""><br>
-      <b>NINA Sequencing</b><br>
-      <sub>ASCOM telescope and rotator for automated imaging with Nina</sub>
+      <img src="images/icons/sky-conditions.svg" width="64" alt=""><br>
+      <b>Sky Conditions</b><br>
+      <sub>Moon, cloud, jet stream, aurora and light pollution forecasts</sub>
     </td>
   </tr>
   <tr>
@@ -109,9 +109,9 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
       <sub>4 reference frames (Motor, Alt/Az, RA/Dec, Galactic), with planned flips, unwinds, backlash and interrupts</sub>
     </td>
     <td align="center" width="25%">
-      <img src="images/icons/sky-conditions.svg" width="64" alt=""><br>
-      <b>Sky Conditions</b><br>
-      <sub>Moon, cloud, jet stream, aurora and light pollution forecasts</sub>
+      <img src="images/icons/open-api.svg" width="64" alt=""><br>
+      <b>Open Alpaca API</b><br>
+      <sub>ASCOM Alpaca REST API with discovery, management, telescope, rotator and device actions</sub>
     </td>
   </tr>
 </table>
