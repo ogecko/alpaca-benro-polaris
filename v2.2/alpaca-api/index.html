@@ -2893,7 +2893,7 @@
 </tr>
 </tbody>
 </table>
-<p>Note that the <strong>Polaris:ConfigUpdate</strong> action returns a value indicating what has been changed. Nina doesnt understand this reponse and marks the instruction execution return as an error. You can safely ignore this in the advanced sequence and mark the instruction as <strong>On Error</strong> <code>Continue</code></p>
+<p>The action returns the settings it changed, as a JSON string, for example <code>{"pid_Kc": 15}</code>. <strong>Polaris:ConfigSave</strong> and <strong>Polaris:ConfigRestore</strong> return their settings the same way.</p>
 <h3 id="polarisconfigsave">Polaris:ConfigSave<a class="headerlink" href="#polarisconfigsave" title="Permanent link">&para;</a></h3>
 <p>Save any modified Alpaca Driver settings to the file <code>config.pilot.json</code> in the data directory.</p>
 <table>
