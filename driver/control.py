@@ -1288,6 +1288,7 @@ class PID_Controller():
         self.delta_sp[:] = self.body2delta()
         self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
         self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
+        self._interrupt_home_or_park()
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
@@ -1332,7 +1333,19 @@ class PID_Controller():
         self.alpha_sp[:] = self.body2alpha()
         self.ff_inhibit_ticks = 2
         self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
+        self._interrupt_home_or_park()
         if self.mode == 'IDLE':
+            self.set_pid_mode('AUTO')
+
+    def _interrupt_home_or_park(self):
+        """A goto during a Home or Park abandons it for the goto, as a goto during a goto does. Left in HOMING/PARKING,
+        track_target's reset_sp wiped the new target each tick: the goto was dropped and the Home ran on (2026-11-15).
+        Only the PID's own state is changed here: Polaris' slewing/athome flags are set by the caller (a goto's
+        markGotoAsUnderway, or RotateToRollAngle cancelling the Home/Park)."""
+        if self.mode in ('HOMING', 'PARKING'):
+            self.logger.info(f'GOTO interrupts {self.mode}')
+            self.homing_complete_callback = None
+            self.parking_complete_callback = None
             self.set_pid_mode('AUTO')
 
     def set_delta_axis_velocity(self, axis, sp=0.0):

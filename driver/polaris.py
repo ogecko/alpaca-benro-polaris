@@ -2581,6 +2581,11 @@ class Polaris:
         self._sm.invalidate_sync_guiding()
         if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Rotate Absolute Observed   RollAngle {deg2dms(roll)}")
+            if self._pid.mode in ('HOMING', 'PARKING'):
+                # the rotate interrupts the Home/Park (control._interrupt_home_or_park). A goto's markGotoAsUnderway
+                # resets slewing, but markRotateAsUnderway doesn't: without this it stayed set with nothing to clear it
+                self.markHomingAsCanceled()
+                self.markParkingAsCanceled()
             self.markRotateAsUnderway()
             self._pid.set_alpha_target({ "roll": roll })
             self._pid.set_rotate_complete_callback(self.markRotateAsComplete)
