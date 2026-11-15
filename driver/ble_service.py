@@ -356,8 +356,10 @@ class BLE_Controller:
                 )
 
             except asyncio.CancelledError:
-                if self.lifecycle.should_shutdown():
-                    raise       # driver is stopping/restarting -- honour the cancel instead of retrying for ~1 min
+                # A real cancel (task.cancel(), eg the driver shutting down) is counted by cancelling(); a CancelledError
+                # surfacing from a stalled WinRT call isn't. Swallowing a real one kept the driver from exiting (2026-11-15).
+                if self.lifecycle.should_shutdown() or asyncio.current_task().cancelling():
+                    raise
                 self.logger.warning(
                     f"BLE connect cancelled on attempt {attempt} "
                     f"(possible WinRT stall)"

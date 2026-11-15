@@ -487,17 +487,18 @@ from enum import Enum, auto
 
 class LifecycleEvent(Enum):
     NONE = auto()
-    SHUTDOWN = auto()           # shutdown the process (internal, eg a service failed to start)
+    SHUTDOWN = auto()           # shutdown the process (Pilot's Stop Driver, or internal, eg a service failed to start)
     SHUTDOWN_OS = auto()        # user initiated shutdown of the host operating system, after the process winds down
     RESTART = auto()            # restart all network services and running async tasks
     INTERRUPT = auto()          # user initiated shutdown ^C
     START = auto()              # used initated start of a stopable procedure
-    STOP = auto()               # user initiated stop of a procedure
+    STOP = auto()               # user initiated stop of a procedure (eg a speed test); the driver keeps running
     
 class LifecycleController:
     def __init__(self):
         self.loop = asyncio.get_running_loop()
         self._event = LifecycleEvent.NONE
+        self.stuck_tasks: list[str] = []         # tasks that ignored shutdown_tasks' cancel
         self._cond = asyncio.Condition()
         self._lock = threading.Lock()  # For thread-safe sync signaling
         self._tasks: Set[asyncio.Task] = set()
@@ -546,18 +547,15 @@ class LifecycleController:
         # This may leave a coroutine it wraps never truly started or awaited, 
         # So perform a sleep here to allow their first step to complete.
         await asyncio.sleep(0)
-        for task in list(self._tasks):
+        tasks = list(self._tasks)
+        for task in tasks:
             task.cancel()
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(*self._tasks, return_exceptions=True),
-                timeout=timeout
-            )
-        except asyncio.TimeoutError:
-            logger.warning("==SHUTDOWN==Timeout while waiting for tasks to cancel")
-        pending = [t for t in self._tasks if not t.done()]
+        # asyncio.wait, not wait_for(gather): on timeout wait_for cancels the gather and then waits for that cancel to
+        # finish, so a task that swallows its cancel hung the shutdown for ever (BLE enableWifi, 2026-11-15)
+        pending = (await asyncio.wait(tasks, timeout=timeout))[1] if tasks else set()
+        self.stuck_tasks = [t.get_name() for t in pending]
         if pending:
-            logger.warning(f"==SHUTDOWN==Tasks still pending: {pending}")
+            logger.warning(f"==SHUTDOWN== Timeout while waiting for tasks to cancel, still pending: {self.stuck_tasks}")
 
 
     def should_stop(self) -> bool:

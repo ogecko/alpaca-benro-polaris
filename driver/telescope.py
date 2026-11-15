@@ -1696,7 +1696,7 @@ class action:
         if actionName == "Polaris:StopDriver":
             resp.text = await PropertyResponse('StopDriver ok', req)  
             await asyncio.sleep(2)
-            await lifecycle.signal(LifecycleEvent.STOP)
+            await lifecycle.signal(LifecycleEvent.SHUTDOWN)     # not STOP, which only stops a procedure (eg a speed test)
 
         elif actionName == "Polaris:ShutdownOS":
             # Shuts down the host OS (not just the driver). Unlike StopDriver, the OS poweroff
@@ -1708,7 +1708,7 @@ class action:
                 logger.warning('ShutdownOS: running in a container, cannot shut down the host OS. Stopping the driver only.')
                 resp.text = await PropertyResponse('ShutdownOS ok (container: driver stopped only)', req)
                 await asyncio.sleep(2)
-                await lifecycle.signal(LifecycleEvent.STOP)
+                await lifecycle.signal(LifecycleEvent.SHUTDOWN)
             else:
                 logger.warning('ShutdownOS: shutting down the host OS.')
                 resp.text = await PropertyResponse('ShutdownOS ok', req)

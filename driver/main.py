@@ -134,7 +134,12 @@ async def main():
                 logger.info("==MAIN== Shutdown requested. Exiting.")
                 break
 
+    stuck = lifecycle.stuck_tasks
+    if stuck:
+        logger.warning(f"==MAIN== Tasks did not stop: {stuck}. Forcing exit.")
     log.shutdown_logging()
+    if stuck:
+        os._exit(0)       # asyncio.run would otherwise wait for ever on the stuck tasks as it cancels them
 
 
 
