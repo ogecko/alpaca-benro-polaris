@@ -2,12 +2,13 @@
 // Used to store any information that needs to be persisted between page changes and on a per tab basis
 // Information stored to sessionStorage will also persist across page refresh F5
 import { defineStore } from 'pinia'
+import { version } from '../../package.json'
 
 // Documentation links: the online site is preferred, so users always see the latest docs.
 // When it can't be reached (eg. at a dark site without internet), links fall back to the
 // offline copy the driver serves at /docs/ (downloaded once per driver version), if present.
 const DOCS_ONLINE_ROOT = 'https://ogecko.github.io/alpaca-benro-polaris/'
-const DOCS_ONLINE = `${DOCS_ONLINE_ROOT}v2.2/`
+const DOCS_ONLINE = `${DOCS_ONLINE_ROOT}v${version.split('.').slice(0, 2).join('.')}/`    // '2.2.0' -> v2.2/, matching docs_version in zensical.toml
 const DOCS_LOCAL = '/docs/'
 const DOCS_PROBE_TIMEOUT_MS = 2500
 const DOCS_RECHECK_MS = 5 * 60 * 1000

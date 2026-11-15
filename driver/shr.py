@@ -49,7 +49,8 @@ _bad_title = 'Bad Alpaca Request'
 # Static metadata not subject to configuration changes
 class DeviceMetadata:
     """ Metadata describing the Alpaca Device/Server """
-    Version = '2.2.0 Release'              # Alpaca Version Number (based on https://semver.org/, change in shy.py, AboutPage.vue and package.json)
+    #  change Version in shr.py, AboutPage.vue, package.json, pyproject.toml and docs_version in zensical.toml)
+    Version = '2.2.0 Release'              # Alpaca Version Number (based on https://semver.org/)
     VersionSynScan = '020200'      # Must be 6 digits for SynScan protocol
     Description = 'Alpaca Benro Polaris Driver'
     Manufacturer = 'oGecko'
