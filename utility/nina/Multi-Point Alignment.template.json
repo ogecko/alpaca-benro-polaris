@@ -64,7 +64,7 @@
         "$id": "9",
         "$type": "DaleGhent.NINA.DeviceActionsCommands.DeviceActionInstruction, DaleGhent.NINA.DeviceActionsCommands",
         "DeviceType": 9,
-        "ActionName": "Polaris:PanoGrid",
+        "ActionName": "Polaris:ConfigUpdate",
         "ActionParameters": "{\"advanced_alignment\":false}",
         "SupportedActions": {
           "$id": "10",
@@ -197,7 +197,7 @@
         "$id": "15",
         "$type": "DaleGhent.NINA.DeviceActionsCommands.DeviceActionInstruction, DaleGhent.NINA.DeviceActionsCommands",
         "DeviceType": 9,
-        "ActionName": "Polaris:PanoGrid",
+        "ActionName": "Polaris:ConfigUpdate",
         "ActionParameters": "{\"advanced_alignment\":true}",
         "SupportedActions": {
           "$id": "16",

@@ -43,7 +43,7 @@
         "$id": "7",
         "$type": "DaleGhent.NINA.DeviceActionsCommands.DeviceActionInstruction, DaleGhent.NINA.DeviceActionsCommands",
         "DeviceType": 9,
-        "ActionName": "Polaris:PanoGrid",
+        "ActionName": "Polaris:ConfigUpdate",
         "ActionParameters": "{\"advanced_pec_drift\":true, \"advanced_pec_worm\":true, \"advanced_sync_guiding\":true}",
         "SupportedActions": {
           "$id": "8",
