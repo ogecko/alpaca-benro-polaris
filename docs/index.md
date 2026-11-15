@@ -96,7 +96,7 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
     <td align="center" width="25%">
       <img src="images/icons/pid-control.svg" width="64" alt=""><br>
       <b>PID Control</b><br>
-      <sub>Closed-loop motor control for smooth, accurate tracking</sub>
+      <sub>Closed-loop motor control on 3 axes for smooth, accurate tracking</sub>
     </td>
     <td align="center" width="25%">
       <img src="images/icons/pec.svg" width="64" alt=""><br>
@@ -104,9 +104,9 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
       <sub>Learns and cancels worm-gear error and residual drift</sub>
     </td>
     <td align="center" width="25%">
-      <img src="images/icons/backlash.svg" width="64" alt=""><br>
-      <b>Backlash Compensation</b><br>
-      <sub>Takes up gear slack after each goto so tracking settles fast</sub>
+      <img src="images/icons/smart-gotos.svg" width="64" alt=""><br>
+      <b>Smart Gotos</b><br>
+      <sub>4 reference frames (Motor, Alt/Az, RA/Dec, Galactic), with planned flips, unwinds, backlash and interrupts</sub>
     </td>
     <td align="center" width="25%">
       <img src="images/icons/sky-conditions.svg" width="64" alt=""><br>
