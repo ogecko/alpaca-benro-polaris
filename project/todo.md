@@ -151,7 +151,7 @@ Connect PHD2 → bridge → Driver end-to-end on the Pi. Perform calibration per
 Package the bridge (and Xvfb) as systemd services alongside `polaris-driver.service`, so a normal session needs VNC only for the one-off setup/calibration steps, not for ongoing guiding. Test an unattended multi-hour session.
 
 ### Phase 5 — Docs & Hardware Guidance
-Document the required powered USB hub, tested guide camera models, and setup workflow in `docs/install-hardware.md` / `docs/guiding-pulse.md` / `docs/install-pi.md`.
+Document the required powered USB hub, tested guide camera models, and setup workflow in `docs/install-minipc.md` / `docs/guiding-pulse.md` / `docs/install-pi.md`.
 
 
 ## 6. UX Rationalisation

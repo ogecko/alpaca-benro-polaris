@@ -3,7 +3,7 @@
 ## Quick Start
 
 1. **Back the project.** The driver is distributed for [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=7xf94o) backers ([licence](https://github.com/ogecko/alpaca-benro-polaris/blob/main/LICENSE)).
-2. **Prepare a platform.** [MiniPC](./install-hardware.md), Windows Tablet, Laptop, Mac, Pi or Docker.
+2. **Prepare a platform.** [MiniPC](./install-minipc.md), Windows Tablet, Laptop, Mac, Pi or Docker.
 3. **Install the driver.** [Windows](./install-win.md) · [macOS](./install-macos.md) · [Raspberry Pi](./install-pi.md) · [Docker](./install-docker.md)
 4. **Connect with Alpaca Pilot.** [Connecting Polaris](./use-pilot.md#connecting-polaris)
 5. **Initial setup.** [Site Location](./initial-setup.md#site-location) · [Alignment](./initial-setup.md#multi-point-alignment) · [Calibration](./initial-setup.md#motor-speed-calibration)
@@ -63,7 +63,7 @@ Once this is successful you may want to consider getting a Mini-PC and installin
 
 * A mini-PC allows you to use Nina to control the Polaris, camera, and potentially other equipment. It provides enhanced processing power, remote control, and a better overall user experience. Start by learning how to install and setup Nina. Then move on to learning how to perform an autofocus run, perform plate solving, create a sequence and capture images.
 
-More information on the Alpaca setup can be found in [Architecture](./ref-architecture.md#hardware-architectures) and [Preparing the MiniPC](./install-hardware.md).
+More information on the Alpaca setup can be found in [Architecture](./ref-architecture.md#hardware-architectures) and [Preparing the MiniPC](./install-minipc.md).
   
 #### Installing the Driver
 The installation process varies slightly depending on your chosen platform. Step-by-step instructions are in the guides for [Windows](./install-win.md), [macOS](./install-macos.md), [Raspberry Pi](./install-pi.md) and [Docker](./install-docker.md), but here's a simplified overview:

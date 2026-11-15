@@ -131,7 +131,7 @@
 - **[CCDciel Guide]**: Add the CCDciel users guide for the Benro Polaris (use-ccdciel.md)
 - **[Rotator Alignment]**: Add a section on the importance of Rotator Alignment, and how to perform a manual Position Angle Sync (ref-control.md)
 - **[Kinematics Reference]**: Defines Reference Frames, Kinematic Flows and Correction Algorithms
-- **[Microsoft Account]**: Prevent Windows from syncing Wi-Fi settings across PCs using the same Microsoft account (install-hardware.md)
+- **[Microsoft Account]**: Prevent Windows from syncing Wi-Fi settings across PCs using the same Microsoft account (install-minipc.md)
 - **[Auto Startup]**: Define how to make the Alpaca Driver start automatically on Windows (install-win.md, Step 5)
 - **[Guiding 16-bit]**: Describe how to configure the guide camera as a 16-bit camera (guiding.md, Section 3.1)
 - **[Guiding Calibration]**: Provide best practice recommendations in choosing a guiding calibration location (guiding.md, Section 4)

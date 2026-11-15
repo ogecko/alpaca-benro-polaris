@@ -32,7 +32,7 @@ You can control everything from an iPad or phone connected to your home Wi-Fi, o
 
 Alternatively, a desktop or laptop can do the same thing, running (a) Stellarium Desktop, connected to the driver, and (b) Remote Desktop, connected to the MiniPC to control NINA.
 
-[Preparing the MiniPC](./install-hardware.md) explains how to choose, power, connect and set up a MiniPC.
+[Preparing the MiniPC](./install-minipc.md) explains how to choose, power, connect and set up a MiniPC.
 
 ## Software Architecture
 The following diagram shows how the different software modules fit together.
