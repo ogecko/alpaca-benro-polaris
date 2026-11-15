@@ -35,17 +35,17 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
     <td align="center" width="25%">
       <img src="images/icons/plate-solving.svg" width="64" alt=""><br>
       <b>Plate Solving</b><br>
-      <sub>Solve, Sync and Center on targets accurately and quickly</sub>
+      <sub>Solve and Sync on targets accurately and quickly with Nina or CCDceil</sub>
     </td>
     <td align="center" width="25%">
       <img src="images/icons/autofocus.svg" width="64" alt=""><br>
       <b>Autofocus</b><br>
-      <sub>Hands-free focus runs with NINA and Hocus Focus</sub>
+      <sub>Hands-free focus runs with NINA and Hocus Focus, or CCDceil</sub>
     </td>
     <td align="center" width="25%">
       <img src="images/icons/nina.svg" width="64" alt=""><br>
       <b>NINA Sequencing</b><br>
-      <sub>ASCOM telescope and rotator for automated imaging</sub>
+      <sub>ASCOM telescope and rotator for automated imaging with Nina</sub>
     </td>
   </tr>
   <tr>
@@ -57,7 +57,7 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
     <td align="center" width="25%">
       <img src="images/icons/sync-guiding.svg" width="64" alt=""><br>
       <b>Sync Guiding</b><br>
-      <sub>Guide with your main camera, no guide scope needed</sub>
+      <sub>Guide by solve and syncing with your main camera, no guide scope needed</sub>
     </td>
     <td align="center" width="25%">
       <img src="images/icons/pulse-guiding.svg" width="64" alt=""><br>
@@ -65,9 +65,9 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
       <sub>PHD2 guide-camera corrections for longer exposures</sub>
     </td>
     <td align="center" width="25%">
-      <img src="images/icons/motion-control.svg" width="64" alt=""><br>
-      <b>Advanced Control</b><br>
-      <sub>PID tracking, periodic error and backlash compensation</sub>
+      <img src="images/icons/gps-receiver.svg" width="64" alt=""><br>
+      <b>GPS Receiver</b><br>
+      <sub>Plug in a USB GPS to set your site location automatically</sub>
     </td>
   </tr>
   <tr>
@@ -84,12 +84,34 @@ The Alpaca Driver adds these capabilities to the Benro Polaris, beyond what the 
     <td align="center" width="25%">
       <img src="images/icons/panoramas.svg" width="64" alt=""><br>
       <b>Panoramas</b><br>
-      <sub>Plan and capture multi-panel and Milky Way mosaics and vertical panoramas</sub>
+      <sub>Plan and capture multi-pass astro landscapes, panoramas and mosaics.</sub>
     </td>
     <td align="center" width="25%">
       <img src="images/icons/astro-cameras.svg" width="64" alt=""><br>
       <b>Astro Cameras</b><br>
-      <sub>Current DSLR, Mirrorless, Planetary and DSO astro cameras</sub>
+      <sub>Current Mirrorless, DSLR, and Astro cameras support with Nina or CCDCeil</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <img src="images/icons/pid-control.svg" width="64" alt=""><br>
+      <b>PID Control</b><br>
+      <sub>Closed-loop motor control for smooth, accurate tracking</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="images/icons/pec.svg" width="64" alt=""><br>
+      <b>Periodic Error Correction</b><br>
+      <sub>Learns and cancels worm-gear error and residual drift</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="images/icons/backlash.svg" width="64" alt=""><br>
+      <b>Backlash Compensation</b><br>
+      <sub>Takes up gear slack after each goto so tracking settles fast</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="images/icons/sky-conditions.svg" width="64" alt=""><br>
+      <b>Sky Conditions</b><br>
+      <sub>Moon, cloud, jet stream, aurora and light pollution forecasts</sub>
     </td>
   </tr>
 </table>
