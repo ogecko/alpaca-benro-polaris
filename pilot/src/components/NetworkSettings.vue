@@ -88,6 +88,10 @@
             :model-value="ui.driverTimeout" v-on:update:model-value="ui.setDriverTimeout">
             </q-input>
         </div>
+        <!-- Anonymous Usage Analytics -->
+        <div class="row q-col-gutter-sm no-wrap setting-row">
+            <q-toggle class='col-8' v-bind="bindField('enable_analytics', 'Send Anonymous Usage Analytics')"/>
+        </div>
     </q-card>
 
 </template>

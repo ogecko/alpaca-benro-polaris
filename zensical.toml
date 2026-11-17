@@ -150,3 +150,8 @@ docs_version = "v2.2"
 
 [project.extra.version]
 provider = "mike"
+
+# Google Analytics (GA4), one property for every docs version; split versions by page path (/v2.2/...)
+[project.extra.analytics]
+provider = "google"
+property = "G-DZYDKT36X3"
