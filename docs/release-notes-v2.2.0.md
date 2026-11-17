@@ -83,6 +83,7 @@
 - **[Persistent Interface State]** Retain coordinate frames, dial zoom ranges, and catalog filters across supported navigation workflows.
 - **[Observing Tools]** Add bright-object discovery, mountain-peak identification and elevation information, and improved site and equipment setup checks.
 - **[Offline Operation]** Persist observing locations, orbital data, and alignment models for use without continuous network access.
+- **[Usage Analytics]** Anonymous Pilot page-view analytics, switchable in Network Services ([FAQ A7](./help-faq.md#a7---usage-analytics)).
 
 ### App Integration
 
