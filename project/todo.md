@@ -16,9 +16,9 @@
   - [ ] Upgrade Node on win11 by downloading installer from https://nodejs.org/en/download
 - [X] Check GitHub open issues
   - [ ] No CodeQL Security or Quality issues
-  - [ ] No Malware or Vulnerability issues
+  - [ ] No Malware or Vulnerability issuesW
   - [ ] No AI findings that have not been addressed
-  - [ ] Confirmed any open GitHub issues are acceptable for release
+  - [ ] Confirmed any open GitHub issues are acceptable for releaseW
 - [X] Final Changes - git checkout dev2_2, git pull origin dev2_2
   - [ ] Check version # in zensical.toml, release-notes-vX.X.X.md, shy.py, install-win.md, AboutPage.vue, package.json
   - [ ] Check download links in release-notes-vX.X.X.md
@@ -27,7 +27,7 @@
   - [ ] Confirm all Alpaca Driver unit tests pass
   - [ ] Confirm all Alpaca Pilot unit tests pass
 - [ ] Create Branch - releases/2_2_0 based on dev2_2
-- [ ] Merge into main - git checkout main, git pull origin main, git merge releases/v2.2.0, git push origin main
+- [ ] Merge into main - git checkout main, git pull origin main, git merge releases/2_2_0, git push origin main
 - [ ] Draft Github New Release and Tag - on main branch
   - [ ] Release Title: Alpaca Benro Polaris Driver v2.2.0
   - [ ] Release Notes: Refer to https://ogecko.github.io/alpaca-benro-polaris/v2.2/release-notes-v2.2.0/
