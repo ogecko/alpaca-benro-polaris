@@ -4,7 +4,7 @@
 
 * **Version:** 2.2.0 Release
 * **Release Date:** 17-Nov-2026
-* **Availability:** Download from [Alpaca Driver v2.2 ZIP file](https://github.com/ogecko/alpaca-benro-polaris/archive/refs/heads/dev2_2.zip)
+* **Availability:** Install by following the [Online Documentation](https://ogecko.github.io/alpaca-benro-polaris) Getting Started
 * **License:** Distributed exclusively for backers of the [Kickstarter Project](https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=d1hx2v)
 * **Current Branch:** releases/2_2_0
 
@@ -22,7 +22,7 @@
 
 * If you are using ASCOM, upgrade to ASCOM Platform 7.1.3
 * Remove the old `C:\Users\Nina\Documents\alpaca-benro-polaris>` directory.
-* Follow the standard [Installation Guide](./install-win.md) to install the Alpaca Driver v2.2.0. The new `setup.bat` installs Git, uv, Python and every pre-requisite package for you, so there is no need to install or upgrade Python or pip yourself.
+* Follow the standard [Online Documentation](https://ogecko.github.io/alpaca-benro-polaris) Getting Started. The new `setup.bat` installs Git, uv, Python and every pre-requisite package for you, so there is no need to install or upgrade Python or pip yourself.
 * WARNING: Update Stellarium Desktop Telescope Settings for Alpaca Driver V2.x
     * Recreate the Stellarium Desktop ASCOM Settings, as the Alpaca Driver name has changed in V2.x
     * Change the ASCOM Telescope Co-ordinate System to "Equinox of the date (JNow)", as this is the default for Alpaca Driver V2.x
