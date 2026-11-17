@@ -48,6 +48,16 @@ There is an open feature request to patch the Polaris firmware and embed the Dri
 
 For now, the best experience comes from pairing the Polaris with a mini-PC and using mobile devices as remote interfaces.
 
+### A7 - Usage Analytics?
+From v2.2, Alpaca Pilot can send anonymous usage analytics (Google Analytics) to help plan improvements, such as which pages to develop further and which languages to translate into first. It is on by default, and you can turn it off at any time.
+
+- **What is sent:** the name of each Pilot page you open (e.g. Dashboard or Catalog), the Pilot and Driver versions, and the general information every website visit sends, such as browser type, screen size and approximate country.
+- **What is not sent:** your Driver's network address or hostname, your observing location, your equipment, your settings or your images. Pages are reported against a placeholder address rather than your own.
+- **Offline:** nothing is sent when the browser has no internet connection, such as at a dark site.
+- **To turn it off:** on the **Connect** page, open **Network Services**, turn off **Send Anonymous Usage Analytics** and select **Save**. Pilot stops sending straight away. You can also set `enable_analytics = false` in the [Configuration](./ref-config.md).
+
+The online documentation also uses Google Analytics to count page views.
+
 
 ## Benro Polaris
 

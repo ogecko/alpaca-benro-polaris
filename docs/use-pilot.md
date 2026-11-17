@@ -239,6 +239,8 @@ Additionally, this dialog allows you to modify the Driver’s behavior regarding
 
 It's also where you download the driver's CA certificate and switch Alpaca Pilot to HTTPS. Alpaca Pilot runs over HTTP by default, and browsers restrict some features, such as location access and the clipboard, to HTTPS. See [Using HTTPS](./initial-setup.md#using-https) in Initial Setup.
 
+The **Send Anonymous Usage Analytics** switch controls whether Alpaca Pilot reports which of its pages are used, to help plan improvements such as translations. See [A7 - Usage Analytics?](./help-faq.md#a7---usage-analytics) for what is sent.
+
 ![Pilot connect](images/pilot-connectf.png)
 
 <br>
