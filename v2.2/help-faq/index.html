@@ -2006,6 +2006,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#a7---usage-analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A7 - Usage Analytics?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2329,6 +2340,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#a7---usage-analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        A7 - Usage Analytics?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2646,6 +2668,15 @@
 </ul>
 <p>There is an open feature request to patch the Polaris firmware and embed the Driver directly into the device. While technically feasible, it’s a complex effort with firmware risks and IP concerns. It’s tracked as issue #33: Patch Polaris firmware to run Alpaca natively, but not planned for V2.0.</p>
 <p>For now, the best experience comes from pairing the Polaris with a mini-PC and using mobile devices as remote interfaces.</p>
+<h3 id="a7---usage-analytics">A7 - Usage Analytics?<a class="headerlink" href="#a7---usage-analytics" title="Permanent link">&para;</a></h3>
+<p>From v2.2, Alpaca Pilot can send anonymous usage analytics (Google Analytics) to help plan improvements, such as which pages to develop further and which languages to translate into first. It is on by default, and you can turn it off at any time.</p>
+<ul>
+<li><strong>What is sent:</strong> the name of each Pilot page you open (e.g. Dashboard or Catalog), the Pilot and Driver versions, and the general information every website visit sends, such as browser type, screen size and approximate country.</li>
+<li><strong>What is not sent:</strong> your Driver's network address or hostname, your observing location, your equipment, your settings or your images. Pages are reported against a placeholder address rather than your own.</li>
+<li><strong>Offline:</strong> nothing is sent when the browser has no internet connection, such as at a dark site.</li>
+<li><strong>To turn it off:</strong> on the <strong>Connect</strong> page, open <strong>Network Services</strong>, turn off <strong>Send Anonymous Usage Analytics</strong> and select <strong>Save</strong>. Pilot stops sending straight away. You can also set <code>enable_analytics = false</code> in the <a href=".././ref-config/">Configuration</a>.</li>
+</ul>
+<p>The online documentation also uses Google Analytics to count page views.</p>
 <h2 id="benro-polaris">Benro Polaris<a class="headerlink" href="#benro-polaris" title="Permanent link">&para;</a></h2>
 <h3 id="b1---deep-sky-imaging">B1 - Deep-Sky Imaging?<a class="headerlink" href="#b1---deep-sky-imaging" title="Permanent link">&para;</a></h3>
 <p>Yes, you can definitely use the Benro Polaris for deep-sky photography, but there are limitations! As an Alt/Az mount without auto-guiding, you're limited to relatively short exposures to avoid star trails. However, by combining a good camera, a longer lens (up to 800mm), and the advanced features unlocked by the Alpaca Driver and software like Nina, you can capture stunning images of deep-sky objects. </p>
