@@ -1,1 +1,0 @@
-import{n as e,t}from"./device-qWeKMVD4.js";var n=async()=>{e.appVisible=!document.hidden,await t().connectRestAPI()};export{n as default};

@@ -27,17 +27,13 @@ function pageTitle(path: string): string {
   return `Pilot - ${page ? page.charAt(0).toUpperCase() + page.slice(1) : 'Startup'}`
 }
 
-function loadGtag(driverVersion: string) {
+function loadGtag() {
   window.dataLayer = window.dataLayer || []
   // gtag must push the arguments object itself, not an array, for the Google tag to read it
   // eslint-disable-next-line prefer-rest-params
   window.gtag = function () { window.dataLayer!.push(arguments) }
   window.gtag('js', new Date())
-  window.gtag('config', MEASUREMENT_ID, {
-    send_page_view: false,        // sent on each route change below
-    app_version: pilotVersion,    // custom dimension "App version"
-    driver_version: driverVersion // custom dimension "Driver version"
-  })
+  window.gtag('config', MEASUREMENT_ID, { send_page_view: false })   // sent on each route change below
   const script = document.createElement('script')
   script.async = true
   script.src = `https://www.googletagmanager.com/gtag/js?id=${MEASUREMENT_ID}`
@@ -56,7 +52,11 @@ export default defineBoot(({ router }) => {
     // Set (not just send) the placeholder location, so the other events GA sends, such as scrolls and outbound
     // clicks, report it too, rather than the local address in the browser's address bar
     window.gtag!('set', { page_location: `${REPORTED_HOST}${path}`, page_title: pageTitle(path) })
-    window.gtag!('event', 'page_view')
+    // The versions go on each page view: GA does not attach custom parameters from the config call to later events
+    window.gtag!('event', 'page_view', {
+      app_version: pilotVersion,                         // custom dimension "App version"
+      driver_version: dev.alpacaServerVersion || undefined, // custom dimension "Driver version"
+    })
   }
 
   // Start (or pause/resume) once the config is known and whenever enable_analytics changes
@@ -65,7 +65,7 @@ export default defineBoot(({ router }) => {
     (enabled) => {
       window[`ga-disable-${MEASUREMENT_ID}`] = !enabled
       if (enabled && !loaded) {
-        loadGtag(dev.alpacaServerVersion)
+        loadGtag()
         pageView(router.currentRoute.value.path)
       }
     },
