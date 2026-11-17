@@ -1,6 +1,6 @@
 [project]
 name = "alpaca-benro-polaris"
-version = "2.2.0"
+version = "3.0.0"
 description = "Alpaca Driver and Pilot for the Benro Polaris"
 authors = [
     { name = "David Morrison", email = "jdmorriso@gmail.com" }
