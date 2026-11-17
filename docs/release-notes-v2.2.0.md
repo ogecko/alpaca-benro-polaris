@@ -12,7 +12,7 @@
 
 * **Pilot Videos:** Sidbar Video menu links to [full YouTube channel](https://www.youtube.com/@jdm5001/featured), with v2.2 videos:
     * [40 - Deep Dive Podcast](https://youtu.be/ouJ52WcTY2M)
-    * [41 - Installation on Win11](https://youtu.be/qXRiTLS2EaY)
+    * [41b - Installation on Win11](https://youtu.be/5nLtzFfNpXk)
     * [42 - Installation on Raspberry Pi](https://youtu.be/4_zNjTEfG6Y)
     * [43 - Beta Preview](https://youtu.be/YfUGk_6oSYE)
     * [44 - Galactic Panorama Workflow](https://youtu.be/f1YoKFxFse4)

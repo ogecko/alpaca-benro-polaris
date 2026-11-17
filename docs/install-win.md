@@ -15,7 +15,7 @@
 
 You can view a demonstration of parts of this documentation in the following YouTube Video.
 
-[![Install and Setup on Windows 11](https://img.youtube.com/vi/qXRiTLS2EaY/0.jpg)](https://www.youtube.com/watch?v=qXRiTLS2EaY)
+[![Install and Setup on Windows 11](https://img.youtube.com/vi/5nLtzFfNpXk/0.jpg)](https://www.youtube.com/watch?v=5nLtzFfNpXk)
 
 The `setup.bat` script installs and configures the Alpaca Driver. It uses [uv](https://docs.astral.sh/uv/) to install Python and the required libraries, and [Git](https://git-scm.com/) to download and update the driver. The setup script also configures the required network ports in Windows Firewall, offers to start the driver automatically when Windows starts, and places a shortcut to the driver on your desktop.
 
