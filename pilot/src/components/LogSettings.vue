@@ -29,15 +29,15 @@
         <!-- Logging Flags -->
         <div class="q-gutter-y-sm">
             <div class="row">
-            <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log Alpaca Protocol')"/>
-            <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Alpaca Polling')"/>
-            </div>
-            <div class="row">
+            <q-toggle class='col-6' v-bind="bindField('log_alpaca_protocol', 'Log Telescope Protocol')"/>
             <q-toggle class='col-6' v-bind="bindField('log_alpaca_discovery', 'Log Alpaca Discovery')"/>
-            <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
             </div>
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_rotator_protocol', 'Log Rotator Protocol')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_alpaca_polling', 'Log Alpaca Polling')"/>
+            </div>
+            <div class="row">
+            <q-toggle class='col-6' v-bind="bindField('log_alpaca_actions', 'Log Action Invokation')"/>
             <q-toggle class='col-6' v-bind="bindField('log_pulse_guiding', 'Log Pulse Guiding')"/>
             </div>
             <div class="row">
@@ -54,6 +54,15 @@
             </div>
             <div class="row">
             <q-toggle class='col-6' v-bind="bindField('log_orbital_queries', 'Log Orbital Queries')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_pec', 'Log Predictive Error Correction')"/>
+            </div>
+            <div class="row">
+            <q-toggle class='col-6' v-bind="bindField('log_heartbeat', 'Log Heartbeat Stack Traces')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_position', 'Log Kinematics Position')"/>
+            </div>
+            <div class="row">
+            <q-toggle class='col-6' v-bind="bindField('log_gps_receiver', 'Log GPS Receiver')"/>
+            <q-toggle class='col-6' v-bind="bindField('log_hardware_unit_tests', 'Allow Hardware Unit Tests')"/>
             </div>
         </div>
     </q-card>
@@ -63,21 +72,11 @@
 // import axios from 'axios'
 import { onMounted } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
 import { debounce } from 'quasar'
 
-const dev = useDeviceStore()
 const cfg = useConfigStore()
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
 })
 
 function bindField(key: string, label: string, suffix?: string) {

@@ -75,7 +75,7 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
                   <q-item-label >SYNC @ {{data.time}}</q-item-label>
               </q-item-section>
               <q-item-section>
-                  <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} </q-item-label>
+                  <q-item-label caption>Az {{data.a_az}} Alt {{data.a_alt}} Roll {{data.p_roll}} </q-item-label>
               </q-item-section>
               <q-item-section side>
                   <q-item-label color="negative">
@@ -88,12 +88,23 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
                   <q-btn dense size="sm" round icon="mdi-close" @click="onSyncRemove(data.timestamp)"/>
               </q-item-section>
             </q-item>
+            <q-item v-if="telescope_syncs.length>1">
+              <q-item-section>Alignment RMS Error (n={{ telescope_syncs.length }})</q-item-section>
+              <q-item-section side>
+                  <q-item-label>
+                    <span>RMS Residual {{mpaerror}}'</span> 
+                  </q-item-label>
+              </q-item-section>              
+              <q-item-section side>
+                  <q-btn dense size="sm" round/>
+              </q-item-section>
+            </q-item>
           </q-list>
-          <!-- Telescope Correction Summary Row -->
-          <div class="text-h7 q-pt-md">Correction Summary</div>
+          <!-- Mount Orientation: the rigid rotation -->
+          <div class="text-h7 q-pt-md">Mount Orientation</div>
           <div class="row">
                 <div class="col-12 text-caption text-grey-6">
-                The telescope alignment model is correcting for the following adjustments.
+                How the mount is aligned with the horizon and compass bearing. 
                 </div>
           </div>
           <div class="row text-center">
@@ -111,6 +122,39 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
             </div>
 
           </div>
+          <!-- Mechanical Alignment: how the camera and M2 sit on the mount (MAC) -->
+          <template v-if="cfg.advanced_align_mac">
+            <div class="text-h7 q-pt-md">Mechanical Alignment</div>
+            <div class="row">
+                <div class="col-12 text-caption text-grey-6">
+                How the camera boresight (M3) and altitude axis (M2) are aligned on the mount.
+                </div>
+            </div>
+            <div class="row text-center">
+              <div class="col-4">
+                  <div class="text-h4">{{formatAngle(macD3,'deg',1)}}</div>
+                  <div class="text-caption">M3 Offset</div>
+                  <div class="text-caption text-grey-6">{{offsetsStatus}}</div>
+              </div>
+              <div class="col-4">
+                  <div class="text-h4">{{formatAngle(macD2,'deg',1)}}</div>
+                  <div class="text-caption">M2 Offset</div>
+                  <div class="text-caption text-grey-6">{{offsetsStatus}}</div>
+              </div>
+              <div class="col-4">
+                  <div class="text-h4">{{macS2}}%</div>
+                  <div class="text-caption">M2 Scale</div>
+                  <div class="text-caption text-grey-6">{{scaleStatus}}</div>
+              </div>
+            </div>
+            <!-- Guidance: how to improve the fit -->
+            <template v-if="p.alignguide">
+              <div class="text-h7 q-pt-md">Guidance</div>
+              <div class="row">
+                  <div class="col-12 text-caption text-grey-6">{{p.alignguide}}</div>
+              </div>
+            </template>
+          </template>
         </q-card>
       </div>
 
@@ -155,7 +199,7 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
           </q-card>
       </div>
 
-      <!-- Telescope Alignment Row -->
+      <!-- Methods to add Sync Points -->
       <div class="col-12 col-md-6 col-lg-4 flex">
           <q-card flat bordered class="q-pa-md full-width">
           <div class="text-h6">Methods to add SYNC Points</div>
@@ -258,9 +302,9 @@ Alpaca single-point alignment mirrors the standard Polaris alignment method, syn
           </q-card>
       </div>
 
-  </div>
+    </div>
 
-</q-page>
+  </q-page>
 </template>
 
 
@@ -271,8 +315,8 @@ import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
-import type { TelemetryRecord, SyncMessage }from 'src/stores/stream'
-import { formatAngle } from 'src/utils/scale'
+import type { SyncMessage }from 'src/stores/stream'
+import { formatAngle, formatDegreesHr } from 'src/utils/scale'
 import { deg2dms, dms2deg } from 'src/utils/angles'
 import { useStatusStore } from 'src/stores/status'
 import type { LocationResult } from 'src/utils/locationServices';
@@ -282,6 +326,16 @@ import { debounce } from 'quasar'
 const socket = useStreamStore()
 const p = useStatusStore()
 const cfg = useConfigStore()
+
+// Mechanical Alignment: the terms (M2/M3 offsets deg, M2 scale %) and status words, as the driver reports them
+function statusWord(s: string | undefined) {
+  return s === 'fitted' ? 'Fitted' : s === 'held' ? 'Held' : 'Default'
+}
+const macD2 = computed(() => p.alignmodel[0] ?? 0)
+const macD3 = computed(() => p.alignmodel[1] ?? 0)
+const macS2 = computed(() => { const v = p.alignmodel[2] ?? 0; return (v >= 0 ? '+' : '') + v.toFixed(2) })
+const offsetsStatus = computed(() => statusWord(p.alignstatus[0]))
+const scaleStatus = computed(() => statusWord(p.alignstatus[1]))
 const dev = useDeviceStore()
 
 const selected = ref([])
@@ -301,51 +355,45 @@ const Az = computed(() => dms2deg(Az_Str.value, 'deg'))
 const Alt = computed(() => dms2deg(Alt_str.value, 'deg'))
 const Roll = computed(() => dms2deg(Roll_str.value, 'deg'))
 
-const telescope_syncs = computed(() => {
-  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>((d.a_az != '') && (d.a_alt != '')))
-  const consolidated = new Map<string, TableRow>()
-  for (const data of syncdata) {
-    consolidated.set(data.timestamp, data)
-  }
-  return Array.from(consolidated.values()).filter(d=>(!d.deleted))
-})
+const mpaerror = computed(() => p.mpastatus?.[1] != null ? (p.mpastatus[1] * 60).toFixed(1) : "")
 
-const rotator_syncs = computed(() => {
-  const sm = socket.topics?.sm ?? [] as TelemetryRecord[];
-  const syncdata = sm.map(formatSyncData).filter(d=>(d.a_roll != ''))
-  const consolidated = new Map<string, TableRow>()
-  for (const data of syncdata) {
-    consolidated.set(data.timestamp, data)
-  }
-  return Array.from(consolidated.values()).filter(d=>(!d.deleted))
-})
+const telescope_syncs = computed(() =>
+  Array.from(socket.syncPoints.values())
+    .filter(d => d.a_az != null && d.a_alt != null)
+    .map(formatSyncData)
+)
+
+const rotator_syncs = computed(() =>
+  Array.from(socket.syncPoints.values())
+    .filter(d => d.a_roll != null)
+    .map(formatSyncData)
+)
 
 
 watch(axis, ()=>selected.value=[])
 
 type TableRow = {
-  timestamp:string, deleted:boolean, time:string, a_az:string, a_alt:string, a_roll:string, residual:number, resmag:string, resvec:[number, number] 
+  timestamp:string, deleted:boolean, time:string, a_az:string, a_alt:string, a_roll:string, p_roll:string, residual:number, resmag:string, resvec:[number, number] 
 }
 
 
-function formatSyncData(d: TelemetryRecord):TableRow {
-  const data = d.data as SyncMessage
+function formatSyncData(data:SyncMessage):TableRow {
   const timestamp = data.timestamp ?? ''
   const deleted = data.deleted ?? false
   const time = new Date(data.timestamp).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true}) ?? ''
   const a_az = data.a_az != null ? formatAngle(data.a_az, 'deg', 1) : ''
   const a_alt = data.a_alt != null  ? formatAngle(data.a_alt, 'deg', 1) : ''
-  const a_roll = data.a_roll != null ? formatAngle(data.a_roll, 'deg', 1) : ''
+  // a roll is always shown in degrees: formatAngle's arcsec for a roll near 0 (-60.0″) read as -60 deg
+  const a_roll = data.a_roll != null ? formatDegreesHr(data.a_roll, 'deg', 1) : ''
+  const p_roll = data.p_roll != null ? formatDegreesHr(data.p_roll, 'deg', 1) : ''
   const residual = data.residual_magnitude ? data.residual_magnitude : 0
   const resmag = data.residual_magnitude ? formatAngle(data.residual_magnitude, 'deg', 1) : ''
   const resvec = data.residual_vector ?? [0,0]
-  return { timestamp, deleted, time, a_az, a_alt, a_roll, residual, resmag, resvec }
+  return { timestamp, deleted, time, a_az, a_alt, a_roll, p_roll, residual, resmag, resvec }
 }
 
-onMounted(async () => {
+onMounted(() => {
   socket.subscribe('sm')
-  await cfg.configFetch()
 })
 
 onUnmounted(() => {

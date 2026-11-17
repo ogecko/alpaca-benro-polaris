@@ -1,4 +1,3 @@
-[Home](../README.md) | [Hardware](./hardware.md) | [Installation](./installation.md) | [Pilot](./pilot.md) | [Control](./control.md) | [Stellarium](./stellarium.md) | [Nina](./nina.md) | [Troubleshooting](./troubleshooting.md) | [FAQ](./faq.md)
 # Release Notes
 
 ## Alpaca Benro Polaris Driver  
@@ -9,7 +8,8 @@
 **MacOS Install:** Demonstration Video at https://youtu.be/ZT91dpLObP8
 
 
-## New Features (enabled by StellariumPLUS)
+## Stellarium PLUS Features
+
 - **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Larger Catalog]**: Includes an extensive catalog of celestial objects, surpassing the BP App.
 - **[GOTO Coordinates]**: Command the Benro Polaris to move to a selected target  with a simple click.
@@ -27,7 +27,8 @@
 - **[OS Supported]**: Supports IOS and Android.
 - **[Hardware Supported]**: Supports iPad, Tablets and Mobile Phones.
 
-## New Features (enabled by Stellarium Desktop)
+## Stellarium Desktop Features
+
 - **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Even Larger Catalog]**: Includes an extensive catalog of celestial objects, surpassing the BP App.
 - **[What’s Up Tonight]**: A tool for planning the best celestial objects to observe.
@@ -44,7 +45,8 @@
 - **[OS Supported]**: It supports MacOS, Linux and Windows.
 - **[Hardware Supported]**: It supports Laptops and Desktops.
 
-## New Features (enabled by Nina)
+## NINA Features
+
 - **[Telescope Control]**: Provides comprehensive control over the telescope.
 - **[Larger Catalog]**: Includes an extensive offline catalog of celestial objects, surpassing the BP App.
 - **[GOTO Coordinates]**: Command the Benro Polaris to slew to a selected target.
@@ -78,7 +80,8 @@
 - **[Cameras Supported]**: Support additional camera models through the ASCOM platform.
 - **[Sony Nina Plugin]**: Supports Sony Cameras and Lens. 
 
-## New Features (Alpaca Driver)
+## Driver Features
+
 - **[ASCOM ConformU]**: Passes standard validation tests for ITelescopeV3.
 - **[Driver Discovery]**: Provides Alpaca Discovery services.
 - **[ASCOM Alpaca Protocol]**: Supports the ASCOM Alpaca protocol.
@@ -119,12 +122,14 @@
 
 ## Untested New Features
 Please let us know if you can try any of these features.
+
 - **[Raspberry Pi]**: Supports running on Raspberry Pi Zero2, Pi 4, and Pi 5.
 - **[Docker Support]**: Supports running in Docker containers.
 - **[Lumix Nina Plugin]**: Supports Panasonic Lumix Cameras and Lens. Untested.
 - **[Pentax on ASCOM]**: ASCOM Camera driver supports a range of cameras. Untested.
 
-## Bug Fixes (from Beta versions)
+## Bug Fixes
+
 - **[BP Keepalive]**: Implement Wifi Keepalive, reduce phone battery usage, by closing BP App.
 - **[AHRS Keepalive]**: Ensure AHRS continues to inform of position updates.
 - **[Stelarium Lag]**: Longevity testing of Stellarium introduced lag in position readout.
@@ -139,8 +144,9 @@ Please let us know if you can try any of these features.
 - **[Install Guide]**: Improve MacOS and Win installation guide based on Beta feedback.
 - **[Docs Improvement]**: Numerous documentation improvements and better troubleshooting.
 
-## Tested Compatible Hardware and Software
+## Tested Compatibility
 ### Photography Equipment
+
 * Benro Polaris Hw 1.3.1.4, Firmware V6.0.0.40, Astro V1.0.2.11
 * Canon R5, RF 16mm, EF 35mm MkII, RF 135mm, RF 100-500mm, RF 800mm.
 * Canon R6 Mk II connected via USB3
@@ -152,6 +158,7 @@ Please let us know if you can try any of these features.
 * Pentax K1 150-450mm / Irix 45mm
 * ZWO ASI585MC camera, a Sigma 120-400mm and 1.4x extender.
 ### Computing Equipment
+
 * MacBook Pro with Apple M1 Pro CPU (ABP Driver and CCDCiel)
 * MacBook Pro 14” 2021 
 * MacBook Pro 13” 2013
@@ -162,11 +169,13 @@ Please let us know if you can try any of these features.
 * Desktop PC, AMD 7950X (Stellarium Desktop, Siril)
 * Desktop PC, AMD Ryzen 5 3600
 ### Portable/Mobile Equipment
+
 * iPhone 13 Max (Stellarium Mobile PLUS)
 * iPad Pro 3rd Generation
 * Samsung Galaxy S22 Ultra (Stellarium Mobile PLUS)
 * Microsoft Surface Laptop 2
 ### Applications
+
 * Benro Polaris Android App v3.0.27, iOS App v1.4.4,
 * Stellarium Mobile PLUS v1.12.9 Android and iOS.
 * Stellarium Desktop v24.2.0 Windows
@@ -175,10 +184,12 @@ Please let us know if you can try any of these features.
 * CCDciel Version beta 0.9.87-3346 Windows
 * Siril v1.2.3 de49749
 ### Drivers and Utilities
+
 * Windows Remote Desktop v10.0.22621
 * ASCOM Platform 7 RC7
 * ASCOM Platform 6.6 SP2
 ### Operating Systems
+
 * Windows 11 Pro v23H2, 
 * Windows 10
 * MacOS Sonoma 14.6.1
@@ -188,10 +199,12 @@ Please let us know if you can try any of these features.
   
 
 ## Known Issues
-- **[Sky Safari 7 Plus]**: One Beta tester was unable to connect to Sky Safari 7 Plus.
-- **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./troubleshooting.md).
 
-## Potential Future Enhancements
+- **[Sky Safari 7 Plus]**: One Beta tester was unable to connect to Sky Safari 7 Plus.
+- **[Stellarium 24.3]**: Stellarium Desktop v24.3 has known issues with telescope control. See [Troubleshooting S2](./help-troubleshooting.md).
+
+## Future Enhancements
+
 - **[Raspberry Pi]** Official support and testing on Raspberry  Pi
 - **[Docker Support]** Official support and testing on Docker.
 - **[Sky Safari]** Official support and testing on Sky Safari.
@@ -208,5 +221,6 @@ Please let us know if you can try any of these features.
 - **[Pulse Guiding]**: Allow micro-move axis commands while tracking without backlash. Benro Change.
 
 ## Deprecations
+
 - **[None Known]**: No features deprecated as this is the first release.
   

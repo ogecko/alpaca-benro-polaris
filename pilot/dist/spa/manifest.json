@@ -1,0 +1,12 @@
+{
+  "name": "Alpaca Pilot",
+  "short_name": "Pilot",
+  "display": "standalone",
+  "start_url": ".",
+  "background_color": "#121212",
+  "theme_color": "#3174df",
+  "icons": [
+    { "src": "icons/favicon-128x128.png", "sizes": "128x128", "type": "image/png" },
+    { "src": "icons/apple-touch-icon.png", "sizes": "770x770", "type": "image/png" }
+  ]
+}

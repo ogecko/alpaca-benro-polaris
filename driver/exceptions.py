@@ -44,10 +44,8 @@
 #
 import traceback
 from config import Config
-from logging import Logger
 
-global logger
-#logger: Logger = None
+# At the module level, no need for - global logger
 logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
 
 class Success:
@@ -140,7 +138,7 @@ class DriverException:
               Python traceback is included.
             * Logs the constructed ``DriverException`` message
         """
-        if number <= 0x500 and number >= 0xFFF:
+        if number < 0x500 or number > 0xFFF:
             logger.error(f'Programmer error, bad DriverException number {hex(number)}, substituting 0x500')
             number = 0x500
         self.number = number
@@ -235,7 +233,7 @@ class NotConnectedException:
         """
         self.number = 0x407
         self.message = message
-        cname = self.__class__.__name__
+#        cname = self.__class__.__name__
 # dont log this as its too frequent if Connection is lost and apps keep polling Aplaca
 #        logger.error(f'{cname}: {message}')
 

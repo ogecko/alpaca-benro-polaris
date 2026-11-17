@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 
 from control import CalibrationManager
 import pytest
-import math
+
 
 def test_dummy():
     assert(1==1)

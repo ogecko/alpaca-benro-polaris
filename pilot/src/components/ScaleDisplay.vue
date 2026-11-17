@@ -13,7 +13,7 @@
         <div v-if="showButtons">
           <div class="row absolute-top-left q-pl-xl q-pb-sm" > 
           </div>
-          <q-btn-group rounded  class="row absolute-top-right q-pr-lg" > 
+          <q-btn-group rounded  class="row absolute-top-right q-pr-lg" style="pointer-events: none" > 
             <div class="column">
               <q-btn @click="onScaleZoomInClick" dense flat color="secondary" icon="mdi-magnify-plus-outline"></q-btn>
             </div>
@@ -45,9 +45,12 @@
           <div class="row text-positive text-h6 items-center q-gutter-xs  no-wrap text-weight-light">
             <div v-if="showButtons">
               <MoveFab v-if="props.label=='Roll'" icon="mdi-format-align-middle" >
+                <q-fab-action color="positive" @click="onClickFabAngle({zm2: true})">ZM2</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: -60})">-60°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: -30})">-30°</q-fab-action>
                 <q-fab-action color="positive" @click="onClickFabAngle({roll: 0})" >0°</q-fab-action>
-                <q-fab-action color="positive" @click="onClickFabAngle({roll: -70})">-70°</q-fab-action>
-                <q-fab-action color="positive" @click="onClickFabAngle({roll: +70})">+70°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: +30})">+30°</q-fab-action>
+                <q-fab-action color="positive" @click="onClickFabAngle({roll: +60})">+60°</q-fab-action>
               </MoveFab>
               <MoveFab v-if="props.label=='Altitude'" icon="mdi-angle-acute" >
                 <q-fab-action color="positive" @click="onClickFabAngle({alt: 0})" >0°</q-fab-action>
@@ -103,7 +106,7 @@
 
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch, computed } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { throttle } from 'quasar'
 import { scaleLinear } from 'd3-scale'
 import { axisBottom } from 'd3-axis'
@@ -119,6 +122,10 @@ import type { Selection } from 'd3-selection';
 import type { Transition } from 'd3-transition';
 import type { BaseType } from 'd3-selection';
 import type { LevelKey, UnitKey } from 'src/utils/angles'
+import { useUIStore } from 'src/stores/ui'
+
+
+const ui = useUIStore()
 
 // Component properties
 const props = defineProps<{
@@ -127,20 +134,24 @@ const props = defineProps<{
 	lst?: number 
   label: string
   domain: DomainStyleType
+  warnings: [number, number][]  // required, pass [] for none    
 }>()
 
 // dynamic variables/refs
 const linearGroup = ref<SVGGElement | null>(null)
 const circularGroup = ref<SVGGElement | null>(null)
 const svgElement = ref<SVGSVGElement | null>(null);
-const scaleRange = ref<number>(200)
 const showButtons = ref<boolean>(false);
 const spxValueEditStr = ref<string>('')
 const spxInputRef = ref();
+const scaleRange = computed({
+  get: () => ui.getScaleRange(props.label, dProps.value.maxScale),
+  set: (val: number) => ui.setScaleRange(props.label, val)
+})
 
 // computed properties
 const isLinear = computed(() => props.domain === 'linear_360')
-const renderKey = computed(() => `${props.domain}-${scaleRange.value}-${props.pv}-${props.sp}-${props.lst}`)
+const renderKey = computed(() => `${props.domain}-${scaleRange.value}-${props.pv}-${props.sp}-${props.lst}-${JSON.stringify(props.warnings)}`)
 const pvn = computed(() => dProps.value.dAngleFn(props.pv??0))        // pv normalised
 const spn = computed(() => dProps.value.dAngleFn(props.sp??0))        // sp normalised
 const pvx = computed(() => deg2dms(pvn.value, 1, dProps.value.unit))   // pv decomposed
@@ -150,14 +161,14 @@ const dProps = computed(() => domainStyle[props.domain])
 const unit = computed(() => dProps.value.unit)
 const isCircular = computed(() => [
   'circular_360', 'semihi_360', 'semilo_360', 'semihi_180', 'semihi_24', 'semilo_180', 'circular_180', 
-  'az_360', 'alt_90', 'roll_180', 'ra_24', 'dec_180', 'pa_360',
+  'az_360', 'alt_90', 'roll_180', 'ra_24', 'dec_180', 'pa_360', 'gpa_180',
 ].includes(props.domain))
 
 
 // events that can be emitted
 const emit = defineEmits<{
   (e: 'clickScale', payload: { label: string, angle: number, radialOffset: number }): void,
-  (e: 'clickFabAngle', payload: { az?: number, alt?: number, roll?: number }): void,
+  (e: 'clickFabAngle', payload: { az?: number, alt?: number, roll?: number, zm2?: boolean }): void,
   (e: 'clickMove', payload: { label: string, rateScale: number} ): void,
 }>();
 
@@ -173,8 +184,8 @@ export type DomainStyleType =
 	| 'ra_24'
 	| 'dec_180'
 	| 'pa_360'
+	| 'gpa_180'
 
-type WarningRange = [number, number];
 type DomainStyleConfig = {
   width: number;
   height: number;
@@ -187,19 +198,19 @@ type DomainStyleConfig = {
   unit: UnitKey;
   minScale: number;
   maxScale: number;
-  warnings: WarningRange[];
 };
 
 
 const domainStyle: Record<DomainStyleType, DomainStyleConfig> = {
-  'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:10,  sAngleHigh:340, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
-  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,200],[-100,-8]] },
-  'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[82,200],[-82,-200]] },
-  'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12,  warnings:[] },
-  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200, warnings:[[90,200],[-90,-200]] },
-  'pa_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200, warnings:[] },
+  'linear_360':   { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:-10, sAngleHigh:190, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'circular_360': { width:400, height:400, cx:200, cy:200, radius:150, sAngleLow:10,  sAngleHigh:340, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'az_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'alt_90':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
+  'roll_180':     { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
+  'ra_24':        { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo24,  unit:'hr',  minScale:1/60, maxScale:12 },
+  'dec_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
+  'pa_360':       { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo360, unit:'deg', minScale:2/60, maxScale:200 },
+  'gpa_180':      { width:400, height:270, cx:200, cy:190, radius:150, sAngleLow:170, sAngleHigh:370, dAngleFn:wrapTo180, unit:'deg', minScale:2/60, maxScale:200 },
 };
 
 
@@ -213,6 +224,8 @@ const opacityMap = { lg: 1, md: 1, sm: 0.5 }
 
 const throttledRenderScale = throttle(renderScale, 20)
 onMounted(throttledRenderScale)
+onMounted(() => document.addEventListener('visibilitychange', onVisibilityChange))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', onVisibilityChange))
 
 watch(renderKey, throttledRenderScale)
 
@@ -224,7 +237,7 @@ watch(dProps, () => {
 
 // ------------------- Event handlers ---------------------
 
-function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number}) {
+function onClickFabAngle(payload: { az?: number, alt?: number, roll?: number, zm2?: boolean }) {
   emit('clickFabAngle', payload)
 }
 
@@ -311,8 +324,8 @@ function onSvgPointerDown(e: PointerEvent) {
 function onScaleWheel(e: WheelEvent) {
   e.preventDefault();  
 
-  const baseFactor = 1.2;   // tweak baseFactor for step sensitivity     
-  const divisor = 50        // tweak divisor for magnitude sensitivity
+  const baseFactor = 1.2;    // tweak baseFactor for step sensitivity     
+  const divisor = 50;        // tweak divisor for magnitude sensitivity
 
   const direction = Math.sign(e.deltaY);
   const magnitude = Math.abs(e.deltaY);
@@ -457,14 +470,19 @@ function generateScaleArcs(low: number, high: number, stepSize: number, stepDiv:
   const beginAngle = (Math.ceil(low / fractionalStep)) * fractionalStep;
   const endAngle = beginAngle + high - low;
   return [
-    { key: `tkArcS-${stepSize}-${stepDiv}`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, opacity: 0.2, zorder: 'low' },
+    { key: `tkArcS`, level:'tk-solid', beginAngle:low, endAngle:high, offset:1, opacity: 0.2, zorder: 'low' },
     { key: `tkArcD-${stepSize}-${stepDiv}`, level:'tk-dashed', beginAngle, endAngle, stepSize, stepDiv, offset:1, zorder: 'low' },
   ]
 }
 
 function generateWarningArcs(low: number, high: number, stepSize: number): ArcDatum[] {
-  const arcs = dProps.value.warnings.map( w => {
-    return { key: `tkWrn-${w[0]}-${w[1]}-${stepSize}`, beginAngle:w[0], endAngle:w[1], offset:1, opacity: 0.7, zorder: 'low' } as ArcDatum
+    const ranges = props.warnings ?? []
+    const arcs = ranges.map( (w, i) => {
+    return { 
+      key: `tkWrn-${props.domain}-${i}-${stepSize}`, 
+      beginAngle:w[0], endAngle:w[1], 
+      offset:0.95, opacity: 0.7, zorder: 'low' 
+    } as ArcDatum
   })
  return arcs
 }
@@ -590,7 +608,7 @@ function joinMarks(
         .each(function (d) { zOrder<MarkDatum>(this, d) })
         .each(function (d) { addPathOrText(this, d) })
         .attr('opacity', 0)
-        .on('mousedown', function (event, d) { if (d.label) { event.preventDefault(); event.stopPropagation() }})
+        .on('pointerdown', function (event, d) { if (d.label) { event.preventDefault(); event.stopPropagation() }})
         .on('click', function (event, d) { if (d.label && typeof d.angle==='number') { onLabelClick(event, d.angle) } })
         .transition(t)
         .attr('opacity', d => determineOpacity(d, min, max))
@@ -699,7 +717,7 @@ function renderLinearScale() {
 	if (!linearGroup.value) return
 
 	const scale = scaleLinear()
-		.domain([props.pv??0 - scaleRange.value / 2, props.pv??0 + scaleRange.value / 2])
+		.domain([(props.pv ?? 0) - scaleRange.value / 2, (props.pv ?? 0) + scaleRange.value / 2])
 		.range([0, dProps.value.width - 40])
 
 	const axis = axisBottom(scale).ticks(10)
@@ -767,7 +785,24 @@ function renderCircularScale() {
 }
 
 // Dispatches rendering based on scale type (linear or circular)
+// Not drawn while the tab is hidden: each render starts d3 transitions, whose timers only run on animation frames,
+// which a hidden tab doesn't get. Renders while hidden queued another set on every tick, label and arc, and on return
+// d3 started them all, each scanning the others on its element -- after hours away a black, frozen tab at 100% CPU
+// (profiled: d3-transition's start). A hidden tab only notes that a render is due and draws once when shown again.
+let renderPending = false
+
+function onVisibilityChange() {
+	if (!document.hidden && renderPending) {
+		renderPending = false
+		renderScale()
+	}
+}
+
 function renderScale() {
+	if (document.hidden) {
+		renderPending = true
+		return
+	}
 	if (isLinear.value) {
 		renderLinearScale()
 	} else if (isCircular.value) {

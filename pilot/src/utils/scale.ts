@@ -34,10 +34,17 @@ export const steps: Step[] = [
   { stepSize: 2 / 3600, dFormatFn: formatArcSeconds, level: 'sm' },
 ];
 
+// The unit is chosen on the rounded value, so -0.0167 deg to one decimal shows as -1.0′, not -60.0″ (read as -60 deg
+// in the sync list); the sign is kept for negatives. (The scale's tick labels use formatArcMinutes/Seconds directly.)
 export function formatAngle(x: number, unit: UnitKey, decimals: number = 0): string {
-  if (Math.abs(x) >= 1) return formatDegreesHr(x, unit, decimals);
-  if (Math.abs(x) >= 1 / 60) return formatArcMinutes(x, unit, decimals);
-  return formatArcSeconds(x, unit, decimals);
+  const sign = x < 0 ? '-' : '';
+  const a = Math.abs(x);
+  const arcsec = (a * 3600).toFixed(decimals);
+  if (parseFloat(arcsec) === 0) return formatDegreesHr(x, unit, decimals);
+  if (parseFloat(arcsec) < 60) return `${sign}${arcsec}${symbol[unit].s}`;
+  const arcmin = (a * 60).toFixed(decimals);
+  if (parseFloat(arcmin) < 60) return `${sign}${arcmin}${symbol[unit].m}`;
+  return formatDegreesHr(x, unit, decimals);
 }
 
 export function formatDegreesHr(v: number, unit: UnitKey, decimals: number = 0): string {

@@ -7,6 +7,10 @@
         <div class="row">
             <div class="col text-caption text-grey-6 q-pb-md">
             The Alpaca Driver provides several network services for external aplications to use the Benro Polaris. Changes to Network Services require saving to take effect. 
+            <span>
+                <br>For HTTPS, <a href="/alpaca_pilot_ca.crt">Download CA Certificate</a>, 
+                and install using <a target="_blank" rel="noopener" :href="ui.docsUrl('initial-setup/#using-https')">Documentation</a>.           
+            </span>
             </div>
             <div class="q-gutter-md flex justify-end q-mr-md">
                 <div class="col-auto q-gutter-sm flex justify-end items-center">
@@ -15,8 +19,40 @@
                 </div>
             </div>
         </div>
+        <!-- Alpaca Pilot mDNS Services -->
+        <div class="row q-col-gutter-sm no-wrap setting-row">
+            <q-toggle class='col-8' v-bind="bindField('enable_mdns', 'Alpaca Pilot mDNS Service')"/>
+            <q-input class="col-4" v-bind="bindField('mdns_name', 'Hostname')"
+                :style="{ visibility: cfg.enable_mdns ? 'visible' : 'hidden' }">
+                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+            </q-input>
+        </div>
+        <!-- Alpaca Pilot Web Services -->
+        <div class="row q-col-gutter-sm no-wrap setting-row">
+            <q-toggle class='col' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
+            <q-space/>
+            <div class='content-center'>
+                <q-btn-toggle v-if="cfg.enable_pilot"
+                    v-bind="bindField('enable_https', '')"
+                    push rounded glossy toggle-color="primary"
+                    :options="[ { label: 'HTTP', value: false }, { label: 'HTTPS', value: true }, ]"
+                />
+            </div>
+            <q-input class="col-4" v-bind="bindField(cfg.enable_https?'alpaca_pilot_https_port':'alpaca_pilot_http_port', 'Port')"
+                type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
+                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+            </q-input>
+        </div>
+        <!-- Alpaca Pilot Socket Services -->
+        <div class="row q-col-gutter-sm no-wrap setting-row">
+            <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot Socket IO')"/>
+            <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
+                type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
+                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
+            </q-input>
+        </div>
         <!-- Rest API Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_restapi', 'Alpaca REST API Service')"/>
             <q-input class="col-4" v-bind="bindField('alpaca_restapi_port', 'Port')"
                 type="number"  input-class="text-right" :style="{ visibility: cfg.enable_restapi ? 'visible' : 'hidden' }">
@@ -26,35 +62,16 @@
         <q-banner v-if="!cfg.enable_restapi" inline-actions rounded class="bg-warning">
             WARNING: The Alpaca REST API is required for Nina, Stellarium and Alpaca Pilot.
         </q-banner>
-        <q-banner v-if="cfg.alpaca_restapi_port!=dev.restAPIPort" inline-actions rounded class="bg-warning">
-            WARNING: The Alpaca REST API port will change. Please reconnect Alpaca Pilot when prompted. 
-        </q-banner>
         <!-- Rest Discovery Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_discovery', 'Alpaca Discovery Service')"/>
             <q-input class="col-4" v-bind="bindField('alpaca_discovery_port', 'Port')"
                 type="number" input-class="text-right" :style="{ visibility: cfg.enable_discovery ? 'visible' : 'hidden' }">
                 <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
             </q-input>
         </div>
-        <!-- Rest Pilot Web Services -->
-        <div class="row q-col-gutter-sm no-wrap">
-            <q-toggle class='col-8' v-bind="bindField('enable_pilot', 'Alpaca Pilot Webserver')"/>
-            <q-input class="col-4" v-bind="bindField('alpaca_pilot_port', 'Port')"
-                type="number" input-class="text-right" :style="{ visibility: cfg.enable_pilot ? 'visible' : 'hidden' }">
-                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-            </q-input>
-        </div>
-        <!-- Rest Pilot Socket Services -->
-        <div class="row q-col-gutter-sm no-wrap">
-            <q-toggle class='col-8' v-bind="bindField('enable_socket', 'Alpaca Pilot Socket IO')"/>
-            <q-input class="col-4" v-bind="bindField('alpaca_socket_port', 'Port')"
-                type="number" input-class="text-right" :style="{ visibility: cfg.enable_socket ? 'visible' : 'hidden' }">
-                <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-            </q-input>
-        </div>
         <!-- Rest SynSCAN Services -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('enable_synscan', 'SynSCAN API Service')"/>
             <q-input class="col-4" v-bind="bindField('stellarium_synscan_port', 'Port')"
             type="number" input-class="text-right" :style="{ visibility: cfg.enable_synscan ? 'visible' : 'hidden' }">
@@ -62,8 +79,14 @@
             </q-input>
         </div>
         <!-- Auto Reconnect  -->
-        <div class="row q-col-gutter-sm no-wrap">
+        <div class="row q-col-gutter-sm no-wrap setting-row">
             <q-toggle class='col-8' v-bind="bindField('polaris_auto_retry', 'Auto Retry Polaris Connection')"/>
+        </div>
+        <div class="row q-col-gutter-sm no-wrap setting-row">
+            <q-toggle class='col-8' v-bind="bindField('enable_remote_shutdown', 'Allow Remote Shutdown of Driver Host OS')"/>
+            <q-input class="col-4" label="Update Timeout" suffix="ms" type="number" input-class="text-right" step="500" min="1000"
+            :model-value="ui.driverTimeout" v-on:update:model-value="ui.setDriverTimeout">
+            </q-input>
         </div>
     </q-card>
 
@@ -74,22 +97,14 @@
 import { useQuasar } from 'quasar'
 import { onMounted } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
+import { useUIStore } from 'src/stores/ui'
 import { debounce } from 'quasar'
 
 const $q = useQuasar()
-const dev = useDeviceStore()
 const cfg = useConfigStore()
+const ui = useUIStore()
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
 })
 
 
@@ -136,3 +151,10 @@ async function save() {
 
 </script>
 
+
+<style scoped>
+/* Every setting row is one standard field tall, with or without a port input beside the toggle */
+.setting-row {
+  min-height: 56px;
+}
+</style>

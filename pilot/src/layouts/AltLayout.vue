@@ -4,7 +4,7 @@
     <q-header elevated height-hint="58">
       <q-toolbar>
         <!-- Alpaca Pilot Icon/Menu -->
-        <q-btn flat dense round @click="toggleLeftDrawer" aria-label="Menu" >
+        <q-btn flat dense round @click="ui.toggleShowLeftDrawer" aria-label="Menu" >
           <q-avatar>
             <q-img src="icons/favicon-128x128.png" style="width: 35px; height: 35px;"/>
           </q-avatar>
@@ -44,7 +44,7 @@
     </q-header>
 
     <!-- LHS Draw menu -->
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="dark-page" :width="200" >
+    <q-drawer :model-value="ui.showLeftDrawer" @update:model-value="ui.setShowLeftDrawer" bordered class="dark-page" :width="200" >
       <q-scroll-area class="fit">
         <!-- Deep Sky Objects -->
         <q-list dense>
@@ -99,15 +99,16 @@
         <q-list dense>
           <q-item-label header class="text-weight-bold text-uppercase">
             Documentation
+            <span v-if="ui.docsMode === 'local'" class="text-caption text-weight-regular text-lowercase text-grey-6">(offline copy)</span>
           </q-item-label>
           <q-item
             v-for="link in links5"
-            :key="link.text" v-ripple lickable 
+            :key="link.text" v-ripple clickable 
             :to="link.to || undefined"
-            :tag="link.toExternal ? 'a' : 'router-link'" 
-            :href="link.toExternal || undefined" 
-            :target="link.toExternal ? '_blank' : undefined"
-            :rel="link.toExternal ? 'noopener' : undefined"
+            :tag="link.to ? 'router-link' : 'a'"
+            :href="link.docs !== undefined ? ui.docsUrl(link.docs) : (link.toExternal || undefined)"
+            :target="link.to ? undefined : '_blank'"
+            :rel="link.to ? undefined : 'noopener'"
             active-class="active-link-right"
           >
             <q-item-section avatar>
@@ -138,23 +139,34 @@ import { ref, onMounted, onUnmounted, watch  } from 'vue'
 import { useStatusStore } from 'stores/status'
 import { useRouter, useRoute,  } from 'vue-router'
 import { useDeviceStore } from 'src/stores/device'
+import { useConfigStore } from 'src/stores/config'
 import { useStreamStore } from 'src/stores/stream'
+import { useUIStore } from 'src/stores/ui'
+import { useActionRegistry } from 'src/composables/useActionRegistry'
+import { useKeyMap } from 'src/composables/useKeyMap'
+import { useKeyHandler } from 'src/composables/useKeyHandler'
 import { debounce } from 'quasar'
 import { useCatalogStore } from 'src/stores/catalog'
+import { useVersionWatch } from 'src/composables/useVersionWatch'
 import { AppFullscreen } from 'quasar'
 import { useQuasar } from 'quasar'
 import type { RouteLocationRaw } from 'vue-router'
 
 const $q = useQuasar()
 const dev = useDeviceStore()
+const cfg = useConfigStore()
 const p = useStatusStore()
 const socket = useStreamStore()
+const ui = useUIStore()
+const vw = useVersionWatch()
 const router = useRouter()
 const route = useRoute()
 const cat = useCatalogStore()
+const registry = useActionRegistry()
+const keymap = useKeyMap()
+const keyHandler = useKeyHandler(registry, keymap.current)
 
 const isFullscreen = ref(false)
-const leftDrawerOpen = ref(false)
 const searchBoxString = ref<string>('')
 const isRoomy = ref(true)
 
@@ -192,18 +204,32 @@ function onSearchFocus() {
 onMounted(() => {
   // socket.connectSocket()   //    connect whenever the socketURL or AppVisibility changes - see watch below
   // socket.subscribe('status')
+  vw.startVersionWatch()
+  void ui.checkDocsMode(true)
+  window.addEventListener('online', onNetworkChange)
+  window.addEventListener('offline', onNetworkChange)
 })
 
+// Re-decide between online and local docs whenever the network changes, and when the drawer opens if the last check is stale
+function onNetworkChange() { void ui.checkDocsMode(true) }
+watch(() => ui.showLeftDrawer, (open) => { if (open) void ui.checkDocsMode() })
+
 onUnmounted(() => {
+  window.removeEventListener('online', onNetworkChange)
+  window.removeEventListener('offline', onNetworkChange)
   socket.unsubscribe('status')
   socket.disconnectSocket()
+  keyHandler.releaseAll()
 })
 
 watch(
   [() => dev.restAPIConnected, () => socket.socketURL, () => dev.isVisible],
-  () => {
+  async () => {
     if (dev.isVisible) {
       if (dev.restAPIConnected && socket) {
+        if (cfg.fetchedAt < dev.restAPIConnectedAt) {
+          await cfg.configFetch()
+        }
         socket.connectSocket()
         socket.subscribe('status')
         socket.subscribe('cfg')
@@ -229,13 +255,9 @@ watch(() => cat.searchFor, (newVal) => {
 
 const triggerSearch = debounce(async () => {
   const searchFor = searchBoxString.value.trim()
-  await router.push({ path: '/catalogList', query: { ...route.query, q: searchFor } }) 
+  await router.push({ path: '/catalog', query: { ...route.query, q: searchFor } }) 
 }, 300) // 300ms debounce
 
-
-function toggleLeftDrawer () {
-  leftDrawerOpen.value = !leftDrawerOpen.value
-}
 
 function getBatteryColor(): string {
   if (p.battery_level >= 50) {
@@ -272,7 +294,7 @@ function getBatteryIcon(): string {
 
 
 function isCatalogActive(link: CatalogLink): boolean {
-  if (route.path.toLowerCase() !== '/cataloglist') {
+  if (route.path.toLowerCase() !== '/catalog') {
     return false
   }
 
@@ -315,40 +337,42 @@ interface CatalogLink {
 }
 
 const links2 = [
-  { icon: 'mdi-library', text: 'Catalog', to: '/cataloglist' },
-  { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalogList', query: { sort:'Proximity' } } },
-  { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalogList', query: { C1:3 } } },
-  { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalogList', query: { C1:0 } } },
-  { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalogList', query: { C1:1 } } },
-  { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalogList', query: { C1:2 } } },
+  { icon: 'mdi-library', text: 'Catalog', to: '/catalog' },
+  { icon: 'mdi-nfc-tap', text: 'Nearby', to: { path: '/catalog', query: { sort:'Proximity' } } },
+  { icon: 'mdi-brightness-7', text: 'Brightest', to: { path: '/catalog', query: { C1:"2,3,4",Vz:6,sort:'Proximity' } } },
+  { icon: 'mdi-flare', text: 'Stars', to: { path: '/catalog', query: { C1:3 } } },
+  { icon: 'mdi-horse-variant', text: 'Nebulae', to: { path: '/catalog', query: { C1:0 } } },
+  { icon: 'mdi-cryengine', text: 'Galaxies', to: { path: '/catalog', query: { C1:1 } } },
+  { icon: 'mdi-blur', text: 'Clusters', to: { path: '/catalog', query: { C1:2 } } },
 ]
 
 const links3: CatalogLink[] = [
-  { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalogList', query: { C1:4 } } },
-  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalogList', query: { C1:5 } } },
-  { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalogList', query: { C1:6 } } },
-  { icon: 'mdi-cookie', text: 'Asteroids', to: { path: '/catalogList', query: { C1:8 } } },
-  { icon: 'mdi-magic-staff', text: 'Comets', to: { path: '/catalogList', query: { C1:7 } } },
-  { icon: 'mdi-cloud-clock-outline', text: 'Sky Conditions', to: { path: '/catalogList', query: { C1:11 } } },
+  { icon: 'mdi-moon-full', text: 'Planets', to: { path: '/catalog', query: { C1:4 } } },
+  { icon: 'mdi-moon-waning-crescent', text: 'Moons', to: { path: '/catalog', query: { C1:5 } } },
+  { icon: 'mdi-satellite-variant', text: 'Satellites', to: { path: '/catalog', query: { C1:6 } } },
+  { icon: 'mdi-cookie', text: 'Asteroids', to: { path: '/catalog', query: { C1:8 } } },
+  { icon: 'mdi-magic-staff', text: 'Comets', to: { path: '/catalog', query: { C1:7 } } },
+  { icon: 'mdi-cloud-clock-outline', text: 'Sky Conditions', to: { path: '/catalog', query: { C1:11 } } },
 ]
 
 const links4 = [
-  { icon: 'mdi-format-vertical-align-top', text: 'Alignment', to: '/sync' },
+  { icon: 'mdi-globe-model', text: 'Alignment', to: '/sync' },
   { icon: 'mdi-set-split', text: 'Calibration', to: '/speed' },
+  { icon: 'mdi-wall-sconce-flat-variant-outline', text: 'Flat White', to: '/flatwhite' },
   { icon: 'mdi-chart-line', text: 'KF Tuning', to: '/kalman' },
   { icon: 'mdi-chart-bell-curve-cumulative', text: 'PID Tuning', to: '/pidall' },
-  { icon: 'mdi-pulse', text: 'PWM Testing', to: '/pwm' },
   { icon: 'mdi-motion-outline', text: 'Kinematics', to: '/position' },
   { icon: 'mdi-database-clock-outline', text: 'Driver Log', to: '/log' },
 ]
 
 const links5 = [
-  { icon: 'mdi-account-tie-hat', text: 'Pilot', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/pilot.md' },
-  { icon: 'mdi-camera-control', text: 'Control', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/control.md' },
+  { icon: 'mdi-account-tie-hat', text: 'Pilot', docs: 'use-pilot/' },
+  { icon: 'mdi-camera-control', text: 'Control', docs: 'ref-control/' },
   { icon: 'mdi-alert', text: 'Warnings', to: '/warning' },
-  { icon: 'mdi-stethoscope', text: 'Troubleshooting', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/troubleshooting.md' },
-  { icon: 'mdi-youtube', text: 'Videos', toExternal: 'https://www.youtube.com/playlist?list=PL5B1qfE_F9mFwr-02vfALFQKvrGpzEA_D' },
-  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', toExternal: 'https://github.com/ogecko/alpaca-benro-polaris/blob/dev2_1/docs/faq.md' },
+  { icon: 'mdi-stethoscope', text: 'Troubleshooting', docs: 'help-troubleshooting/' },
+  { icon: 'mdi-alpha-k-box', text: 'Kickstarter', toExternal: 'https://www.kickstarter.com/projects/jdmorriso/alpaca-benro-polaris-driver-v20?ref=6bp9my' },
+  { icon: 'mdi-youtube', text: 'Videos', toExternal: 'https://www.youtube.com/@jdm5001/featured' },
+  { icon: 'mdi-frequently-asked-questions', text: 'FAQ', docs: 'help-faq/' },
   { icon: 'mdi-information-variant', text: 'About', to: '/about' },
 ]
 

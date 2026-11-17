@@ -1,0 +1,72 @@
+/* Feature grid on the home page: <table class="features"> in README.md.
+   github.com strips the class and shows the plain table; these rules only apply on the docs site. */
+.md-typeset table.features {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+}
+.md-typeset table.features td {
+  border: none;
+  padding: 1em .6em;
+  vertical-align: top;
+}
+.md-typeset table.features br {
+  display: none;
+}
+.md-typeset table.features img {
+  display: block;
+  margin: 0 auto .5em;
+}
+.md-typeset table.features b {
+  display: block;
+  line-height: 1.3;
+}
+.md-typeset table.features sub {
+  display: block;
+  margin-top: .25em;
+  color: var(--md-default-fg-color--light);
+  font-size: .85em;
+  line-height: 1.35;
+  vertical-align: baseline;
+}
+
+/* Reference tables: keep the code names in the first column (API members, settings) on one line */
+.md-typeset table:not([class]) td:first-child code {
+  white-space: nowrap;
+}
+
+/* Compact tables on the home page (<div class="compact" markdown>): full width, no outer box,
+   just row separators, closer to how VS Code and github.com render them */
+.md-typeset .compact .md-typeset__scrollwrap,
+.md-typeset .compact .md-typeset__table {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+.md-typeset .compact table:not([class]) {
+  display: table;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: .65rem;
+  line-height: 1.4;
+}
+.md-typeset .compact table:not([class]) th,
+.md-typeset .compact table:not([class]) td {
+  padding: .35em .6em;
+  border-top: .05rem solid var(--md-typeset-table-color);
+  vertical-align: top;
+}
+.md-typeset .compact table:not([class]) th {
+  border-top: none;
+  border-bottom: .1rem solid var(--md-typeset-table-color);
+  background: none;
+}
+.md-typeset .compact table:not([class]) td:first-child {
+  white-space: nowrap;
+}
+.md-typeset .compact table:not([class]) tbody tr:hover {
+  background: none;
+  box-shadow: none;
+}

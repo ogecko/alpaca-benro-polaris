@@ -119,7 +119,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
+          <ChartXY :data="chartPosData" x1Type="time" y1Type="dms"></ChartXY>
           <q-expansion-item label="Advanced Global PID Settings">
             <div class="row q-pt-lg q-pl-xl items-top justify-center">
               <div class="col row q-gutter-sm">
@@ -171,7 +171,7 @@ Changes to PID gains take effect immediately. Use Save to store your adjustments
                 <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
                 </q-item-section>
             </q-item>
-          <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
+          <ChartXY  :data="chartVelData" x1Type="time" y1Type="dms"></ChartXY>
           <q-expansion-item :label="`Advanced ${motorLabel} PID Settings`">
             <div class="row q-pt-lg q-pl-xl items-top justify-center">
               <div class="col row q-gutter-sm">
@@ -219,7 +219,7 @@ import MoveButton from 'src/components/MoveButton.vue'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
-import { wrapTo360, wrapTo90 } from 'src/utils/angles'
+import { wrapTo90 } from 'src/utils/angles'
 
 const $q = useQuasar()
 const socket = useStreamStore()
@@ -243,7 +243,7 @@ const Ka_var = ref<number>(0)
 type TestCaseOption = {
   label: string
   value: number
-  case: 'goto' | 'slew' | 'pulse'
+  case: 'goto' | 'slew' | 'pulse' | 'sync'
   icon: string
 }
 
@@ -270,6 +270,9 @@ const testcaseOptionsData:TestCaseOption[] = [
   { label: '200ms Pulse', value: 200, case: 'pulse', icon: 'mdi-pulse' },
   { label: '2000ms Pulse', value: 2000, case: 'pulse', icon: 'mdi-pulse' },
   { label: '5000ms Pulse', value: 5000, case: 'pulse', icon: 'mdi-pulse' },
+  { label: '2" Sync', value: 2, case: 'sync', icon: 'mdi-sync' },
+  { label: '20" Sync', value: 20, case: 'sync', icon: 'mdi-sync' },
+  { label: '100" Sync', value: 100, case: 'sync', icon: 'mdi-sync' },
 ]
 const testcase = ref<TestCaseOption | undefined>(testcaseOptionsData[1])
 
@@ -335,20 +338,27 @@ async function runTestCase(payload: { isPressed: boolean }, sign:number) {
       return
     }
 
-    // Goto Test Case
+    // Goto Test Case: step the chosen axis of the chosen co-ordinate system (Mot/Top/Equ)
     if (testcase.value?.case=='goto' && payload.isPressed) {
       await dev.alpacaResetSP()
-      if (axis.value==0) {
-        const az = wrapTo360(p.azimuth + sign * testVal)
-        const alt = p.altitude 
-        await dev.alpacaSlewToAltAz(alt, az)
-      } else if (axis.value==1) {
-        const az = p.azimuth 
-        const alt = wrapTo90(p.altitude + sign * testVal)
-        await dev.alpacaSlewToAltAz(alt, az)
+      const step = sign * testVal
+      if (coord.value === 0) {
+        const key = (['m1', 'm2', 'm3'] as const)[axis.value] ?? 'm1'
+        await dev.alpacaSlewRelative({ [key]: step })
+      } else if (coord.value === 1) {
+        if (axis.value == 1) {
+          await dev.alpacaSlewAbsolute({ alt: wrapTo90(p.altitude + step) })   // fold back past the zenith
+        } else {
+          await dev.alpacaSlewRelative(axis.value == 0 ? { az: step } : { roll: step })
+        }
       } else {
-        const roll = p.roll + sign * testVal
-        await dev.alpacaMoveMechanical(roll)
+        if (axis.value == 0) {
+          await dev.alpacaSlewRelative({ ra: step / 15 })                      // ra in hours
+        } else if (axis.value == 1) {
+          await dev.alpacaSlewAbsolute({ dec: wrapTo90(p.declination + step) }) // fold back past the pole
+        } else {
+          await dev.alpacaSlewRelative({ pa: step })
+        }
       }
 
     // Slew Test Case
@@ -365,6 +375,19 @@ async function runTestCase(payload: { isPressed: boolean }, sign:number) {
       } else if (axis.value==0) {
         const dir = (sign>0) ? 2 : 3
         await dev.alpacaPulseGuide(testVal, dir)
+      } else {
+        console.log('pulse test case not implemented for PA axis')
+        return
+      }
+
+    // Sync Test Case
+    } else if (testcase.value?.case=='sync' && payload.isPressed) {
+      if (axis.value==0) {
+        const offset = testVal + (Math.random() - 0.5)*testVal*0.1
+        await dev.alpacaSyncToRADec(p.rightascension + offset/3600*sign/15, p.declination)
+      } else if (axis.value==1) {
+        const offset = testVal + (Math.random() - 0.5)*testVal*0.1
+        await dev.alpacaSyncToRADec(p.rightascension, p.declination + offset/3600*sign)
       } else {
         console.log('pulse test case not implemented for PA axis')
         return
@@ -423,18 +446,13 @@ function formatVelData(d: TelemetryRecord):DataPoint {
 }
 
 
-onMounted(async () => {
-  
+onMounted(() => {
   // Parse and validate the query parameter
   const a = parseInt(route.query.a as string)
   axis.value = [0, 1, 2].includes(a) ? a : 0
   
-  await cfg.configFetch()
   socket.subscribe('pid')
   setKnobValues()
-
-
-
 })
 
 onUnmounted(() => {

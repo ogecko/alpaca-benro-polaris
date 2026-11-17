@@ -1,0 +1,418 @@
+@echo off
+rem ============================================================================
+rem setup.bat - installs or updates the Alpaca Benro Polaris Driver on Windows 10/11.
+rem
+rem The Windows counterpart of platforms/raspberry_pi/setup.sh. Safe to re-run: it
+rem only installs what is missing, reuses your existing checkout and branch, keeps
+rem your data\ folder, and stashes (never discards) local edits to tracked files.
+rem
+rem Usage:  setup.bat [-d folder] [-p password] [-s] [-y] [-v] [-h] [branch]
+rem
+rem   -d folder     Folder for the driver (default: %USERPROFILE%\alpaca-benro-polaris, which
+rem                 is never synced by OneDrive, unlike Documents). The folder is remembered,
+rem                 so later runs use it again without -d.
+rem   -p password   Windows password for the account that runs the driver at boot, which
+rem                 enables automatic startup without being asked. Task Scheduler needs it to
+rem                 run the driver whether or not you are logged on. Blank passwords are not
+rem                 supported. (Default: you are asked whether to enable automatic startup,
+rem                 and only then for the password.)
+rem   -s            Skip creating the start-at-boot task.
+rem   -y            Unattended: never pause at the end.
+rem   -v            Verbose: show every detail. Without it only the numbered steps and any
+rem                 errors are shown, and the details are saved to %TEMP%\alpaca-setup.log.
+rem   -h            Print this help and exit.
+rem   branch        Git branch to install (default: the branch of an existing install,
+rem                 otherwise main).
+rem
+rem It updates an existing install if it finds one (the checkout it is run from, the folder
+rem remembered from last time, the folder it is run in, or the default folder), otherwise it
+rem installs into the default folder.
+rem Everything runs in this one window, as you. Windows asks for administrator permission once,
+rem and only if you choose automatic startup (step 3: the firewall rules and the boot task).
+rem
+rem The few jobs cmd.exe does badly (scheduled task, shortcut, stopping the running driver) are done
+rem by platforms\win\helper.ps1, which this script calls once the driver has been downloaded.
+rem ============================================================================
+setlocal EnableExtensions DisableDelayedExpansion
+
+set "BRANCH=main"
+set "BRANCH_GIVEN="
+set "ABP_PW="
+set "ABP_PW_ENC="
+set "SKIP_TASK="
+set "VERBOSE="
+set "ABP_NOPAUSE="
+set "REPO_DIR=alpaca-benro-polaris"
+set "INSTALL_DIR=%USERPROFILE%\alpaca-benro-polaris"
+set "DIR_GIVEN="
+set "REG_KEY=HKCU\Software\AlpacaBenroPolaris"
+set "REPO_URL=https://github.com/ogecko/alpaca-benro-polaris.git"
+set "ABP_TASK=StartupAlpacaDriver"
+rem SHIFT (used to parse the options below) shifts %0 too, so anything derived from %0 must be
+rem captured here, before parsing, and never read from %0 again.
+set "ABP_SELF=%~f0"
+set "ABP_HERE=%~dp0."
+rem Started by double-clicking (cmd /c) the window closes when we finish, so pause. From a Command Prompt it stays.
+set "ABP_CL=%CMDCMDLINE:"=%"
+set "ABP_DBLCLICK="
+if not "%ABP_CL:/c=%"=="%ABP_CL%" set "ABP_DBLCLICK=1"
+
+:parse
+if "%~1"=="" goto parsed
+if /i "%~1"=="-h" goto usage
+if /i "%~1"=="/?" goto usage
+if /i "%~1"=="-s" (set "SKIP_TASK=1" & shift & goto parse)
+if /i "%~1"=="-y" (set "ABP_NOPAUSE=1" & shift & goto parse)
+if /i "%~1"=="-v" (set "VERBOSE=1" & shift & goto parse)
+if /i "%~1"=="-d" (set "INSTALL_DIR=%~2" & set "DIR_GIVEN=1" & shift & shift & goto parse)
+if /i "%~1"=="-p" (set "ABP_PW=%~2" & shift & shift & goto parse)
+set "ARG=%~1"
+if "%ARG:~0,1%"=="-" (echo Error: invalid option %~1. & goto usage_error)
+set "BRANCH=%~1"
+set "BRANCH_GIVEN=1"
+shift
+goto parse
+
+:usage
+echo.
+echo Usage: setup.bat [-d folder] [-p password] [-s] [-y] [-v] [-h] [branch]
+echo.
+echo Options:
+echo     -d ^<folder^>    Folder for the driver, remembered for next time.
+echo                    (default: %%USERPROFILE%%\alpaca-benro-polaris)
+echo     -p ^<password^>  Windows password for the account that runs the driver at boot
+echo                    (default: asked, only if you choose automatic startup)
+echo     -s             Skip creating the start-at-boot task.
+echo     -y             Unattended, do not pause at the end.
+echo     -v             Verbose: show every detail (otherwise saved to %%TEMP%%\alpaca-setup.log).
+echo     -h             Print this help and exit.
+echo.
+echo     branch         Git branch to install, as a plain trailing argument.
+echo                    (default: stay on the branch of an existing install, otherwise main)
+echo.
+exit /b 0
+
+:usage_error
+echo.
+echo Usage: setup.bat [-d folder] [-p password] [-s] [-y] [-v] [-h] [branch]
+exit /b 1
+
+:parsed
+rem Quiet by default: only the numbered steps and any errors are shown. Everything else is either
+rem skipped or, for the output of git/uv/winget, saved to a log. -v shows it all.
+rem   %V% text   is "rem text" normally and "echo text" with -v   (informational messages)
+rem   %TO%        redirects a command's output to the log normally, and does nothing with -v
+set "ABP_LOG=%TEMP%\alpaca-setup.log"
+set "V=rem"
+set "TO=>>"%ABP_LOG%" 2>&1"
+set "HDET="
+if defined VERBOSE set "V=echo"
+if defined VERBOSE set "TO="
+if defined VERBOSE set "HDET=-Detail"
+echo == Alpaca Benro Polaris Windows Setup ===========================================.
+
+rem --- Ask about automatic startup first, so it is not lost among the technical output -------------
+rem Only if the answer is yes is the Windows password asked for: it is only used to set up the
+rem Windows task that starts the driver at boot. It is kept encrypted (Windows DPAPI: readable only
+rem by this Windows account), so it can be handed safely to the elevated window below, whatever
+rem characters it contains. Never asked with -s, -p or -y.
+rem Only an administrator account can use it: the elevated step must run as the same account that runs
+rem the driver (a standard user would be asked for some administrator's password, and the task can only
+rem be created for the account that typed the password). An administrator's filtered token still lists
+rem the Administrators group (S-1-5-32-544, "deny only"); a standard user's does not.
+if defined SKIP_TASK goto pw_done
+whoami /groups | find "S-1-5-32-544" >nul
+if errorlevel 1 goto pw_notadmin
+if defined ABP_PW goto pw_done
+if defined ABP_PW_ENC goto pw_done
+if defined ABP_NOPAUSE goto pw_done
+echo.
+set "ABP_AUTO="
+set /p "ABP_AUTO=Start the Alpaca Driver automatically when Windows starts? [N/y] "
+if not defined ABP_AUTO goto pw_no
+if /i not "%ABP_AUTO:~0,1%"=="y" goto pw_no
+echo.
+echo Enter your Windows password to enable automatic startup.
+del "%TEMP%\abp_pw.tmp" >nul 2>&1
+powershell -NoProfile -Command "$s = Read-Host ('Windows password for ' + $env:USERNAME) -AsSecureString; if ($s.Length -gt 0) { $s | ConvertFrom-SecureString | Set-Content -Path (Join-Path $env:TEMP 'abp_pw.tmp') }"
+if exist "%TEMP%\abp_pw.tmp" set /p ABP_PW_ENC=<"%TEMP%\abp_pw.tmp"
+del "%TEMP%\abp_pw.tmp" >nul 2>&1
+echo.
+if defined ABP_PW_ENC goto pw_done
+:pw_no
+set "SKIP_TASK=1"
+echo.
+echo Automatic startup will not be configured.
+echo.
+goto pw_done
+:pw_notadmin
+set "SKIP_TASK=1"
+echo.
+echo Automatic startup needs an administrator account, so it will not be configured.
+echo Start the driver from the desktop shortcut, or run setup.bat from an administrator account.
+echo.
+:pw_done
+
+rem Start a fresh log for this run (quiet mode saves the details of git, uv and winget there).
+if not defined VERBOSE type nul > "%ABP_LOG%"
+
+rem --- Never run from inside the checkout we are about to update ------------------------------
+rem git pull can replace this very file while cmd.exe is still reading it, and cmd.exe re-reads a
+rem running batch file by byte offset, so an edit mid-run corrupts what it executes next. So a copy
+rem of this script that lives in a checkout re-runs itself from a temporary copy instead.
+if not defined ABP_ORIGIN set "ABP_ORIGIN=%ABP_HERE%"
+if defined ABP_COPIED goto not_in_checkout
+if not exist "%ABP_HERE%\..\..\driver\main.py" goto not_in_checkout
+set "ABP_COPIED=1"
+copy /y "%ABP_SELF%" "%TEMP%\abp_setup.bat" >nul
+call "%TEMP%\abp_setup.bat" %*
+set "ABP_RC=%errorlevel%"
+del "%TEMP%\abp_setup.bat" >nul 2>&1
+exit /b %ABP_RC%
+:not_in_checkout
+
+rem --- 1. Prerequisites -----------------------------------------------------------------
+echo ==SETUP== 1. Checking for Git and uv
+rem Put the usual install locations on PATH for this run, so tools installed earlier (or
+rem just now) are found even from shells that never picked up the new PATH.
+set "PATH=%ProgramFiles%\Git\cmd;%USERPROFILE%\.local\bin;%PATH%"
+
+where git >nul 2>&1
+if errorlevel 1 (
+    echo Installing Git ^(about a minute^)...
+    winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements %TO%
+    where git >nul 2>&1
+    if errorlevel 1 (
+        echo Error: Git could not be installed automatically. Install it from https://git-scm.com/download/win and re-run setup.bat.
+        goto fail
+    )
+) else (
+    %V% Git is already installed - skipping.
+)
+
+where uv >nul 2>&1
+if errorlevel 1 (
+    echo Installing uv...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex" %TO%
+    where uv >nul 2>&1
+    if errorlevel 1 (
+        echo Error: uv could not be installed. See https://docs.astral.sh/uv/getting-started/installation/ and re-run setup.bat.
+        goto fail
+    )
+) else (
+    %V% uv is already installed - skipping.
+)
+
+rem --- 2. Clone / update ------------------------------------------------------------------
+echo ==SETUP== 2. Downloading the Alpaca Driver
+rem An explicit -d folder wins. Otherwise find an existing checkout: the one this script lives in
+rem or the one we are run from, then the folder remembered from last time, then .\%REPO_DIR%
+rem beneath the current directory, then the default folder.
+set "REPO="
+set "SAVED_DIR="
+if defined DIR_GIVEN goto by_dir
+for %%D in ("%ABP_ORIGIN%" "%CD%") do if not defined REPO for /f "delims=" %%T in ('git -C "%%~D" rev-parse --show-toplevel 2^>nul') do if exist "%%T\driver\main.py" set "REPO=%%T"
+rem NOTE: %VAR% inside a ( ) block is expanded once, before the block runs, so the steps below
+rem are flat statements joined by goto, not blocks, wherever a value set earlier is used later.
+if defined REPO goto found_repo
+for /f "tokens=2,*" %%A in ('reg query "%REG_KEY%" /v InstallDir 2^>nul') do set "SAVED_DIR=%%B"
+if defined SAVED_DIR if exist "%SAVED_DIR%\.git" goto found_saved
+if defined SAVED_DIR %V% Note: the install remembered from last time, %SAVED_DIR%, no longer exists.
+if exist "%CD%\%REPO_DIR%\.git" goto found_subdir
+:by_dir
+if exist "%INSTALL_DIR%\.git" goto found_install_dir
+goto clone_repo
+
+:found_saved
+set "REPO=%SAVED_DIR%"
+%V% Found your existing install at %REPO% - fetching latest updates...
+goto update_repo
+
+:found_install_dir
+set "REPO=%INSTALL_DIR%"
+%V% Found existing install at %REPO% - fetching latest updates...
+goto update_repo
+
+:found_repo
+set "REPO=%REPO:/=\%"
+%V% Found existing checkout at %REPO% - fetching latest updates...
+goto update_repo
+
+:found_subdir
+set "REPO=%CD%\%REPO_DIR%"
+%V% Directory exists - fetching latest updates...
+
+:update_repo
+pushd "%REPO%"
+git diff --quiet HEAD
+if errorlevel 1 (
+    %V% Local changes found - stashing them ^(get them back later with: git stash pop^).
+    git -c user.name="setup.bat" -c user.email="setup@localhost" stash push -m "setup.bat auto-stash" %TO%
+)
+rem With no branch argument, stay on the branch this install is already on.
+if not defined BRANCH_GIVEN for /f "delims=" %%B in ('git branch --show-current') do set "BRANCH=%%B"
+if not defined BRANCH_GIVEN %V% No branch given - staying on '%BRANCH%'.
+git fetch --all %TO%
+if errorlevel 1 call :net_diag
+if errorlevel 1 goto fail_pop
+git checkout "%BRANCH%" %TO%
+if errorlevel 1 goto fail_pop
+git pull %TO%
+if errorlevel 1 goto fail_pop
+goto repo_ready
+
+:clone_repo
+%V% No existing install found - cloning a fresh copy into %INSTALL_DIR%...
+set "REPO=%INSTALL_DIR%"
+git clone --branch "%BRANCH%" "%REPO_URL%" "%REPO%" %TO%
+if not errorlevel 1 goto cloned
+rem One retry covers a network that was still settling (e.g. Wi-Fi just reconnected).
+echo Could not reach GitHub - trying again...
+git clone --branch "%BRANCH%" "%REPO_URL%" "%REPO%" %TO%
+if errorlevel 1 call :net_diag
+if errorlevel 1 goto fail
+:cloned
+pushd "%REPO%"
+
+:repo_ready
+
+rem Check the branch is supported BEFORE touching the running driver, and say so plainly (as setup.sh does).
+if not exist pyproject.toml (
+    echo Error: branch '%BRANCH%' doesn't have a pyproject.toml 1>&2
+    echo This script only supports Alpaca Driver v2.2 Beta 6 or above. 1>&2
+    echo '%BRANCH%' is either an older version or an unrelated branch. 1>&2
+    echo Try a different version/branch, e.g.: 1>&2
+    echo     setup.bat dev2_2 1>&2
+    goto fail_pop
+)
+if not exist platforms\win\helper.ps1 (
+    echo Error: branch '%BRANCH%' doesn't have platforms\win\helper.ps1 1>&2
+    echo It is an early v2.2 build that predates this installer. Try a newer version/branch, e.g.: 1>&2
+    echo     setup.bat dev2_2 1>&2
+    goto fail_pop
+)
+rem Remember this folder, so the next run updates it again without needing -d.
+reg add "%REG_KEY%" /v InstallDir /t REG_SZ /d "%REPO%" /f >nul
+%V% Install folder: %REPO%
+rem Stop a running driver now: it locks files in .venv, which would break uv sync below.
+call :helper stop_driver
+rem Remove the offline docs, so the driver downloads a fresh copy when it next starts (driver\app_web.py).
+if exist "pilot\dist\docs" rmdir /s /q "pilot\dist\docs" >nul 2>&1
+if not exist data mkdir data
+if not exist logs mkdir logs
+
+rem --- 3. Automatic startup (firewall rules + start-at-boot task) ---------------------------------
+rem The only step that needs administrator rights. It runs in a hidden elevated process (Windows asks
+rem permission once, and no extra window appears), so everything else stays in this window. When
+rem automatic startup is not wanted nothing is elevated at all: a driver you start yourself gets
+rem Windows' own firewall popup, which you can answer.
+set "HAVE_TASK="
+if defined SKIP_TASK echo ==SETUP== 3. Automatic startup: skipped
+if defined SKIP_TASK goto task_checked
+echo ==SETUP== 3. Setting up automatic startup
+call :helper elevated_setup
+rem Only a successful setup counts: a failed or declined one must not fall back to an older task.
+if errorlevel 1 goto task_checked
+schtasks /Query /TN "%ABP_TASK%" >nul 2>&1
+if not errorlevel 1 set "HAVE_TASK=1"
+:task_checked
+
+rem --- 3. Python dependencies ---------------------------------------------------------------
+echo ==SETUP== 4. Installing Python and the driver's libraries (a few minutes)
+rem --managed-python: use a uv-managed Python 3.13 (downloaded if needed), so the driver never
+rem depends on, or is broken by changes to, any other Python installed on this PC.
+uv sync --no-dev --locked --managed-python --no-build-package numpy --no-build-package scipy %TO%
+if errorlevel 1 (
+    echo Error: uv sync failed. If it cannot download packages, see docs\help-troubleshooting.md A2.
+    goto fail_pop
+)
+
+rem --- 5. Shortcut -----------------------------------------------------------------------------------
+echo ==SETUP== 5. Creating the desktop shortcut
+call :helper create_shortcut
+
+rem --- 6. Start the driver ---------------------------------------------------------------------------
+echo ==SETUP== 6. Starting the Alpaca Driver (the first start can take a couple of minutes)
+if defined HAVE_TASK (
+    schtasks /Run /TN "%ABP_TASK%" >nul 2>&1
+) else (
+    start "Alpaca Benro Polaris Driver" /min /D "%REPO%\driver" "%REPO%\.venv\Scripts\python.exe" "%REPO%\driver\main.py"
+)
+call :helper wait_for_driver
+if errorlevel 1 goto driver_failed
+
+rem Windows 11 24H2 (build 26100) and later refuse the Wi-Fi commands the driver uses to join the
+rem Polaris network unless Location is turned on for the signed-in user, and a new account has it
+rem off. Only warn, never change it: it is the user's own privacy setting.
+set "LOC_OFF="
+for /f "tokens=3 delims=." %%B in ('ver') do set "WINBUILD=%%B"
+for /f "tokens=3" %%V in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location" /v Value 2^>nul') do if /i "%%V"=="Deny" set "LOC_OFF=1"
+for /f "tokens=3" %%V in ('reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location\NonPackaged" /v Value 2^>nul') do if /i "%%V"=="Deny" set "LOC_OFF=1"
+if defined LOC_OFF if %WINBUILD% LSS 26100 set "LOC_OFF="
+
+rem Which version was installed: the branch, the commit (short hash, date) and the driver's version string.
+set "ABP_BRANCH=" & set "ABP_COMMIT=" & set "ABP_VERSION="
+for /f "delims=" %%B in ('git branch --show-current 2^>nul') do set "ABP_BRANCH=%%B"
+for /f "delims=" %%C in ('git log -1 --abbrev^=7 "--format=%%h (%%cs)" 2^>nul') do set "ABP_COMMIT=%%C"
+for /f "tokens=2 delims='" %%V in ('findstr /c:"Version = " driver\shr.py 2^>nul') do if not defined ABP_VERSION set "ABP_VERSION=%%V"
+popd
+echo.
+echo -------------------------------------------------------------------
+echo Alpaca Benro Polaris Setup Complete
+echo.
+echo Installed:  %ABP_VERSION%  ^|  branch %ABP_BRANCH%  ^|  commit %ABP_COMMIT%
+echo.
+echo Access Alpaca Pilot via:  http://ap.local  (or http://%COMPUTERNAME%)
+if defined LOC_OFF echo NOTE: To let the driver join the Polaris Wi-Fi, turn on Settings ^> Privacy ^& security ^> Location ^> "Let apps access your location" and "Let desktop apps access your location".
+if not defined HAVE_TASK echo The driver is running in a minimized window named "Alpaca Benro Polaris Driver".
+%V% You can:
+%V% * Start the driver manually:    "Alpaca Benro Polaris Driver"  (desktop shortcut)
+%V% * Update driver with a re-run:  setup.bat                      (keeps your branch and data)
+%V% * View installation directory:  %REPO%
+%V% * View the logs in:             %REPO%\logs\alpaca.log
+echo -------------------------------------------------------------------
+goto end
+
+:driver_failed
+rem Installed, but the driver did not come up: the helper has shown why (the end of the driver's log).
+popd
+echo.
+echo The Alpaca Driver was installed but did not start. Once the problem above is fixed, run setup.bat
+echo again, or start the driver from the "Alpaca Benro Polaris Driver" desktop shortcut.
+if defined ABP_DBLCLICK if not defined ABP_NOPAUSE pause
+exit /b 1
+
+:fail_pop
+popd
+:fail
+echo.
+echo Setup did not complete.
+if not defined VERBOSE if exist "%ABP_LOG%" echo The end of the setup log ^(%ABP_LOG%^):
+if not defined VERBOSE if exist "%ABP_LOG%" powershell -NoProfile -Command "Get-Content -Tail 12 -LiteralPath $env:ABP_LOG"
+echo Once the problem is fixed, run setup.bat again. To see every detail, run setup.bat -v
+if defined ABP_DBLCLICK if not defined ABP_NOPAUSE pause
+exit /b 1
+
+:end
+if defined ABP_DBLCLICK if not defined ABP_NOPAUSE pause
+exit /b 0
+
+rem --- Explain a failed git download -----------------------------------------------------------------
+rem If PowerShell can reach GitHub but git cannot, something on this PC is blocking git itself (usually
+rem security software that does not yet trust the newly installed git). Always exits 1, so callers can
+rem write "if errorlevel 1 call :net_diag" and then test errorlevel again.
+:net_diag
+powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Method Head -TimeoutSec 15 -Uri https://github.com | Out-Null; exit 0 } catch { exit 1 }" >nul 2>&1
+if errorlevel 1 (
+    echo Error: this PC cannot reach github.com. Check the internet connection ^(and any VPN^), then re-run setup.bat.
+) else (
+    echo Error: this PC can reach github.com, but Git cannot. Security software or a firewall is probably
+    echo blocking Git. Allow "%ProgramFiles%\Git\mingw64\libexec\git-core\git-remote-https.exe" ^(and git.exe^) in it,
+    echo then re-run setup.bat. See docs\help-troubleshooting.md A9.
+)
+exit /b 1
+
+rem --- Run one action of platforms\win\helper.ps1 ------------------------------------------------
+:helper
+powershell -NoProfile -ExecutionPolicy Bypass -File "%REPO%\platforms\win\helper.ps1" -Action %~1 -Repo "%REPO%" -TaskName "%ABP_TASK%" %HDET%
+exit /b %errorlevel%

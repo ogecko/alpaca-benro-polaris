@@ -8,7 +8,7 @@
       <div class="col text-h6 q-ml-md">
         System Advisory & Usage Notes
         <div class="text-caption text-grey-6">
-          Important safety, security, and performance guidance for Alpaca Benro Polaris Driver users.
+          Important safety, security, and performance guidance for Alpaca Driver users.
         </div>
       </div>
       <q-space />
@@ -90,7 +90,7 @@
             <div class="text-h6 text-bold">⚠️ Performance Limitations</div>
             <div class="text-body2 q-mt-sm">
               <p>
-                The <strong>Alpaca Benro Polaris (ABP) Driver</strong> unlocks advanced control and precision features that enhance the capabilities of the Benro Polaris mount.
+                The <strong>Alpaca Driver</strong> unlocks advanced control and precision features that enhance the capabilities of the Benro Polaris mount.
                 However, it's important to understand that the ABP Driver operates within the physical limits of the Polaris hardware. 
                 While software enhancements can improve performance, they cannot fully compensate for mechanical or firmware constraints.
               </p>

@@ -5,6 +5,8 @@ import { useStatusStore } from 'src/stores/status';
 import { computed, ref } from 'vue'
 import { useConfigStore } from './config';
 
+export const MAX_RECORDS = 150     // records kept per topic (the driver's backlog per topic is the same, app_socket.py)
+
 export type LogMessage = { text: string }
 export type KalmanMessage = { 
   θ_meas: [number, number, number], θ_state: [number, number, number],
@@ -46,9 +48,8 @@ export const useStreamStore = defineStore('telemetry', () => {
   const cfg = useConfigStore()
 
   // Reactive derived config
-  const socketHost = computed(() => dev.alpacaHost)
-  const socketPort = computed(() => dev.socketAPIPort)
-  const socketURL = computed(() => `ws://${socketHost.value}:${socketPort.value}/ws`)
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const socketURL = computed(() => `${proto}//${window.location.host}/proxy/ws`)
   const socketConnected = computed(() => socketConnectionStatus.value === 'connected')
 
   // State
@@ -61,6 +62,7 @@ export const useStreamStore = defineStore('telemetry', () => {
   const _pingInterval = ref<ReturnType<typeof setInterval> | null>(null)
   const _reconnectTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
   const retryCount = ref(0)
+  const syncPoints = ref(new Map<string, SyncMessage>())
 
   // Actions (unchanged logic, just scoped)
   function connectSocket(url?: string | null) {
@@ -72,7 +74,22 @@ export const useStreamStore = defineStore('telemetry', () => {
       disconnectSocket()
     }
 
-    if (_socket.value) return
+    if (_socket.value) {
+      if (_socket.value.readyState === WebSocket.OPEN || _socket.value.readyState === WebSocket.CONNECTING) {
+        return
+      }
+      // Stale reference: readyState reached CLOSING/CLOSED at the browser-engine level
+      // without our onclose handler ever running to clean it up -- eg. the tab was
+      // frozen while backgrounded and the connection died before it could resume JS
+      // execution to process the event. Detach handlers so a late/queued event from
+      // this dead socket can't fire cleanupSocket() against the new connection below.
+      console.warn(`Discarding stale WebSocket (readyState=${_socket.value.readyState})`)
+      _socket.value.onopen = null
+      _socket.value.onmessage = null
+      _socket.value.onerror = null
+      _socket.value.onclose = null
+      _socket.value = null
+    }
 
     socketConnectionStatus.value = url ? 'connecting' : 'reconnecting'
     _socket.value = new WebSocket(targetUrl)
@@ -94,12 +111,20 @@ export const useStreamStore = defineStore('telemetry', () => {
         if (topic === 'pong') return
         if (topic === 'status') {
           status.statusUpdate(record.data)
-        } else if (topic == 'cfg') {
+        } else if (topic === 'cfg') {
           cfg.$patch(record.data)
+        } else if (topic === 'sm') {
+          const msg = record.data as SyncMessage
+          if (msg.timestamp === 'reset') {
+            syncPoints.value.clear()
+          } else if (msg.deleted) {
+            syncPoints.value.delete(msg.timestamp)
+          } else {
+            syncPoints.value.set(msg.timestamp, msg)
+          }
         } else {
           if (!topics.value[topic]) topics.value[topic] = []
           topics.value[topic].push(record)
-          const MAX_RECORDS = 150
           if (topics.value[topic].length > MAX_RECORDS) {
             topics.value[topic].splice(0, topics.value[topic].length - MAX_RECORDS)
           }
@@ -206,13 +231,12 @@ export const useStreamStore = defineStore('telemetry', () => {
   }
 
   return {
-    socketHost,
-    socketPort,
     socketURL,
     socketConnected,
     socketConnectionStatus,
     lastActivity,
     topics,
+    syncPoints,
     subscriptions,
     connectSocket,
     disconnectSocket,

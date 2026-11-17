@@ -221,6 +221,36 @@ export const useCatalogStore = defineStore('catalog', {
     updateDsoPositions() {
       const latDeg = this.site_lat;
       const lonDeg = this.site_lon;
+
+      // Add any new orbital bodies not yet in dsos
+      const existingIds = new Set(this.dsos.map(d => d.MainID));
+      for (const [mainID, orb] of Object.entries(this.orbs)) {
+        if (orb.C1 !== undefined && !existingIds.has(mainID)) {
+          const newItem: CatalogItem = {
+            MainID:   mainID,
+            Name:     orb.Name ?? '',
+            Notes:    '',
+            Class:    '',
+            OtherIDs: orb.OtherIDs ?? '',
+            Rt: 2, Sz: 8, Vz: 7,
+            C1:  orb.C1,
+            C2:  orb.C2 ?? 36,
+            Cn:  84,
+            RA_hr:   orb.RA_hr ?? 0,
+            Dec_deg: orb.DEC_deg ?? 0,
+            Rating:      ratingLookup[2],
+            Visibility:  visibilityLookup(7, 8),
+            Constellation: constellationLookup[84],
+            Type:    typeLookupIcon[orb.C1],
+            Subtype: subtypeLookup[orb.C2 ?? 36],
+            SearchText: normalize(`${mainID} ${orb.Name ?? ''} ${orb.OtherIDs ?? ''}`),
+          };
+          this.dsos = [...this.dsos, newItem];
+          existingIds.add(mainID);
+        }
+      }
+
+      // Existing position updates
       this.dsos = this.dsos.map(dso => {
         const { ra, dec } = getRaDec(dso, this.orbs, latDeg, lonDeg)
         const { az, alt } = getAzAlt(ra, dec, latDeg, lonDeg); //Now
@@ -291,6 +321,13 @@ export type OrbitalExport = {
     RA_hr?: number;
     DEC_deg?: number;
     Proximity?: number;
+    // Present for user-fetched bodies (satellites, comets, asteroids)
+    MainID?:   string;
+    Name?:     string;
+    OtherIDs?: string;
+    C1?:       DsoType;
+    C2?:       DsoSubtype;
+    Cn?:       number;
   };
 };
 
@@ -318,6 +355,10 @@ export interface CatalogItem {
   SearchText?: string;
   Alt_deg?: number;
   Az_deg?: number;
+  Roll_deg?: number;    // Landmark roll (optional)
+  M1_deg?: number;      // Motor Position: raw motor angles (zeta, as StatusMotors shows them)
+  M2_deg?: number;
+  M3_deg?: number;
   Az?: DsoAzimuth; 
   Alt?: DsoAltitude; 
   Position?: string;
@@ -349,6 +390,11 @@ function enumAlt(altDeg: number) {
   return altEnum
 }
 
+// A Motor Position entry: raw M1/M2/M3 motor angles (the driver adds the Az/Alt/Roll they point at)
+export function isMotorPosition(dso: CatalogItem) {
+  return dso.M1_deg !== undefined && dso.M2_deg !== undefined && dso.M3_deg !== undefined
+}
+
 function getRaDec(dso: CatalogItem, orbs: OrbitalExport, latDeg: number, lonDeg: number) {
   let ra = dso.RA_hr
   let dec = dso.Dec_deg
@@ -360,8 +406,8 @@ function getRaDec(dso: CatalogItem, orbs: OrbitalExport, latDeg: number, lonDeg:
       dec = orb.DEC_deg ?? dec;
     }
   }
-  // if Landmark
-  if (dso.C1==9) {
+  // if Landmark or Motor Position
+  if (dso.C1==9 || isMotorPosition(dso)) {
     const az = dso.Az_deg ?? 180;
     const alt = dso.Alt_deg ?? 45;
     ({ ra, dec } = AzAlt2RaDec(az, alt, latDeg, lonDeg))
@@ -371,8 +417,8 @@ function getRaDec(dso: CatalogItem, orbs: OrbitalExport, latDeg: number, lonDeg:
 }
 
 function positionLookup(azEnum: DsoAzimuth, altEnum: DsoAltitude) {
-  const azStr = azimuthLookup[azEnum].split(' ')[0] ?? ''
-  const altStr = altitudeLookup[altEnum].split(' ')[0] ?? ''
+  const azStr = (azimuthLookup[azEnum] ?? '').split(' ')[0] ?? ''
+  const altStr = (altitudeLookup[altEnum] ?? '').split(' ')[0] ?? ''
   return (altEnum==0 || altEnum==6) ? altStr :
          (altEnum==1) ? 'At ' + azStr + ' ' + altStr 
                       : altStr + ' ' + azStr

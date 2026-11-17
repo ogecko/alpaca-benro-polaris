@@ -43,7 +43,7 @@
 #               GitHub issue #1
 #
 from falcon import Request, Response
-from shr import PropertyResponse, DeviceMetadata, log_request, log_response
+from shr import PropertyResponse, DeviceMetadata, log_request
 from config import Config
 from logging import Logger
 # For each *type* of device served
@@ -86,7 +86,7 @@ class description:
 # -----------------
 class configureddevices():
     async def on_get(self, req: Request, resp: Response):
-        await log_request(req,'log_alpaca_actions')
+        await log_request(req,'log_alpaca_discovery')
         confarray = [    # ADD ONE FOR EACH DEVICE TYPE AND INSTANCE SERVED
             {
             'DeviceName'    : TelescopeMetadata.Name,

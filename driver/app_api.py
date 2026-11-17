@@ -5,24 +5,6 @@
 # MIT License
 #
 # Copyright (c) 2025 David Morrison
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 # -----------------------------------------------------------------------------
 
 import inspect
@@ -31,7 +13,8 @@ from falcon import App, asgi, HTTP_200, HTTPFound
 import asyncio
 import management
 from config import Config
-from shr import LifecycleController
+from shr import LifecycleController, LifecycleEvent, check_port_bindable, describe_bind_error
+from app_web import ensure_tls_cert, TLS_CERT_PATH, TLS_KEY_PATH
 
 #########################
 # FOR EACH ASCOM DEVICE #
@@ -43,69 +26,70 @@ import rotator
 API_VERSION = 1           
 #--------------
 
-#-----------------------
-# Magic routing function
-# ----------------------
 def init_routes(app: App, devname: str, module):
-    """Initialize Falcon routing from URI to responser classses
-
-    Inspects a module and finds all classes, assuming they are Falcon
-    responder classes, and calls Falcon to route the corresponding
-    Alpaca URI to each responder. This is done by creating the
-    URI template from the responder class name.
-
-    Args:
-        app (App): The instance of the Falcon processor app
-        devname (str): The name of the device (e.g. 'rotator")
-        module (module): Module object containing responder classes
-
-    """
     memlist = inspect.getmembers(module, inspect.isclass)
     for cname,ctype in memlist:
-        if ctype.__module__ == module.__name__:    # Only classes *defined* in the module
-            app.add_route(f'/api/v{API_VERSION}/{devname}/{{devnum:int(min=0)}}/{cname.lower()}', ctype())  # type() creates instance!
+        if ctype.__module__ == module.__name__:
+            app.add_route(f'/api/v{API_VERSION}/{devname}/{{devnum:int(min=0)}}/{cname.lower()}', ctype())
+
 
 class RedirectResource:
     async def on_get(self, req, resp):
-        # Redirect to a different port (e.g. 8080)
-        raise HTTPFound(f'http://{req.host}:{Config.alpaca_pilot_port}/?api={Config.alpaca_restapi_port}')
+        https = Config.enable_https
+        proto = 'https' if https else 'http'
+        port  = Config.alpaca_pilot_https_port if https else Config.alpaca_pilot_http_port
+        host  = req.host.split(':')[0]
+        port_suffix = '' if (https and port == 443) or (not https and port == 80) else f':{port}'
+        raise HTTPFound(f'{proto}://{host}{port_suffix}/?api={Config.alpaca_restapi_port}&host={host}')
 
-# ---------------------------------------------
-# MAIN HTTP/REST API ENGINE (FALCON ASGI BASED)
-# ---------------------------------------------
+
 async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
-    """Initialize Falcon app and start serving it
-     
-    Create an asgi Falcon app defining all routes. 
-    Then create a httpd server based on the app and serve it.
-
-    """
-    # falcon.asgi.App instances are callable ASGI apps
+    if not Config.enable_restapi:
+        logger.info("==STARTUP== Alpaca REST API disabled by config, not starting.")
+        return        
     rest_app = asgi.App(middleware=[CORSMiddleware()])
 
-    #########################
-    # FOR EACH ASCOM DEVICE #
-    #########################
     init_routes(rest_app, 'telescope', telescope)
     init_routes(rest_app, 'rotator', rotator)
-    #
-    # Initialize routes for Alpaca support endpoints
+
     rest_app.add_route('/management/apiversions', management.apiversions())
     rest_app.add_route(f'/management/v{API_VERSION}/description', management.description())
     rest_app.add_route(f'/management/v{API_VERSION}/configureddevices', management.configureddevices())
-    if (Config.enable_pilot):
-        # Redirect Resources for Quasar Pilot App
+    if Config.enable_pilot:
         rest_app.add_route('/setup', RedirectResource())
         rest_app.add_route(f'/setup/v{API_VERSION}/telescope/0/setup', RedirectResource())
         rest_app.add_route(f'/setup/v{API_VERSION}/rotator/0/setup', RedirectResource())
 
+    # Ensure TLS cert exists (will reuse the one generated by app_web)
+    tls_ok = Config.enable_rest_https and ensure_tls_cert(Config.alpaca_restapi_ip_address, logger)
 
-    # Serve the application
+    alpaca_server = None
     try:
-        # Create a http server
-        alpaca_config = uvicorn.Config(rest_app, host=Config.alpaca_restapi_ip_address, port=Config.alpaca_restapi_port, log_level="error")
+        bind_err = check_port_bindable(Config.alpaca_restapi_ip_address, Config.alpaca_restapi_port)
+        if bind_err is not None:
+            logger.error("==STARTUP FAILED== " + describe_bind_error(
+                bind_err, Config.alpaca_restapi_ip_address, Config.alpaca_restapi_port, "Alpaca REST API"))
+            await lifecycle.signal(LifecycleEvent.SHUTDOWN)
+            return
+
+        ssl_kwargs = dict(
+            ssl_certfile=str(TLS_CERT_PATH),
+            ssl_keyfile=str(TLS_KEY_PATH),
+        ) if tls_ok else {}
+
+        alpaca_config = uvicorn.Config(
+            rest_app,
+            host=Config.alpaca_restapi_ip_address,
+            port=Config.alpaca_restapi_port,
+            log_level="error",
+            log_config=None,               # keep uvicorn's log records on our own logging pipeline/formatting instead of its separate stderr handler
+            timeout_graceful_shutdown=3,   # bound connection-drain wait; default is None (waits forever for open connections)
+            **ssl_kwargs,
+        )
         alpaca_server = uvicorn.Server(alpaca_config)
-        logger.info(f'==STARTUP== Serving ASCOM Alpaca REST API on {Config.alpaca_restapi_ip_address}:{Config.alpaca_restapi_port}. Time stamps are UTC.')
+        proto = 'HTTPS' if tls_ok else 'HTTP'
+        logger.info(f'==STARTUP== Serving ASCOM Alpaca REST API ({proto}) on '
+                    f'{Config.alpaca_restapi_ip_address}:{Config.alpaca_restapi_port}.')
 
         await asyncio.gather(
             lifecycle._wrap(alpaca_server.serve()),
@@ -114,17 +98,15 @@ async def alpaca_rest_httpd(logger, lifecycle: LifecycleController):
     except asyncio.CancelledError:
         logger.info("==CANCELLED== Alpaca REST API cancel received.")
     except Exception as e:
-        logger.exception(f"==EXCEPTIION== Alpaca REST API Unhandled exception: {e}")
+        logger.exception(f"==EXCEPTION== Alpaca REST API unhandled exception: {e}")
     finally:
         logger.info("==SHUTDOWN== Alpaca REST API shutting down.")
         if alpaca_server and alpaca_server.started:
             await alpaca_server.shutdown()
 
 
-
 class CORSMiddleware:
     async def process_request(self, req, resp):
-        # No-op for most requests; CORS headers are added in process_response
         pass
 
     async def process_response(self, req, resp, resource, req_succeeded):

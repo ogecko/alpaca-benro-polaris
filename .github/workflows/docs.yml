@@ -1,0 +1,80 @@
+# Builds the Zensical documentation site and publishes it to GitHub Pages.
+# Requires Settings > Pages > Build and deployment > Source = "GitHub Actions".
+#
+# Each release's docs live in their own folder (e.g. /v2.2/, from docs_version in zensical.toml).
+# The published tree is kept on the gh-pages branch so older versions survive: this build
+# replaces only its own version's folder, then deploys the whole tree.
+name: Documentation
+on:
+  push:
+    branches:
+      - main
+      - dev2_2
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/configure-pages@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked --only-group docs
+      - name: Check list layout renders the same on the site as on github.com
+        run: uv run --no-sync python utility/docs/check_docs.py
+      - name: Check the Configuration Reference matches driver/config.toml
+        run: uv run --no-sync python utility/docs/make_config_reference.py --check
+      - name: Check the Telescope and Rotator API References match the driver
+        run: uv run --no-sync python utility/docs/make_api_reference.py --check
+      - name: Check the docs version matches the driver and Pilot versions
+        run: python utility/docs/check_versions.py
+      - id: version
+        run: echo "docs_version=$(uv run --no-sync python utility/docs/check_docs.py --version)" >> "$GITHUB_OUTPUT"
+      - run: uv run --no-sync zensical build --clean
+        env:
+          MIKE_DOCS_VERSION: ${{ steps.version.outputs.docs_version }}
+      - name: Check out the gh-pages branch
+        run: |
+          if git fetch --depth 1 origin gh-pages; then
+            git worktree add -B gh-pages pages FETCH_HEAD
+          else
+            git worktree add --orphan -b gh-pages pages
+          fi
+      - run: python utility/docs/publish_version.py pilot/dist/docs pages ${{ steps.version.outputs.docs_version }} docs/site-root
+      # The driver downloads its version's zip once (driver/app_web.py ensure_offline_docs) and serves it
+      # at /docs/, so Pilot's documentation links still work without internet. The zips are assets of
+      # one pre-release, offline-docs, created on the first run only, as GitHub emails the repo's
+      # watchers whenever a release is created. Each build replaces only its own version's zip.
+      # (A release asset, rather than a file on gh-pages, whose history would keep every copy.)
+      - name: Publish the offline docs zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Not named ZIP: Info-ZIP's zip reads a $ZIP environment variable as extra command-line arguments
+          DOCS_ZIP: offline-docs-${{ steps.version.outputs.docs_version }}.zip
+        run: |
+          (cd pilot/dist/docs && zip -qr -X "$RUNNER_TEMP/$DOCS_ZIP" . -x 404.html)
+          gh release view offline-docs >/dev/null 2>&1 || gh release create offline-docs --prerelease --target "$GITHUB_SHA" \
+            --title "Offline docs" --notes "Offline copies of the documentation, one zip per driver version, downloaded by the driver. Updated automatically."
+          gh release upload offline-docs "$RUNNER_TEMP/$DOCS_ZIP" --clobber
+      - name: Commit and push the gh-pages branch
+        working-directory: pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898111+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git diff --cached --quiet || git commit -m "docs: publish ${{ steps.version.outputs.docs_version }} from ${GITHUB_REF_NAME} ${GITHUB_SHA::8}"
+          git push origin gh-pages
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: pages
+      - uses: actions/deploy-pages@v5
+        id: deployment

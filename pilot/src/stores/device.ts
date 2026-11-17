@@ -7,10 +7,20 @@ import type { ConfigResponse } from 'src/stores/config'
 import type { OrbitalExport, DsoType, CatalogItem } from 'src/stores/catalog'
 import { AppVisibility } from 'quasar'
 
+export type SerialPort = {
+  device: string
+  description: string
+  kind: string            // what the USB ID says the device is, e.g. "u-blox GPS receiver"
+  gps: boolean            // almost certainly a GPS receiver (vendor makes nothing else)
+  manufacturer: string
+  vid: number | null
+  pid: number | null
+  hwid: string
+}
+
 export const useDeviceStore = defineStore('device', {
   state: () => ({
-    alpacaHost: localStorage.getItem('alpacaHost') || '',                 // Hostname of Alpaca Driver
-    restAPIPort: localStorage.getItem('restAPIPort') || 5555,              // Port of Alpaca REST API
+    _connecting: false,             // used in connectRestAPI to manage connecting state
     socketAPIPort: 5556,            // Port of Alpaca Socket API
     restAPIConnectingMsg: '',       // Message to show while connecting in progress
     restAPIConnectErrorMsg: '',     // Message to show when there is a connection error
@@ -31,42 +41,46 @@ export const useDeviceStore = defineStore('device', {
   },
 
   actions: {
-    setAlpacaHost(host: string) {
-      this.alpacaHost = host
-      localStorage.setItem('alpacaHost', host)
-    },
 
-    setRestAPIPort(port: number) {
-      this.restAPIPort = port
-      localStorage.setItem('restAPIPort', port.toString())
-    },
-
-    async connectRestAPI() {
+    async connectRestAPI(retries = 5, delayMs = 500) {
+      if (this._connecting) return
+      this._connecting = true
       this.$patch({
         restAPIConnectingMsg: 'Connecting...',
-        alpacaClientID: 8000+Math.floor(Math.random()*1000),
+        alpacaClientID: 8000 + Math.floor(Math.random() * 1000),
         restAPIConnectErrorMsg: '',
         alpacaServerName: '',
         alpacaServerVersion: '',
         alpacaDevices: []
-      });
+      })
       try {
-          await sleep(200);  // some time to see connecting message
-          await this.fetchServerDescription();
-          await this.fetchConfiguredDevices();
-          await this.fetchSupportedActions();
-          const response = await this.apiAction<ConfigResponse>('Polaris:ConfigFetch', '{"configNames": ["alpaca_socket_port"]}'); 
-          this.socketAPIPort = response.alpaca_socket_port || 5556
-          this.restAPIConnected = true;
-          this.restAPIConnectedAt = Date.now();
-          this.restAPIConnectErrorMsg = ''
-        } catch {
-          // restAPIConnectErrorMsg is already set inside apiGet
-          this.restAPIConnected = false;
-        } finally {
-          this.restAPIConnectingMsg = '';
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            console.log('connectRestAPI: connecting to Alpaca Driver Proxy, attempt = ', attempt)
+            await this.fetchServerDescription()
+            await this.fetchConfiguredDevices()
+            await this.fetchSupportedActions()
+            const response = await this.apiAction<ConfigResponse>(
+              'Polaris:ConfigFetch', '{"configNames": ["alpaca_socket_port"]}'
+            )
+            this.socketAPIPort = response.alpaca_socket_port || 5556
+            this.restAPIConnected = true
+            this.restAPIConnectedAt = Date.now()
+            this.restAPIConnectErrorMsg = ''
+            return
+          } catch (err) {
+            if (attempt === retries) throw err
+            await sleep(delayMs * (attempt + 1)) // simple backoff
+          }
         }
+      } catch {
+        this.restAPIConnected = false
+      } finally {
+        this.restAPIConnectingMsg = ''
+        this._connecting = false
+      }
     },
+
 
     disconnectRestAPI() {
       this.restAPIConnected = false
@@ -145,6 +159,15 @@ export const useDeviceStore = defineStore('device', {
       return await this.api<SupportedActionsResponse>('api/v1/telescope/0/slewtocoordinatesasync',{ RightAscension: ra, Declination: dec });
     },
 
+    // m1/m2/m3 are raw motor angles (zeta, as StatusMotors shows them), driven straight there
+    async alpacaSlewAbsolute(coords: Partial<Record<'az'|'alt'|'roll'|'ra'|'dec'|'pa'|'l'|'b'|'gpa'|'m1'|'m2'|'m3', number>>, isasync = true) {
+      await this.apiAction<void>('Polaris:SlewAbsolute', JSON.stringify({ ...coords, isasync }))
+    },
+
+    async alpacaSlewRelative(coords: Partial<Record<'az'|'alt'|'roll'|'ra'|'dec'|'pa'|'l'|'b'|'gpa'|'m1'|'m2'|'m3', number>>, isasync = true) {
+      await this.apiAction<void>('Polaris:SlewRelative', JSON.stringify({ ...coords, isasync }))
+    },
+
     // dont forget ra needs to be in hrs
     async alpacaJ2000Goto(name: string, ra:number, dec:number) {
       await this.apiAction<void>('Polaris:J2000Goto', `{"name": "${name}", "ra": "${ra}", "dec": "${dec}"}`)
@@ -155,6 +178,7 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:J2000Sync', `{"ra": "${ra}", "dec": "${dec}"}`)
     },
 
+    
     async alpacaResetSP() {
       await this.apiAction<void>('Polaris:ResetSP')
     },
@@ -191,9 +215,31 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:SetAlignment', `{"azimuth": ${az}, "altitude": ${alt}}`)
     },
 
+    async alpacaRestartDriver() {
+      await this.apiAction<void>('Polaris:RestartDriver')
+    },
+
     async alpacaStopDriver() {
       await this.apiAction<void>('Polaris:StopDriver')
     },
+
+    async alpacaShutdownOS() {
+      await this.apiAction<void>('Polaris:ShutdownOS')
+    },
+
+    async alpacaShutdownMount() {
+      await this.apiAction<void>('Polaris:ShutdownMount')
+    },
+
+    // starts a GPS Locate, or joins the one running; its progress and result arrive in the status (gpsrun, gpsstate)
+    async alpacaGpsLocate() {
+      return await this.apiAction<{ run: number, joined: boolean }>('Polaris:GpsLocate')
+    },
+
+    async alpacaSerialPorts() {
+      return await this.apiAction<SerialPort[]>('Polaris:SerialPorts')
+    },
+
 
     async bleSelectDevice(name:string) {
       await this.apiAction<void>('Polaris:bleSelectDevice', `{"name": "${name}"}`)
@@ -216,7 +262,6 @@ export const useDeviceStore = defineStore('device', {
       return result ?? []
     },
 
-
     async alpacaGetOrbitals() {
       const result = await this.api<OrbitalExport>('api/v1/telescope/0/action', { Action: 'Polaris:GetOrbitals', Parameters: ' ' });
       return result
@@ -226,6 +271,10 @@ export const useDeviceStore = defineStore('device', {
       await this.apiAction<void>('Polaris:TrackOrbital', `{"name": "${name}", "category":${c1}}`)
     },
 
+    async alpacaRemoveOrbital(mainId: string) {
+      await this.apiAction<void>('Polaris:RemoveOrbital', `{"mainId": "${mainId}"}`)
+    },
+    
     async alpacaPanoGrid(params: string) {
       await this.apiAction<void>('Polaris:PanoGrid', params)
     },
@@ -267,6 +316,13 @@ export const useDeviceStore = defineStore('device', {
         return result.Value as T;
     },
 
+    // For the actions whose Value is a JSON string (ASCOM's Action returns a string): ConfigUpdate, ConfigSave and
+    // ConfigRestore. An object Value (a driver from before the change) is passed through as it is.
+    async apiActionJSON<T>(action: string, parameters: object | string = ' '): Promise<T> {
+        const value = await this.apiAction<unknown>(action, parameters);
+        return (typeof value === 'string' ? JSON.parse(value) : value) as T;
+    },
+
     async api<T>(
       resourcePath: string,
       body?: Record<string, unknown>   // implies a PUT when included, 
@@ -276,7 +332,7 @@ export const useDeviceStore = defineStore('device', {
       const ClientTransactionID = this.alpacaClientTransactionID
       const isPut = body
       const isJSONContent = (isPut && body.Action && body.Action=='Polaris:ConfigUpdate')
-      const baseUrl = `http://${this.alpacaHost}:${this.restAPIPort}`;
+      const baseUrl = `/proxy`;      
       const url = isPut ? `${baseUrl}/${resourcePath}` : `${baseUrl}/${resourcePath}?ClientID=${ClientID}&ClientTransactionID=${ClientTransactionID}`;
       const payload = isPut ? { ...body, ClientID, ClientTransactionID } : {}
       const options = {

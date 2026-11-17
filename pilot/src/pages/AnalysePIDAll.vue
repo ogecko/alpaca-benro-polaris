@@ -25,7 +25,9 @@
           :options="[
             { label: 'Mot', value: 0 },
             { label: 'Top', value: 1 },
-            { label: 'Equ', value: 2 }
+            { label: 'Equ', value: 2 },
+            { label: 'ΔTop', value: 3 },
+            { label: 'ΔMot', value: 4 },
           ]"
         />
       </div>
@@ -47,7 +49,7 @@
               </q-item-section>
             </q-item>
           </q-list>
-          <ChartXY :data="chartPosData(n)" x1Type="time"></ChartXY>
+          <ChartXY :data="chartPosData(n)" x1Type="time" y1Type="dms" :rmsScale="rmsScale(axisLabel(n))"></ChartXY>
         </q-card>
       </div>
     </div>
@@ -63,7 +65,7 @@
                 <q-item-label caption>OP: Output Velocity, Kp: Proportion, Ki: Integral, Kd: Derivative, FF: Feed Forward</q-item-label>
                 </q-item-section>
             </q-item>
-          <ChartXY  :data="chartVelData(n)" x1Type="time"></ChartXY>
+          <ChartXY  :data="chartVelData(n)" x1Type="time" y1Type="dms"></ChartXY>
         </q-card>
       </div>    
     </div>
@@ -75,16 +77,16 @@
 import StatusBanners from 'src/components/StatusBanners.vue'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
+import { useStatusStore } from 'src/stores/status'
 import { useStreamStore } from 'src/stores/stream'
-import { useConfigStore } from 'src/stores/config'
 import { useDeviceStore } from 'src/stores/device'
 import PIDStatus from 'src/components/PIDStatus.vue'
 import type { DataPoint } from 'src/components/ChartXY.vue'
 import type { TelemetryRecord, PIDMessage }from 'src/stores/stream'
 
 const socket = useStreamStore()
-const cfg = useConfigStore()
 const dev = useDeviceStore()
+const p = useStatusStore()
 
 const coord = ref<number>(2)
 
@@ -93,6 +95,8 @@ const axisOptionsData = [
   [ { label: 'M1', value: 0 }, { label: 'M2', value: 1 },   { label: 'M3', value: 2 } ],
   [ { label: 'Az', value: 0 }, { label: 'Alt', value: 1 },   { label: 'Roll', value: 2 } ],
   [ { label: 'RA ', value: 0 }, { label: 'Dec', value: 1 },   { label: 'PA ', value: 2 } ],
+  [ { label: 'ΔAz', value: 0 }, { label: 'ΔAlt', value: 1 },   { label: 'ΔRoll', value: 2 } ],
+  [ { label: 'ΔM1', value: 0 }, { label: 'ΔM2', value: 1 },   { label: 'ΔM3', value: 2 } ],
 ]
 const axisLabel = (n:number) => {
   const group = axisOptionsData[coord.value]
@@ -114,6 +118,11 @@ const chartVelData = (n:number) => {
 }
 
 
+const rmsScale = (axisLabel:string) => {
+  const modulating_angle = (/(RA|PA)/.test(axisLabel)) ? (p.declination ?? 0) : 
+                           (/(Az|Roll)/.test(axisLabel)) ? (p.altitude ?? 0) : 0
+  return Math.cos(modulating_angle * Math.PI / 180)
+}
 
 
 
@@ -127,10 +136,10 @@ function formatPosData(n: number) {
     let pvKey: keyof PIDMessage
     let spKey: keyof PIDMessage
 
-    if (coord.value === 0) {
+    if (coord.value === 0 || coord.value === 4) {
       pvKey = "θ_pv"
       spKey = "θ_sp"
-    } else if (coord.value === 1) {
+    } else if (coord.value === 1 || coord.value === 3) {
       pvKey = "α_pv"
       spKey = "α_sp"
     } else {
@@ -138,8 +147,14 @@ function formatPosData(n: number) {
       spKey = "Δ_sp"
     }
 
-    const PV = data[pvKey]?.[n-1] ?? 0
-    const SP = data[spKey]?.[n-1] ?? 0
+
+    let PV = data[pvKey]?.[n-1] ?? 0
+    let SP = data[spKey]?.[n-1] ?? 0
+
+    if (coord.value > 2) {
+        PV = PV - SP
+        SP = SP - SP
+    }
 
     return { x1: time, PV, SP }
   }
@@ -160,8 +175,7 @@ function formatVelData(n: number) {
 }
 
 
-onMounted(async () => {
-  await cfg.configFetch()
+onMounted(() => {
   socket.subscribe('pid')
 })
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SCRIPT_NAME="${0}"
 
 POLARIS_REGISTRY=docker.io/library
@@ -11,6 +12,7 @@ POLARIS_IMAGE_FULL=${POLARIS_REGISTRY}/${POLARIS_IMAGE_NAME}:${POLARIS_IMAGE_VER
 
 # Arguments
 DOCKER_BUILD_IMAGE="false"
+DOCKER_NETWORK_HOST="false"
 ASTRO_PLATFORM="ALPACA"
 
 # Set local time zone - choose from TZ identifier listed at 
@@ -28,74 +30,97 @@ define_usage() {
 Usage: ${define_usage_SCRIPT_NAME} [OPTIONS]
 
 Options:
-    -t <TZ>, --timezone=<TZ>    Set the timezone (default: ${TIME_ZONE})
-    -b, --build                 Build the image before running.
-    -h, --help                  Print help and exit.
+    -t <TZ>    Set the timezone (default: ${TIME_ZONE})
+    -b         Build the image before running.
+    -n         Use host networking instead of publishing individual ports.
+               Needed for mDNS/discovery to work properly, and for the driver
+               to reach the Benro Polaris over a specific host WiFi adapter
+               (e.g. a USB dongle). Linux/Raspberry Pi only -- not supported
+               by Docker Desktop on Windows or macOS.
+    -h         Print help and exit.
 
 EOM
 }
 
 parse_args() {
-    local OPTIND
+    local OPTIND=1
 
-    while getopts_long "biht: build indi help timezone:" option "${@}"; do
+    while getopts ":t:bnh" option; do
         case "${option}" in
-            "t" | "timezone")
+            "t")
                 TIME_ZONE=${OPTARG}
                 echo "TIME_ZONE set to ${TIME_ZONE}"
                 ;;
-            "b" | "build")
+            "b")
                 DOCKER_BUILD_IMAGE="true"
                 echo "Docker build enabled"
                 ;;
-            "h" | "help")
+            "n")
+                DOCKER_NETWORK_HOST="true"
+                echo "Host networking enabled"
+                ;;
+            "h")
                 help_exit "true"
                 ;;
             "?")
-                echo "Error: invalid option (${OPTARG})."
+                echo "Error: invalid option (-${OPTARG})."
                 help_exit "false"
                 ;;
             ":")
                 echo "Error: -${OPTARG} requires an argument."
                 help_exit "false"
                 ;;
-            *)
-                help_exit "false"
-                ;;
         esac
     done
-    shift $(( OPTIND - 1 ))
 }
 
 
 main() {
-    if [ ! -f "${SCRIPT_DIR}/driver/main.py" ]; then
-        cp -r ${SCRIPT_DIR}/../../driver ${SCRIPT_DIR}
-    fi
     docker_build \
         DOCKER_BUILD_IMAGE \
         "true" \
         "${SCRIPT_DIR}/Dockerfile" \
         POLARIS_IMAGE_FULL \
         ASTRO_PLATFORM \
-        "${SCRIPT_DIR}/../"
-
-    if [ ! -f "${SCRIPT_DIR}/config.toml" ]; then
-        echo "S{SCRIPT_DIR}/config.toml doesn't exist.  Copy and customize ${SCRIPT_DIR}/config.toml.example."
+        "${SCRIPT_DIR}/../../"
+    if [ $? -ne 0 ]; then
+        echo "Docker build failed."
         return 1
     fi
-
 
     if [ -z "${TIME_ZONE}" ]; then
         echo "TIME_ZONE has not been set - see arguments in run.sh"
         return 1
     fi
-    
-    read -d '' DOCKER_RUN_OPTIONS <<EOM
-        --mount type=bind,source="${SCRIPT_DIR}/config.toml",target="/home/polaris/aplaca/device/config.toml" \
-        -p 5432:5432 \
-        -p 5555:5555
+
+    # data/ holds everything the driver generates or that Alpaca Pilot saves at runtime
+    # (config overrides, presets, calibration, TLS certs, ...), and logs/ holds the
+    # driver's log files. Bind-mounting both from the repo root -- the same paths used
+    # by a native install -- means they survive container restarts/rebuilds and keeps
+    # the documentation consistent across install methods.
+    mkdir -p "${REPO_ROOT}/data" "${REPO_ROOT}/logs"
+
+    if [ "${DOCKER_NETWORK_HOST}" == "true" ]; then
+        # Host networking shares the host's network stack directly -- no port
+        # publishing needed (and -p is meaningless/ignored alongside it).
+        read -d '' DOCKER_RUN_OPTIONS <<EOM
+        --network host \
+        --mount type=bind,source="${REPO_ROOT}/data",target="/home/polaris/alpaca/data" \
+        --mount type=bind,source="${REPO_ROOT}/logs",target="/home/polaris/alpaca/logs"
 EOM
+    else
+        read -d '' DOCKER_RUN_OPTIONS <<EOM
+        --mount type=bind,source="${REPO_ROOT}/data",target="/home/polaris/alpaca/data" \
+        --mount type=bind,source="${REPO_ROOT}/logs",target="/home/polaris/alpaca/logs" \
+        -p 5555:5555 \
+        -p 5556:5556 \
+        -p 80:80 \
+        -p 443:443 \
+        -p 32227:32227/udp \
+        -p 10001:10001 \
+        -p 5353:5353/udp
+EOM
+    fi
 
     docker_run \
         POLARIS_IMAGE_NAME \
@@ -105,11 +130,10 @@ EOM
 }
 
 # Setup
-setup SCRIPT_DIR SCRIPT_NAME
+define_usage SCRIPT_NAME
 
 # Parse arguments
 parse_args "${@}"
-shift $(( OPTIND - 1 ))
 
 # Main
 main

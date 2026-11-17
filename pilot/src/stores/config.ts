@@ -15,23 +15,37 @@ export const useConfigStore = defineStore('config', {
 
     // Network
     polaris_auto_retry: true,
+    enable_remote_shutdown: true,
     polaris_ip_address: '',
     polaris_port: 9090,
     enable_restapi: true,
     enable_socket: true,
     enable_discovery: true,
+    enable_mdns: true,
     enable_pilot: true,
     enable_synscan: true,
     alpaca_restapi_port: 5555,
     alpaca_socket_port: 5556,
     alpaca_discovery_port: 32227,
-    alpaca_pilot_port: 80,
+    enable_https: false,
+    alpaca_pilot_http_port: 80,
+    alpaca_pilot_https_port: 433,
     stellarium_synscan_port: 10001,
     stellarium_synscan_ip_address: '',
     alpaca_restapi_ip_address: '',
+    mdns_name: 'alpacapailot.local',
 
     // Site Info
+    location_source: 'browser' as 'browser' | 'gps',
+    gps_provider: 'nmea' as 'none' | 'gpsd' | 'nmea' | 'ubx',
+    gpsd_host: '127.0.0.1',
+    gpsd_port: 2947,
+    gps_serial_device: '',
+    gps_serial_baudrate: 9600,
+    gps_max_attempts: 5,
+    gps_retry_max_delay: 15,
     location: 'Unknown',
+    location_list: '',
     site_latitude: -33.8598874,
     site_longitude: 151.2021771,
     site_elevation: 39,
@@ -44,6 +58,8 @@ export const useConfigStore = defineStore('config', {
     focal_ratio: 11,
 
     // Panorama
+    pano_name: '',
+    pano_list: '',
     sensor_size: 'Full Frame (36 × 24 mm)',
     panel_overlap: '30%',
     show_panels: false,
@@ -69,14 +85,25 @@ export const useConfigStore = defineStore('config', {
     advanced_tracking: false,
     advanced_goto: false,
     advanced_rotator: false,
-    advanced_guiding: false,
+    advanced_pulse_guiding: false,
+    advanced_sync_guiding: false,
     advanced_alignment: false,
-    advanced_alignment_zero: false,
+    advanced_scc_enabled: false,
+    advanced_scc_choice: 2,
+    advanced_align_mac: false,
+    advanced_eq_mode: false,
+    advanced_eq_mode_visible: false,
     advanced_orbitals: false,
+    orbital_lead_sec: 0.3,
+    advanced_pec_drift: false,
+    advanced_pec_worm: false,
+    coordinated_speed_control: false,
+    advanced_backlash: false,
     // Motion and Tuning Constants
     tracking_settle_time: 16,
     kf_process_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
     kf_measure_noise: [1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4],
+    kf_goto_noise_scale: 0.1,
     pid_Kp: [0.8, 0.8, 0.8],
     pid_Ki: [0.0, 0.0, 0.0],
     pid_Kd: [0.8, 0.8, 0.8],
@@ -84,6 +111,8 @@ export const useConfigStore = defineStore('config', {
     pid_Kc: 1.0,
     pid_Kv: 0.0,
     pid_Ka: 0.0,
+    pid_Kt: 0.2,
+    pid_Kl: 0.15,
 
     z1_min_limit: -190,
     z1_max_limit: +190,
@@ -97,6 +126,10 @@ export const useConfigStore = defineStore('config', {
     guide_rate_ra: 0.5,
     guide_rate_dec: 0.5,
 
+    // Mechanical Alignment Correction (alignment model): the M2 scale, a mount constant (%)
+    align_m2_scale: 1.0,
+    m3_encoder_scale: 0.0,
+
     // Aiming Adjustment
     aiming_adjustment_enabled: true,
     aiming_adjustment_time: 2,
@@ -108,10 +141,6 @@ export const useConfigStore = defineStore('config', {
     log_level: 'INFO',
     log_to_file: true,
     log_to_stdout: true,
-
-    log_performance_data: 0,
-    log_performance_data_test: 0,
-    log_perf_speed_interval: 5,
 
     log_polaris: true,
     log_stellarium_protocol: false,
@@ -132,14 +161,11 @@ export const useConfigStore = defineStore('config', {
     log_polaris_polling: false,
     log_quest_model: false,
     log_orbital_queries: false,
-
-    log_telemetry_data: false,
-    log_aiming_data: false,
-    log_drift_data: false,
-    log_periodic_data: false,
-    log_kalman_data: false,
-    log_pid_data: false,
-    log_sync_data: false,
+    log_gps_receiver: false,
+    log_pec: false,
+    log_heartbeat: false,
+    log_position: false,
+    log_hardware_unit_tests: false,
 
     // Log Rotation
     max_size_mb: 5,
@@ -161,7 +187,7 @@ export const useConfigStore = defineStore('config', {
 
     async configUpdate(payload: Partial<ConfigResponse>) {
       try {
-        const updated = await dev.apiAction<ConfigResponse>('Polaris:ConfigUpdate', payload)
+        const updated = await dev.apiActionJSON<ConfigResponse>('Polaris:ConfigUpdate', payload)
         this.$patch(updated)
         console.log('configUpdate',updated)
         // Check if we need to refetch configured devices
@@ -173,8 +199,8 @@ export const useConfigStore = defineStore('config', {
         }
         // Check if any updated key requires restart
         const restartKeys = [
-          'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan',
-          'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'alpaca_pilot_port', 'stellarium_synscan_port',
+          'polaris_auto_retry', 'enable_restapi', 'enable_socket', 'enable_discovery', 'enable_pilot', 'enable_synscan', 'enable_mdns', 'mdns_name',
+          'alpaca_restapi_port', 'alpaca_socket_port', 'alpaca_discovery_port', 'enable_https', 'alpaca_pilot_http_port', 'alpaca_pilot_https_port', 'stellarium_synscan_port',
         ]
         const updatedKeys = Object.keys(updated)
         const requiresRestart = updatedKeys.some(key => restartKeys.includes(key))
@@ -190,7 +216,7 @@ export const useConfigStore = defineStore('config', {
     async configSave() {
       this.isSaving = true
       try {
-        await dev.apiAction<ConfigResponse>('Polaris:ConfigSave')
+        await dev.apiActionJSON<ConfigResponse>('Polaris:ConfigSave')
         if (this.isRestartRequired) {
           this.isRestartRequired = false
           await dev.apiAction<string>('Polaris:RestartDriver')
@@ -206,7 +232,7 @@ export const useConfigStore = defineStore('config', {
     async configRestore() {
       this.isRestoring = true
       try {
-        const response = await dev.apiAction<ConfigResponse>('Polaris:ConfigRestore');
+        const response = await dev.apiActionJSON<ConfigResponse>('Polaris:ConfigRestore');
         this.$patch(response)
         this.fetchedAt = Date.now()
         return true

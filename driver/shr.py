@@ -1,78 +1,42 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# shr.py - Device characteristics and support classes/functions/data
-#
-# Part of the AlpycaDevice Alpaca skeleton/template device driver
-#
-# Author:   Robert B. Denny <rdenny@dc3.com> (rbd)
-#
-# Python Compatibility: Requires Python 3.7 or later
-# GitHub: https://github.com/ASCOMInitiative/AlpycaDevice
-#
-# -----------------------------------------------------------------------------
-# MIT License
-#
-# Copyright (c) 2022 Bob Denny
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-# -----------------------------------------------------------------------------
-# Edit History:
-# 15-Dec-2022   rbd 0.1 Initial edit for Alpaca sample/template
-# 18-Dev-2022   rbd 0.1 Additional driver info items
-# 20-Dec-2022   rbd 0.1 Fix idiotic error in to_bool()
-# 22-Dec-2022   rbd 0.1 DeviceMetadata
-# 24-Dec-2022   rbd 0.1 Logging
-# 25-Dec-2022   rbd 0.1 Logging typing for intellisense
-# 26-Dec-2022   rbd 0.1 Refactor logging to config module.
-# 27-Dec-2022   rbd 0.1 Methods can return values. Common request
-#                       logging (before starting processing).
-#                       MIT license and module header. Logging cleanup.
-#                       Python 3.7 global restriction.
-# 28-Dec-2022   rbd 0.1 Rename conf.py to config.py to avoid conflict with sphinx
-# 29-Dec-2022   rbd 0.1 ProProcess() Falcon hook class for pre-logging and
-#                       common request validation (Client IDs for now).
-# 31-Dec-2022   rbd 0.1 Bad boolean values return 400 Bad Request
-# 10-Jan-2023   rbd 0.1 Cleanups for documentation and add docstrings for Sphinx.
-# 23-May-2023   rbd 0.2 Refactoring for multiple ASCOM device type support
-#               GitHub issue #1. Improve error messages in PreProcessRequest().
-# 29-May-2023   rbd 0.2 Enhance get_request_field() so empty string for default
-#               value means mandatory field. Add title and description info
-#               to raised HTTP BAD_REQUEST.
-# 30-May-2023   rbd 0.3 Improve request logging at time of arrival
-# 01-Jun-2023   rbd 0.3 Issue #2 Do not return empty Value field in property
-#               response, and omit Value if error is not success().
+"""
+shy.py — Shared Utility functions.
+
+Provides helper functions for the Alpaca REST API as well as String and Angle formatters.
+Also includes asyncio co-routine lifecycle management and system statistics
+
+Contents
+--------
+  Rest API helpers    DeviceMetadata, get_request_field, log_request, log_response, 
+                      PreProcessRequest, PropertyResponse, MethodResponse, getNextTransId
+  String formatters   format_timestamp, ratio_string, bytes2hexascii
+  Angle formatters    deg2dms, hr2hms, dms2dec, dms2rad, rad2dms, hms2hr, hms2rad, rad2hms
+                      rad2hr, hr2rad, rad2deg, deg2rad
+  LifeCycle mgmt      LifecycleEvent, LifecycleController
+  System Stats        system_vitals_init, system_vitals, system_cpu
+"""
 
 from __future__ import annotations
 from threading import Lock
+import gc
 from exceptions import Success
 import json
 import re
+import time
 import math
 import asyncio
 import threading
+import os
+import sys
+import shutil
+import subprocess
+import psutil
 from falcon import Request, Response, HTTPBadRequest
 from logging import Logger
 from config import Config
-import re
 from typing import Set, Coroutine, Dict, Optional
 from datetime import datetime, timezone
 
+# ── REST API helpers ─────────────────────────────────────────────────────────────
 
 logger: Logger = None
 #logger = None                   # Safe on Python 3.7 but no intellisense in VSCode etc.
@@ -85,8 +49,9 @@ _bad_title = 'Bad Alpaca Request'
 # Static metadata not subject to configuration changes
 class DeviceMetadata:
     """ Metadata describing the Alpaca Device/Server """
-    Version = '2.1.0'              # Alpaca Version Number (based on https://semver.org/, change in shy.py, AboutPage.vue and package.json)
-    VersionSynScan = '020100'      # Must be 6 digits for SynScan protocol
+    #  change Version in shr.py, AboutPage.vue, package.json, pyproject.toml and docs_version in zensical.toml)
+    Version = '2.2.0 Release'              # Alpaca Version Number (based on https://semver.org/)
+    VersionSynScan = '020200'      # Must be 6 digits for SynScan protocol
     Description = 'Alpaca Benro Polaris Driver'
     Manufacturer = 'oGecko'
 
@@ -115,7 +80,7 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
         for param in req.params.items():        # [name,value] tuples
             if param[0].lower() == lcName:
                 return param[1]
-        if default == None:
+        if default is None:
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
         return default                          # not in args, return default
     else:                                       # Assume PUT since we never route other methods
@@ -127,17 +92,33 @@ async def get_request_field(name: str, req: Request, caseless: bool = False, def
         else:
             if name in formdata:
                 return formdata[name]
-        if default == None:
+        if default is None:
             raise HTTPBadRequest(title=_bad_title, description=bad_desc)                # Missing or incorrect casing
         return default
 
+def client_ip(req: Request) -> str:
+    """
+    The originating client's IP, unwrapping app_web.py's internal
+    AlpacaProxyResource hop. That proxy always connects in over loopback and
+    stamps X-Forwarded-For with the real client address (see
+    AlpacaProxyResource._proxy in app_web.py) -- so the header is only
+    trusted when the direct TCP peer is loopback, never for a request that
+    arrived directly from an external address, where a client could forge it.
+    """
+    if req.remote_addr in ('127.0.0.1', '::1'):
+        forwarded = req.get_header('X-Forwarded-For')
+        if forwarded:
+            return forwarded.split(',')[0].strip()
+    return req.remote_addr
+
 # Should we log this HTTP req or response
-def should_log(req: Request, log_flags): 
+def should_log(req: Request, log_flags):
     for name in log_flags:
         if getattr(Config, name, False):
             return True  # explicitly enabled
-        if req.method == 'PUT' and name == 'log_alpaca_polling' and Config.log_alpaca_protocol:
-            return True  # allow polling logs on PUT even if disabled
+        if req.method == 'PUT' and name == 'log_alpaca_polling' and Config.log_alpaca_protocol and not req.path.endswith('/action'):
+            return True  # allow polling logs on PUT even if disabled (excludes the multiplexed /action endpoint,
+                         # where a PUT can be a frequently-polled read like Polaris:ConfigFetch, not a real command)
     return False  # skip logging
 #
 # Log the request as soon as the resource handler gets it so subsequent
@@ -154,7 +135,7 @@ async def log_request(req: Request, log_flag_names: list[str] | str | None = Non
     if not should_log(req, log_flags):
         return   # skip logging
 
-    msg = f'{req.remote_addr} -> {req.method} {req.path}'
+    msg = f'{client_ip(req)} -> {req.method} {req.path}'
     if req.query_string != '':
         msg += f'?{req.query_string}'
     if req.method == 'PUT' and req.content_length != 0:
@@ -166,7 +147,7 @@ def log_response(req: Request, valuestr: str):
     if not should_log(req, log_flags):
         return   # skip logging
 
-    logger.info(f'{req.remote_addr} <- {valuestr}')
+    logger.info(f'{client_ip(req)} <- {valuestr}')
 
 # ------------------------------------------------
 # Incoming Pre-Logging and Request Quality Control
@@ -223,9 +204,7 @@ class PreProcessRequest():
         await log_request(req)                             # Log even a bad request
         await self._check_request(req, params['devnum'])   # Raises to 400 error on check failure
 
-# ------------------
-# PropertyResponse
-# ------------------
+
 async def PropertyResponse(value, req: Request, err = Success()):
     """Form a ``PropertyResponse`` string.
 
@@ -251,9 +230,7 @@ async def PropertyResponse(value, req: Request, err = Success()):
 
     return json.dumps(res)
 
-# --------------
-# MethodResponse
-# --------------
+
 async def MethodResponse(req: Request, err = Success(), value = None): # value useless unless Success
     """Initialize a MethodResponse string.
 
@@ -273,14 +250,12 @@ async def MethodResponse(req: Request, err = Success(), value = None): # value u
     }
     if err.Number == 0 and not value is None:
         res["Value"] = value
-        logger.info(f'{req.remote_addr} <- {str(value)}')
+        logger.info(f'{client_ip(req)} <- {str(value)}')
 
     return json.dumps(res)
 
 
-# -------------------------------
 # Thread-safe ServerTransactionID
-# -------------------------------
 _lock = Lock()
 _stid = 0
 
@@ -291,9 +266,7 @@ def getNextTransId() -> int:
     return _stid
 
 
-# -------------------------------
-# Number conversion functions
-# -------------------------------
+# ── String Formatters ─────────────────────────────────────────────────────────────
 
 def format_timestamp(ts: datetime | float | None = None) -> str:
     """
@@ -322,24 +295,24 @@ def format_timestamp(ts: datetime | float | None = None) -> str:
 
     return dt.isoformat(timespec='milliseconds').replace('+00:00', 'Z')
 
-
-
-def clamparcsec(x):
-    try:
-        value = float(x) % (360 * 3600)  # Normalize to 0-360 degrees in arc-seconds
-        if value > 180 * 3600:
-            value -= 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
-        elif value < -180 * 3600:
-            value += 360 * 3600  # Adjust to -180 to 180 degrees in arc-seconds
-        return value
-    except ValueError:
-        return float('nan')
-
+def ratio_string(x: float) -> str:
+    """
+    Convert a float in [0, 1] to a ratio string like '99:01', '50:50', '01:99'.
+    Total always equals 100 and each side is two digits.
+    """
+    x = max(0.0, min(1.0, x))
+    right = round(x * 100)
+    right = max(1, min(99, right))
+    left = 100 - right
+    return f"{left:02d}:{right:02d}"
 
 def bytes2hexascii(data):
     s_hex = ' '.join(('0'+hex(x)[2:])[-2:] for x in data)
     s_ascii = ''.join(chr(x) if 32 <= x <= 126 else '.' for x in data)
     return f"{s_hex}: {s_ascii}"
+
+
+# ── Angle Formatters ─────────────────────────────────────────────────────────────
 
 def deg2dms(decimal_degrees):
     """Converts decimal degrees to formatted degrees-minutes-seconds (DMS) string with sign."""
@@ -371,18 +344,27 @@ def hr2hms(decimal_hr):
         hours += 1
     return f"{sign}{int(hours):02}h{int(minutes):02}m{seconds:05.2f}s"
 
-def dms2dec(dms):
-    """Parses a DMS string into decimal degrees."""
-    parts = re.split(r'[^\d.-]+', dms)
-    parts = [float(p) for p in parts if p]
-    if not parts:
-        raise ValueError(f"dms2dec: Invalid HMS string input: '{dms}'")
+def dms2dec(dms: str | None) -> float:
+    """Parses a DMS (or HMS) string into decimal degrees."""
+    if not dms or not isinstance(dms, str):
+        return 0.0
+    # Normalize unit symbols and stray characters to colons, then strip
+    cleaned = re.sub(f'[hdms°′″ʰᵐˢ\'"]', ':', dms)
+    cleaned = re.sub(r'[^\d.+\-:]', '', cleaned).strip()
+    # Extract sign
+    sign_match = re.match(r'^[+\-]', cleaned)
+    sign = -1 if (sign_match and sign_match.group() == '-') else 1
+    # Remove leading sign before splitting
+    unsigned = re.sub(r'^[+\-]', '', cleaned)
+    # Split and parse, treating empty fields as 0
+    raw_parts = unsigned.split(':')
+    parts = [0.0 if p == '' else float(p) for p in raw_parts]
     while len(parts) < 3:
         parts.append(0.0)
-    sign = 1 if parts[0] >= 0 else -1
-    degrees, minutes, seconds = abs(parts[0]), parts[1], parts[2]
-    total_deg = degrees + minutes / 60 + seconds / 3600 
-    return sign * total_deg
+    degrees_raw, minutes, seconds = parts[0], parts[1], parts[2]
+    degrees = abs(degrees_raw)
+    decimal = degrees + minutes / 60 + seconds / 3600
+    return sign * decimal
 
 def dms2rad(dms):
     """Converts DMS formatted string (e.g. '+123d45\'56.78"') to radians."""
@@ -427,40 +409,8 @@ def deg2rad(deg):
     """Converts decimal degrees to radians."""
     return deg*math.pi/180
 
-def angular_separation(ra1_hr, dec1_deg, ra2_hr, dec2_deg):
-    """
-    Computes angular separation between two celestial coordinates using the spherical law of cosines.
-    
-    Parameters:
-        ra1_hr, dec1_deg: RA and Dec of first object (RA in hours, Dec in degrees)
-        ra2_hr, dec2_deg: RA and Dec of second object (RA in hours, Dec in degrees)
-    
-    Returns:
-        Angular separation in degrees
-    """
-    # Convert RA from hours to degrees
-    ra1_deg = ra1_hr * 15.0
-    ra2_deg = ra2_hr * 15.0
 
-    # Convert all angles to radians
-    ra1_rad = math.radians(ra1_deg)
-    dec1_rad = math.radians(dec1_deg)
-    ra2_rad = math.radians(ra2_deg)
-    dec2_rad = math.radians(dec2_deg)
-
-    # Spherical law of cosines
-    cos_angle = (math.sin(dec1_rad) * math.sin(dec2_rad) +
-                 math.cos(dec1_rad) * math.cos(dec2_rad) * math.cos(ra1_rad - ra2_rad))
-
-    # Clamp to valid range to avoid rounding errors
-    cos_angle = min(1.0, max(-1.0, cos_angle))
-
-    # Compute angle in radians and convert to degrees
-    angle_rad = math.acos(cos_angle)
-    angle_deg = math.degrees(angle_rad)
-
-    return angle_deg
-
+# ── Lifecycle Management ─────────────────────────────────────────────────────────────
 
 def empty_queue(q: asyncio.Queue):
   while not q.empty():
@@ -469,19 +419,87 @@ def empty_queue(q: asyncio.Queue):
     except asyncio.QueueEmpty:
         break
 
+
+# ── garbage collection pauses (diagnostic, with log_heartbeat) ────────────────────────────────
+GC_LOG_MIN_S = 0.1          # log a garbage collection that takes at least this long
+
+
+class GcPauseLogger:
+    """Logs every garbage collection that pauses the process for at least min_s (gc.callbacks): a full collection of a
+    large heap stops every thread, the event loop included, so its SLOW speed switching too. Suspected 2026-10-09: the
+    event loop stalled 0.6-1.3 s every ~10 min at normal CPU, each followed by a 12-38" kick on all three motors.
+    The logs since showed two kinds: a real full collection (once per session, CPU time ~ wall time, now mostly
+    avoided by freeze_startup_heap), and a small collection stretched by the OS starving the whole process at 100%
+    system CPU (CPU time << wall time), which is flagged as an OS stall rather than blamed on the collector.
+    Installed with log_heartbeat (main.py); costs four clock reads per collection."""
+
+    def __init__(self, logger, min_s=GC_LOG_MIN_S, clock=time.perf_counter, cpu_clock=time.thread_time):
+        self._logger, self.min_s, self._clock, self._cpu_clock = logger, min_s, clock, cpu_clock
+        self._start = self._cpu_start = None
+
+    def __call__(self, phase, info):
+        if phase == 'start':
+            self._start, self._cpu_start = self._clock(), self._cpu_clock()
+            return
+        if self._start is None:
+            return
+        dt, self._start = self._clock() - self._start, None
+        cpu = self._cpu_clock() - self._cpu_start      # the collecting thread's CPU time (~16 ms resolution on Windows)
+        if dt >= self.min_s:
+            stats = gc.get_stats()
+            starved = ': OS stall, the process was starved of CPU' if cpu < dt / 2 else ''
+            self._logger.warning(f"->> GC pause: {dt:.3f}s, generation {info.get('generation')}, collected "
+                                 f"{info.get('collected')}, uncollectable {info.get('uncollectable')}, counts "
+                                 f"{gc.get_count()}, collections so far {[g.get('collections') for g in stats]}, "
+                                 f"CPU {cpu:.3f}s{starved}")
+
+    def install(self):
+        if self not in gc.callbacks:
+            gc.callbacks.append(self)
+        return self
+
+    def remove(self):
+        if self in gc.callbacks:
+            gc.callbacks.remove(self)
+
+
+def freeze_startup_heap(logger):
+    """Moves every object alive at startup (modules, classes, functions, config, the Polaris object graph) into the
+    permanent generation, so the full collection that otherwise comes once per session, 40-400 min in, scans only
+    objects made since: it paused every thread 0.13-0.54 s on nina01 (Celeron N5105), mid-tracking. Call before the
+    tasks start, while nothing moves. Unfreezes first so a RESTART's collection can free the previous run's objects
+    (frozen objects in a reference cycle are never freed), and collects before freezing so no garbage is frozen."""
+    pause_loggers = [cb for cb in gc.callbacks if isinstance(cb, GcPauseLogger)]
+    for cb in pause_loggers:        # this collection is deliberate, at a safe moment: not a pause to report
+        cb.remove()
+    try:
+        start = time.perf_counter()
+        gc.unfreeze()
+        collected = gc.collect()
+        gc.freeze()
+        dt = time.perf_counter() - start
+    finally:
+        for cb in pause_loggers:
+            cb.install()
+    logger.info(f'==STARTUP== Froze {gc.get_freeze_count()} startup objects out of garbage collection '
+                f'(collected {collected}, {dt * 1000:.0f} ms).')
+
 from enum import Enum, auto
 
 class LifecycleEvent(Enum):
     NONE = auto()
-    SHUTDOWN = auto()           # shutdown the process
+    SHUTDOWN = auto()           # shutdown the process (Pilot's Stop Driver, or internal, eg a service failed to start)
+    SHUTDOWN_OS = auto()        # user initiated shutdown of the host operating system, after the process winds down
     RESTART = auto()            # restart all network services and running async tasks
     INTERRUPT = auto()          # user initiated shutdown ^C
     START = auto()              # used initated start of a stopable procedure
-    STOP = auto()               # user initiated stop of a procedure
+    STOP = auto()               # user initiated stop of a procedure (eg a speed test); the driver keeps running
     
 class LifecycleController:
     def __init__(self):
+        self.loop = asyncio.get_running_loop()
         self._event = LifecycleEvent.NONE
+        self.stuck_tasks: list[str] = []         # tasks that ignored shutdown_tasks' cancel
         self._cond = asyncio.Condition()
         self._lock = threading.Lock()  # For thread-safe sync signaling
         self._tasks: Set[asyncio.Task] = set()
@@ -526,25 +544,26 @@ class LifecycleController:
     async def shutdown_tasks(self, timeout: float = 8.0):
         if self._event == LifecycleEvent.NONE:
             await self.signal(LifecycleEvent.SHUTDOWN)
-        for task in list(self._tasks):
+        # Cancelling immediately can catch a sub-task before its first step.
+        # This may leave a coroutine it wraps never truly started or awaited, 
+        # So perform a sleep here to allow their first step to complete.
+        await asyncio.sleep(0)
+        tasks = list(self._tasks)
+        for task in tasks:
             task.cancel()
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(*self._tasks, return_exceptions=True),
-                timeout=timeout
-            )
-        except asyncio.TimeoutError:
-            logger.warning("==SHUTDOWN==Timeout while waiting for tasks to cancel")
-        pending = [t for t in self._tasks if not t.done()]
+        # asyncio.wait, not wait_for(gather): on timeout wait_for cancels the gather and then waits for that cancel to
+        # finish, so a task that swallows its cancel hung the shutdown for ever (BLE enableWifi, 2026-11-15)
+        pending = (await asyncio.wait(tasks, timeout=timeout))[1] if tasks else set()
+        self.stuck_tasks = [t.get_name() for t in pending]
         if pending:
-            logger.warning(f"==SHUTDOWN==Tasks still pending: {pending}")
+            logger.warning(f"==SHUTDOWN== Timeout while waiting for tasks to cancel, still pending: {self.stuck_tasks}")
 
 
     def should_stop(self) -> bool:
-        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT, LifecycleEvent.STOP}
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.SHUTDOWN_OS, LifecycleEvent.INTERRUPT, LifecycleEvent.STOP}
 
     def should_shutdown(self) -> bool:
-        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.INTERRUPT}
+        return self._event in {LifecycleEvent.RESTART, LifecycleEvent.SHUTDOWN, LifecycleEvent.SHUTDOWN_OS, LifecycleEvent.INTERRUPT}
 
     async def wait_for_event(self):
         async with self._cond:
@@ -578,3 +597,237 @@ class LifecycleController:
 
     def reset(self):
         self._event = LifecycleEvent.NONE
+
+
+# ── Host OS shutdown ───────────────────────────────────────────────────────────
+
+def running_in_container() -> bool:
+    """True when the driver runs inside a Docker/Podman container, which cannot power off its host."""
+    return os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
+
+def _host_shutdown_commands() -> list[list[str]]:
+    """Commands to try (in order) to power off the host OS, for the current platform."""
+    if sys.platform.startswith('win'):
+        return [['shutdown', '/s', '/t', '0']]
+
+    sudo = shutil.which('sudo')
+    if sys.platform == 'darwin':
+        # sudo -n fails immediately (no password prompt) unless a sudoers rule permits it;
+        # osascript works when the driver runs inside the logged-in user's GUI session.
+        cmds = [[sudo, '-n', '/sbin/shutdown', '-h', 'now']] if sudo else []
+        cmds.append(['osascript', '-e', 'tell application "System Events" to shut down'])
+        return cmds
+
+    # Linux / Raspberry Pi. platforms/raspberry_pi/setup.sh grants the driver user passwordless
+    # sudo for exactly "systemctl poweroff". Plain systemctl works as root, or for an active
+    # local desktop session via polkit.
+    systemctl = shutil.which('systemctl') or '/usr/bin/systemctl'
+    cmds = []
+    if hasattr(os, 'geteuid') and os.geteuid() != 0 and sudo:
+        cmds.append([sudo, '-n', systemctl, 'poweroff'])
+    cmds.append([systemctl, 'poweroff'])
+    return cmds
+
+def shutdown_host_os(logger: Logger) -> bool:
+    """Power off the operating system the driver is running on. Returns True if a command was accepted."""
+    for cmd in _host_shutdown_commands():
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+        except (OSError, subprocess.SubprocessError) as ex:
+            logger.warning(f'==SHUTDOWN_OS== {" ".join(cmd)} failed: {ex}')
+            continue
+        if result.returncode == 0:
+            logger.info(f'==SHUTDOWN_OS== {" ".join(cmd)} accepted, host OS is shutting down.')
+            return True
+        logger.warning(f'==SHUTDOWN_OS== {" ".join(cmd)} returned {result.returncode}: {(result.stderr or result.stdout).strip()}')
+    logger.error('==SHUTDOWN_OS== No command could shut down the host OS, check the sudoers/permissions setup.')
+    return False
+
+
+# ── Port preflight ─────────────────────────────────────────────────────────────
+
+def shift_privileged_ports(logger: Logger, keys=('alpaca_pilot_http_port', 'alpaca_pilot_https_port')):
+    """
+    Move any of the given port settings the OS won't let this process bind for lack of
+    privilege (80 -> 8080, 443 -> 8443), so the driver works out of the box for a normal
+    user on Linux (which restricts ports below 1024 to root) with no config.toml edit.
+    Asks the OS by trying the bind, so it is right for root, setcap, containers and macOS
+    alike, rather than guessing from the platform. Only a permission failure counts: a port
+    that is merely in use is left for the normal startup check to report. Skipped on Windows,
+    where low ports are not privileged. Call once at startup, before servers read the ports.
+    """
+    if os.name != 'posix':
+        return
+    for key in keys:
+        port = Config.get(key)
+        if not isinstance(port, int) or not 0 < port < 1024:
+            continue
+        if isinstance(check_port_bindable(Config.alpaca_restapi_ip_address, port), PermissionError):
+            Config.apply_changes({key: port + 8000})
+            logger.info(f"==STARTUP== {key} {port} needs root on this system, using {port + 8000} instead.")
+
+
+def describe_bind_error(e: OSError, host: str, port: int, purpose: str) -> str:
+    """Turn a bind-time OSError into a single-line, actionable diagnostic (no traceback)."""
+    import errno
+    if e.errno == errno.EADDRINUSE:
+        return (f"{purpose}: port {port} is already in use on {host} "
+                f"(another instance already running, or another app on this port?).")
+    if e.errno == errno.EACCES:
+        return (f"{purpose}: permission denied binding port {port} on {host} "
+                f"(ports below 1024 need elevated privileges on most OSes -- run as "
+                f"administrator/root, or choose a port >= 1024 in data/config.pilot.json).")
+    return f"{purpose}: failed to bind {host}:{port}: {e}"
+
+
+def check_port_bindable(host: str, port: int) -> Optional[OSError]:
+    """
+    Try to bind+immediately release a socket at (host, port), mirroring the
+    dual-stack behaviour asyncio's create_server uses for a wildcard host.
+    Returns the OSError if binding failed (address in use, permission denied,
+    etc.), or None if the port is free. Meant to be checked BEFORE handing a
+    port to uvicorn, so bind failures produce one clean log line instead of
+    an internal SystemExit cascading up through nested server/lifespan tasks.
+    """
+    import socket
+    is_v6 = (not host) or (':' in host)
+    family = socket.AF_INET6 if is_v6 else socket.AF_INET
+    bind_host = host if host else ('::' if is_v6 else '0.0.0.0')
+    try:
+        with socket.socket(family, socket.SOCK_STREAM) as s:
+            # Match uvicorn's own Config.bind_socket(), which also sets this --
+            # without it, this probe is *stricter* than the real server it's
+            # guarding: a bind that would succeed past a lingering TIME_WAIT
+            # connection on this port (completely normal after any connection
+            # closes) fails here first and aborts startup unnecessarily.
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if is_v6:
+                s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            s.bind((bind_host, port))
+        return None
+    except OSError as e:
+        return e
+
+
+# ── System Statistics ─────────────────────────────────────────────────────────────
+
+_CPU_SETTLE_INTERVAL  = 1.0   # psutil settling sleep inside each sample
+_CPU_REPORT_THRESHOLD = 1.0   # minimum % to appear in top-5
+
+_system_cpu_lock          = threading.Lock()
+_system_cpu_top5_cache    = ""
+_system_cpu_top5_logged   = False
+_system_cpu_lifecycle     = None
+_system_cpu_sampler_thread = None
+_system_cpu_count         = psutil.cpu_count(logical=True) or 1
+
+_CPU_IDLE_NAMES = {'system idle process', 'idle'}
+
+
+def system_vitals_init(lifecycle):
+    """Call once at startup."""
+    global _system_cpu_lifecycle
+    _system_cpu_lifecycle = lifecycle
+
+
+def system_raise_priority(logger):
+    """Raise driver process priority so heavy apps (e.g. NINA decoding 45MP raw frames) don't starve the event loop.
+    Uses HIGH rather than REALTIME on Windows, as REALTIME can starve OS input, disk and USB threads."""
+    try:
+        p = psutil.Process()
+        if sys.platform == 'win32':
+            p.nice(psutil.HIGH_PRIORITY_CLASS)
+        else:
+            p.nice(-10)     # needs CAP_SYS_NICE / root, otherwise raises AccessDenied
+        logger.info(f'==STARTUP== Process priority raised to {p.nice()}')
+    except (psutil.AccessDenied, PermissionError) as e:
+        logger.info(f'==STARTUP== Process priority unchanged, insufficient privilege: {e}')
+    except Exception as e:
+        logger.warning(f'==STARTUP== Process priority unchanged: {e}')
+
+
+def system_vitals():
+    """Returns a string with %CPU, %Mem, #Threads"""
+    cpu = psutil.cpu_percent(interval=None)
+    mem = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    net = psutil.net_io_counters()
+    n_threads = threading.active_count()
+    s = (f'CPU: {cpu:4.1f}% Mem: {mem.percent:4.1f}% ({mem.used//1024//1024}MB) '
+         f'Swap: {swap.percent:4.1f}% Threads: {n_threads} '
+         f'NetDrops: {net.dropin}/{net.dropout} NetErr: {net.errin}/{net.errout}')
+    if cpu > 95:
+        system_cpu_start_probe()
+    return s
+
+
+def system_cpu_start_probe():
+    """Trigger a one-shot CPU probe thread if one isn't already running."""
+    global _system_cpu_sampler_thread
+    if _system_cpu_lifecycle is not None and _system_cpu_lifecycle.should_shutdown():
+        return
+    with _system_cpu_lock:
+        already_running = (_system_cpu_sampler_thread is not None and
+                           _system_cpu_sampler_thread.is_alive())
+    if already_running:
+        return
+    t = threading.Thread(target=_cpu_sampler_loop, name='cpu_sampler', daemon=True)
+    with _system_cpu_lock:
+        _system_cpu_sampler_thread = t
+    t.start()
+
+
+def system_cpu_report_available():
+    """Returns True when an unlogged CPU sample is ready."""
+    with _system_cpu_lock:
+        return bool(_system_cpu_top5_cache) and not _system_cpu_top5_logged
+
+
+def system_cpu():
+    """Returns the cached top-5 CPU string and marks it as logged."""
+    global _system_cpu_top5_logged
+    with _system_cpu_lock:
+        _system_cpu_top5_logged = True
+        return _system_cpu_top5_cache
+
+
+def _cpu_sampler_loop():
+    """One-shot thread: prime counters, settle, sample, cache result."""
+    global _system_cpu_top5_cache, _system_cpu_top5_logged
+
+    # Prime — first cpu_percent() call always returns 0.0, just sets baseline
+    try:
+        for p in psutil.process_iter(['name', 'cpu_percent']):
+            p.cpu_percent()
+    except Exception:
+        pass
+
+    # Settle outside the lock so other threads aren't blocked
+    time.sleep(_CPU_SETTLE_INTERVAL)
+
+    if _system_cpu_lifecycle is not None and _system_cpu_lifecycle.should_shutdown():
+        return
+
+    procs = []
+    try:
+        for p in psutil.process_iter(['name', 'cpu_percent']):
+            try:
+                name = p.info['name'] or ''
+                if name.lower() in _CPU_IDLE_NAMES:
+                    continue
+                cpu = p.info['cpu_percent']
+                if cpu is not None and cpu >= _CPU_REPORT_THRESHOLD:
+                    procs.append((name, cpu / _system_cpu_count))
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+    except Exception:
+        pass
+
+    top5 = sorted(procs, key=lambda x: x[1], reverse=True)[:5]
+    top5_str = ", ".join(f"{n} {c:.1f}%" for n, c in top5)
+
+    with _system_cpu_lock:
+        _system_cpu_top5_cache = top5_str
+        _system_cpu_top5_logged = False
+        # Thread is done — clear the handle so the next high-CPU event can spawn a new one
+        _system_cpu_sampler_thread = None

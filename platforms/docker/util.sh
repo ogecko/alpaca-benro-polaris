@@ -10,12 +10,14 @@ docker_build() {
 
     # Build if the image doesn't exist or if requested.
     if [ "${docker_build_BUILD}" != "true" ]; then
-        if [ ! -z "$(docker inspect "${docker_build_IMAGE_NAME}" > /dev/null 2>&1)" ]; then
+        if docker inspect "${docker_build_IMAGE_NAME}" > /dev/null 2>&1; then
             return 0
         fi
     fi
 
-    if [ "${docker_build_PROGRESS}" == "true" ]; then
+    # --progress is only understood by the BuildKit/buildx builder, not the legacy builder
+    # that plain `docker build` falls back to when the buildx plugin isn't installed.
+    if [ "${docker_build_PROGRESS}" == "true" ] && docker buildx version > /dev/null 2>&1; then
         docker_build_PROGRESS="--progress plain"
     else
         docker_build_PROGRESS=""
@@ -61,20 +63,3 @@ help_exit() {
     exit 1
 }
 
-install_getopts_long() {
-    local -n install_getopts_long_SCRIPT_DIR=${1:?}
-
-    if [ ! -d "${install_getopts_long_SCRIPT_DIR}/getopts_long" ]; then
-        git clone https://github.com/UrsaDK/getopts_long.git "${install_getopts_long_SCRIPT_DIR}/getopts_long"
-    fi
-
-    source "${install_getopts_long_SCRIPT_DIR}/getopts_long/lib/getopts_long.bash"
-}
-
-setup() {
-    local -n setup_SCRIPT_DIR="${1:?}"
-    local -n setup_SCRIPT_NAME="${2:?}"
-
-    define_usage setup_SCRIPT_NAME
-    install_getopts_long setup_SCRIPT_DIR
-}

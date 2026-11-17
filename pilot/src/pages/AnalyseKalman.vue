@@ -52,7 +52,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
                     />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label> Choosen Motor Axis</q-item-label>
+                  <q-item-label> Chosen Motor Axis</q-item-label>
                   <q-item-label caption>
                     Select the motor axis you'd like to analyse and tune. Motor 1 Azimuth; Motor 2 Altitude; Motor 3 Astro head. 
                     Keep in mind: when Motor 3 (Astro Head) is rotated, the orientation of Motor 1 and Motor 2 no longer corresponds directly to Azimuth and Altitude.            </q-item-label>
@@ -88,7 +88,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
                 <q-item-label caption>M1-3: Measured Position, PV: Present Value Position </q-item-label>
               </q-item-section>
             </q-item>
-            <ChartXY :data="chartPosData" x1Type="time"></ChartXY>
+            <ChartXY :data="chartPosData" x1Type="time" y1Type="dms"></ChartXY>
             <q-expansion-item :label="`Advanced KF Position Settings for ${motor}`">
               <q-item>
                 <q-item-section side top>
@@ -128,7 +128,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
                 <q-item-label caption>M1-3: Measured Velocity, PV: Present Value Velocity. SP: Setpoint Velocity</q-item-label>
               </q-item-section>
             </q-item>
-            <ChartXY  :data="chartVelData" x1Type="time"></ChartXY>
+            <ChartXY  :data="chartVelData" x1Type="time" y1Type="dms"></ChartXY>
             <q-expansion-item :label="`Advanced KF Velocity Settings for ${motor}`">
               <q-item>
                 <q-item-section side top>
@@ -166,7 +166,7 @@ This page presents the raw sensor data in dark green, the filtered data in yello
 <script setup lang="ts">
 import { useQuasar, debounce } from 'quasar'
 import StatusBanners from 'src/components/StatusBanners.vue'
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue'
 import ChartXY from 'src/components/ChartXY.vue'
 import { useStreamStore } from 'src/stores/stream'
 import { useConfigStore } from 'src/stores/config'
@@ -242,7 +242,15 @@ watch([pos_meas_var, vel_meas_var, pos_proc_var, vel_proc_var], (newVal)=>{
   putdb(payload)
 })
 
-watch(axis, () => setKnobValues())
+watch(axis, () => {
+  // Switching axis tabs re-syncs the knob refs from cfg -- that's a programmatic
+  // update, not a user edit, so guard it the same way onMounted does or it'll
+  // trigger the save watcher below and round-trip the (possibly stale) whole
+  // array back to the server just from clicking between M1/M2/M3.
+  isInitializing.value = true
+  setKnobValues()
+  void nextTick(() => { isInitializing.value = false })
+})
 
 async function onPlus(payload: { isPressed: boolean }) {
     const isPressed = payload.isPressed
@@ -293,8 +301,12 @@ function formatVelData(d: TelemetryRecord):DataPoint {
 
 
 onMounted(async () => {
-  await cfg.configFetch()
   socket.subscribe('kf')
+  // Pull the real kf_measure_noise/kf_process_noise from the server before showing
+  // or allowing edits -- without this, the knobs (and any save while on this page)
+  // work off the store's hardcoded placeholder defaults instead of what config.toml
+  // actually shipped, silently clobbering untouched axes on the next save.
+  await cfg.configFetch(['kf_measure_noise', 'kf_process_noise'])
   setKnobValues()
   isInitializing.value = false
 })
@@ -316,9 +328,11 @@ async function save() {
 
 async function restore() {
   const ok = await cfg.configRestore()
-  $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative', 
+  $q.notify({ message:`Configuration restore ${ok?'successful':'unsucessful'}.`, type: ok?'positive':'negative',
     position: 'top', timeout: 3000, actions: [{ icon: 'mdi-close', color: 'white' }] })
+  isInitializing.value = true
   setKnobValues()
+  void nextTick(() => { isInitializing.value = false })
 }
 
 // debounced payload key/values (a) sent to Alpaca Server and (b) patched into cfg store 

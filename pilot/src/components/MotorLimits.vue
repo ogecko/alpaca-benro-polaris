@@ -10,7 +10,7 @@
                 <q-item-section avatar><q-icon name="mdi-alert" color="negative" size="lg" /></q-item-section>
                 <q-item-section>
                   <q-item-label>Anti-windup Motor Angle Limit Reached</q-item-label>
-                  <q-item-label class="text-grey-6" caption>Use the buttons M1+, M1-, etc to move the mount back to safety. Alternitively issue a Home command. </q-item-label>
+                  <q-item-label class="text-grey-6" caption>Use the buttons M1+, M1-, etc to move the mount back to safety. Alternatively issue a Home command. </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn label="Home" icon="mdi-home"  class="fixedWidth" @click="onFindHome"/>
@@ -26,14 +26,14 @@
           <div class="relative-position" style="height:300px; width:300px">
             <q-img src="../assets/abp-v2-motor-limits-b.png" fit="scale-down" @contextmenu.prevent>
             </q-img>
-            <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" color="white" icon=""  dense @push="onM3Plus" class="absolute" style="top:2%; left:47%"/>
-            <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM3Minus" class="absolute" style="top:2%; left:77%"/>
+            <MoveButton activeColor="positive" label="M3+" :opacity="1.0" size="md" iupcolor="white" icon=""  dense @push="onM3Plus" class="absolute" style="top:2%; left:47%"/>
+            <MoveButton activeColor="positive" label="M3-" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM3Minus" class="absolute" style="top:2%; left:77%"/>
 
-            <MoveButton activeColor="positive" label="M2+" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM2Plus" class="absolute" style="top:43%; left:38%"/>
-            <MoveButton activeColor="positive" label="M2-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM2Minus" class="absolute" style="top:66%; left:25%"/>
+            <MoveButton activeColor="positive" label="M2+" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM2Plus" class="absolute" style="top:43%; left:38%"/>
+            <MoveButton activeColor="positive" label="M2-" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM2Minus" class="absolute" style="top:66%; left:25%"/>
 
-            <MoveButton activeColor="positive" label="M1+" :opacity="1.0" size="md" color="white" icon=""  dense   @push="onM1Plus" class="absolute" style="top:79%; left:11%"/>
-            <MoveButton activeColor="positive" label="M1-" :opacity="1.0" size="md" color="white" icon=""  dense  @push="onM1Minus" class="absolute" style="top:91%; left:30%"/>
+            <MoveButton activeColor="positive" label="M1+" :opacity="1.0" size="md" iupcolor="white" icon=""  dense   @push="onM1Plus" class="absolute" style="top:79%; left:11%"/>
+            <MoveButton activeColor="positive" label="M1-" :opacity="1.0" size="md" iupcolor="white" icon=""  dense  @push="onM1Minus" class="absolute" style="top:91%; left:30%"/>
 
           </div>
         </div>
@@ -91,14 +91,6 @@ const isLimited = computed(() => {
 
 
 onMounted(async () => {
-  const shouldFetch =
-    dev.restAPIConnected &&
-    dev.restAPIConnectedAt &&
-    cfg.fetchedAt < dev.restAPIConnectedAt
-
-  if (shouldFetch) {
-    await cfg.configFetch()
-  }
 })
 
 

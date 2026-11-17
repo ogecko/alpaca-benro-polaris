@@ -1,26 +1,34 @@
+import sys
 # =================================================================
 # POLARIS.PY - Proxy for Benro Polaris device
 # =================================================================
 #
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# polaris.py - Simulation of a "telescope" mount
 #
-# This module contains a primary Polaris Class that represents a Benro Polaris and 
-# the connection to the Device, including all of its state parameters implied by 
-# ASCOM ITelescopeV3.
+# Implements an ASCOM Alpaca-compatible driver for the
+# Benro Polaris astro-photography mount. Manages the full lifecycle
+# of the device connection and exposes telescope, rotator and
+# panoramic grid control via the Polaris class.
 #
-# It provides thread-safe access to read and write its properties.
-# It provides functions to perform methods required by ITelescopeV3.
-# It provides all the communications functions for asynchronous two 
-# way communication with the Benro Polaris Device.
+# Key responsibilities:
 #
-# Python Compatibility: Requires Python 3.7 or later
-# GitHub: https://github.com/ASCOMInitiative/AlpycaDevice
+#   Polaris Connection Management
+#     Async TCP socket client with auto-reconnect, watchdog, and
+#     keepalive. 
 #
-# -----------------------------------------------------------------------------
-# MIT License
-# -----------------------------------------------------------------------------
+#   Polaris Protocol Reading and Writing
+#     Binary-framed message protocol (NNN@args#). Sends commands
+#     and parses responses for mode, GOTO, tracking, orientation
+#     (517/518 AHRS), alignment, battery, firmware, and more.
+#
+#   Device State and Config
+#     Maintains complete state of the mount and provides properties
+#     that reflect the current configuration and disposition of the 
+#     mount. This is inclusive of Telescope and Rotator.
+#
+#   High Level Methods
+#     Provides high level advancved control methods for slew, goto, 
+#     tracking, parking, homing, etc as per the Alpaca standard needs.
+#     Also provides methods for Alpaca extensions like PanoGrid.
 #
 import math
 import datetime
@@ -28,19 +36,29 @@ import time
 import re
 import asyncio
 import ephem
-import json
-import logging
 import numpy as np
 from collections import deque
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from threading import Lock
 from logging import Logger
 from config import Config
+from presets import PresetManager
+from log import update_log_level
 from exceptions import AstroModeError, AstroAlignmentError, WatchdogError
-from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, hr2hms, bytes2hexascii, clamparcsec, empty_queue, LifecycleController, LifecycleEvent
-from control import quaternion_to_angles, motors_to_quaternion, calculate_angular_velocity, is_angle_same, wrap_to_360, wrap_to_180
-from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager
+from shr import deg2rad, rad2hr, rad2deg, hr2rad, deg2dms, dms2dec, hr2hms, bytes2hexascii, empty_queue, LifecycleController, system_vitals
+from kinematics import THETA2_MIN_MEAS
+from kinematics import gamma_to_delta, delta_to_gamma, theta_to_q, q_to_theta, q_to_azaltroll, motor_to_azaltroll, calculate_angular_velocity
+from control import KalmanFilter, CalibrationManager, MotorSpeedController, PID_Controller, SyncManager, AXIS_MAP
+from control_worm import zeta_raw_offset, WormProfileTest, WormFeedForward, fit_worm_profile, profile_row_fields
+from control_worm import store_profile_test, pooled_profile, set_last_test_approved, row_status, MIN_SEPARATION_DEG
+from control_worm import direction_summary, current_setup
+from control_worm import profile_summary, row_fields_from_file, PROFILE_TEST
+from control_worm import ROLL_TARGET_DEG, ROLL_TOLERANCE_DEG, POSITIONS, SYNC_CYCLE_S, SETTLE_TIMEOUT_S, fit_sweep, MOTORS
+from speed_controller import fast_rate_units, SpeedControllerRuntime, SwitchableMotor
 from ble_service import BLE_Controller
+from orbitals import restore_orbital_bodies_from_orbital_cache, orbital_data
+from gps_receiver import locate_status
+import tracking_restore
 
 POLARIS_POLL_COMMANDS = {'284', '518', '525', '517'}
 
@@ -79,22 +97,19 @@ class Polaris:
             '531': asyncio.Queue()                  # queue for TRACK result
         }
         self._polaris_mode = -1                     # Current Mode of the Polaris Device (1=Photo, 2=Pano, 3=Focus, 4=Timelapse, 5=Pathlapse, 6=HDR, 7=Sun, 8=**Astro**, 9=Program, 10=Video )
-        self._polaris_L_bracket = False             # Current L Bracket mode
+        self._polaris_L_bracket = None              # Current L Bracket mode
         self._polaris_msg_re = re.compile(r'(\d{3})@(.+?)#')
-        self._every_50ms_msg_to_send = None         # Fast Move message to send every 50ms
-        self._every_50ms_counter = 0                # Fast Move counter, incrementing every 50ms up to 1s
-        self._every_50ms_last_timestamp = None      # Fast Move counter, last 1s timestamp
-        self._every_50ms_last_alt = None            # Fast Move counter, last 1s polaris altitude
-        self._every_50ms_last_az = None             # Fast Move counter, last 1s polaris azimuth
         self._startup_timestamp = dt_now            # Timestamp for when the driver started.
-        self._last_517_timestamp = dt_now           # Timestamp for last 517 Orientation Update message from Polaris.
-        self._last_518_timestamp = dt_now           # Timestamp for last 518 Position Update message from Polaris.
+        self._last_517_timesec = time.monotonic()   # Timesec for last 517 Orientation Update message from Polaris.
+        self._last_518_timesec = time.monotonic()   # Timesec for last 518 Position Update message from Polaris.
         self._age_517_seconds = 0.0                 # Age in seconds of last 517 message.
         self._age_518_seconds = 0.0                 # Age in seconds of last 518 message.
+        self._is_last_518_in_batch = True           # Whether the "518" currently being handled is the last of a same-read batch (see read_msgs)
         self._performance_data_start_timestamp = None      # Timestamp for Performance Data logging.
         self._task_exception = None                 # record of any exception from sub tasks
         self._task_errorstr = ''                    # record of any connection issues with polaris (reset at next attempt to reconnect)
         self._task_errorstr_last_attempt = ''       # record of any connection issues with polaris
+        self._reconnect_now = asyncio.Event()       # set to interrupt run_connection_cycle()'s retry backoff sleep immediately (see ensure_connection_cycle)
         self._N_point_alignment_results = {}        # record of all sync results for N point alignment
         self._test_underway = False                 # flag to mark that a test is underway and executing
         #
@@ -127,6 +142,8 @@ class Polaris:
         self._aligning: bool = False                # Polaris is in the process of aligning single star. 
         self._connected: bool = False               # Polaris connection status. True if any client is connected. False when all clients have left.
         self._connecting: bool = False              # Polaris is in the process of connecting. 
+        self._network_joined: bool = False          # Host has joined the Polaris Wifi network and polaris_ip_address:polaris_port is reachable.
+        self._network_reason: str | None = None     # Why the Polaris network probe last failed (None when reachable, or before the first probe).
         self._tracking: bool = False                # The state of the ASCOM telescope's sidereal tracking drive.
         self._tracking_in_benro: bool = False       # The state of the Benro Polaris tracking mode.
         self._sideofpier: int = -1                  # Indicates the pointing state of the mount. Unknown = -1
@@ -140,9 +157,11 @@ class Polaris:
         self._rotate_complete_event = None          # asyncio Event to allow notification of rotate complete (only used with advanced control rotates)
         self._slew_complete_event = None            # asyncio Event to allow notification of slew complete (only used with advanced control rotates)
         self._ispulseguiding: bool = False          # True if a PulseGuide(GuideDirections, Int32) command is in progress, False otherwise
+        self._is_reset_axes: bool = False           # True if Reset All Axes has been called after connect
         #
         # Telescope device state variables
         #
+        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
         self._altitude: float = 0.0                 # The Pitch/Altitude above the local horizon of the telescope's current position (degrees, positive up)
         self._azimuth: float = 0.0                  # The Yaw/Azimuth at the local horizon of the telescope's current position (degrees, North-referenced, positive East/clockwise).
         self._roll: float = 0.0                     # The Roll (-180 to +180), 0=after GOTO, -ve=clockwise rotation looking down onto top of Astro mount axis.
@@ -213,59 +232,82 @@ class Polaris:
         #
         # Telescope method constants
         #
-        self._axisrates = [{ "Maximum":9, "Minimum":1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
+        self._axisrates = [{ "Maximum":9, "Minimum":0.1 }] # Describes a range of rates supported by the MoveAxis(TelescopeAxes, Double) method (degrees/per second)   
         self._axis_ASCOM_slewing_rates = [ 0, 0, 0 ]     # Records the ASCOM move rate of the primary, seconday and tertiary axis
         self._canmoveaxis = [ True, True, True ]         # True if this telescope can move the requested axis
 
         # Advanced Control variables
         self._q1 = None                             # The latest quaternion mapping Camera Co-ordinates Framework to Topocentric Co-ordinates Framework
-        self._q1s = None                            # The estimated quaternion state based on Kalman Filter
+        self._motorQ_state = None                   # The KF corrected C2B quaternion in B Frame
+        self._cameraQ_pv = None                     # The fully corrected C2T quaternion in T Frame
         self._zeta_meas = None                      # The latest set of Polaris raw motor axis angles [zeta1, zeta2, zeta3] measured from "517"
+        self._restore_checked = False               # tracking_restore: the start-up check ran (once per driver start)
+        self._worm_test_rolling = False             # the worm profile test is rotating to / from its roll: ignore syncs
+        self._zeta_raw_offset = None                 # theta_raw (518) - zeta (517) per motor at the last "517" -- see control_worm.zeta_raw_offset
+        self._zeta_theta_offset = None               # [theta1,theta2,theta3] - [zeta1,zeta2,zeta3], refreshed on each "517". The Benro
+                                                      # Polaris firmware performs its own Single Point Alignment (Compass/Single Star),
+                                                      # which shifts its "517" zeta reporting independently of our theta_state (518/KF)
+                                                      # pipeline -- this offset lets us re-express a stored zeta (M1/M2/M3) in theta space.
         self._lota_meas = None                      # The latest set of Polaris 1-aligned position angle [az, alt, roll, ra, dec] measured from q1
-        self._theta_meas = None                     # The latest set of Polaris 1-aligned motor axis angles [theta1, theta2, theta3] measured from q1
-        self._theta_state = None                    # The state of 1-aligned motor axis angles [theta1, theta2, theta3] estimated by KF
-        self._omega_meas = None                     # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
-        self._history = deque(maxlen=6)             # history of dt and theta, need to calculate omega over 6 q1 samples to get enough time for a reliable change.
+        self._theta_raw = None                      # Latest Motor Angles Raw  [theta1, theta2, theta3] from 518 msg q1
+        self._theta_state = None                    # Latest Motor Angles Kalman Filtered [theta1, theta2, theta3] = KF(theta_raw)
+        self._alpha_state = None                    # Latest KF Filtered Sky Angles Kalman Filtered [az, alt, roll] 
+        self._omega_raw = None                      # The latest set of Polaris motor axis angular velocity [omega1, omega2, omega3] measured from q1
+        self._omega_meas = None                     # The latest calculated Polaris motor axis angular velocity [omega1, omega2, omega3] measured from 6 sample history
         self._cm = CalibrationManager()
+        self._cm.on_worm_profile_approval = self.worm_profile_approval
         self._kf: KalmanFilter = KalmanFilter(logger, np.zeros(6))
+        # Legacy per-axis controllers and the shared-level v2 controller (BETA) run side by side;
+        # each self._motors[axis] routes to one of them, chosen by Config.coordinated_speed_control
+        # and switchable live (see select_speed_controller).
+        legacy_motors = {axis: MotorSpeedController(logger, self._cm, axis, self.send_msg) for axis in (0, 1, 2)}
+        self._speed_v2 = SpeedControllerRuntime(fast_rate_units(self._cm.calibration_data, self._cm.baseline_data, logger),
+                                                self.send_msg, log=logger)
+        self._cm.on_calibration_update = lambda: self._speed_v2.set_units(
+            fast_rate_units(self._cm.calibration_data, self._cm.baseline_data, logger))
+        use_v2 = bool(getattr(Config, 'coordinated_speed_control', False))
         self._motors = {
-            axis: MotorSpeedController(logger, self._cm, axis, self.send_msg)
+            axis: SwitchableMotor(legacy_motors[axis], self._speed_v2.axis(axis), use_new=use_v2)
             for axis in (0, 1, 2)
         }
         self._pid = PID_Controller(logger, self, loop=0.2)
         self._ble = BLE_Controller(logger, lifecycle, lambda: self.connected)
         self._sm = SyncManager(logger, self)
-
+        self._eq_mode_live = bool(Config.advanced_eq_mode)    # the base the sync points were taken on (see make_config_params_live)
+        restore_orbital_bodies_from_orbital_cache()
         
     async def shutdown(self):
-        self.logger.info(f'==SHUTDOWN== Polaris stopping all tasks.')
         for pid in [self._pid]:
             await pid.stop_control_loop_task()
-
         for axis in range(3):
             motor = self._motors[axis]
             await motor.stop_disspatch_loop_task()
+        self.logger.info(f'==SHUTDOWN== Polaris stopped all tasks.')
 
-    ########################################
-    # POLARIS COMMUNICATIONS METHODS 
-    ########################################
+# ── Connection Helper Methods ─────────────────────────────────────────────────────────────
 
     def _format_connection_error(self, e: Exception) -> str:
+        if isinstance(e, asyncio.TimeoutError):
+            # asyncio.TimeoutError is a bare TimeoutError (an OSError subclass with
+            # no errno/winerror set) -- without this it would silently fall through
+            # every OSError check below and land on the generic "Unexpected error: "
+            # fallback with an empty message.
+            return "Connect timed out. Check the Polaris is powered on and the host is joined to its Wi-Fi network."
         if isinstance(e, ConnectionAbortedError):
             return "The Polaris network connection was aborted."
         if isinstance(e, OSError):
             if getattr(e, 'winerror', None) == 121:
-                return "Check Network. Cannot open Polaris connection."
+                return "Check Network. Cannot open Polaris connection (winerror=121)."
             if getattr(e, 'winerror', None) == 1225:
-                return "Connection refused. Check Polaris App and network."
+                return "Connection refused. Check Polaris App and network (winerror=1225)."
             if getattr(e, 'winerror', None) == 1236:
-                return "Connection lost. Reconnect via Polaris App."
+                return "Connection lost. Reconnect via Polaris App (winerror=1236)."
             if getattr(e, 'winerror', None) == 10054:
-                return "Connection reset. Reconnect via Polaris App."
+                return "Connection reset. Reconnect via Polaris App (winerror=10054)."
             if e.errno == 51:
-                return "Check Network. Cannot open Polaris connection"
+                return f"Check Network. Cannot open Polaris connection (errno={e.errno})."
             if e.errno in (60, 64):
-                return "Check Hostname. Polaris host unreachable."
+                return f"Check Hostname. Polaris host unreachable (errno={e.errno})."
         if isinstance(e, AstroModeError):
             return "Polaris not in Astro Mode. Use Polaris App to change."
         if isinstance(e, AstroAlignmentError):
@@ -296,55 +338,95 @@ class Polaris:
             self._task_errorstr = ""
 
     async def attempt_polaris_connect(self):
+        with self._lock:
+            self._connected = False             # set to true when "Polaris communication init... done"
+            self._connecting = True             # set to false when when polaris_init succeeds or connection failed
+            self._battery_is_available = False  # set to true when we get a battery status message
+            self._task_exception = None
         try:
-            with self._lock:
-                self._connected = False             # set to true when "Polaris communication init... done"
-                self._connecting = True             # set to false when this function returns"
-                self._battery_is_available = False  # set to true when we get a battery status message
-                self._task_exception = None
-
-            client_reader, client_writer = await asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port)
+            client_reader, client_writer = await asyncio.wait_for(
+                asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port),
+                timeout=5.0,
+            )
             self._reader = client_reader
             self._writer = client_writer
-
             init_task = asyncio.create_task(self.polaris_init())
             init_task.add_done_callback(self.task_done)
             self.logger.info(f'==STARTUP== Starting Polaris Client on {Config.polaris_ip_address}:{Config.polaris_port}.')
-            return True
-
+            self._sm.loadSyncDataFromFile()
+            return init_task, client_reader
         except Exception as e:
             self._task_errorstr = self._format_connection_error(e)
             self.logger.error(self._task_errorstr)
             self._connecting = False
-            return False
+            return None, None
     
+    def ensure_connection_cycle(self):
+        """
+        Start run_connection_cycle() unless one is already running. 
+        If a cycle is already running but idle, wake it up with self._reconnect_now event.
 
-    async def run_connection_cycle(self, max_retries):
-        attempt = 0
-        while (not self.lifecycle.should_shutdown()) and (attempt <= max_retries):
+        Called from both
+        * Startup path (client(), below)
+        * Manual Connect action (Polaris:ConnectPolaris in telescope.py)
+        """
+        existing = self.lifecycle.get_task("PolarisConnectionCycle")
+        if existing is not None and not existing.done():
+            self._reconnect_now.set()
+            return
+        self.lifecycle.create_task(self.run_connection_cycle(), name="PolarisConnectionCycle")
+
+    async def run_connection_cycle(self):
+        init_task = None
+        while (not self.lifecycle.should_shutdown()):
+            should_break = False
             try:
-                attempt += 1
-                success = await self.attempt_polaris_connect()
-                if success:
-                    await self.read_msgs()       # blocks until error or shutdown
-                await asyncio.sleep(10)
-        
+                # Cancel any still-running polaris_init 
+                if init_task and not init_task.done():
+                    init_task.cancel()
+                    try:
+                        await init_task
+                    except (asyncio.CancelledError, Exception):
+                        pass
+                init_task = None
+                init_task, reader = await self.attempt_polaris_connect()
+                if init_task is not None:
+                    await self.read_msgs(reader)       # blocks until error or shutdown
+
             except Exception as e:
                 self._task_errorstr = self._format_connection_error(e)
                 self.logger.error(f"==STARTUP== Connection error: {self._task_errorstr}")
-                await asyncio.sleep(10)
+
+            finally:
+                if Config.polaris_auto_retry and not self.lifecycle.should_shutdown():
+                    # Interruptible backoff: normally waits out the full 10s between
+                    # retries, but a manual Connect click (ensure_connection_cycle)
+                    # can wake this immediately via _reconnect_now rather than
+                    # leaving the user waiting on a backoff they can't see.
+                    self._reconnect_now.clear()
+                    try:
+                        await asyncio.wait_for(self._reconnect_now.wait(), timeout=10)
+                    except asyncio.TimeoutError:
+                        pass
+                    if self._connected:                # if it was manually reconnected in the meantime then stop
+                        should_break = True
+                else:                                  # if auto_retry is disabled then stop
+                    should_break = True
+
+            if should_break:
+                break                             
+        
+# ── Main Client Methods ─────────────────────────────────────────────────────────────
 
     # open connection and serve as polaris client
     async def client(self, logger: Logger):
         self.lifecycle.create_task(self._ble.runBleScanner(), name='BLEController')
-        self.lifecycle.create_task(self._every_1s_watchdog_check(), name="PolarisWatchdog")
-        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisWatchdog")
-        self.lifecycle.create_task(self.every_50ms_tick(), name="PolarisFastMove")
-        if Config.log_performance_data == 2 and not Config.log_performance_data_test == 2:
-            self.lifecycle.create_task(self.every_2min_drift_check(), name="PolarisDriftCheck")
+        self.lifecycle.create_task(self._every_500ms_watchdog_check(), name="PolarisWatchdog")
+        self.lifecycle.create_task(self._every_15s_send_polaris_keepalive(), name="PolarisKeepalive")
+        self.lifecycle.create_task(self._every_3s_probe_polaris_network(), name="PolarisNetworkProbe")
 
         if Config.polaris_auto_retry:
-            self.lifecycle.create_task(self.run_connection_cycle(float('inf')), name="PolarisConnectionCycle")
+            self.ensure_connection_cycle()
         else:
             self.logger.info("==STARTUP== Auto-restart disabled. Awaiting manual connection trigger.")
 
@@ -354,65 +436,110 @@ class Polaris:
             # task.exception returns None if no exception
             self._task_exception = task.exception()
 
-    async def send_msg(self, msg):
-        if self.lifecycle.should_shutdown():
-            return
-        parts = msg.strip('#').split('&')
-        ispoll = len(parts)>1 and parts[1] in POLARIS_POLL_COMMANDS
-        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
-            self.logger.info(f'->> Polaris: send_msg: {msg}')
-        try:
-            if self._writer:
-                if self._writer.transport.is_closing():
-                    self.logger.debug("Writer transport is closing — skipping drain")
-                    return
-                self._writer.write(msg.encode())
-                await asyncio.wait_for(self._writer.drain(), timeout=2.0)
-        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, asyncio.TimeoutError) as e:
-            self._task_exception = e
-            self.logger.error(f"==SEND== Failed to send message: {e}")
+    @staticmethod
+    def _describe_probe_failure(e: Exception) -> str:
+        """One-line reason a TCP connect to the Polaris failed, phrased to point at the likely fix."""
+        port = Config.polaris_port
+        if isinstance(e, asyncio.TimeoutError):     # a bare TimeoutError, with no errno/winerror set
+            return ("Network Probe timeout. no reply.")
+        if isinstance(e, ConnectionRefusedError) or getattr(e, 'winerror', None) == 1225:
+            return f"Connection on {port} refused."
+        errno = getattr(e, 'errno', None)
+        winerror = getattr(e, 'winerror', None)
+        if errno in (101, 113, 51, 65) or winerror in (10051, 10065):   # ENETUNREACH/EHOSTUNREACH (Linux, macOS), WSAENETUNREACH/WSAEHOSTUNREACH
+            return "No address or route on the Polaris network."
+        return f"{type(e).__name__}: {e}"
 
-    async def _every_1s_watchdog_check(self):
+    async def _probe_polaris_network(self) -> str | None:
+        """None if a TCP connection to the Polaris (polaris_ip_address:polaris_port) can be opened,
+        otherwise a one-line reason why not.
+
+        A plain asyncio TCP connect is used, rather than ICMP ping or an OS Wifi query, so the
+        check is identical on Windows, macOS, Linux and Raspberry Pi, needs no privileges, works
+        however the host is attached to the Polaris network (Wifi, second adapter, static IP),
+        and shows the Polaris firmware itself is answering.
+        """
+        try:
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(Config.polaris_ip_address, Config.polaris_port),
+                timeout=1.5,
+            )
+        except (OSError, asyncio.TimeoutError) as e:
+            return self._describe_probe_failure(e)
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
+        return None
+
+    async def _every_3s_probe_polaris_network(self):
+        """Keep self._network_joined up to date for the Alpaca Pilot 'Join Benro Polaris Network' check.
+
+        Logs when the state changes, and when the reason for being unreachable changes, so a
+        stuck network (eg Polaris DHCP not handing out an address) is visible in the log
+        without repeating the same line every 3 seconds.
+        """
+        while not self.lifecycle.should_shutdown():
+            try:
+                if self._connected:
+                    joined, reason = True, None                                   # already talking to the Polaris, no need to probe
+                elif self._connecting:
+                    joined, reason = self._network_joined, self._network_reason   # don't race the driver's own connection attempt
+                else:
+                    reason = await self._probe_polaris_network()
+                    joined = reason is None
+                if joined != self._network_joined or reason != self._network_reason:
+                    target = f'{Config.polaris_ip_address}:{Config.polaris_port}'
+                    if joined:
+                        self.logger.info(f'==NETWORK== Polaris network joined ({target}).')
+                    else:
+                        self.logger.info(f'==NETWORK== Polaris network not reachable ({target}): {reason}')
+                self._network_joined = joined
+                self._network_reason = reason
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                self.logger.debug(f'==NETWORK== Polaris network probe error: {e}')
+            await asyncio.sleep(3)
+
+    async def _every_500ms_watchdog_check(self):
         while True:
             try: 
                 # calculate age of last 517 and 518 message
-                curr_timestamp = datetime.datetime.now()
-                self._age_518_seconds = (curr_timestamp - self._last_518_timestamp).total_seconds()
-                self._age_517_seconds = (curr_timestamp - self._last_517_timestamp).total_seconds()
-
-                # get update on true orientation
-                if self._connected:
-                    await self.send_cmd_517()
+                curr_timesec = time.monotonic()
+                self._age_518_seconds = (curr_timesec - self._last_518_timesec)
+                self._age_517_seconds = (curr_timesec - self._last_517_timesec)
 
                 # if we dont have any updates, even after trying to restart AHRS, then reboot the connection
                 if self._connected and self._aligned and self._age_518_seconds > 5:
                     self._task_exception = WatchdogError("==ERROR==: No position update for over 5s. Rebooting Connection.")
 
                 # if we dont have any updates for over 2s, then restart AHRS.
-                if self._connected and self._aligned and self._age_518_seconds > 2:
-                    if Config.log_polaris_protocol:
-                        self.logger.info(f'->> Polaris: No position update for over 2s. Restarting AHRS.')
+                if self._connected and self._polaris_mode==8 and self._aligned and self._age_518_seconds > 0.5:
+                    self.logger.warning(f'->> Polaris position update:    lag {self._age_518_seconds:.3f}s (expected 0.200s) '
+                                        f'{system_vitals()} Requesting AHRS.')
                     await self.send_cmd_520_position_updates(True)
 
-                await asyncio.sleep(1)
+                # get update on true orientation
+                if self._connected:
+                    try:
+                        await asyncio.wait_for(self.send_cmd_517(), timeout=0.2)
+                    except asyncio.TimeoutError:
+                        self.logger.warning(f'->> Polaris: cmd_517 timed out after 200ms')
+
+                # sleep before next watchdog cycle, checking quality of sleep
+                loop_check_start = time.monotonic()
+                desired_sleep = 0.5
+                await asyncio.sleep(desired_sleep)
+                actual_sleep = time.monotonic() - loop_check_start
+                if actual_sleep > 0.6:  # 20% slop
+                    self.logger.warning(f'->> Event loop lag detected:  slept {actual_sleep:.3f}s (expected {desired_sleep:.3f}s) {system_vitals()}')
 
             except Exception as e:
                 self._task_exception = e
                 break
 
-    async def every_2min_drift_check(self):
-        while True:
-            try:
-                with self._lock: 
-                    ra = self._targetrightascension
-                    dec = self._targetdeclination
-                if self.connected:
-                    await self.drift_error_test(ra,dec,duration=120)
-                else:
-                    await asyncio.sleep(10)
-            except Exception as e:
-                self._task_exception = e
-                break
 
     async def _every_15s_send_polaris_keepalive(self):
         while True:
@@ -425,50 +552,6 @@ class Polaris:
                 self._task_exception = e
                 break
 
-    async def every_50ms_tick(self):
-        while True:
-            try: 
-                await self.every_50ms_counter_check()
-                await asyncio.sleep(0.05)
-            except Exception as e:
-                self._task_exception = e
-                break
-
-    async def every_50ms_counter_check(self):
-        self._every_50ms_counter += 1
-        # At every log_perf_speed_interval take a measurement
-        if self._every_50ms_counter >= Config.log_perf_speed_interval * 1000 / 50:
-
-            # reset counter and store timestamps
-            self._every_50ms_counter = 0
-
-            # if we want to log performance data around speed travelled
-            if (Config.log_performance_data == 3):
-                curr_timestamp = datetime.datetime.now()
-                last_timestamp = self._every_50ms_last_timestamp
-                time = self.get_performance_data_time()
-                # if we have a last recording
-                if last_timestamp:
-                    r_curr = self._axis_ASCOM_slewing_rates
-                    r_last = self._every_50ms_last_a_rates
-                    r_constant = (r_curr[0] == r_last[0] and r_curr[1] == r_last[1] and r_curr[2] == r_last[2])
-                    d_ra = (self._p_rightascension - self._every_50ms_last_p_rightascension + 12) % 24 - 12
-                    d_dec = (self._p_declination - self._every_50ms_last_p_declination + 180) % 360 - 180
-                    d_alt = (self._p_altitude - self._every_50ms_last_p_altitude + 180) % 360 - 180
-                    d_az = (self._p_azimuth - self._every_50ms_last_p_azimuth + 180) % 360 - 180
-                    d_total = math.sqrt(d_alt*d_alt + d_az*d_az)
-                    d_sec = (curr_timestamp - last_timestamp).total_seconds()
-                    if d_sec>0:
-                        self.logger.info(f",DATA3,{time:.3f},{d_sec:.2f},{r_constant},{r_curr[0]:.2f},{d_az/d_sec:.7f},{r_curr[1]:.2f},{d_alt/d_sec:.7f},{d_ra/d_sec:.7f},{d_dec/d_sec:.7f},'{deg2dms(d_total/d_sec)}'")
-
-                # Store values for next run
-                self._every_50ms_last_timestamp = curr_timestamp
-                self._every_50ms_last_p_rightascension = self._p_rightascension
-                self._every_50ms_last_p_declination = self._p_declination
-                self._every_50ms_last_p_altitude = self._p_altitude
-                self._every_50ms_last_p_azimuth = self._p_azimuth
-                self._every_50ms_last_a_rates = self._axis_ASCOM_slewing_rates.copy()
-
     def get_performance_data_time(self):
         dt_now = datetime.datetime.now()
         if not self._performance_data_start_timestamp:
@@ -476,7 +559,262 @@ class Polaris:
         time = (dt_now - self._performance_data_start_timestamp).total_seconds()
         return time
 
-    def radec2altaz(self, ra, dec, inthefuture=0, epoch=ephem.now()):
+
+    SPEED_TEST_MAX_S = 15 + 1                        # the longest one speed's measurement runs (max_interval) + a margin
+
+    def _speed_test_limits(self, axis):
+        """The raw (zeta) range a speed test may run M1/M3 in: the motor limits less the safety margin."""
+        safety = Config.zeta_safety_margin
+        lo = getattr(Config, f'z{axis + 1}_min_limit') + safety
+        hi = getattr(Config, f'z{axis + 1}_max_limit') - safety
+        return lo, hi
+
+    async def moveaxis_speed_test(self, axis, rates):
+        self.lifecycle.start()
+        self._kf.log_untracked = True                # log_position: KFLOG (raw 518 angles, omega_meas) while it runs
+        motor = self._motors[axis]
+        direction = +1
+        try:
+            # the PID commands the motors while it homes/parks/goes to: a test started during the last test's return
+            # home measured the PID's settling, not its speed (M1 RAW 1000 read RAW -1.8, -0.012 deg/s)
+            t0 = time.monotonic()
+            while self._pid.mode in ('HOMING', 'PARKING', 'AUTO') and time.monotonic() - t0 < 120:
+                if self.lifecycle.should_stop():
+                    return
+                await asyncio.sleep(0.5)
+            for rate in rates:
+                if self.lifecycle.should_stop():
+                    break
+                # check axis 1 bounds and reverse direction if necc
+                if axis==1 and self._theta_raw.any():
+                    direction = +1
+                    if self._theta_raw[1] > 60:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = -1
+                    if self._theta_raw[1] < 20:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = +1
+                elif axis in (0, 2) and self._zeta_meas is not None:
+                    # M1/M3: run towards the limit with room for this speed's whole measurement (M3 ran into its
+                    # limit at the fast speeds: 8 deg/s for 15 s is 120 deg); stop first when reversing, as M2 does
+                    lo, hi = self._speed_test_limits(axis)
+                    z = float(self._zeta_meas[axis])
+                    travel = abs(motor.to_dps(rate, "RAW")) * self.SPEED_TEST_MAX_S
+                    room = {+1: hi - z, -1: z - lo}
+                    want = direction if room[direction] >= travel else -direction if room[-direction] >= travel \
+                        else max(room, key=room.get)
+                    if want != direction:
+                        await motor.set_motor_speed(0, "RAW")
+                        await asyncio.sleep(3)
+                        direction = want
+                # send the move request
+                await motor.set_motor_speed(rate * direction, "RAW")
+                result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
+                self._cm.addTestResult(axis, rate, result, stdev, status)
+        finally:
+            self._kf.log_untracked = False
+
+        # ensure we stop all movement
+        await motor.set_motor_speed(0, "RAW")
+        if Config.advanced_control:
+            await self.findHome()
+        else:
+            await asyncio.sleep(2)
+            await self.send_cmd_reset_axis(axis)
+        self.lifecycle.reset()
+
+
+    async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
+        start_time = time.monotonic()
+        stable_tolerance = 0.05 if rate > 5 else 0.002
+        await asyncio.sleep(initial_interval)
+        rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
+        rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
+        status = "COMPLETED"
+
+        omega_samples = []     # deg/sec
+        while time.monotonic() - start_time < max_interval:
+            await asyncio.sleep(sampling_interval)
+            if self.lifecycle.should_stop():
+                return 0,0,0,"STOPPED"
+            if self._omega_meas is None:
+                return 0,0,0,"NO DATA"
+            omega = self._omega_meas[axis]
+            omega_samples.append(omega)
+            if axis in (0, 2) and self._zeta_meas is not None:
+                lo, hi = self._speed_test_limits(axis)
+                if not lo <= float(self._zeta_meas[axis]) <= hi:
+                    await self._motors[axis].set_motor_speed(0, "RAW")
+                    self.logger.warning(f"== TEST == Axis {axis} | RAW {rate_raw} | stopped at the motor limit margin "
+                                        f"(zeta {self._zeta_meas[axis]:+.1f})")
+                    return 0, abs(rate_raw), 0, "LIMIT"
+
+            # if we potentially have enough samples, take a window the last set
+            if len(omega_samples) >= required_stable_samples:
+                window = omega_samples[-required_stable_samples:]
+                stdev = np.std(window)
+                if stdev < stable_tolerance and (abs(np.mean(window)) > 0.002 or rate == 0):   # either direction
+                    measured_dps = float(np.mean(window)) if rate>0 else 0
+                    self.logger.info(f"== TEST == Stable | Axis {axis} |  RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
+                    break
+        # exited while without a value in tollerance
+        else:
+            measured_dps = rate_dps  # fallback to the controller's rate
+            status = "HIGH STDEV"
+            self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
+        return abs(measured_dps), abs(rate_raw), stdev, status
+
+
+    async def worm_profile_test(self):
+        """The worm profile test (control_worm): step all three motors through their worm schedule around the current
+        pointing while sidereal tracking holds the sky, recording each plate-solve sync after the step has settled and
+        stepping again at once. The fit, its timing and the samples go into the worm profile file's history; the row
+        shows the profile pooled over the recent tests, which Approve applies."""
+        self.lifecycle.start()
+        sm = self._sm
+        if not (Config.advanced_control and Config.advanced_tracking):
+            self.logger.warning("WORM PROFILE TEST: needs advanced control and advanced tracking")
+            self._cm.addWormProfileResult({}, 'NO DATA')
+            self.lifecycle.reset()
+            return
+        was_tracking = self._tracking
+        if not was_tracking:
+            await self.start_tracking()
+        roll_before = await self._worm_test_roll(ROLL_TARGET_DEG)
+        if roll_before is False:                             # the roll move didn't finish: stopped, or timed out
+            self._cm.addWormProfileResult({}, 'STOPPED')
+            if not was_tracking:
+                await self.stop_tracking()
+            self.lifecycle.reset()
+            return
+        # keep every motor's sweep where it can go: a step it can't reach (M2 against the Alt/Roll limit, a motor
+        # limit) never settles, and the test would wait on the plate-solves for ever
+        pid = self._pid
+        theta0 = np.array(pid.theta_ref if pid.theta_ref is not None else pid.theta_pv, float)
+        lo, hi = sm.worm_test_reach(theta0, self._zeta_meas, getattr(pid, 'omega_ff', np.zeros(3)),
+                                    len(POSITIONS) * SYNC_CYCLE_S)
+        positions, scale = fit_sweep(POSITIONS, lo, hi)
+        test = WormProfileTest(positions)
+        moved = [m for m in range(3) if np.any(np.abs(positions[:, m] - POSITIONS[:, m]) > 1e-9)]
+        if moved:
+            self.logger.info("WORM PROFILE TEST: sweep fitted inside what the motors can reach here: " + "; ".join(
+                f"{MOTORS[m]} {POSITIONS[:, m].min():+.1f}..{POSITIONS[:, m].max():+.1f} -> "
+                f"{positions[:, m].min():+.1f}..{positions[:, m].max():+.1f} deg (reach {lo[m]:+.1f}..{hi[m]:+.1f})"
+                + (f", {scale[m] * 100:.0f}% of the sweep" if scale[m] < 1 else '') for m in moved))
+            if np.any(scale < 0.7):
+                self.logger.warning("WORM PROFILE TEST: a motor has little room to move at this pose -- its worm "
+                                    "will be less certain; a lower altitude or smaller roll gives more")
+        sep, sens = sm.motor_separation(np.array(self._pid.theta_pv, float))
+        self.logger.info(f"WORM PROFILE TEST: START, {len(test.positions)} positions, all motors; requires plate-solve "
+                         f"syncs, one per position after the step settles (~8-12 s: a wait between solves of ~10 s, "
+                         f"longer if syncs are discarded as moving), stops after {test.no_sync_timeout_s:.0f} s without a sync. M1-M3 "
+                         f"separation {sep:.0f} deg, sensitivity {sens}")
+        if sep < MIN_SEPARATION_DEG:
+            self.logger.warning(f"WORM PROFILE TEST: M1 and M3 move the view in nearly the same direction here "
+                                f"({sep:.0f} deg apart, Roll near 0): their worms may not separate -- a pose with Roll "
+                                f"{ROLL_TARGET_DEG:.0f}-60 deg either way is better")
+        sm.worm_test = test
+        if np.any(positions[0] != 0):                        # the fitted sweep starts off the current pose: go there
+            pid.step_motor_targets(positions[0])
+            test.step_at = time.monotonic()
+        try:
+            shown = None
+            while not test.done and not test.aborted and not self.lifecycle.should_stop():
+                if test.index != shown:
+                    shown = test.index
+                    self._cm.setWormProfileProgress(shown, len(test.positions))
+                if test.settle_overdue(time.monotonic()):
+                    test.abort('not settling')
+                    err = np.abs(np.array(pid.error_signal, float)) * 3600 if pid.error_signal is not None else np.zeros(3)
+                    self.logger.warning(f"WORM PROFILE TEST: position {test.index}/{len(test.positions)} not reached "
+                                        f"in {SETTLE_TIMEOUT_S:.0f} s (motor errors {err.round(0).tolist()}\") -- "
+                                        f"ending the test with the positions measured so far")
+                if test.timed_out(time.monotonic()):
+                    test.abort('no syncs')
+                    self.logger.warning(f"WORM PROFILE TEST: no plate-solve sync for {test.no_sync_timeout_s:.0f} s "
+                                        f"-- Rerun test while running continuous plate-solve and sync.")
+                await asyncio.sleep(0.5)
+        finally:
+            sm.worm_test = None
+            if test.done and roll_before is not None:        # finished: back to the framing it started with
+                await self._worm_test_roll(roll_before)
+            if not was_tracking:
+                await self.stop_tracking()
+        result = fit_worm_profile([test.samples], worm_theta=test.worm_theta)
+        path = sm.worm_profile_path()
+        if result['status'] == 'NO DATA':
+            status = 'NO DATA' if test.abort_reason == 'no syncs' else 'STOPPED'
+            why = 'no plate-solve syncs arrived' if not test.samples else f"only {len(test.samples)} positions measured"
+            self.logger.info(f"WORM PROFILE TEST: END {status}, {why} -- nothing saved")
+            self._cm.addWormProfileResult({}, status)
+            self.lifecycle.reset()
+            return
+        store_profile_test(path, test.samples, result, timing=test.timing())
+        pooled = pooled_profile(path, worm_theta=test.worm_theta, with_last=True)     # what approving it would give
+        # amplitude @ peak: the worm phase (360 x MCU angle / 6 deg) where each motor's wobble peaks
+        self.logger.info(f"WORM PROFILE TEST: END {result['status']}: {profile_summary(result)}; checks {result['checks']}, "
+                         f"timing {test.timing()}; approving it would pool {pooled['checks'].get('tests', 0)} tests: "
+                         f"{profile_summary(pooled)}; {direction_summary(pooled)} -> {path}")
+        self._cm.addWormProfileResult(profile_row_fields(result, pooled, WormFeedForward.load(path, setup=current_setup())),
+                                      row_status(result, pooled))
+        self.lifecycle.reset()
+
+    async def _worm_test_roll(self, target, timeout_s=120.0):
+        """Rotate to a roll that separates M1 and M3 (or back to `target`, the roll before the test), keeping Az/Alt.
+        Going to the test pose, `target` is ROLL_TARGET_DEG, used with the sign of the current roll (the test always
+        runs there: the best separation measured). Returns the roll before the move (None: already there), or False if
+        the move didn't finish (the test was stopped, or it timed out)."""
+        roll = float(self._pid.alpha_pv[2])
+        if target == ROLL_TARGET_DEG:
+            target = ROLL_TARGET_DEG if roll >= 0 else -ROLL_TARGET_DEG
+            if abs(roll - target) <= ROLL_TOLERANCE_DEG:
+                return None
+            self.logger.info(f"WORM PROFILE TEST: rotating Roll {roll:.1f} -> {target:.0f} deg (M1 and M3 separate "
+                             f"with roll; back to {roll:.1f} afterwards)")
+        else:
+            self.logger.info(f"WORM PROFILE TEST: rotating Roll back to {target:.1f} deg")
+        self._worm_test_rolling = True                       # syncs while rotating are ignored (sync_telescope)
+        try:
+            self.slew_axis({'roll': target})
+            await asyncio.wait_for(self.wait_for_goto_complete(), timeout_s)
+        except asyncio.TimeoutError:
+            self.logger.warning(f"WORM PROFILE TEST: the roll move didn't finish in {timeout_s:.0f} s")
+            return False
+        finally:
+            self._worm_test_rolling = False
+        if self.lifecycle.should_stop():
+            return False
+        return roll
+
+    def worm_profile_approval(self, approved):
+        """Approve or reject the last worm profile test (its flag in the history: approved tests pool) and rebuild the
+        profiles from the approved tests."""
+        path = self._sm.worm_profile_path()
+        done = set_last_test_approved(path, approved)
+        if done:
+            self._sm.reload_worm_ff()
+            self.logger.info(f"WORMPROFILE CHANGE: last test {'approved' if approved else 'rejected'}, "
+                             f"profiles rebuilt from the approved tests in {path}")
+            # the row's Baseline is the profile in use: show the new one (and Change against it)
+            cm = getattr(self, '_cm', None)
+            if cm is not None and PROFILE_TEST in cm.test_data:
+                cm.test_data[PROFILE_TEST].update(row_fields_from_file(path))
+            # the profile changed; whether it is applied is the user's own PEC Worm Gear Correction switch, left as
+            # it is. With the correction on, refit the alignment through the new profile (as switching it does).
+            if Config.advanced_pec_worm:
+                self.make_config_params_live({'advanced_pec_worm': True})
+        else:
+            self.logger.warning(f"WORMPROFILE CHANGE: no worm profile test to {'approve' if approved else 'reject'} in {path}")
+        return done
+
+
+# ── Polaris Angle Helpers ─────────────────────────────────────────────────────────────
+
+    def radec2altaz(self, ra, dec, inthefuture=0, epoch=None):
+        if epoch==None:
+            epoch=ephem.now()
         target = ephem.FixedBody()
         target._ra = hr2rad(ra)
         target._dec = deg2rad(dec)
@@ -510,68 +848,29 @@ class Polaris:
         p_az = a_az - self._adj_sync_azimuth
         return p_alt, p_az
 
-    async def sync_to_azalt(self, a_az, a_alt):
-        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
-        self.logger.info(f"->> Polaris: SYNC Observed   Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
-        await self.sync_telescope_pointing_models(a_az=a_az, a_alt=a_alt)
-        return
 
-    async def sync_to_radec(self, a_ra, a_dec):
-        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
-        self.logger.info(f"->> Polaris: SYNC Observed   RA {hr2hms(a_ra)} Dec {deg2dms(a_dec)} ({syncmsg})")
-        await self.sync_telescope_pointing_models(a_ra=a_ra, a_dec=a_dec)
-        return
 
-    async def sync_telescope_pointing_models(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
-        if a_ra is not None and a_dec is not None:
-            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
-        elif a_az is not None and a_alt is not None:
-            a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-        else:
-            self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
+# ── Communication Methods ─────────────────────────────────────────────────────────────
+
+    async def send_msg(self, msg):
+        if self.lifecycle.should_shutdown():
             return
+        parts = msg.strip('#').split('&')
+        ispoll = len(parts)>1 and parts[1] in POLARIS_POLL_COMMANDS
+        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
+            self.logger.info(f'->> Polaris: send_msg: {msg}')
+        try:
+            if self._writer:
+                if self._writer.transport.is_closing():
+                    self.logger.debug("Writer transport is closing — skipping drain")
+                    return
+                self._writer.write(msg.encode())
+                await asyncio.wait_for(self._writer.drain(), timeout=2.0)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError, asyncio.TimeoutError) as e:
+            self._task_exception = e
+            self.logger.error(f"==SEND== Failed to send message: {e}")
 
-        if Config.advanced_alignment and Config.advanced_control:
-            # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
-            self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)}")
-            self._sm.sync_az_alt(a_ra, a_dec, a_az, a_alt)
-
-        else:
-            # Use Single-Point Alignment and Alt/Az Sync Pointing model, send through to Polaris
-            asyncio.create_task(self.send_cmd_star_alignment(a_az, a_alt))
-
-        self._rightascension = a_ra 
-        self._declination = a_dec
-        self._targetrightascension = a_ra
-        self._targetdeclination = a_dec
-        self._altitude = a_alt
-        self._azimuth = a_az
-        self._pid.alpha_sp[0] = a_az
-        self._pid.alpha_sp[1] = a_alt
-        self._pid.delta_sp[0] = a_ra * 15
-        self._pid.delta_sp[1] = a_dec
-        corrected_position_angle, _ = self._sm.roll2pa(a_az, a_alt, self._roll) # to preserve roll
-        self._pid.delta_sp[2] = corrected_position_angle
-        self.logger.info(f"->> Polaris: DeltaSP    RA {hr2hms(self._pid.delta_sp[0]/15)} Dec {deg2dms(self._pid.delta_sp[1])} PA {deg2dms(self._pid.delta_sp[2])}")
-        self.logger.info(f"->> Polaris: DeltaOfft  RA {hr2hms(self._pid.delta_offst[0]/15)} Dec {deg2dms(self._pid.delta_offst[1])} PA {deg2dms(self._pid.delta_offst[2])}")
-
-        return
-
-    async def skip_compass_alignment(self, compass):
-            await self.send_cmd_compass_alignment(compass)
-            await self.send_cmd_284_query_current_mode()
-            await self.send_cmd_520_position_updates(True)
-
-
-
-    async def skip_star_alignment(self, azimuth, altitude):
-            self._aligning = True
-            await self.send_cmd_star_alignment(azimuth, altitude)
-            await self.send_cmd_284_query_current_mode()
-            await self.send_cmd_520_position_updates(True)
-            self._aligning = False
-
-    async def read_msgs(self):
+    async def read_msgs(self, reader):
         buffer = ""
         try:
             while not self.lifecycle.should_shutdown():
@@ -580,46 +879,64 @@ class Polaris:
                     raise self._task_exception
 
                 # Read from Polaris
-                if self._reader:
+                if reader:
                     try:
-                        data = await asyncio.wait_for(self._reader.read(1024), timeout=2.0)
+                        data = await asyncio.wait_for(reader.read(1024), timeout=2.0)
                     except asyncio.TimeoutError:
                         continue  # No data, keep looping
                     except (ConnectionResetError, BrokenPipeError) as e:
                         self.logger.error(f"==DISCONNECT== Polaris socket error: {e}")
+                        self._connected = False
                         self._connecting = False
                         break
                     if not data:
-                        self.logger.warn("==DISCONNECT== Polaris socket closed.")
+                        self.logger.warning("==DISCONNECT== Polaris socket closed.")
+                        self._connected = False
                         self._connecting = False
                         break
 
                     buffer += data.decode()
 
-                # Parse all messages in the buffer
+                # Drain every complete frame currently in the buffer
+                frames = []
                 while True:
                     cmd, args, new_buffer = self.parse_msg(buffer)
-                    if cmd:
-                        buffer = new_buffer
-                        ispoll = cmd in POLARIS_POLL_COMMANDS
-                        if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
-                            self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
-                        self.polaris_parse_cmd(cmd, args)
-                    else:
-                        break  # No complete message yet — wait for more data
+                    if not cmd:
+                        break
+                    buffer = new_buffer
+                    frames.append((cmd, args))
+
+                # Dispatch every 518 frame to KF, no collapsing. but flag the last 518 msg for PID processing as well
+                last_518_idx = None
+                for idx, (cmd, args) in enumerate(frames):
+                    if cmd == '518':
+                        last_518_idx = idx
+
+                for idx, (cmd, args) in enumerate(frames):
+                    ispoll = cmd in POLARIS_POLL_COMMANDS
+                    if (ispoll and Config.log_polaris_polling) or (not ispoll and Config.log_polaris_protocol):
+                        self.logger.info(f'<<- Polaris: recv_msg: {cmd}@{args}#')
+                    if cmd == '518':
+                        self._is_last_518_in_batch = (idx == last_518_idx)
+                    self.polaris_parse_cmd(cmd, args)
 
                 # Avoid tight loop
                 await asyncio.sleep(0.05)
 
         except asyncio.CancelledError:
             self.logger.info("==CANCELLED== PolarisReadMsgs cancelled.")
+            self._connected = False
             self._connecting = False
             raise
 
         except Exception as e:
             self._task_exception = e
             self.logger.error(f"==ERROR== read_msgs failed: {e}")
+            self._connected = False
             self._connecting = False
+
+
+# ── Parsing Polaris Communication Messages ─────────────────────────────────────────────────────────────
 
     # Parse a buffer returning a matched (cmd, args, remainingBuffer) or when no match (None, None, remainingBuffer)
     def parse_msg(self, buffer):
@@ -630,7 +947,7 @@ class Polaris:
             args = m.group(2)
             remaining = buffer[end:]
             if start > 0 and Config.log_polaris_protocol:
-                self.logger.warn(f"<<- Polaris: Discarding junk protocol: {bytes2hexascii(buffer[:start].encode())}")
+                self.logger.warning(f"<<- Polaris: Discarding junk protocol: {bytes2hexascii(buffer[:start].encode())}")
             return (cmd, args, remaining)
         else:
             # No complete message yet — wait for more data
@@ -660,6 +977,10 @@ class Polaris:
                     self._tracking_in_benro = arg_dict.get('track') == '1'
                     self._aligned = isAligned
                     self._compassed = isAligned
+                    self._last_518_timesec = time.monotonic()   # reset 518 watchdog on isAligned update
+                else:
+                    self._aligned = False
+                    self._compassed = False
                 if not (Config.advanced_tracking and Config.advanced_control):        # only update tracking if Benro in control
                     self._tracking = self._tracking_in_benro
             if Config.log_polaris_polling:
@@ -688,7 +1009,7 @@ class Polaris:
             p_roll = rad2deg(float(arg_dict['roll']))       # from Polaris direct
 
             with self._lock:
-                self._last_517_timestamp = dt_now
+                self._last_517_timesec = time.monotonic()
                 threshold = 0.01
                 new_zeta = [p_yaw, p_pitch, p_roll]
                 prev_zeta = getattr(self, '_zeta_meas', None)
@@ -696,59 +1017,55 @@ class Polaris:
                     self._zeta_is_moving = False  # first update is not moving
                 else:
                     self._zeta_is_moving = any( abs(new - old) > threshold for new, old in zip(new_zeta, prev_zeta) )
+                    if self._zeta_is_moving:
+                        self._athome = False
                 self._zeta_meas = new_zeta
+                # Cache the offset from raw zeta (this "517") to theta_pv (fully alignment-corrected:
+                # MAC/SGC/PGC/MPA/SCC, etc), so a stored zeta can later be re-expressed as an equivalent
+                # theta_pv under whatever alignment model is active at that later time -- see motor_to_azaltroll().
+                if self._theta_state is not None:
+                    self._zeta_theta_offset = [tp - z for tp, z in zip(self._pid.theta_pv, new_zeta)]
+                # theta_raw (518, includes the firmware's compass / SPA heading) - zeta, for PECLOG (per-motor worm analysis)
+                self._zeta_raw_offset = zeta_raw_offset(self._theta_raw, new_zeta)
 
             if Config.log_polaris_polling:
                 self.logger.info(f"<<- Polaris: GET ORIENTATION results: {cmd} {arg_dict}")
 
+
         # return result of POSITION update from AHRS {} 
         elif cmd == "518":
-            dt_now = datetime.datetime.now()
-    
-            # extract the quaternion and derive its angles and velocities
-            arg_dict = self.polaris_parse_args(args, name_postfix=True)
-            q1 = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
-            p_az = float(arg_dict['compass'])   # from Polaris direct
-            p_alt = -float(arg_dict['alt'])     # from Polaris direct
-            q_t1, q_t2, q_t3, q_az, q_alt, q_roll = quaternion_to_angles(q1)
-            q_ra, q_dec = self.altaz2radec(q_alt, q_az)
-            theta_meas = np.array([q_t1, q_t2, q_t3])
-            self._history.append([dt_now, q_t1, q_t2, q_t3])          # deque collection, so it automatically throws away stuff older than 6 samples ago
-            omega_meas = calculate_angular_velocity(self._history)
-            omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
 
-            # Store all the polaris values
-            with self._lock:
-                self._last_518_timestamp = dt_now
-                self._q1 = q1
-                self._theta_meas = theta_meas
-                self._omega_meas = omega_meas
-                self._p_azimuth = float(q_az)
-                self._p_altitude = float(q_alt)
-                self._p_roll = float(q_roll)
-                self._p_rightascension = float(q_ra) 
-                self._p_declination = float(q_dec)
+            # parse the 518 message args to determine motor angles and velocities
+            theta_raw, omega_raw, omega_ref, omega_meas = self.decode_518position_measurement(args)
 
-            # Process through the Kalman Filter to determine Polaris theta_state (uncorrected for alignment)
+            # Process all 518 msgs through the Kalman Filter [KF] to determine Polaris theta_state. 
             self._kf.predict(omega_ref)
-            self._kf.observe(theta_meas, omega_meas, omega_ref)
-            theta_state, _ = self._kf.get_state()
-            q1_state = motors_to_quaternion(*theta_state)
+            is_tracking = self._pid.mode == 'TRACK'
+            self._kf.observe(theta_raw, omega_meas, omega_ref, theta_ref=(self._pid.theta_ref if is_tracking else None),
+                             goto=self._pid.move_pending())
+            self._theta_state, _ = self._kf.get_state()
 
-            # Flag when variance from quaternion q_az and p_az
-            if Config.log_polaris_polling:
-                if not is_angle_same(q_az, p_az):
-                    self.logger.warn(f"Kinematics variance p_az {p_az:.5f} q_az {q_az:.5f} diff {p_az - q_az:.5f} ")              
-                if not is_angle_same(q_alt, p_alt):
-                    self.logger.warn(f"Kinematics variance p_alt {p_alt:.5f} q_alt {q_alt:.5f} diff {p_alt - q_alt:.5f}") 
+            # Only process the last 518 msg of a batch through PID control step and motor actuation
+            # A stale-but-real sample would just be wasted work immediately superseded by the next iteration.
+            if not self._is_last_518_in_batch:
+                return
 
-            # Use direct measurements if no KF
-            if not (Config.advanced_kf and Config.advanced_control):
-                q1_state, theta_state = q1, theta_meas
+            motorQ_state = theta_to_q(*self._theta_state)
 
-            # update all the ASCOM values and the PID loop
-            delta_state, alpha_state, theta_state = self.update_ascom_from_new_q1_adj(q1_state)
-            self._pid.measure(delta_state, alpha_state, theta_state, self._zeta_meas)
+            # Translate from Base Frame to Topo Frame [WFF] -> [MAC] -> [SGC] => [PGC] -> QUEST -> [LGA] -> [RollAdj]
+            cameraQ_pv, motorQ_pv = self._sm.baseQ_to_topoQ(motorQ_state, theta=self._theta_state)
+            theta_pv = np.array(q_to_theta(motorQ_pv, self._pid._lp, theta2_min=THETA2_MIN_MEAS))   # Beware: theta_pv only has [MAC] -> [SGC] => [PGC] corrections
+
+            # update cache of equatorial axes, used by pulse guiding and MAC corrections
+            # use the cameraQ_ref as a more steady reference, falling back to cameraQ_pv when not set
+            pointingQ =  cameraQ_pv if self._pid.cameraQ_ref is None else self._pid.cameraQ_ref
+            self._sm.cache_axes_B(pointingQ)
+
+            # update all the Sky Positions (p_*=kf_state;  a_*= pid_pv) and the PID loop
+            delta_pv, alpha_pv = self.update_sky_positions(motorQ_state, cameraQ_pv)
+            self._pid.measure(delta_pv, alpha_pv, theta_pv, self._zeta_meas, measurement_lag_s=self._kf.measurement_lag_s)
+            self._pid.control_step_calculate()
+            asyncio.create_task(self._pid.control_step_execute())
 
 
         # return result of GOTO request {'ret': 'X', 'track': '1'}  X=1 (starting slew), X=2 (stopping slew)
@@ -788,11 +1105,11 @@ class Polaris:
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: QUERTY L Bracket status response: {cmd} {arg_dict}")
 
-        # return result of query L Bracket {} 
+        # return result of set L Bracket {} 
         elif cmd == "546":
             arg_dict = self.polaris_parse_args(args)
             if Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: SET L Bracket: {cmd} {arg_dict}")
+                self.logger.info(f"<<- Polaris: SET L Bracket status response: {cmd} {arg_dict}")
 
         # return result of FILE request {'type':1; 'class':0; 'path':'/app/sd/normal/SP_0052.jpg'; 'size':'916156'; 'cTime':'2023-10-24 22:33:12'; 'duration':'0'} 
         elif cmd == "771":
@@ -822,8 +1139,7 @@ class Polaris:
                 self._polaris_sw_ver = arg_dict.get('sw')
                 self._polaris_hw_ver = arg_dict.get('hw')
                 self._polaris_astro_ver = arg_dict.get('exAxis')
-            if Config.log_polaris_protocol:
-                self.logger.info(f"<<- Polaris: VERSION status changed: {cmd} {arg_dict}")
+            self.logger.info(f"<<- Polaris: VERSION status response: {cmd} {arg_dict}")
 
         # return result of SECURITY request {'step': '1', 'password': 'YmVucm8=', 'securityQ': '2', 'securityA': 'QnJhaW4='}
         elif cmd == "790":
@@ -854,40 +1170,68 @@ class Polaris:
             if Config.log_polaris_protocol:
                 self.logger.info(f"<<- Polaris: response to command received: {cmd} {args}")
 
+    def decode_518position_measurement(self, args):
+        dt_now = time.monotonic()
 
+        # parse the quaternion and extract its mechanical angles and velocities
+        arg_dict = self.polaris_parse_args(args, name_postfix=True)
+        motorQ_raw = Quaternion(arg_dict['w1'], arg_dict['x1'], arg_dict['y1'], arg_dict['z1'])
+        p_az = float(arg_dict['compass'])   # from Polaris direct
+        p_alt = -float(arg_dict['alt'])     # from Polaris direct
 
-    def update_ascom_from_new_q1_adj(self, q1_state):
-        # default to the ASCOM az,alt,roll values based on a q1 state
-        a_t1, a_t2, a_t3, a_az, a_alt, a_roll = quaternion_to_angles(q1_state)
+        self._pid.seed_branch(self._zeta_meas)       # once: resolve on the motors' own IK branch from the start
+        theta_raw = np.array(q_to_theta(motorQ_raw, self._pid._lp, theta2_min=THETA2_MIN_MEAS))
+        omega_ref = np.array([controller.rate_dps for controller in self._motors.values()])
+        omega_raw = omega_ref                          # commanded rate echoed back -- not an independent measurement, kept for status/UI only
+        self._history.append([dt_now, float(theta_raw[0]), float(theta_raw[1]), float(theta_raw[2])])          # deque collection, so it automatically throws away stuff older than 6 samples ago
+        omega_meas = calculate_angular_velocity(self._history, Config.measurement_dt, Config.measurement_catchup_max_dt)     # real, position-differenced velocity -- fed to the KF as its velocity measurement
 
-        # Correct the ASCOM az,alt,roll values with the Multi-Point QUEST optimal adj and re-grab
-        if Config.advanced_alignment and Config.advanced_control:        
-            _, _, _, a_az, a_alt, a_roll = quaternion_to_angles(self._sm.q1_adj * q1_state)
+        # Store all the polaris mechanical angles and velocities
+        with self._lock:
+            self._last_518_timesec = dt_now
+            self._q1 = motorQ_raw
+            self._theta_raw = theta_raw
+            self._omega_raw = omega_raw
+            self._omega_meas = omega_meas
 
-        # Correct the ASCOM roll value with the Rotator adj
-        if Config.advanced_rotator and Config.advanced_control:         
-            a_roll = self._sm.roll_polaris2ascom(a_roll)
+        return theta_raw, omega_raw, omega_ref, omega_meas
 
-        a_ra, a_dec = self.altaz2radec(a_alt, a_az)
-        position_ang, parallactic_ang = self._sm.roll2pa(a_az, a_alt, a_roll)
-        alpha_state = np.array([a_az, a_alt, wrap_to_180(a_roll)], dtype=float)
-        theta_state = np.array([a_t1, a_t2, a_t3], dtype=float)          # always unadjusted
-        delta_state = np.array([a_ra*15, a_dec, wrap_to_360(position_ang)], dtype=float)         
-    
+    def extract_sky_positions(self, q):
+        az, alt, roll = q_to_azaltroll(q)
+        ra, dec = self.altaz2radec(alt, az)
+        posa, para = self._sm.roll2pa(az, alt, roll)
+        return az, alt, roll, ra, dec, posa, para
+
+    def update_sky_positions(self, motorQ_state, cameraQ_pv):
+        p_az, p_alt, p_roll, p_ra, p_dec, _, _ = self.extract_sky_positions(motorQ_state)
+        a_az, a_alt, a_roll, a_ra, a_dec, a_posa, a_para = self.extract_sky_positions(cameraQ_pv)
+
+        # Store all the Polaris unadjusted values for QUEST modelling
+        with self._lock:
+            self._motorQ_state = motorQ_state
+            self._alpha_state = np.array([p_az, p_alt, p_roll], dtype=float)
+            self._p_azimuth = float(p_az)
+            self._p_altitude = float(p_alt)
+            self._p_roll = float(p_roll)
+            self._p_rightascension = float(p_ra) 
+            self._p_declination = float(p_dec)
+
         # Store all the new ascom values
         with self._lock:
-            self._q1s = q1_state
-            self._theta_state = theta_state             # based on polaris q1 (unadjusted)
+            self._cameraQ_pv = cameraQ_pv
             self._altitude = float(a_alt)
             self._azimuth = float(a_az)
             self._roll = float(a_roll)
-            self._rotation = float(a_t3)
             self._rightascension = float(a_ra) 
             self._declination = float(a_dec)
-            self._position_angle = float(position_ang)
-            self._parallactic_angle = float(parallactic_ang)
+            self._position_angle = float(a_posa)
+            self._parallactic_angle = float(a_para)
 
-        return delta_state, alpha_state, theta_state
+        # return alpha and delta process values (all in degrees)
+        alpha_pv = np.array([a_az, a_alt, a_roll], dtype=float)
+        delta_pv = np.array([a_ra*15, a_dec, a_posa], dtype=float)         
+
+        return delta_pv, alpha_pv
 
     def aim_altaz_log_result(self):
         with self._lock:
@@ -904,9 +1248,6 @@ class Polaris:
             adj_az = self._adj_azimuth
         time = self.get_performance_data_time()
         self.logger.info(f"->> Polaris: GOTO AimOffset (Az {deg2dms(adj_az)} Alt {deg2dms(adj_alt)}) | Error Az {err_az*3600:.3f} Alt {err_alt*3600:.3f}")
-        # if we want to log Aim data
-        if Config.log_performance_data == 1:
-            self.logger.info(f",DATA1,{time:.3f},{a_az:.7f},{a_alt:.7f},{adj_az:.7f},{adj_alt:.7f},{err_az*3600:.3f},{err_alt*3600:.3f}")
 
     def aim_altaz_log_and_correct(self, alt: float, az:float):
         # log the original aiming co-ordinates and grab the last error ajustments
@@ -922,6 +1263,37 @@ class Polaris:
         caz = 360 - caz if caz>180 else -caz
         return (calt, caz)
 
+# ── Sending Polaris Communication Messages ─────────────────────────────────────────────────────────────
+
+    async def _await_cmd_response(self, cmd: str, timeout: float = 5.0):
+        """
+        Wait for a queued reply to `cmd`, bounded by `timeout`. A dropped/lost reply
+        (flaky Wi-Fi, Polaris hiccup) must not hang the caller forever -- for cmd 284,
+        called from polaris_init(), an unbounded wait here wedges the whole connection
+        cycle permanently with no error and no retry.
+        On timeout this also flags the connection as bad so read_msgs()/the watchdog
+        recycle it, since a lost reply is itself a sign the link is dead.
+        """
+        try:
+            return await asyncio.wait_for(self._response_queues[cmd].get(), timeout=timeout)
+        except asyncio.TimeoutError:
+            err = asyncio.TimeoutError(f"No response to Polaris cmd {cmd} within {timeout:.0f}s -- connection likely lost.")
+            self._task_exception = err
+            self.logger.error(f"==TIMEOUT== {err}")
+            raise err
+
+    async def skip_compass_alignment(self, compass):
+            await self.send_cmd_compass_alignment(compass)
+            await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
+
+    async def skip_star_alignment(self, azimuth, altitude):
+            self._aligning = True
+            await self.send_cmd_star_alignment(azimuth, altitude)
+            await self.send_cmd_284_query_current_mode()
+            await self.send_cmd_520_position_updates(True)
+            self._aligning = False
+
     async def send_cmd_change_tracking_state(self, tracking: bool):
         cmd = '531'
         state = 1 if tracking else 0
@@ -929,7 +1301,7 @@ class Polaris:
             self.logger.info(f"->> Polaris: TRACK request change to {state}")
         empty_queue(self._response_queues[cmd])
         await self.send_msg(f"1&{cmd}&3&state:{state};speed:0;#")
-        await self._response_queues[cmd].get() 
+        await self._await_cmd_response(cmd)
 
     # Abort Slew
     # eg state:0;yaw:0.0;pitch:0.0;lat:-33.655422;track:0;speed:0;lng:151.12244;
@@ -952,12 +1324,11 @@ class Polaris:
         with self._lock:
             currently_slewing = self._slewing
             currently_gotoing = self._gotoing
-            currently_tracking = self._tracking
 
         # if we are currently slewing or gotoing, dont try again
         if currently_slewing or currently_gotoing:
             self.logger.info(f"->> Polaris: GOTO CANNOT EXECUTE due to current slew {currently_slewing} or goto {currently_gotoing}")
-            return
+            return -1
 
         # Mark that we are gotoing and slewing
         with self._lock:
@@ -982,12 +1353,13 @@ class Polaris:
         await self.send_msg(msg)
 
         # Wait for 1st response of slew started
-        ret_dict = await self._response_queues[cmd].get()
+        ret_dict = await self._await_cmd_response(cmd)
         if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO starting slew: {cmd} {ret_dict}")
-            
-        # wait for 2nd response of slew stopped
-        ret_dict = await self._response_queues[cmd].get()
+
+        # wait for 2nd response of slew stopped -- long timeout since a real slew can
+        # legitimately take tens of seconds; this only guards against a dead connection
+        ret_dict = await self._await_cmd_response(cmd, timeout=120.0)
         if Config.log_polaris_protocol:
             self.logger.info(f"<<- Polaris: GOTO stopping slew: {cmd} {ret_dict}")
 
@@ -1033,7 +1405,7 @@ class Polaris:
         await asyncio.sleep(0.2)
         await self.send_msg(f"1&530&3&step:3;yaw:0.0;pitch:0.0;lat:0.0;num:0;lng:0.0;#")
 
-    async def send_cmd_park(self):
+    async def send_cmd_reset_axis012(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: PARK all 3 axis")
         await self.send_cmd_reset_axis(0)
@@ -1100,11 +1472,14 @@ class Polaris:
 
     async def send_cmd_546_set_L_bracket(self, L_bracket:bool=True):
         state = 1 if L_bracket else 0
+        self._polaris_L_bracket = None  # pending until 545 confirms
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 546 Set L Bracket request {'ON' if L_bracket else 'OFF'}")
         msg = f"1&546&3&dir:{state}#"
         await self.send_msg(msg)
-
+        await asyncio.sleep(0.2)
+        await self.send_cmd_545_query_L_bracket()
+        
     async def send_cmd_545_query_L_bracket(self):
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 545 Query L Bracket request")
@@ -1115,6 +1490,19 @@ class Polaris:
         if Config.log_polaris_protocol:
             self.logger.info(f"->> Polaris: 547 request")
         msg = f"1&547&3&-100#"
+        await self.send_msg(msg)
+
+    # Power off the Polaris unit.
+    # 526 is the firmware's engineering/"test" command group (SP_TestMsgFromAppProc);
+    # step:6 runs SP_PmcEnterSleep -> SP_PmcSetSysSleep, which removes BLE devices,
+    # turns off wifi, sleeps the gimbal and then calls HI_SYSTEM_Poweroff(). This is a
+    # real board power-off, not a timed sleep -- the unit must be woken with the
+    # physical power button afterwards. As part of shutdown the Polaris drops its BLE
+    # connection, so expect the socket to close immediately after this is sent.
+    async def send_cmd_526_shutdown(self):
+        if Config.log_polaris_protocol:
+            self.logger.info(f"->> Polaris: 526 SHUTDOWN (power off) request")
+        msg = f"1&526&3&step:6;#"
         await self.send_msg(msg)
 
     async def send_cmd_524(self):
@@ -1182,7 +1570,7 @@ class Polaris:
         msg = f"1&{cmd}&2&-1#"
         empty_queue(self._response_queues[cmd])
         await self.send_msg(msg)
-        ret_dict = await self._response_queues[cmd].get()
+        ret_dict = await self._await_cmd_response(cmd)
         return ret_dict
 
     async def send_cmd_284_query_current_mode_async(self):
@@ -1211,7 +1599,7 @@ class Polaris:
         await self.send_cmd_782()
         await self.send_cmd_778()
         await self.send_cmd_775()
-        ret_dict = await self.send_cmd_284_query_current_mode()
+        await self.send_cmd_284_query_current_mode()
         await self.send_cmd_802()
         await self.send_cmd_824()
         # 286
@@ -1233,173 +1621,134 @@ class Polaris:
         # 519 type:3;code:519;val:state:1;yaw:-166.577;pitch:61.513;lat:-33.655254;track:0;speed:0;lng:151.12231;
         # 530
         self._connecting = False
-
-        # if  'mode' in ret_dict and int(ret_dict['mode']) == 8:
-        #     if 'track' in ret_dict and int(ret_dict['track']) == 3:
-        #         # Polaris is in astro mode but alignment not complete
-        #         raise AstroAlignmentError()
-        # else:
-        #     # Polaris is not in astro mode
-        #     raise AstroModeError()
+        self._is_reset_axes = False
 
         # Completed initialisation
         with self._lock:
             self._connected = True
             self._task_errorstr = ''
+        PresetManager.refresh_all_lists(Config)
         s_lat = self._sitelatitude
         s_lon = self._sitelongitude
         self.logger.info("Polaris communication init... done")
         self.logger.info(f'Site lat = {s_lat} ({deg2dms(s_lat)}) | lon = {s_lon} ({deg2dms(s_lon)}).')
-        self.logger.warn(f'Change site_latitude and site_longitude in Alpaca Pilot App.')
-        # if we want to run Aim test or Drift test over a set of targets in the sky
-        if Config.log_performance_data_test == 1 or Config.log_performance_data_test == 2:
-            asyncio.create_task(self.goto_tracking_test())
-        if Config.log_performance_data_test == 5:
-            asyncio.create_task(self.rotator_test())
-
-
-    async def rotator_test(self):
-        if self._test_underway:
-            return
-        self._test_underway = True
-        Config.log_performance_data == 0
-        axis = 2 # Rotation
-        steps = 8
-        duration = 90.0/4
-        self.logger.info(f"== TEST == Rotator Test | {steps} steps")
-        for i in range(0, steps, 1):
-            alt = 10 + 80/steps * i
-            az = 180
-            await self.send_cmd_goto_altaz(alt, az, False)
-            self.logger.info(f"== TEST == Rotator Test | {alt:.2f} alt")
-            Config.log_performance_data = 5
-            await self.move_axis(2, 9)
-            await asyncio.sleep(duration)
-            Config.log_performance_data = 0
-            await self.move_axis(2, 0)
-            await asyncio.sleep(2)
-        # complete the test
-        self.logger.info(f"== TEST == Rotator Test | COMPLETE")
-
-
-    async def moveaxis_speed_test(self, axis, rates):
-        self.lifecycle.start()
-        motor = self._motors[axis]
-        for rate in rates:
-            if self.lifecycle.should_stop():
-                break
-            direction = +1
-            # check axis 1 bounds and reverse direction if necc 
-            if axis==1 and self._theta_meas.any():
-                if self._theta_meas[1] > 60:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
-                    direction = -1
-                if self._theta_meas[1] < 20:
-                    await motor.set_motor_speed(0, "RAW")
-                    await asyncio.sleep(3)
-                    direction = +1
-            # send the move request
-            await motor.set_motor_speed(rate * direction, "RAW")
-            result, raw, stdev, status = await self.moveaxis_speed_measurement(axis, rate)
-            self._cm.addTestResult(axis, rate, result, stdev, status)
-
-        # ensure we stop all movement
-        await motor.set_motor_speed(0, "RAW")
-        if Config.advanced_control:
-            await self.findHome()
+        if not self._restore_checked:               # first connection since the driver started (not a reconnect)
+            self._restore_checked = True
+            self.lifecycle.create_task(self.restore_tracking_on_start(), name='TrackingRestoreRestart')
         else:
-            await asyncio.sleep(2)
-            await self.send_cmd_reset_axis(axis)
-        self.lifecycle.reset()
+            self.lifecycle.create_task(self.restore_tracking_on_reconnect(), name='TrackingRestoreReconnect')
 
 
-    async def moveaxis_speed_measurement(self, axis, rate, required_stable_samples = 5, initial_interval = 3.0, max_interval = 15, sampling_interval = 0.25):
-        start_time = time.monotonic()
-        stable_tolerance = 0.05 if rate > 5 else 0.002
-        await asyncio.sleep(initial_interval)
-        rate_raw = self._motors[axis].rate_raw    # what the controller thinks the raw rate is
-        rate_dps = self._motors[axis].rate_dps    # what the controller thinks the dps rate is
-        status = "COMPLETED"
+# ── Tracking restore (tracking_restore.py) ─────────────────────────────────────────────────────
 
-        omega_samples = []     # deg/sec
-        while time.monotonic() - start_time < max_interval:
-            await asyncio.sleep(sampling_interval)
+    async def restore_tracking_on_start(self):
+        """Once, at the first connection after the driver starts: resume the saved tracking, or stop a mount still
+        running the last SLOW command from before the restart. Then keep the state saved (tracking_state_loop)."""
+        try:
+            if getattr(Config, 'restore_tracking_on_restart', False):
+                await self._restore_or_stop()
+        except Exception as e:
+            self.logger.warning(f"==STARTUP== Tracking restore failed: {e}")
+        await self.tracking_state_loop()
+
+    async def restore_tracking_on_reconnect(self):
+        """After a comms loss (the watchdog rebooted the connection): the driver's own tracking carries on through it
+        (TRACK and the target are kept); if it is no longer tracking but the saved state says it was, restore it as at
+        a restart, with the same checks."""
+        try:
+            if self._tracking and self._pid.mode == 'TRACK':
+                self.logger.info("==RECONNECT== Tracking carried on through the reconnect")
+                return
+            if getattr(Config, 'restore_tracking_on_restart', False):
+                await self._restore_or_stop(prefix='==RECONNECT==')
+        except Exception as e:
+            self.logger.warning(f"==RECONNECT== Tracking restore failed: {e}")
+
+    async def _restore_or_stop(self, prefix='==STARTUP=='):
+        t0 = time.monotonic()
+        while (self._zeta_raw_offset is None or self._zeta_meas is None) and time.monotonic() - t0 < 30.0:
             if self.lifecycle.should_stop():
-                return 0,0,0,"STOPPED"
-            if self._omega_meas is None:
-                return 0,0,0,"NO DATA"
-            omega = self._omega_meas[axis]
-            omega_samples.append(omega)
-
-            # if we potentially have enough samples, take a window the last set
-            if len(omega_samples) >= required_stable_samples:
-                window = omega_samples[-required_stable_samples:]
-                stdev = np.std(window)
-                if stdev < stable_tolerance and (np.mean(window) > 0.002 or rate == 0):
-                    measured_dps = float(np.mean(window)) if rate>0 else 0
-                    self.logger.info(f"== TEST == Stable | Axis {axis} |  RAW {rate_raw} | DPS: {measured_dps:.5f}, stdev: {stdev:.7f}, last 5 of {len(omega_samples)}")
-                    break
-        # exited while without a value in tollerance
-        else:
-            measured_dps = rate_dps  # fallback to the controller's rate
-            status = "HIGH STDEV"
-            self.logger.info(f'== TEST == **UNSTABLE** on Axis {axis} |  RAW {rate_raw} | stdev: {stdev:.7f}, last 5 of {len(omega_samples)}')
-        return abs(measured_dps), abs(rate_raw), stdev, status
-
-
-    async def goto_tracking_test(self):
-        if self._test_underway:
+                return
+            await asyncio.sleep(0.5)                 # wait for the first positions (518 and 517)
+        zeta_before = list(self._zeta_meas) if self._zeta_meas is not None else None
+        state = tracking_restore.load()
+        target_alt = None
+        if state and state.get('tracking') and state.get('delta_sp'):
+            target_alt, _ = self.radec2altaz(state['delta_sp'][0] / 15, state['delta_sp'][1])
+        reason = tracking_restore.refuse_reason(
+            state, time.time(), self._zeta_raw_offset, self._pid.mode, self.atpark,
+            bool(Config.advanced_control and Config.advanced_tracking), target_alt)
+        if reason is None and state.get('trackingrate') == 3 and state.get('orbital') not in orbital_data:
+            reason = f"orbital target {state.get('orbital')!r} is not in the orbital cache"
+        if reason is None:
+            await self._restore_tracking(state, prefix)
             return
-        self._test_underway = True
-        nRA = int(360/30)
-        nDec = int(180/15)
-        await asyncio.sleep(30)             # Start test 30s after startup
-        for j in range(0, nDec, 1):
-            for i in range(0, nRA, 1):
-                e_ra = i/nRA*24
-                e_dec = j/nDec*180-90 if self._sitelatitude<0 else (nDec - j)/nDec*180-90
-                if (abs(e_dec)==90 and e_ra!=0):    # only do it once at the poles
-                    continue
-                now_coord = ephem.Equatorial(hr2rad(e_ra), deg2rad(e_dec), epoch=ephem.now())
-                radec = ephem.Equatorial(now_coord, epoch=ephem.now())
-                a_ra=rad2hr(radec.ra)
-                a_dec=rad2deg(radec.dec)
-                p_ra, p_dec = self.radec_ascom2polaris(a_ra, a_dec)
-                p_alt, p_az = self.radec2altaz(p_ra, p_dec)
-                if p_alt>12 and p_alt<80:           # only GOTO if within range of Benro Polaris capabilities
-                    self.logger.info(f"== TEST == GOTO Tracking Test | Now RA {e_ra:5.1f} Dec {e_dec:5.1f} | J2000 RA {a_ra:5.1f} Dec {a_dec:5.1f} | Az {p_az:5.1f} Alt {p_alt:5.1f}")
-                    await self.SlewToCoordinates(a_ra, a_dec, isasync = False)
-                    # if we want to do Aim test (assumes Aim Data is being logged), just pause
-                    if Config.log_performance_data_test == 1:
-                        await asyncio.sleep(5)
-                    # if we want to do Drift test, await for it to perform a single test
-                    if Config.log_performance_data_test == 2:
-                        await self.drift_error_test(e_ra, e_dec, duration=3*60)
+        self.logger.info(f"{prefix} Tracking not restored: {reason}")
+        await asyncio.sleep(tracking_restore.MOTION_WINDOW_S)
+        if self._tracking_in_benro:
+            self.logger.info(f"{prefix} The Polaris is tracking by itself (Benro tracking): left running")
+            return
+        if self._tracking or self._slewing or self._pid.mode not in ('IDLE',):
+            return                                   # something in this driver has started moving it meanwhile
+        if tracking_restore.is_moving(zeta_before, self._zeta_meas):
+            self.logger.warning(f"{prefix} The mount is moving (the last command from before the restart?): STOP")
+            for axis in range(3):
+                await self._motors[axis].stop()
 
-    async def drift_error_test(self, ra, dec, duration=120):
-        a0_ra = self._rightascension
-        a0_dec = self._declination
-        a0_track = self.tracking
-        t0 = datetime.datetime.now()
-        await asyncio.sleep(duration)
-        a1_ra = self._rightascension
-        a1_dec = self._declination
-        a1_track = self.tracking
-        t1 = datetime.datetime.now()
-        d_t = (t1 - t0).total_seconds()
-        d_ra = clamparcsec((a0_ra - a1_ra)*3600/24*360)/d_t*60
-        d_dec = clamparcsec((a0_dec - a1_dec)*3600)/d_t*60
-        a_ra = ra if ra else self._targetrightascension if self._targetrightascension else self._rightascension
-        a_dec = dec if dec else self._targetdeclination if self._targetdeclination else self._declination
-        time = self.get_performance_data_time()
-        self.logger.info(f",DATA2,{time:.3f},{a0_track},{a1_track},{a_ra},{a_dec},{d_ra:.3f},{d_dec:.3f}")
-        return
+    async def _restore_tracking(self, state, prefix='==STARTUP=='):
+        """Track the saved target again: TRACK from where the mount is, then the saved target -- the PID pulls the
+        mount back onto it."""
+        pid = self._pid
+        await self.start_tracking()
+        rate = int(state.get('trackingrate', 0))
+        if rate in (1, 2, 3):                        # Lunar, Solar, Custom: an orbital target
+            pid.reset_offsets()
+            pid.target_type = 'ORBITAL'
+            pid.orbital_sp_name = state.get('orbital') or ('Moon' if rate == 1 else 'Sun')
+            self.trackingrate = rate
+            what = pid.orbital_sp_name
+        else:
+            ra, dec, pa = state['delta_sp']
+            pid.set_delta_target({'ra': ra / 15, 'dec': dec, 'pa': pa})
+            for name in ('delta_offst', 'alpha_offst', 'gamma_offst'):
+                if state.get(name) is not None:
+                    getattr(pid, name)[:] = state[name]
+            what = f"RA {hr2hms(ra / 15)} Dec {deg2dms(dec)} PA {pa:.2f}"
+        age = time.time() - float(state['saved_at'])
+        self.logger.info(f"{prefix} Tracking restored: {what} (saved {age:.0f} s ago)")
+        # the catch-up onto the target is a move like a goto: it completes once on target, and Backlash Compensation
+        # (advanced_backlash) finishes it with every motor engaged the way it tracks -- a mount that ran ahead while
+        # the driver was down comes back against tracking, which otherwise leaves the gear slack open
+        started = time.monotonic()
+
+        def settled():
+            how = 'timed out' if pid.goto_timeout() else 'on target'
+            self.logger.info(f"{prefix} Tracking restore settled {how} after {time.monotonic() - started:.0f} s")
+        pid.set_goto_complete_callback(settled)
+
+    async def tracking_state_loop(self):
+        """Keep data/tracking_state.json current: at once on any change (tracking on/off, target), and every
+        SAVE_EVERY_S while tracking. Only while connected: a long comms loss ages the state out."""
+        key, last, warned = None, 0.0, False
+        while not self.lifecycle.should_stop():
+            try:
+                if self._connected and self._zeta_raw_offset is not None:
+                    tracking = bool(self._tracking and self._pid.mode == 'TRACK'
+                                    and Config.advanced_control and Config.advanced_tracking)
+                    state = tracking_restore.capture(tracking, self._pid, self._trackingrate, self._zeta_raw_offset)
+                    k, now = tracking_restore.change_key(state), time.monotonic()
+                    if k != key or (tracking and now - last >= tracking_restore.SAVE_EVERY_S):
+                        tracking_restore.save(state)
+                        key, last = k, now
+            except Exception as e:
+                if not warned:
+                    self.logger.warning(f"Tracking state not saved: {e}")
+                    warned = True
+            await asyncio.sleep(1.0)
 
 
-    #
-    # Telescope device states
-    #
+# ── Alpaca Telescope Device State ─────────────────────────────────────────────────────────────
+
     @property
     def connected(self) -> bool:
         with self._lock:
@@ -1426,6 +1775,18 @@ class Polaris:
             raise Exception(self._task_errorstr)
 
     def getStatus(self) -> dict:
+        now = time.monotonic()
+        sg_interval = round(self._sm._sync_guide_interval,0) if self._sm._sync_guide_interval else 0
+        sg_last_time = round(now - self._sm._sync_guide_last_time,0) if self._sm._sync_guide_last_time else 0
+        pulseg_last_time = round(now - self._sm._pulse_guide_last_time,2) if self._sm._pulse_guide_last_time else 0
+        pecg_last_time = round(now - self._sm._pec_guide_last_time,2) if self._sm._pec_guide_last_time else 0
+        pec_ra, pec_dec = self._sm._pec_ra, self._sm._pec_dec
+        pec_ra_status = pec_ra.r2   if pec_ra.converged() else -pec_ra.inhibit
+        pec_dec_status = pec_dec.r2 if pec_dec.converged() else -pec_dec.inhibit
+        pidmode = self._pid.mode if self._pid.theta_ref_cache is None else self._pid.theta_ref_cache_cause
+        traj = self._pid.goto_traj
+        if self._pid.theta_ref_cache is None and traj is not None and not traj.done and getattr(traj, 'cause', None):
+            pidmode = traj.cause                     # a planned flip / long M1 or M3 turn (control_plan.MotorMove)
         with self._lock:
             res = {
                 'polarismode': self._polaris_mode,
@@ -1456,6 +1817,7 @@ class Polaris:
                 'slewing': self._slewing,
                 'gotoing': self._gotoing,
                 'rotating': self._rotating,
+                'isreset': self._is_reset_axes,
                 'iszetamoving': self._zeta_is_moving,
                 'ispulseguiding': self._ispulseguiding,
                 'paltitude': self._p_altitude,
@@ -1469,30 +1831,175 @@ class Polaris:
                 'rightascension': self._rightascension,
                 'parallacticangle': self._parallactic_angle,
                 'positionangle': self._position_angle,
-                'pidmode': self._pid.mode,                
-                'q1': str(self._q1),
-                'q1s': str(self._q1s),
-                'zetameas': [0,0,0] if self._zeta_meas is None else self._zeta_meas,
-                'lotameas': [0,0,0,0,0] if self._theta_meas is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
-                'thetameas': [0,0,0] if self._theta_meas is None else self._theta_meas.tolist(),
-                'thetastate': [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
+                'pidmode': pidmode,     
+                'pidglock': self._pid._lp.in_gimbal_lock,           
+                'qraw':    [0,0,0,0] if self._q1 is None else [self._q1[0],self._q1[1],self._q1[2],self._q1[3]],
+                'qstate':  [0,0,0,0] if self._motorQ_state is None else [self._motorQ_state[0],self._motorQ_state[1],self._motorQ_state[2],self._motorQ_state[3]],
+                'qalign':  [0,0,0,0] if self._sm.alignQ_B2T is None else [self._sm.alignQ_B2T[0],self._sm.alignQ_B2T[1],self._sm.alignQ_B2T[2],self._sm.alignQ_B2T[3]],
+                'qpv':     [0,0,0,0] if self._cameraQ_pv is None else [self._cameraQ_pv[0],self._cameraQ_pv[1],self._cameraQ_pv[2],self._cameraQ_pv[3]],
+                'lotameas':[0,0,0,0,0] if self._theta_raw is None else [self._p_azimuth, self._p_altitude, self._p_roll, self._p_rightascension, self._p_declination],
+                'zetameas':[0,0,0] if self._zeta_meas is None else self._zeta_meas,
+                'zetaoffset':[0,0,0] if self._zeta_theta_offset is None else self._zeta_theta_offset,
+                'traw':    [0,0,0] if self._theta_raw is None else self._theta_raw.tolist(),
+                'tstate':  [0,0,0] if self._theta_state is None else self._theta_state.tolist(),
+                'astate':  [0,0,0] if self._alpha_state is None else self._alpha_state.tolist(),
+                'gpv':     [0,0,0] if self._pid.gamma_pv is None else self._pid.gamma_pv.tolist(),
+                'tpv':     [0,0,0] if self._pid.theta_pv is None else self._pid.theta_pv.tolist(),
+                'tref':    [0,0,0] if self._pid.theta_ref is None else self._pid.theta_ref.tolist(),
+                'gdpulse': [0,0,0] if self._sm.delta_guide_pulse is None else self._sm.delta_guide_pulse.tolist(),
+                'gdaccum': [0,0,0] if self._sm.delta_guide_accum is None else self._sm.delta_guide_accum.tolist(),
+                'dslew':   [0,0,0] if self._pid.delta_v_sp is None else self._pid.delta_v_sp.tolist(),
+                'aslew':   [0,0,0] if self._pid.alpha_v_sp is None else self._pid.alpha_v_sp.tolist(),
+                'dofst':   [0,0,0] if self._pid.delta_offst is None else self._pid.delta_offst.tolist(),
+                'aofst':   [0,0,0] if self._pid.alpha_offst is None else self._pid.alpha_offst.tolist(),
+                'gsp':     [0,0,0] if self._pid.gamma_sp is None else self._pid.gamma_sp.tolist(),
+                'dsp':     [0,0,0] if self._pid.delta_sp is None else self._pid.delta_sp.tolist(),
+                'asp':     [0,0,0] if self._pid.alpha_sp is None else self._pid.alpha_sp.tolist(),
+                'errsig':  [0,0,0] if self._pid.error_signal is None else self._pid.error_signal.tolist(),
                 'deltaref': self._pid.delta_ref.tolist(),
                 'alpharef': self._pid.alpha_ref.tolist(),
                 'omegaref': self._pid.omega_ff.tolist(),
                 'omegamin': self._pid.omega_min.tolist(),
                 'omegamax': self._pid.omega_max.tolist(),
                 'motorref': [motor.rate_dps for motor in self._motors.values()],
+                'motorcmd': [motor.get_cmdstr() for motor in self._motors.values()],
                 'siderealtime': self._siderealtime,
                 'lifecycleevent': self.lifecycle._event.name,
+                'networkjoined': self._network_joined,
                 'bledevices' : [info["name"] for info in self._ble.devices.values()],
                 'bleselected' : self._ble.selectedDevice,
                 'bleisenablingwifi': self._ble.isEnablingWifi,
                 'bleiswifienabled': self._ble.isWifiEnabled,
+                'platform': sys.platform,                # the driver's OS (win32, linux, darwin): Pilot offers what applies
+                'gpsrun': locate_status['run'],          # GPS Locate: which one (counts Locates)
+                'gpsstate': locate_status['state'],      # idle | running | found | no_fix | error
+                'gpsattempts': locate_status['attempts'],
+                'gpserror': locate_status['error'],
                 'polarisswver': self._polaris_sw_ver,
                 'polarishwver': self._polaris_hw_ver,
                 'polarisastrover': self._polaris_astro_ver,
+                'rbcerror': self._sm.mac_error,
+                'alignmodel': [self._sm.mac_d2, self._sm.mac_d3, self._sm.mac_terms()[2] * 100],
+                'alignstatus': [self._sm.mac_offsets_status, self._sm.mac_s2_status],   # Pilot: Fitted/Held/Default
+                'alignguide': self._sm.align_guidance,
+                'sccerror': self._sm.scc_error,
+                'mpastatus': [self._sm.aligned_count, self._sm.mpa_error],
+                'sgstatus': [self._sm.valid_sync_guide, sg_interval, sg_last_time, pulseg_last_time, pecg_last_time],
+                'pec': [pec_ra._applied_rate*3600, pec_dec._applied_rate*3600, pec_ra_status, pec_dec_status],
+                # deg of motor angle, each motor's worm gear correction now (0 when PEC Worm Gear Correction is off)
+                'pecworm': [float(x) for x in self._sm.worm_error_deg],
+                # arcmin, PEC correction actually applied since the *previous* guide-sync only (resets on
+                # each sync ingest) -- same value/units as PECLOG's pec_accum field, but live between syncs.
+                'pec_accum': [pec_ra._applied_accum*60, pec_dec._applied_accum*60],
+                'pidKc': Config.pid_Kc,
             }
+        # clear after sent to Pilot
+        # self._sm.delta_guide_pulse =  np.zeros(3, dtype=float) 
+        self._ispulseguiding = False
+
         return res
+
+    async def select_speed_controller(self, use_v2: bool):
+        """Hot swap every motor between the legacy and the shared-level v2 speed controller.
+        Each axis is stopped on the outgoing controller first; an active PID will re-command it."""
+        for motor in self._motors.values():
+            await motor.select(use_new=bool(use_v2))
+        self.logger.info(f"Motor speed controller: {'v2 shared-level (BETA)' if use_v2 else 'legacy'}")
+
+    def make_config_params_live(self, changed_params):
+        # make changes live in polaris where possible
+        for param in changed_params:
+            if param == "log_level":
+                update_log_level(Config.log_level)
+            elif param == "preset_action":    # "load_<type>", "save_<type>", "delete_<type>" or ""
+                PresetManager.handle_action(Config)
+                # apply any loaded location properties to the Polaris state
+                self.sitelatitude  = float(Config.site_latitude)
+                self.sitelongitude = float(Config.site_longitude)
+                self.siteelevation = Config.site_elevation
+                self.sitepressure  = Config.site_pressure
+                # re-evaluate PRESETUP immediately, don't wait for a control tick (see check_latlon_configured())
+                self._pid.check_latlon_configured()
+            elif param == "site_latitude":
+                self.sitelatitude = float(Config.site_latitude)
+                self._pid.check_latlon_configured()
+                if Config.advanced_eq_mode:             # the wedge the alignment starts from depends on the latitude
+                    self._sm.optimize_alignQ_B2T()
+                    self._sm.refresh_pid_setpoints_from_q1()
+            elif param == "site_longitude":
+                self.sitelongitude = float(Config.site_longitude)
+                self._pid.check_latlon_configured()
+            elif param == "site_elevation":
+                self.siteelevation = Config.site_elevation
+            elif param == "site_pressure":
+                self.sitepressure = Config.site_pressure
+            elif param == "coordinated_speed_control":
+                asyncio.create_task(self.select_speed_controller(Config.coordinated_speed_control))
+            elif param == "max_accel_rate":        
+                self._pid.set_Ka_array(Config.max_accel_rate)
+            elif param == "max_slew_rate":
+                self._pid.set_Kv_array(Config.max_slew_rate)
+            elif param == "guide_rate_ra":
+                self.guideraterightascension = Config.guide_rate_ra * 15.0 / 3600.0   
+            elif param == "guide_rate_dec":
+                self.guideratedeclination = Config.guide_rate_dec * 15.0 / 3600.0  
+            elif param == "advanced_eq_mode":
+                if bool(Config.advanced_eq_mode) == self._eq_mode_live:
+                    continue                          # sent again unchanged: keep the sync points
+                self._eq_mode_live = bool(Config.advanced_eq_mode)
+                # sync points taken on a level base say nothing of a wedge (and back): with them kept, eq mode refitted
+                # the level alignment and the mount went on as alt-az. Clear them all; the M2 scale is the mount's own
+                sm = self._sm
+                m2_scale = (sm.mac_s2, sm.mac_s2_accepted, sm.mac_s2_status)
+                cleared = sum(1 for e in sm.sync_history if not e.get('deleted', False))
+                sm.set_alignQ_to_identity()           # the base seed: the ideal wedge in eq mode, level otherwise
+                sm.mac_s2, sm.mac_s2_accepted, sm.mac_s2_status = m2_scale
+                sm.optimize_alignQ_B2T()
+                sm.refresh_pid_setpoints_from_q1()
+                sm.streamSyncData()                   # and persist the empty sync list
+                self.logger.info(f"EQ MODE {'ON' if Config.advanced_eq_mode else 'OFF'}: cleared {cleared} sync points "
+                                 f"(taken on the other base)")
+            elif param in ["advanced_alignment", "advanced_scc_enabled", "advanced_scc_choice", "advanced_align_mac",
+                           "align_m2_scale"]:
+                self._sm.clear_sync_guiding()
+                self._sm.optimize_alignQ_B2T()
+                self._sm.refresh_pid_setpoints_from_q1()
+                self._sm.streamSyncData()
+            elif param == "advanced_pec_worm" or (param in ("focal_length", "focal_ratio") and Config.advanced_pec_worm):
+                # the worm gear correction is part of every sync point's prediction: refit QUEST with or without it
+                # (or with the profile for the new lens, which the next tick loads); clearing sync guiding also
+                # restarts the drift model, which learnt the drift with the other setting
+                self._sm.reload_worm_ff()
+                self._sm.clear_sync_guiding()
+                self._sm.optimize_alignQ_B2T()
+                self._sm.refresh_pid_setpoints_from_q1()
+                self._sm.streamSyncData()
+            elif param == "advanced_pec_drift":
+                self._sm.reset_pec_model()
+            elif param in ("advanced_backlash", "backlash_deg"):
+                self._pid.backlash.reset()          # start again from the motors' angles, engaged the way they track
+                if param == "advanced_backlash" and any(e.get('backlash') for e in self._sm.sync_history):
+                    # sync points taken while compensating keep their adjustment, factored in only while it is on:
+                    # refit QUEST/MAC with or without it, as for the worm gear correction
+                    self._sm.optimize_alignQ_B2T()
+                    self._sm.refresh_pid_setpoints_from_q1()
+                    self._sm.streamSyncData()
+            elif param == "ref_action":
+                if changed_params["ref_action"]=="update":    # Update Reference Position with Current Orientation
+                    match Config.ref:
+                        case 0: Config.apply_changes({"r1": self.azimuth, "r2": self.altitude,  "r3": self.roll, "ref_action": '' })
+                        case 1: Config.apply_changes({"r1": self.rightascension, "r2": self.declination,  "r3": self.positionangle, "ref_action": '' })
+                        case 2: Config.apply_changes({"r1": self._pid.gamma_pv[0], "r2": self._pid.gamma_pv[1],  "r3": self._pid.gamma_pv[2], "ref_action": '' })
+                        case 3:
+                            if self._zeta_meas is not None:
+                                Config.apply_changes({"r1": self._zeta_meas[0], "r2": self._zeta_meas[1], "r3": self._zeta_meas[2], "ref_action": '' })
+                            else:
+                                self.logger.warning("Cannot update Motor Position anchor: no '517' orientation received yet.")
+                                Config.apply_changes({"ref_action": '' })
+            elif param == "track":
+                if Config.track == 0 and Config.ref != 3:  Config.apply_changes({ "ref": 0 }) # For Landscape - Untracked, set Reference Frame Topo (unless Motor Position is deliberately selected)
+                if Config.track == 3:   Config.apply_changes({ "ref": 2 }) # For Sky - Milky Way,       set Reference Frame Galactic
+                
 
     @property
     def tracking(self) -> bool:
@@ -1548,7 +2055,7 @@ class Polaris:
     def ispulseguiding(self) -> bool:
         with self._lock:
             res =  self._ispulseguiding
-        return res
+        return False
     #
     # Telescope device variables
     #
@@ -1602,7 +2109,7 @@ class Polaris:
 
     @property
     def utcdate(self) -> datetime.datetime:
-        res = datetime.datetime.now(datetime.timezone.utc).isoformat().split('+')[0]
+        res = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
         return res
 
     #
@@ -1924,15 +2431,20 @@ class Polaris:
     
     
 
+# ── Alpaca Telescope Higher Level Methods ─────────────────────────────────────────────────────────────
 
-    ####################################################################
-    # Methods
-    ####################################################################
+    def markAllAsComplete(self):
+        self.markGotoAsComplete()
+        self.markRotateAsComplete()
+        self.markSlewAsComplete()
+        self.markParkingAsCanceled()
+        self.markHomingAsCanceled()
 
     def markGotoAsUnderway(self):
         with self._lock:
             self._slewing = True
             self._gotoing = True
+            self._athome = False
             self._goto_complete_event = asyncio.Event()
 
     def markGotoAsComplete(self):
@@ -1945,6 +2457,7 @@ class Polaris:
     def markRotateAsUnderway(self):
         with self._lock:
             self._rotating = True
+            self._athome = False
             self._rotate_complete_event = asyncio.Event()
 
     def markRotateAsComplete(self):
@@ -1956,6 +2469,7 @@ class Polaris:
     def markSlewAsUnderway(self):
         with self._lock:
             self._slewing = True
+            self._athome = False
             self._slew_complete_event = asyncio.Event()
 
     def markSlewAsComplete(self):
@@ -1964,10 +2478,30 @@ class Polaris:
             if self._slew_complete_event:
                 self._slew_complete_event.set()
 
+    async def _await_complete_event(self, event: asyncio.Event, label: str) -> None:
+        """Await a *_complete_event, swallowing cancellation rather than letting it propagate as an
+        unhandled CancelledError out through uvicorn's ASGI exception logging. This happens when the
+        HTTP request awaiting it gets force-cancelled -- a driver restart/shutdown mid-goto, or the
+        client disconnecting -- same treatment LifecycleController._wrap() gives background tasks."""
+        try:
+            await event.wait()
+        except asyncio.CancelledError:
+            self.logger.info(f"==CANCELLED== Task waiting for {label}")
+
+    async def wait_for_goto_complete(self) -> None:
+        await self._await_complete_event(self._goto_complete_event, "Goto complete")
+
+    async def wait_for_rotate_complete(self) -> None:
+        await self._await_complete_event(self._rotate_complete_event, "Rotate complete")
+
+    async def wait_for_slew_complete(self) -> None:
+        await self._await_complete_event(self._slew_complete_event, "Slew complete")
+
     def markParkingAsUnderway(self):
         with self._lock:
             self._slewing = True
             self._atpark = False
+            self._athome = False
 
     def markParkingAsComplete(self):
         with self._lock:
@@ -1980,14 +2514,34 @@ class Polaris:
             self._slewing = False
             self._atpark = False
 
+    def markHomingAsUnderway(self):
+        with self._lock:
+            self._slewing = True
+            self._athome = False
+
+    def markHomingAsComplete(self):
+        with self._lock:
+            self._slewing = False
+            self._athome = True
+
+    def markHomingAsCanceled(self):
+        with self._lock:
+            self._pid.set_homing_complete_callback(None)
+            self._slewing = False
+            self._athome = False
+
+
     async def SlewToAltAz(self, altitude, azimuth, isasync = True) -> None:
         a_alt = altitude
         a_az = azimuth
         a_ra, a_dec = self.altaz2radec(a_alt, a_az)
         await self.SlewToCoordinates(a_ra, a_dec, isasync)
 
-    # ******* Advanced MPC control aware methods ********
+
+# ── Alpaca Telescope Advanced Control Aware Methods ─────────────────────────────────────────────────────────────
+
     async def trackOrbital(self, name, category):
+        self._sm.invalidate_sync_guiding()
         if Config.advanced_orbitals and Config.advanced_control:
             self._pid.orbital_sp_fetchmsg = ''
             await self.start_tracking()                         # start tracking
@@ -2004,21 +2558,34 @@ class Polaris:
         else:
             self.logger.info("Advanced Orbital Tracking is currently disabled")
 
+    def RotateToRelativeRollAngle(self, rel_roll_angle):
+        self._sm.invalidate_sync_guiding()
+        self.logger.info(f"->> Polaris: Rotate Relative Observed   RollAngle {deg2dms(self._pid.alpha_sp[2])} PLUS {deg2dms(rel_roll_angle)}")
+        roll_angle = self._pid.alpha_sp[2] + rel_roll_angle
+        self.RotateToRollAngle(roll_angle)
 
     def RotateToRelativePositionAngle(self, rel_position_angle):
+        self._sm.invalidate_sync_guiding()
         self.logger.info(f"->> Polaris: Rotate Relative Observed   PositionAngle {deg2dms(self.positionangle)} PLUS {deg2dms(rel_position_angle)}")
         position_angle = self.positionangle + rel_position_angle
         self.RotateToAbsolutePositionAngle(position_angle)
 
 
     def RotateToAbsolutePositionAngle(self, position_angle):
+        self._sm.invalidate_sync_guiding()
         self.logger.info(f"->> Polaris: Rotate Absolute Observed   PositionAngle {deg2dms(position_angle)}")
         roll = self._sm.pa2roll(self._pid.alpha_sp[0], self._pid.alpha_sp[1], position_angle)
         self.RotateToRollAngle(roll)
 
     def RotateToRollAngle(self, roll):
+        self._sm.invalidate_sync_guiding()
         if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Rotate Absolute Observed   RollAngle {deg2dms(roll)}")
+            if self._pid.mode in ('HOMING', 'PARKING'):
+                # the rotate interrupts the Home/Park (control._interrupt_home_or_park). A goto's markGotoAsUnderway
+                # resets slewing, but markRotateAsUnderway doesn't: without this it stayed set with nothing to clear it
+                self.markHomingAsCanceled()
+                self.markParkingAsCanceled()
             self.markRotateAsUnderway()
             self._pid.set_alpha_target({ "roll": roll })
             self._pid.set_rotate_complete_callback(self.markRotateAsComplete)
@@ -2035,13 +2602,62 @@ class Polaris:
         if Config.advanced_rotator and Config.advanced_control:
             self.logger.info(f"->> Polaris: Sync Absolute Observed   RollAngle {deg2dms(roll_angle)}, Current {deg2dms(self.roll)}")
             self._sm.sync_roll(roll_angle)
-            position_angle,_ = self._sm.roll2pa(self._pid.alpha_sp[0], self._pid.alpha_sp[1], roll_angle)
-            self._pid.alpha_sp[2] = roll_angle
-            self._pid.delta_sp[2] = position_angle
         else:
             self.logger.warning(f"->> Polaris: Advanced Rotator is not enabled")
 
+    async def sync_to_azalt(self, a_az, a_alt):
+        await self.sync_telescope(a_az=a_az, a_alt=a_alt)
+        return
+
+    async def sync_to_radec(self, a_ra, a_dec):
+        await self.sync_telescope(a_ra=a_ra, a_dec=a_dec)
+        return
+
+    async def sync_telescope(self, a_ra=None, a_dec=None, a_az=None, a_alt=None, name=None):
+        if a_ra is not None and a_dec is not None:
+            a_alt, a_az = self.radec2altaz(a_ra, a_dec)
+        elif a_az is not None and a_alt is not None:
+            a_ra, a_dec = self.altaz2radec(a_alt, a_az)
+        else:
+            self.logger.error("->> Polaris: SYNC Error: Must provide either RA/Dec or Alt/Az.")
+            return
+
+        if self._worm_test_rolling:
+            # the worm profile test is rotating: an exposure taken while moving must not become an alignment point
+            self.logger.info("->> Polaris: SYNC ignored: the worm profile test is rotating to or from its roll")
+            return
+        if self._sm.worm_test is not None:
+            # worm profile test: a measurement of the motors' gear error, not applied to any model
+            self._sm.record_worm_sync(a_ra, a_dec, a_az, a_alt)
+            return
+
+        syncmsg = 'Multi-Point Alignment' if (Config.advanced_alignment and Config.advanced_control) else 'Single-Point Alignment'
+        self.logger.info(f"->> Polaris: SYNC Observed   Ra {hr2hms(a_ra)} Dec {deg2dms(a_dec)} Az {deg2dms(a_az)} Alt {deg2dms(a_alt)} ({syncmsg})")
+
+        if Config.advanced_alignment and Config.advanced_control:
+            # Use Multi-Point Alignment and QUEST Model to determine Optimal Quaternion offset
+            self._sm.sync_az_alt(a_ra, a_dec, a_az, a_alt)
+
+        else:
+            # Use Single-Point Alignment and Alt/Az Sync Pointing model, send through to Polaris
+            asyncio.create_task(self.send_cmd_star_alignment(a_az, a_alt))
+            self._rightascension = a_ra 
+            self._declination = a_dec
+            self._targetrightascension = a_ra
+            self._targetdeclination = a_dec
+            self._altitude = a_alt
+            self._azimuth = a_az
+            self._pid.alpha_sp[0] = a_az
+            self._pid.alpha_sp[1] = a_alt
+            self._pid.delta_sp[0] = a_ra * 15
+            self._pid.delta_sp[1] = a_dec
+            corrected_position_angle, _ = self._sm.roll2pa(a_az, a_alt, self._roll) # to preserve roll
+            self._pid.delta_sp[2] = corrected_position_angle
+
+        return
+
     async def SlewToCoordinates(self, rightascension, declination, isasync = True) -> None:
+        self._sm.invalidate_sync_guiding()
         self._trackingrate = 0
         inthefuture = Config.aiming_adjustment_time if Config.aiming_adjustment_enabled else 0
         a_ra = rightascension
@@ -2066,7 +2682,7 @@ class Polaris:
             self._pid.set_alpha_target({ "az": a_az, "alt": a_alt })
             self._pid.set_goto_complete_callback(self.markGotoAsComplete)
             if not isasync:
-                await self._goto_complete_event.wait()
+                await self.wait_for_goto_complete()
         else:
             if isasync:
                     asyncio.create_task(self.send_cmd_goto_altaz(p_alt, p_az, istracking=True))
@@ -2084,17 +2700,22 @@ class Polaris:
 
 
     async def move_axis(self, axis:int, rate:float, units="ASCOM"):
-        if axis not in (0, 1, 2, 3, 4, 5):
-            raise ValueError(f"Invalid axis index: {axis}. Must be 0 Az, 1 Alt, 2 Roll, 3 RA, 4 Dec, 5 PA.")
+        # axis 0,1,2 = Az,Alt,Roll (alpha space)
+        # axis 3,4,5 = RA,Dec,PA (delta space) 
+        # axis 6,7,8 = GLon, GLat, GPA (gamma space)
+        AXIS_INT_TO_NAME = {0: 'az', 1: 'alt', 2: 'roll', 3: 'ra', 4: 'dec', 5: 'pa', 6: 'l', 7: 'b', 8: 'gpa'}
+        self._sm.invalidate_sync_guiding()
+        if axis not in (0, 1, 2, 3, 4, 5, 6, 7, 8):
+            return
         motor = self._motors[axis % 3]
         if Config.advanced_control and Config.advanced_slewing:
-            # if tracking is enabled then we must slew RA/Dec/PA
-            if self.tracking and axis<3:
-                axis = axis + 3
-            raw = motor._model.interpolate[units].toRAW(rate)
-            dps = motor._model.interpolate["RAW"].toDPS(raw)
+            # # if tracking is enabled then we must slew RA/Dec/PA
+            # if self.tracking and axis<3:
+            #     axis = axis + 3
+            dps = motor.to_dps(rate, units)
             self.markSlewAsUnderway()
-            self._pid.set_alpha_axis_velocity(axis % 3, dps) if axis<3 else self._pid.set_delta_axis_velocity(axis % 3, dps)
+            axis_name = AXIS_INT_TO_NAME[axis]
+            await self.move_axis_v2({axis_name: dps}, units="DPS")
             self._pid.set_slew_complete_callback(self.markSlewAsComplete)
         else:
             self.logger.info(f"->> Polaris: MOVE Az/Alt/Rot Axis {axis} Rate {rate} Units {units}")
@@ -2104,22 +2725,166 @@ class Polaris:
             if not (self._tracking and Config.advanced_control and Config.advanced_tracking):
                 await motor.set_motor_speed(rate, units)
 
+    async def move_axis_v2(self, rates: dict, units: str = "DPS"):
+        """
+        Continuous-velocity jog across any of: az, alt, roll, ra, dec, pa, l, b, gpa
+        (degrees/sec). Feeds PID_Controller.feed_forward's analytic velocity path
+        (axis_v_sp), entirely in Base frame -- see AXIS_MAP/_axis_omega_B and the
+        sidereal-frame regression tests for why that matters.
+        Requires advanced_control + advanced_slewing.
+        """
+        self._sm.invalidate_sync_guiding()
+        VALID = set(AXIS_MAP)
+        unknown = set(rates) - VALID
+        if unknown:
+            self.logger.warning(f"move_axis_v2: ignoring unknown axes {unknown}")
+            rates = {k: v for k, v in rates.items() if k in VALID}
+
+        if not (Config.advanced_control and Config.advanced_slewing):
+            self.logger.warning("move_axis_v2 requires advanced_control + advanced_slewing")
+            return
+
+        TOPO_AXIS_MOTOR = {'az': 0, 'alt': 1, 'roll': 2}
+        dps_rates = {}
+        for axis, rate in rates.items():
+            if axis in TOPO_AXIS_MOTOR and units != "DPS":
+                dps_rates[axis] = self._motors[TOPO_AXIS_MOTOR[axis]].to_dps(rate, units)
+            else:
+                dps_rates[axis] = float(rate)
+
+        self.markSlewAsUnderway()
+        self._pid.set_axis_velocities(dps_rates)
+        self._pid.set_slew_complete_callback(self.markSlewAsComplete)
+
+    def slew_axis(self, coords: dict, relative: bool = False) -> None:
+        """
+        Apply an absolute or relative slew using the advanced PID controller.
+        Alpha keys (az, alt, roll) are applied via set_alpha_target.
+        Delta keys (ra, dec, pa)   are applied via set_delta_target, ra in hours.
+        Gamma keys (l, b, gpa)     are converted to delta then applied via set_delta_target.
+        Motor keys (m1, m2, m3)    are raw motor angles (zeta, as the 517 reports and StatusMotors, the motor
+                                   limits, Park and the pano Motor Position anchor use): unspecified motors keep
+                                   their current zeta, relative values add to it. The motors are driven straight to
+                                   those angles (set_theta_target), M1/M3 ending the way round the numbers say.
+                                   They can't be combined with the other keys in one request.
+        For relative moves, each other value is added to the current PID setpoint.
+        """
+        if (not coords) or (not Config.advanced_goto):
+            self.logger.warning('slew_axis: invalid request, ignoring.')
+            return
+
+        AXES = {
+            #  key    space    idx  scale
+            'az':   ('alpha',  0,   1),
+            'alt':  ('alpha',  1,   1),
+            'roll': ('alpha',  2,   1),
+            'ra':   ('delta',  0,  15),   # ra stored as deg internally
+            'dec':  ('delta',  1,   1),
+            'pa':   ('delta',  2,   1),
+            'l':    ('gamma',  0,  1),
+            'b':    ('gamma',  1,  1),
+            'gpa':  ('gamma',  2,  1),
+            'm1':   ('theta',  0,  1),
+            'm2':   ('theta',  1,  1),
+            'm3':   ('theta',  2,  1),
+        }
+
+        alpha_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'alpha'}
+        delta_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'delta'}
+        gamma_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'gamma'}
+        theta_updates = {k: v for k, v in coords.items() if AXES[k][0] == 'theta'}
+        if theta_updates and (alpha_updates or delta_updates or gamma_updates):
+            self.logger.warning('slew_axis: m1/m2/m3 cannot be combined with other axes, ignoring request.')
+            return
+        self._sm.invalidate_sync_guiding()
+
+        theta_goal = None
+        if theta_updates:
+            if self._zeta_meas is None or self._zeta_theta_offset is None:
+                self.logger.warning("slew_axis: m1/m2/m3 need the motor angles ('517') and a position update first, ignoring request.")
+                return
+            zeta = np.array(self._zeta_meas, dtype=float)
+            for k, v in theta_updates.items():
+                idx = AXES[k][1]
+                zeta[idx] = zeta[idx] + v if relative else v
+            lo = [Config.z1_min_limit, Config.z2_min_limit, Config.z3_min_limit]
+            hi = [Config.z1_max_limit, Config.z2_max_limit, Config.z3_max_limit]
+            if any(not (l <= z <= h) for z, l, h in zip(zeta, lo, hi)):
+                self.logger.warning(f'slew_axis: M1 {zeta[0]:+.1f} M2 {zeta[1]:+.1f} M3 {zeta[2]:+.1f} is outside the motor limits, ignoring request.')
+                return
+            theta_goal = zeta + np.array(self._zeta_theta_offset, dtype=float)
+
+        if alpha_updates:
+            if relative:
+                alpha_updates = {k: self._pid.alpha_sp[AXES[k][1]] + v for k, v in alpha_updates.items()}
+            self._pid.set_alpha_target(alpha_updates)
+
+        if delta_updates:
+            if relative:
+                delta_updates = {k: self._pid.delta_sp[AXES[k][1]] / AXES[k][2] + v for k, v in delta_updates.items()}
+            self._pid.set_delta_target(delta_updates)
+
+        if gamma_updates:
+            # Build a full gamma setpoint, filling missing axes from current gamma_sp
+            gamma_sp = self._pid.gamma_sp.copy()
+            for k, v in gamma_updates.items():
+                idx = AXES[k][1]
+                if relative:
+                    gamma_sp[idx] += v
+                else:
+                    gamma_sp[idx] = v
+            delta = gamma_to_delta(gamma_sp)
+            if delta is None:
+                self.logger.warning('slew_axis: gamma_to_delta conversion failed, ignoring.')
+            else:
+                self._pid.set_delta_target({'ra': delta[0] / 15, 'dec': delta[1], 'pa': delta[2]})
+
+        if alpha_updates or delta_updates or gamma_updates or theta_updates:
+            self.markGotoAsUnderway()
+            self._pid.set_goto_complete_callback(self.markGotoAsComplete)
+        if theta_goal is not None:
+            self._pid.set_theta_target(theta_goal)        # after the callback: it sets this goto's plan and timeout
+
+
+    def parse_slew_parameters(self, parameters: dict) -> dict:
+        """
+        Parse a slew parameter dict whose values are either float/int (decimal degrees,
+        or hours for 'ra') or str (interpreted via dms2dec). Unrecognised keys are dropped.
+        """
+        VALID_KEYS = {'ra', 'dec', 'pa', 'az', 'alt', 'roll', 'l', 'b', 'gpa', 'm1', 'm2', 'm3'}
+        def parse_val(key, val):
+            if isinstance(val, (int, float)): return float(val)
+            if isinstance(val, str): return dms2dec(val)
+            self.logger.warning(f'parse_slew_parameters: ignoring invalid value for {key}: {val!r}')
+
+        return {k: v for k, val in parameters.items()
+                if k in VALID_KEYS and (v := parse_val(k, val)) is not None}
+
     async def stop_all_axes(self):
+        self._sm.invalidate_sync_guiding()
         with self._lock:
             self._axis_ASCOM_slewing_rates = [0,0,0]
             self._slewing = False
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: STOP all axes")
             self._pid.set_pid_mode("IDLE")
-            self.markGotoAsComplete()
-            self.markRotateAsComplete()
-            self.markSlewAsComplete()
-            self.markParkingAsCanceled()
-        await self._motors[0].set_motor_speed(0, "DPS")
-        await self._motors[1].set_motor_speed(0, "DPS")
-        await self._motors[2].set_motor_speed(0, "DPS")
+            self.markAllAsComplete()
+        for axis in range(3):
+            await self._motors[axis].stop()        # always sent: after a restart the mount may still be moving
+
+    async def stop_astro_axis(self):
+        self._sm.invalidate_sync_guiding()
+        with self._lock:
+            self._axis_ASCOM_slewing_rates[2] = 0
+            self._slewing = False
+        if Config.advanced_control:
+            self.logger.info(f"Advanced Control: STOP Astro axis")
+            self._pid.set_pid_mode("IDLE")
+            self.markAllAsComplete()
+        await self._motors[2].stop()
 
     async def stop_tracking(self):
+        self._sm.clear_sync_guiding()
         self._tracking = False
         if self._tracking_in_benro:
                 await self.send_cmd_change_tracking_state(False)
@@ -2138,10 +2903,15 @@ class Polaris:
                 await self.send_cmd_change_tracking_state(True)
 
     def pulse_guide(self, direction: int, duration: int):
-        if Config.advanced_guiding and Config.advanced_control:
+        if self._sm.worm_test is not None:
+            # a guider moving the mount would corrupt the worm profile test: end it, and drop this pulse
+            self._sm.worm_test.abort('pulse guide')
+            self.logger.warning(f"WORM PROFILE TEST: stopped by a pulse guide (dropped: direction {direction}, {duration}ms)")
+            return
+        if Config.advanced_pulse_guiding and Config.advanced_control:
             if Config.log_pulse_guiding:
                 self.logger.info(f"Pulse guide queued: direction {direction}, duration {duration}ms")
-            self._pid.pulse_delta_axis(direction, duration)
+            self._sm.process_pulse_guide_axis(direction, duration)
             with self._lock:
                 self._ispulseguiding = True                     # is reset in _pid.track_target when all done
         else:
@@ -2152,11 +2922,17 @@ class Polaris:
             self.logger.info(f"Advanced Control: Find HOME Position of telescope")
             await self.stop_tracking()
             self._pid.set_zeta_ref_to_home()
+            self.markHomingAsUnderway()
             self.markParkingAsCanceled()
             self.markGotoAsComplete()
             self.markRotateAsComplete()
             self._pid.set_pid_mode('HOMING')
+            self._pid.set_homing_complete_callback(self.markHomingAsComplete)
 
+    def motor_position_to_azaltroll(self, m1, m2, m3):
+        """Az/Alt/Roll that a raw motor position (zeta) points at under the current alignment (motor_to_azaltroll)."""
+        corrQ_LGA = self._sm.corrQ_LGA if (Config.advanced_scc_enabled and Config.advanced_scc_choice == 1) else None
+        return motor_to_azaltroll(m1, m2, m3, self._zeta_theta_offset, self._sm.alignQ_B2T, corrQ_LGA, self._sm.roll_adj)
 
     async def setPark(self):
         if Config.advanced_control:
@@ -2176,6 +2952,7 @@ class Polaris:
         if Config.advanced_control:
             self.logger.info(f"Advanced Control: PARK telescope")
             self.markParkingAsUnderway()
+            self.markHomingAsCanceled()
             self.markGotoAsComplete()
             self.markRotateAsComplete()
             await self.stop_tracking()
@@ -2195,108 +2972,165 @@ class Polaris:
 
     async def resetAxes(self):
         # Benro Polaris Park (reset axes)
+        self._is_reset_axes = True
         await self.stop_all_axes()
         await self.stop_tracking()
         await asyncio.sleep(1)
-        await self.send_cmd_park()
+        await self.send_cmd_reset_axis012()
 
+    async def resetAstroAxis(self):
+        # Benro Polaris Park (reset axes)
+        await self.stop_astro_axis()
+        await self.stop_tracking()
+        await asyncio.sleep(1)
+        await self.send_cmd_reset_axis(2)
+
+
+
+# ── Alpaca Telescope PanoGrid Methods ─────────────────────────────────────────────────────────────
+
+    def get_number_of_panels(self):
+        """Returns the total number of panels in the PanoGrid"""
+        return getattr(Config, "rows", 1) * getattr(Config, "cols", 3)
+    
+    def validate_target_panel(self, target):
+        """Returns the target panel number, increments current panel number if no target"""
+        total = self.get_number_of_panels()
+        if target is None:                              # next Panel
+            target = getattr(Config, "panel", 0) + 1
+        elif target == -1:                           # current Panel
+            target = getattr(Config, "panel", 0) 
+        return ((target - 1) % total) + 1
 
     async def slew_to_panel(self, target, isasync:bool=False) -> None:
-        new_panel = target
-        if target is None:
-            current = getattr(Config, "panel", 0)
-            rows = getattr(Config, "rows", 1)
-            cols = getattr(Config, "cols", 3)
-            total_panels = rows * cols
-            new_panel = current + 1 if current<total_panels else 1
-        az, alt = self.get_panel_altaz(new_panel)
+        """Slew the moun to the az/alt/roll position of the given target panel number"""
+        new_panel = self.validate_target_panel(target)
+        az, alt, roll = self.get_panel_azaltroll(new_panel)
         Config.apply_changes({"panel": new_panel})
-        self.logger.info(f'SlewToPanel: Panel {new_panel} - Az {az:.2f}, Alt {alt:.2f}')
+        self.logger.info(f'SlewToPanel: Panel {new_panel} - Az {az:.2f}, Alt {alt:.2f}, Roll {roll:.2f}')
         if Config.track == 0:            # Landscape - Untracked
             await self.stop_tracking()
-            self._pid.set_alpha_target({ "roll": Config.r3 })
+            self._pid.set_alpha_target({ "roll": roll })
             await self.SlewToAltAz(alt, az, isasync)
         elif Config.track == 1:            # Sky - Horizon Locked
-            self._pid.set_alpha_target({ "roll": 0 })
+            self._pid.set_alpha_target({ "roll": roll })
             await self.SlewToAltAz(alt, az, isasync)
             await self.start_tracking()
         elif Config.track == 2:            # Sky - Celestrial
             await self.SlewToAltAz(alt, az, isasync)
             await self.start_tracking()
+        elif Config.track == 3:            # Sky - Milky Way
+            self._pid.set_alpha_target({ "roll": roll })
+            await self.SlewToAltAz(alt, az, isasync)
+            await self.start_tracking()
 
-
-    def get_panel_altaz(self, panel: int) -> tuple[float, float]:
-        """
-        Calculate Az/Alt coordinates for a given panel number in the mosaic,
-        including boresight roll rotation.
-
-        Grid convention:
-        - Row 0 = bottom
-        - Column 0 = left
-        - Roll applies to the entire mosaic
-        """
+    # --- Critical function MUST MATCH panelToRC() in pilot/src/components/PanoNavigation.vue  ---
+    def panel_to_rc(self, p: int) -> tuple[float, float]:
+        """Returns the row, col of the given panel number based on panogrid settings"""
         rows = getattr(Config, "rows", 1)
         cols = getattr(Config, "cols", 3)
+        first = getattr(Config, "first", 0)  # panorama grid corner for panel 1
+        order = getattr(Config, "order", 0)
+        if p == 0:          # Panel 0 means center of grid
+            return (rows - 1) / 2, (cols - 1) / 2            
+        i = p - 1
+        # Apply Panel Order adjustment
+        if order == 0:      # row-major
+            r = i // cols
+            c = i % cols
+        elif order == 1:    # column-major
+            c = i // rows
+            r = i % rows
+        else:               # serpentine
+            r = i // cols
+            c = i % cols
+            if r % 2 == 1:
+                c = cols - 1 - c
+        # Apply First Panel adjustment 
+        if first == 0:      # Top Left (mirrow row axis)
+            r = rows - 1 - r
+        elif first == 1:    # Top Right (mirror row and col axis)
+            r = rows - 1 - r
+            c = cols - 1 - c
+        elif first == 3:    # Bottom Right (mirror col axis)
+            c = cols - 1 - c
+        # return calculated row,col position
+        return r, c
+
+    def get_ref_anchor_position(self):
+        """Returns the Anchor Position in Reference Frame co-ordinates, except MW Pano which is always Galactic co-ordinates"""
+        ref_x = getattr(Config, "r1", 0.0)
+        ref_y = getattr(Config, "r2", 0.0)
+        ref_z = getattr(Config, "r3", 0.0)  # degrees
+        # Motor Position: resolve stored M1/M2/M3 to their current-best equivalent Az/Alt/Roll
+        if Config.ref == 3:
+            ref_x, ref_y, ref_z = self.motor_position_to_azaltroll(ref_x, ref_y, ref_z)
+        # if "Sky - Milky Way" Convert to Galactic co-ordinates (l, b, gpa)
+        if Config.track == 3:
+            if (Config.ref == 0 or Config.ref == 3):    # Topo (or resolved Motor Position) to Galactic
+                rah, dec = self.altaz2radec(ref_y, ref_x)
+                posa, para = self._sm.roll2pa(ref_x, ref_y, ref_z)
+                ref_x, ref_y, ref_z = delta_to_gamma([rah*15, dec, posa])
+            elif (Config.ref == 1):  # Equatorial to Galactic
+                ref_x, ref_y, ref_z = delta_to_gamma([ref_x*15, ref_y, ref_z])
+        else:
+            if (Config.ref == 1):    # if Equatorial then RA hrs to decimal degrees
+                ref_x = ref_x*15
+    
+        return float(ref_x), float(ref_y), float(ref_z)
+    
+
+    def get_ref_azaltroll_position(self, ref_x, ref_y, ref_z):
+        """Returns the Topocentric co-ordinates for an adjusted position"""
+        # if "Sky - Milky Way" Convert from Galactic to Topocentric
+        if Config.track == 3 or Config.ref == 2:
+            x,y,z = ref_x, ref_y, ref_z
+            rad, dec, posa = gamma_to_delta([ref_x, ref_y, ref_z])
+            ref_y, ref_x = self.radec2altaz(rad/15, dec)
+            ref_z = self._sm.pa2roll(ref_x, ref_y, posa)
+
+        elif (Config.ref == 1):   # Equatorial to Topo
+            ref_y, ref_x = self.radec2altaz(ref_x/15, ref_y)
+            ref_z = self._sm.pa2roll(ref_x, ref_y, ref_z)
+
+        return float(ref_x), float(ref_y), float(ref_z)
+       
+
+    def get_panel_azaltroll(self, target: int) -> tuple[float, float]:
+        """
+        Calculate Az/Alt/Roll coordinates for a given panel number in the mosaic,
+        given panogrid settings.
+        """
         hstep = getattr(Config, "hstep", 40.0)
         vstep = getattr(Config, "vstep", 25.0)
-        first = getattr(Config, "first", 0.0)  # panorama grid corner for panel 1
-        order = getattr(Config, "order", 0)
         anchor = getattr(Config, "anchor", 0)
-        ref_az = getattr(Config, "r1", 0.0)
-        ref_alt = getattr(Config, "r2", 0.0)
-        ref_roll = getattr(Config, "r3", 0.0)  # degrees
 
-        total_panels = rows * cols
-        if panel < 1 or panel > total_panels:
-            raise ValueError(f"Panel {panel} is out of range (1-{total_panels})")
-        
-        # --- Force anchor to 0 if out of bounds ---
-        if anchor < 0 or anchor > total_panels:
+        # --- Validate target and Force anchor to 0 if out of bounds ---
+        panel = self.validate_target_panel(target)
+        if anchor < 0 or anchor > self.get_number_of_panels():
             anchor = 0  # default to center panel if invalid
 
-        # --- Critical function MUST MATCH panelToRC() in pilot/src/components/PanoNavigation.vue  ---
-        def panel_to_rc(p: int) -> tuple[float, float]:
-            if p == 0:          # Panel 0 means center of grid
-                return (rows - 1) / 2, (cols - 1) / 2            
-            i = p - 1
-            # Apply Panel Order adjustment
-            if order == 0:      # row-major
-                r = i // cols
-                c = i % cols
-            elif order == 1:    # column-major
-                c = i // rows
-                r = i % rows
-            else:               # serpentine
-                r = i // cols
-                c = i % cols
-                if r % 2 == 1:
-                    c = cols - 1 - c
-            # Apply First Panel adjustment 
-            if first == 0:      # Top Left (mirrow row axis)
-                r = rows - 1 - r
-            elif first == 1:    # Top Right (mirror row and col axis)
-                r = rows - 1 - r
-                c = cols - 1 - c
-            elif first == 3:    # Bottom Right (mirror col axis)
-                c = cols - 1 - c
-            # return calculated row,col position
-            return r, c
-
-        # --- Panel positions ---
-        panel_row, panel_col = panel_to_rc(panel)
-        ref_row, ref_col = panel_to_rc(anchor)
+        # --- row,column positions ---
+        panel_row, panel_col = self.panel_to_rc(panel)
+        anchor_row, anchor_col = self.panel_to_rc(anchor)
 
         # --- Grid-space deltas ---
-        dx = (panel_col - ref_col) * hstep
-        dy = (panel_row - ref_row) * vstep 
+        dx = (panel_col - anchor_col) * hstep
+        dy = (panel_row - anchor_row) * vstep 
+        # self.logger.info(f"PANO: panel={panel} Anchor_rc=({anchor_row},{anchor_col}) Panel_rc=({panel_row},{panel_col})  dx={dx} dy={dy}")
 
-        # --- Apply boresight roll ---
-        roll_rad = math.radians(ref_roll)
+        # --- Grab the anchors position (in Topo or Galactic co-ord)
+        ref_x, ref_y, ref_z = self.get_ref_anchor_position()
+
+        # --- Apply panogrid rotation (only for Sky Celestrial) ---
+        roll_rad = math.radians(ref_z) if Config.track==2 else 0
         dx_r = dx * math.cos(roll_rad) - dy * math.sin(roll_rad)
         dy_r = dx * math.sin(roll_rad) + dy * math.cos(roll_rad)
 
-        # --- Final Az/Alt ---
-        az = ref_az + dx_r
-        alt = ref_alt + dy_r
+        # --- Adjust reference position ---
+        ref_x += dx_r
+        ref_y += dy_r
 
-        return az, alt
+        return self.get_ref_azaltroll_position(ref_x, ref_y, ref_z)
+    
+    

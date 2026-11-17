@@ -8,6 +8,14 @@ export const symbol: SymbolMap = {
 };
 
 
+
+export function deg2min(decimalDegrees: number | undefined, precision: number = 1) {
+  if (decimalDegrees === undefined) return ''
+  const sign = decimalDegrees < 0 ? '-' : '+';
+  const totalMin = Math.abs(decimalDegrees) * 60;
+  return `${sign}${totalMin.toFixed(precision)}`
+}
+
 export function deg2dms(decimalDegrees: number | undefined, precision: number = 1, unit: UnitKey = 'deg') {
 
   if (decimalDegrees === undefined) return {}
@@ -41,7 +49,7 @@ export function deg2dms(decimalDegrees: number | undefined, precision: number = 
   const padLength = precision === 0 ? 2 : 3 + precision;
   const secondstr = `${rawSeconds.toFixed(precision).padStart(padLength, '0')}${symbol[unit].s}`;   // "nn.n", "nn.nn", "nn.nnn"
   const minutestr = `${minutes.toString().padStart(2, '0')}${symbol[unit].m}`;
-  const degreestr = `${degrees.toString()}${symbol[unit].d}`;
+  const degreestr = `${degrees.toString().padStart(3, '0')}${symbol[unit].d}`;
 
   return {
     sign,

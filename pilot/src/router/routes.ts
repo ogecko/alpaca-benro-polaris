@@ -77,7 +77,7 @@ const routes: RouteRecordRaw[] = [
     children: [{ path: '', component: () => import('pages/WarningPage.vue') }],
   },
   {
-    path: '/cataloglist', 
+    path: '/catalog', 
     component: () => import('layouts/AltLayout.vue'),
     children: [{ path: '', component: () => import('pages/CatalogList.vue') }],
   },
@@ -86,7 +86,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/AltLayout.vue'),
     children: [{ name: 'dashboard', path: '', component: () => import('pages/DashboardPage.vue') }],
   },
-
+  {
+    path: '/flatwhite', 
+    component: () => import('pages/FlatWhite.vue'),
+  },
 
     // Always leave this as last one,
   // but you can also remove it

@@ -1,9 +1,9 @@
 <template>
   <q-btn
-    dense push size="lg" style="opacity:opacity" 
+     push size="lg" style="opacity:opacity" 
     :class="{ isPressed }"
-    :text-color="isPressed? 'white' : color"
-    :color="isPressed? 'positive' : ''"
+    :text-color="isPressed? icolor : iupcolor"
+    :color="isPressed? color : upcolor"
     :style="isPressed? 'opacity: 1' : `opacity: ${opacity}`"
     @pointerdown="onDown"
     @pointerup="onUp"
@@ -22,7 +22,10 @@ defineProps({
   icon: { type: String, default: 'mdi-plus-circle' },
   opacity: { type: Number, default: 0.4 },
   label: { type: String, default: '' },
-  color: { type: String, default: 'positive' }
+  color: { type: String, default: 'positive' },
+  upcolor: { type: String, default: '' },
+  icolor: { type: String, default: 'white' },
+  iupcolor: { type: String, default: 'positive' }
 })
 
 const isPressed = ref(false)

@@ -108,8 +108,6 @@ const gridHeight = computed(() => {
 
 
 onMounted(async () => {
-  const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
-  if (shouldFetch) await cfg.configFetch()
 })
 
 async function slewToPanel(panel: number) {

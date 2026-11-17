@@ -3,10 +3,12 @@ import asyncio
 import sys
 import time
 from bleak import BleakScanner, BleakClient
-from bleak.exc import BleakError, BleakDBusError
+from bleak.exc import BleakError
 from shr import LifecycleController, bytes2hexascii
 from config import Config
+import join_wifi
 
+POLARIS_ADVERTISED_UUID = "00007370-0000-1000-8000-00805f9b34fb"
 SEND_UUID = "0000fff1-0000-1000-8000-00805f9b34fb"
 RECV_UUID = "0000fff2-0000-1000-8000-00805f9b34fb"
 
@@ -17,6 +19,40 @@ IS_MACOS   = sys.platform == "darwin"
 CONNECT_TIMEOUT    = 15.0 if IS_LINUX else 10.0
 POST_CONNECT_SLEEP = 1.0  if IS_LINUX else 0.3
 NOTIFY_TIMEOUT     = 5.0
+
+def _is_known_bleak_winrt_assertion(e: BaseException) -> bool:
+    """
+    True only for the specific known bleak WinRT-backend race: `assert
+    self._result` inside FutureLike.result() (bleak/backends/winrt/client.py),
+    which can fire before the WinRT completion callback has populated
+    `_result`, typically under CPU load right after connect. Checked by
+    walking the traceback for that exact file/function rather than matching
+    on AssertionError alone, so an unrelated assertion failure elsewhere in
+    the connect block still surfaces with its full traceback.
+    """
+    tb = e.__traceback__
+    while tb is not None:
+        code = tb.tb_frame.f_code
+        if code.co_name == "result" and code.co_filename.replace("\\", "/").endswith(
+            "bleak/backends/winrt/client.py"
+        ):
+            return True
+        tb = tb.tb_next
+    return False
+
+
+# Substrings identifying "no usable Bluetooth" conditions, as opposed to unexpected
+# scanner errors. Includes the FileNotFoundError bleak/dbus_fast raise when there's no
+# D-Bus/BlueZ to connect to at all (e.g. containers, WSL2) rather than an adapter that's
+# merely off.
+BT_UNAVAILABLE_MESSAGES = (
+    "Bluetooth device is turned off",
+    "Failed to start scanner",
+    "No powered Bluetooth adapters found",
+    "device is not ready",
+    "No such file or directory",
+    "was not provided by any .service files",   # BlueZ/D-Bus service not installed or not running (e.g. native WSL2)
+)
 
 
 class BLE_Controller:
@@ -29,6 +65,7 @@ class BLE_Controller:
         self.isEnablingWifi = False
         self.isWifiEnabled  = False
         self._wifi_lock     = asyncio.Lock()
+        self._bt_unavailable_logged = False
         self._scanner: BleakScanner | None = None
         self._scanning      = False
 
@@ -52,9 +89,9 @@ class BLE_Controller:
             if now - info.get("last_seen", 0) > timeout
         ]
         for addr in stale:
-            self.logger.info(f"BLE pruning stale device: {addr}")
             if self.selectedDevice == self.devices[addr].get("name"):
-                self.selectedDevice = None
+                continue    # dont prune the currently selected device
+            self.logger.info(f"BLE pruning stale device: {addr}")
             del self.devices[addr]
 
     # ------------------------------------------------------------------
@@ -73,20 +110,23 @@ class BLE_Controller:
         if self._scanning:
             return
         try:
-            self._scanner = BleakScanner(self.scannerCallback)
+            self._scanner = BleakScanner(self.scannerCallback, service_uuids=[POLARIS_ADVERTISED_UUID])
             await self._scanner.start()
             self._scanning = True
+            self._bt_unavailable_logged = False
             if Config.log_polaris_ble:
                 self.logger.info("BLE scanner started")
         except (BleakError, OSError) as e:
             msg = str(e)
-            if any(s in msg for s in (
-                "Bluetooth device is turned off",
-                "Failed to start scanner",
-                "No powered Bluetooth adapters found",
-                "device is not ready",
-            )):
-                self.logger.warning(f"Bluetooth unavailable, cannot start scanner: {e}")
+            if any(s in msg for s in BT_UNAVAILABLE_MESSAGES):
+                if not self._bt_unavailable_logged:
+                    self.logger.warning(f"Bluetooth unavailable, cannot start scanner: {e}")
+                    self._bt_unavailable_logged = True
+            elif "org.bluez.Error.InProgress" in msg:
+                # BlueZ hasn't finished tearing down the previous discovery session yet,
+                # e.g. we're restarting the scanner right after _stop_scanner() inside
+                # enableWifi() -- transient, self-heals on the next scan attempt.
+                self.logger.info(f"BLE scanner start deferred, BlueZ discovery still winding down: {e}")
             else:
                 self.logger.exception(f"BLE scanner start failed: {e}")
 
@@ -137,25 +177,24 @@ class BLE_Controller:
         if Config.log_polaris_ble and should_log:
             self.logger.info(f"BLE Polaris registered: {addr} ({self.devices[addr]})")
 
+
     async def runBleScanner(self):
         try:
-            await self._start_scanner()
             self.logger.info("==STARTUP== Bluetooth scanner running.")
-
             while not self.lifecycle.should_shutdown():
                 self.prune_stale_devices()
-                if not self.isConnectedFn():
+                if self.isConnectedFn():
+                    # Connected — scanner not needed, make sure it's off
+                    await self._stop_scanner()
+                else:
+                    # Not connected — ensure scanner is running to find Polaris
+                    await self._start_scanner()
                     await self.enableWifi()
                 await asyncio.sleep(30)
 
         except (BleakError, OSError) as e:
             msg = str(e)
-            if any(s in msg for s in (
-                "Bluetooth device is turned off",
-                "Failed to start scanner",
-                "No powered Bluetooth adapters found",
-                "device is not ready",
-            )):
+            if any(s in msg for s in BT_UNAVAILABLE_MESSAGES):
                 self.logger.warning("Bluetooth is off -- skipping BLE scan.")
             else:
                 self.logger.exception(f"BLE scan failed: {e}")
@@ -203,8 +242,7 @@ class BLE_Controller:
             return "write-without-response" not in props
         return "write" in props
 
-    @staticmethod
-    async def _reset_bluetooth_adapter():
+    async def _reset_bluetooth_adapter(self):
         if not IS_LINUX:
             return
         try:
@@ -214,8 +252,9 @@ class BLE_Controller:
                 stderr=asyncio.subprocess.DEVNULL,
             )
             await asyncio.wait_for(proc.wait(), timeout=3.0)
-        except Exception:
-            pass
+        except Exception as e:
+             if Config.log_polaris_ble:
+                self.logger.info(f"BLE adapter reset skipped/failed: {e}")
 
     # ------------------------------------------------------------------
     # Core: enable Wi-Fi over BLE
@@ -233,9 +272,8 @@ class BLE_Controller:
         if not address:
             return
 
-        self.isEnablingWifi = True
-        self.isWifiEnabled  = False
-        max_attempts        = 3
+        wifi_enabled = False
+        max_attempts = 3
 
         # Stop scanner: BlueZ cannot scan and connect simultaneously.
         # We also wait longer on Linux so BlueZ fully drains any in-flight
@@ -256,8 +294,7 @@ class BLE_Controller:
             if self.isConnectedFn():
                 if Config.log_polaris_ble:
                     self.logger.info("BLE wifi already connected, skipping remaining attempts")
-                self.isEnablingWifi = False
-                self.isWifiEnabled  = True
+                wifi_enabled = True
                 break
 
             try:
@@ -310,8 +347,7 @@ class BLE_Controller:
                     if Config.log_polaris_ble:
                         self.logger.info(f"BLE << read: {bytes2hexascii(data)}")
 
-                    self.isEnablingWifi = False
-                    self.isWifiEnabled  = True
+                    wifi_enabled = True
                     break
 
             except asyncio.TimeoutError:
@@ -320,6 +356,10 @@ class BLE_Controller:
                 )
 
             except asyncio.CancelledError:
+                # A real cancel (task.cancel(), eg the driver shutting down) is counted by cancelling(); a CancelledError
+                # surfacing from a stalled WinRT call isn't. Swallowing a real one kept the driver from exiting (2026-11-15).
+                if self.lifecycle.should_shutdown() or asyncio.current_task().cancelling():
+                    raise
                 self.logger.warning(
                     f"BLE connect cancelled on attempt {attempt} "
                     f"(possible WinRT stall)"
@@ -347,8 +387,18 @@ class BLE_Controller:
                         f"{address}, will retry..."
                     )
                 else:
-                    self.logger.warning(
-                        f"BLE attempt {attempt} failed for {address}: {e}"
+                    if Config.log_polaris_ble:
+                        self.logger.warning(f"BLE attempt {attempt} failed for {address}: {e}")
+
+            except AssertionError as e:
+                if IS_WINDOWS and _is_known_bleak_winrt_assertion(e):
+                    self.logger.info(
+                        f"BLE attempt {attempt}: known bleak/WinRT race connecting "
+                        f"to {address}, will retry..."
+                    )
+                else:
+                    self.logger.exception(
+                        f"Unexpected BLE error on attempt {attempt}: {e}"
                     )
 
             except Exception as e:
@@ -356,18 +406,109 @@ class BLE_Controller:
                     f"Unexpected BLE error on attempt {attempt}: {e}"
                 )
 
-            if attempt < max_attempts and not self.isWifiEnabled:
+            if attempt < max_attempts and not wifi_enabled:
                 await asyncio.sleep(3)
                 await self._reset_bluetooth_adapter()
 
-        if not self.isWifiEnabled:
+        if not wifi_enabled:
             self.logger.error(
                 f"BLE failed to enable Wi-Fi after {max_attempts} attempts "
                 f"for {address}"
             )
-            self.isEnablingWifi = False
+
+        if not self.isConnectedFn():
+            try:
+                await self._start_scanner()
+            except Exception as e:
+                self.logger.warning(f"BLE failed to restart scanner: {e}")
+
+    # ------------------------------------------------------------------
+    # Join host OS to the Polaris WiFi network -- distinct from the
+    # BLE-level "enable Wi-Fi on the mount" above; see join_wifi.py's
+    # module docstring for why this is "join", never "connect".
+    # ------------------------------------------------------------------
+
+    async def joinWifiNetwork(self, ssid: str | None = None):
+        """Join this host machine to the Polaris hotspot that enableWifi()
+        just turned on. Explicit-trigger only -- never called from the
+        automatic background scan loop or setSelectedDevice(), since unlike
+        the BLE enable step this changes the host's own network state and
+        could silently disrupt whatever else that adapter was doing.
+        join_wifi.join_wifi_network() is synchronous and can block for
+        several seconds per attempt, so it's run in a thread rather than
+        awaited directly -- otherwise it would stall the driver's event
+        loop (PID control loop included) for the duration.
+
+        Only logs on failure here -- join_wifi already logs the specific
+        outcome on success (freshly joined vs. already joined), and
+        duplicating a generic "Joined" message on top of that just reads as
+        confusing ("Already joined" immediately followed by "Joined")."""
+        ssid = ssid or self.selectedDevice
+        if not ssid:
+            return False
+        try:
+            ok = await asyncio.to_thread(
+                join_wifi.join_wifi_network, ssid, Config.polaris_wifi_password
+            )
+        except Exception as e:
+            self.logger.warning(f"Failed to join WiFi network '{ssid}': {e}")
+            return False
+        if not ok:
+            self.logger.warning(
+                f"Failed to join WiFi network '{ssid}' -- see diagnostics above, "
+                "or join manually from the OS's WiFi list"
+            )
+        return ok
+
+    async def enableWifiAndJoin(self):
+        """Full Wi-Fi button flow: enable the mount's hotspot over BLE, then
+        join this host to it. Used only by the explicit Polaris:bleEnableWifi
+        action -- the automatic background paths call enableWifi() alone,
+        since they shouldn't be silently touching the host's own network.
+
+        Always logs a clear outcome, including the "nothing to do" cases --
+        this is the one entry point a user explicitly clicked a button for,
+        so silence here just looks like the button didn't do anything. The
+        automatic paths deliberately don't get this same verbosity: their
+        "already connected" case is the normal steady state, checked every
+        30s, and would spam the log if logged unconditionally there.
+        """
+        # A second click (Pilot sent two 4 ms apart, 2026-10-17) would run its own join alongside: both drive netsh
+        # on the same adapter. No await before the flag is set, so the check can't race.
+        if self.isEnablingWifi:
+            self.logger.info("Join Wi-Fi: a join is already in progress - ignoring")
+            return
+        self.isEnablingWifi = True
+        self.isWifiEnabled  = False
 
         try:
-            await self._start_scanner()
+            if self.isConnectedFn():
+                self.logger.info(f"Join Wi-Fi: Already connected to '{self.selectedDevice}' - nothing to do")
+                self.isWifiEnabled  = True
+                return
+            ssid = self.selectedDevice or await self._discoverPolarisSsid()
+            if not ssid:
+                return
+            # await self.enableWifi()   # dont need to do this on button press as its done in automatic scan
+            self.isWifiEnabled = await self.joinWifiNetwork(ssid)
+
+        finally:
+            self.isEnablingWifi = False
+
+    async def _discoverPolarisSsid(self) -> str | None:
+        """Fallback when BLE has no device -- e.g. Pi 4 onboard BT, whose
+        scan responses (which carry the Polaris name) are lost to Wi-Fi
+        coexistence. Finds the Polaris hotspot by Wi-Fi scan instead, which
+        only works if the mount's hotspot is already on."""
+        try:
+            ssids = await asyncio.to_thread(join_wifi.discover_polaris_networks)
         except Exception as e:
-            self.logger.warning(f"BLE failed to restart scanner: {e}")
+            self.logger.warning(f"Join Wi-Fi: Polaris network scan failed: {e}")
+            return None
+        if not ssids:
+            self.logger.warning("Join Wi-Fi: No Polaris found by Bluetooth or Wi-Fi scan - check the Polaris is powered on")
+            return None
+        if len(ssids) > 1:
+            self.logger.warning(f"Join Wi-Fi: Multiple Polaris networks visible {ssids} - join manually from the OS's WiFi list")
+            return None
+        return ssids[0]

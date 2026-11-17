@@ -65,26 +65,20 @@
                 </q-item-section>
               </q-item>
 
-              <!-- Alpaca Connection Settings -->
-              <q-item v-if="!dev.restAPIConnected && !dev.restAPIConnectingMsg"  :inset-level="0.5">
-                <q-item-section>
-                  <div class="row items-start">
-                    <q-input class="col-8" v-model="alpacaHost" @keyup.enter="attemmptConnectToAlpaca" label="Host Name / IP Address"  />
-                    <q-input class="col-4" label='Port' v-model="restAPIPort" @keyup.enter="attemmptConnectToAlpaca" type="number" input-class="text-right">
-                    <template v-slot:prepend><q-icon name="mdi-network-outline"></q-icon></template>
-                    </q-input>
+
+
+              <!-- Alpaca Driver RESTART and STOP -->
+              <q-item v-if="dev.restAPIConnected" :inset-level="0.5">
+                <q-item-section><q-item-label>Control the Alpaca Driver on this connection</q-item-label></q-item-section>
+                <q-item-section side >
+                  <div :class="$q.screen.xs ? 'column' : 'row'">
+                    <q-btn label="RESTART" icon="mdi-restart"  stack class="fixedWidth" @click="onRestartDriver"/>
+                    <q-btn label="SHUTDOWN" icon="mdi-power"  stack class="fixedWidth" @click="openShutdownDialog"/>
                   </div>
                 </q-item-section>
               </q-item>
-
-              <!-- Alpaca Driver STOP -->
-              <q-item v-if="dev.restAPIConnected" :inset-level="0.5">
-                <q-item-section><q-item-label>Stop the Alpaca Driver</q-item-label></q-item-section>
-                <q-item-section side>
-                  <q-btn label="STOP" icon="mdi-alert-octagon"  class="fixedWidth" @click="onStopDriver"/>
-                </q-item-section>
-              </q-item>
               
+
             </q-list>
         </q-card>
       </div>      
@@ -99,23 +93,27 @@
           <!-- Polaris Connection Steps -->
           <div class="q-mt-md q-pl-lg">
             <q-list >
-              <!-- Select Polaris Device -->
+              <!-- Join Polaris Network -->
               <q-item>
                 <q-item-section thumbnail>
-                  <q-icon :name="isBLESelected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isBLESelected ? 'green' : 'red'" />
+                  <q-icon :name="isNetworkJoined ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isNetworkJoined ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>Select Benro Polaris</q-item-label>
-                  <q-item-label caption>{{ bleCaption }}</q-item-label>
+                  <q-item-label>Join Benro Polaris Network</q-item-label>
+                  <q-item-label caption>{{ networkCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section v-if="bleLen>0" side>
-                  <q-select  label="Device" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices"  dense options-dense
+                  <q-select  label="Network" v-model="p.bleselected" :onUpdate:modelValue="onBleSelected" :options="p.bledevices"  dense options-dense
                             :display-value="`${isBLESelected ? p.bleselected : 'Unselected'}`" color="secondary">
                     <template v-slot:before>
                       <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="sm" color="primary" />
                       <q-btn v-else round dense flat icon="mdi-wifi-sync" :color="(p.bleiswifienabled)?'primary':'white'" @click="onBleEnableWifi"/>
                     </template>
                   </q-select>
+                </q-item-section>
+                <q-item-section v-else-if="!isNetworkJoined" side>
+                  <q-circular-progress v-if="p.bleisenablingwifi" indeterminate rounded size="sm" color="primary" />
+                  <q-btn v-else label="Join" icon="mdi-wifi" @click="onBleEnableWifi" class="fixedWidth" />
                 </q-item-section>
               </q-item>
 
@@ -127,20 +125,21 @@
                 <q-item-section>Connecting...</q-item-section>
               </q-item>
 
-              <!-- Polaris Connected -->
+              <!-- Polaris Versions -->
               <q-item v-else-if="isPolarisConnected">
                 <q-item-section thumbnail>
-                  <q-icon name="mdi-check-circle" color="green" />
+                  <q-icon :name="isAstroModuleOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isAstroModuleOk ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
-                  <q-item-label>
-                    Benro Polaris
-                    <span class="q-gutter-sm q-pl-sm">
-                      <q-badge>hw v{{ p.polarishwver }}</q-badge>
-                      <q-badge>sw v{{ p.polarisswver }}</q-badge> 
-                      <q-badge>astro v{{ p.polarisastrover }}</q-badge> 
-                    </span>
-                  </q-item-label>
+                  <q-item-label>Benro Polaris Versions</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="row justify-end q-gutter-sm q-pl-sm">
+                    <q-badge>hw v{{ p.polarishwver }}</q-badge>
+                    <q-badge>sw v{{ p.polarisswver }}</q-badge>
+                    <q-badge v-if="isAstroModuleOk">astro v{{ p.polarisastrover }}</q-badge>
+                    <q-badge v-else color="warning">missing astro module</q-badge>
+                  </div>
                 </q-item-section>
               </q-item>
 
@@ -175,6 +174,25 @@
                 </q-item>
               </div>
 
+              <!-- Observing Site  -->
+              <q-item v-if="p.connected">
+                <q-item-section thumbnail>
+                  <q-icon :name="isLocationOk ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isLocationOk ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Check Observing Site Location </q-item-label>
+                </q-item-section>
+                <q-item-section v-if="cfg.location_list" side>
+                  <q-select
+                    label="Location" :model-value="cfg.location" @update:model-value="onLocationSelect" 
+                    dense options-dense :options="locationOptions"  
+                  />
+                </q-item-section>
+                <q-item-section v-else side>
+                  <q-btn label="Settings" icon="mdi-crosshairs-gps"  class="fixedWidth" to="/config"/>
+                </q-item-section>
+              </q-item>
+
               <!-- Select Astro Mode -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
@@ -185,8 +203,9 @@
                   <q-item-label caption>{{ astroCaption }}</q-item-label>
                 </q-item-section>
                 <q-item-section side>
-                  <q-select label="Mode" v-model="p.polarismode" @update:modelValue="onModeUpdate" :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
-                             emit-value map-options dense options-dense  class="fixedWidth" color="secondary">
+                  <q-select label="Mode" v-model="p.polarismode" @update:modelValue="onModeUpdate" 
+                            :options="polarisModeOptions" :display-value="`${p.polarismodestr}`"
+                            dense options-dense map-options emit-value class="fixedWidth" color="secondary">
                     <template>
                       <q-icon name="mdi-satellite-variant"></q-icon>
                     </template>
@@ -194,16 +213,32 @@
                 </q-item-section>
               </q-item>
 
-              <!-- Park -->
+              <!-- Reset Axes -->
               <q-item v-if="p.connected">
                 <q-item-section thumbnail>
-                  <q-icon :name="isPolarisConnected ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isPolarisConnected ? 'green' : 'red'" />
+                  <q-icon :name="p.isreset ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="p.isreset ? 'green' : 'red'" />
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>Reset all Polaris Axes</q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-btn label="Reset" icon="mdi-backup-restore"  class="fixedWidth" @click="onResetAxes"/>
+                </q-item-section>
+              </q-item>
+
+
+              <!-- L-Bracket -->
+              <q-item v-if="p.connected">
+                <q-item-section thumbnail>
+                  <q-icon :name="isCheckLBracket ? 'mdi-check-circle' : 'mdi-alert-circle'" :color="isCheckLBracket ? 'green' : 'red'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>Check Camera Orientation (M3: {{zetameas(2)}})</q-item-label>
+                </q-item-section>
+                <q-item-section side>
+                  <div class="row items-center q-gutter-sm">
+                    <q-toggle v-model="p.polarislbracket" label="L - Bracket" @update:modelValue="onLBracket"/>
+                  </div>
                 </q-item-section>
               </q-item>
 
@@ -280,13 +315,64 @@
                 </q-item-section>
               </q-item>
 
+
             </q-list>
           </div>
         </q-card>
 
 
-      </div>      
+      </div>
     </div>
+
+    <!-- Consolidated Shutdown dialog -->
+    <q-dialog v-model="showShutdownDialog">
+      <q-card style="min-width: 340px">
+        <q-card-section class="row items-center q-pb-none">
+          <div class="text-h6">Shut Down</div>
+          <q-space />
+          <q-btn icon="mdi-close" flat round dense v-close-popup />
+        </q-card-section>
+
+        <q-card-section>
+          <div class="text-subtitle2 q-mb-xs">What would you like to shut down?</div>
+          <q-list>
+            <q-item tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="sdDriver" @update:model-value="onSdDriverToggle" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Driver Only</q-item-label>
+                <q-item-label class="text-grey-6" caption>Stops the Alpaca Benro Polaris Driver and closes Alpaca Pilot.</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="cfg.enable_remote_shutdown" tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="sdComputer" @update:model-value="onSdComputerToggle" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Driver and Host Computer</q-item-label>
+                <q-item-label class="text-grey-6" caption>Stops the driver, closes Alpaca Pilot, and shuts down the driver's host computer.</q-item-label>
+              </q-item-section>
+            </q-item>
+            <q-item v-if="p.connected" tag="label" v-ripple>
+              <q-item-section avatar>
+                <q-checkbox v-model="sdMount" color="negative" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>Benro Polaris Mount</q-item-label>
+                <q-item-label class="text-grey-6" caption>Shuts down the Benro Polaris mount. Turn on again using its physical power button or Bluetooth.</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" v-close-popup />
+          <q-btn label="Shutdown" icon="mdi-power" color="negative"
+                 :disable="sdNothingSelected" @click="onShutdownConfirm" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
 </q-page>
 </template>
@@ -296,7 +382,7 @@ import { useQuasar, debounce } from 'quasar'
 import { useDeviceStore } from 'stores/device'
 import { useConfigStore } from 'stores/config'
 import { useStatusStore, polarisModeOptions } from 'stores/status'
-import { watch, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { dms2deg } from 'src/utils/angles'
 import NetworkSettings from 'components/NetworkSettings.vue'
 import StatusBanners from 'src/components/StatusBanners.vue'
@@ -310,57 +396,104 @@ const router = useRouter()
 
 // ------------------- Computed Resources ---------------------
 
-const alpacaHost = computed({
-  get: () => dev.alpacaHost,
-  set: (val) => dev.setAlpacaHost(val)
-})
-
-const restAPIPort = computed({
-  get: () => dev.restAPIPort,
-  set: (val) => dev.setRestAPIPort(Number(val))
-})
-
 const isMultiPointAligned = computed(() => p.aligned_count>=3);
 const bleLen = computed(() => p.bledevices.length);
-const isBLESelected = computed(() => !!p.bleselected && bleLen.value>0);
 const isPolarisConnected = computed(() => (!!p.connected));
-const bleCaption = computed(() => {
-  return (bleLen.value==0) ? 'Check Power or Bluetooth, no devices discovered.' :
+const isAstroModuleOk = computed(() => (!!p.connected && !!p.polarisastrover));
+const isBLESelected = computed(() => (!!p.connected) || (!!p.bleselected && bleLen.value>0));
+const isNetworkJoined = computed(() => (!!p.connected) || (!!p.networkjoined));
+const networkCaption = computed(() => {
+  return (isNetworkJoined.value) ? '' :
+         (bleLen.value==0) ? 'No Bluetooth devices discovered. Check Power, or use Join if Bluetooth is unavailable.' :
          (bleLen.value>1) ? 'Multiple devices discovered.' :
-         (isBLESelected.value) ? '' : 'Please select device.'
+         (!isBLESelected.value) ? 'Please select device.' :
+         `Polaris not reachable at ${cfg.polaris_ip_address}. Use the Wi-Fi button to join its network.`
 });
 const isAstroMode = computed(() => p.polarismode==8);
+const isCheckLBracket = computed(() => p.isreset && !p.iszetamoving)
 const astroCaption = computed(() => {
   return (isAstroMode.value) ? '' : 'Change Polaris Mode to Astro.'
 });
+const isLocationOk = computed(() => cfg.location)
+const locationOptions = computed<string[]>(() => cfg.location_list ? cfg.location_list.split('|').filter(Boolean)  : [] )
+const zetameas = (m: number):string => p.zetameas?.[m]?.toFixed(0) ?? '0'
+
 
 // ------------------- Lifecycle Events ---------------------
 
 onMounted(async () => {
-
 })
 
 onUnmounted(() => {
-
 })
 
 
 // ------------------- Event Handlers ---------------------
 
-function onStopDriver() {
+async function onRestartDriver() {
     $q.notify({
-      message: 'WARNING: Stopping the Alpaca Driver will close Alpaca Pilot as well.',
-      type: 'negative', position: 'top', timeout: 0,
-      actions: [
-        { label: 'Stop', icon: 'mdi-alert-octagon', color: 'yellow', handler: () => {void onStopDriverAction()} },
-        { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
-      ]
+      message: 'Requesting Alpaca Driver to restart in 5 seconds.',
+      type: 'positive', position: 'top', timeout: 5000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
     })
+  await dev.alpacaRestartDriver()
 }
 
-async function onStopDriverAction() {
-  await dev.alpacaStopDriver()
 
+// Consolidated Shutdown dialog. Each checkbox maps to one device action:
+//   sdDriver   -> Polaris:StopDriver     (stops the driver, closes Pilot)
+//   sdComputer -> Polaris:ShutdownOS     (powers off the host computer too)
+//   sdMount    -> Polaris:ShutdownMount  (powers off the Benro Polaris mount)
+// The two driver options are mutually exclusive -- "Driver and Computer" already
+// stops the driver, so we never send both. Mount is independent.
+const showShutdownDialog = ref(false)
+const sdDriver = ref(false)
+const sdComputer = ref(false)
+const sdMount = ref(false)
+
+const sdNothingSelected = computed(() => !sdDriver.value && !sdComputer.value && !sdMount.value)
+
+function openShutdownDialog() {
+  sdDriver.value = true
+  sdComputer.value = false
+  sdMount.value = false
+  showShutdownDialog.value = true
+}
+
+function onSdDriverToggle(val: boolean) {
+  if (val) sdComputer.value = false
+}
+
+function onSdComputerToggle(val: boolean) {
+  if (val) sdDriver.value = false
+}
+
+async function onShutdownConfirm() {
+  showShutdownDialog.value = false
+
+  // Power off the mount first, while the driver is still up to route the 526 command.
+  if (sdMount.value) {
+    await dev.alpacaShutdownMount()
+  }
+
+  // Then the driver / computer. ShutdownOS supersedes StopDriver (it stops the driver too).
+  if (sdComputer.value) {
+    await dev.alpacaShutdownOS()
+    showDriverStopped('Alpaca Driver host is shutting down.')
+  } else if (sdDriver.value) {
+    await dev.alpacaStopDriver()
+    showDriverStopped('Alpaca Driver stopped.')
+  } else if (sdMount.value) {
+    // Mount only -- driver keeps running, so stay in Pilot and just confirm.
+    $q.notify({
+      message: 'Benro Polaris mount is powering off. It will disconnect shortly.',
+      type: 'positive', position: 'top', timeout: 5000,
+      actions: [{ icon: 'mdi-close', color: 'white' }]
+    })
+  }
+}
+
+function showDriverStopped(title: string) {
   // Attempt to close the window (works if opened programmatically)
   window.close()
 
@@ -369,7 +502,7 @@ async function onStopDriverAction() {
     document.body.innerHTML = `
   <div style="display:flex;align-items:center;justify-content:center;height:100vh;">
     <div class="text-center">
-      <h4 class="q-mb-sm">Alpaca Driver stopped.</h4>
+      <h4 class="q-mb-sm">${title}</h4>
       <h6 class="q-mt-sm">You may now close this window.</h6>
     </div>
   </div>
@@ -401,7 +534,7 @@ async function onCompass(newVal:string = '180.0') {
     return
   } 
   const bearing = dms2deg(newVal, 'deg')
-  console.log('Set Compass Alignment to ${bearing}')
+  console.log(`Set Compass Alignment to ${bearing}`)
   await dev.setPolarisCompass(bearing)
 }
 
@@ -416,9 +549,23 @@ async function onSingleAlignment(azstr:string = '180.0', altstr:string = '45.0')
   } 
   const az = dms2deg(azstr, 'deg')
   const alt = dms2deg(altstr, 'deg')
-  console.log('Set Alignment Alignment Az ${az}, Alt ${alt}')
+  console.log(`Set Alignment Alignment Az ${az}, Alt ${alt}`)
   await dev.setPolarisAlignment(az, alt)
 }
+
+
+async function onLBracket(value: boolean) {
+  console.log("L-Bracket set to ", value)
+  await dev.setPolarisLBracket(value)
+}
+
+
+// User picked an existing entry from the dropdown → load it
+function onLocationSelect(name: string | null) {
+  if (!name) return
+  put({ preset_name: name, preset_action: 'load_loc', })
+}
+
 
 async function onMultiAlignment() {
   if (!isAstroMode.value) {
@@ -522,7 +669,7 @@ function onDefaultAltChange(v: string | number | boolean | null) {
 
 
 const putdb = debounce((payload) => cfg.configUpdate(payload), 500) // slow put for input text
-
+const put = debounce((payload) => cfg.configUpdate(payload), 5)     // fast put for toggles
 </script>
 
 <style lang="scss">

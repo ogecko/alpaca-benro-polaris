@@ -39,6 +39,7 @@ export default defineConfigWithVueTs(
     files: ['**/*.ts', '**/*.vue'],
     rules: {
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
     },
   },
   // https://github.com/vuejs/eslint-config-typescript

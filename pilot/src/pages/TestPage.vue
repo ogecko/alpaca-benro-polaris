@@ -20,7 +20,7 @@
     <div flat bordered class="col ">
       <div class="row">
         <div clas="col">
-          <ScaleDisplay :pv="pv" :sp="sp" :lst="lst" label="Azimuth" :domain="domainChoice" />
+          <ScaleDisplay :pv="pv" :sp="sp" :lst="lst" label="Azimuth" :domain="domainChoice" :warnings="[]"/>
         </div>
         <div class="col">
           <SpinnerSpeed :speed="pv" :position="359.2" label="M3" />
@@ -68,6 +68,7 @@
         </div>
       </div>
     </div>
+    <DirectControl />
   </q-page>
 </template>
 
@@ -75,6 +76,7 @@
 import { onMounted, onUnmounted,ref } from 'vue'
 import ScaleDisplay from 'components/ScaleDisplay.vue'
 import SpinnerSpeed from 'components/SpinnerSpeed.vue'
+import DirectControl from 'src/components/DirectControl.vue'
 import type { DomainStyleType } from 'components/ScaleDisplay.vue'
 
 const pv = ref<number>(0)

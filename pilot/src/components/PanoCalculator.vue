@@ -5,15 +5,18 @@
     <div class="text-h6 q-mb-xs q-mt-md">
       Panel Spacing Calculator 
     </div>
-
+      <div class="row q-col-gutter-lg  items-center  ">
+        <q-input class="col-6" label="Columns" v-model="local_cols" type="number" input-class="text-right" dense/>
+        <q-input class="col-6" label="Rows" v-model="local_rows" type="number" input-class="text-right" dense/>
+      </div>
     <q-select
       v-model="sensor_size" label="Sensor Size" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
-      :options="['Full Frame (36 × 24 mm)', 'APS-C / IMX571 (23.5 × 15.7 mm)', 'Micro Four Thirds (17.3 × 13.0 mm)', 'IMX585 (11.2 × 6.3 mm)', 'IMX533 (11.3 × 11.3 mm)', 'IMX462 (5.6 × 3.2 mm)']"
+      :options="sensor_size_options"
     />
 
     <q-select
       v-model="focal_length" class="q-mt-sm" label="Focal Length" new-value-mode="add-unique" use-input use-chips dense emit-value map-options
-      :options="['14 mm', '24 mm', '35 mm', '50 mm', '85 mm', '100 mm', '135 mm', '200 mm', '300 mm', '400 mm', '500 mm', '600 mm', '800 mm']"
+      :options="['14 mm', '16 mm', '24 mm', '35 mm', '50 mm', '85 mm', '100 mm', '135 mm', '200 mm', '300 mm', '400 mm', '500 mm', '600 mm', '800 mm']"
     />
 
     <q-select
@@ -23,18 +26,25 @@
 
     <div v-if="show_result">
         <div class="text-subtitle2 text-grey-6 q-mt-md q-pt-lg">
+          Calculated PanoGrid Field of View:
+        </div>    
+        <div class="row q-col-gutter-lg  items-center  ">
+          <q-input class="col-6" :label="r1FOVLabel" suffix="°" readonly v-model="calc_hGridFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r2FOVLabel" suffix="°" readonly v-model="calc_vGridFOV_display" input-class="text-right" dense/>
+        </div>
+        <div class="text-subtitle2 text-grey-6 q-mt-md">
           Calculated Sensor Field of View:
         </div>    
         <div class="row q-col-gutter-lg  items-center  ">
-          <q-input class="col-6" label="Horizontal FOV" suffix="°" readonly v-model="calc_hFOV_display" input-class="text-right" dense/>
-          <q-input class="col-6" label="Vertical FOV" suffix="°" readonly v-model="calc_vFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r1FOVLabel" suffix="°" readonly v-model="calc_hFOV_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r2FOVLabel" suffix="°" readonly v-model="calc_vFOV_display" input-class="text-right" dense/>
         </div>
         <div class="text-subtitle2 text-grey-6 q-mt-md">
           Recommended Panel Step ({{panel_overlap}} overlap):
         </div>    
         <div class="row q-col-gutter-lg  items-center  ">
-          <q-input class="col-6" label="Horizontal Step" suffix="°" readonly v-model="calc_hstep_display" input-class="text-right" dense/>
-          <q-input class="col-6" label="Vertical Step" suffix="°" readonly v-model="calc_vstep_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r1StepLabel" suffix="°" readonly v-model="calc_hstep_display" input-class="text-right" dense/>
+          <q-input class="col-6" :label="r2StepLabel" suffix="°" readonly v-model="calc_vstep_display" input-class="text-right" dense/>
         </div>
 
     </div>    
@@ -50,15 +60,18 @@
 // import axios from 'axios'
 import { onMounted, ref, computed } from 'vue'
 import { useConfigStore } from 'stores/config';
-import { useDeviceStore } from 'src/stores/device';
 // import { debounce } from 'quasar'
 
-const dev = useDeviceStore()
 const cfg = useConfigStore()
 
+
+const local_cols = ref<number>(cfg.cols)
+const local_rows = ref<number>(cfg.rows)
 const sensor_size = ref<string>(cfg.sensor_size)
 const focal_length = ref<string>(`${cfg.focal_length} mm`)
 const panel_overlap = ref<string>(cfg.panel_overlap)
+
+
 
 // ---------------- Helper functions
 function parseFirstNumber(str?: string): number | null {
@@ -81,6 +94,24 @@ function parseSensorXY(str?: string): { x: number | null; y: number | null } {
 }
 
 // ---------------- Computed functions
+
+const r1Label = computed(() => `${(cfg.ref==2)?'Galactic Lon': (cfg.ref==1)?'Right Ascension' :'Azimuth'}`)
+const r2Label = computed(() => `${(cfg.ref==2)?'Galactic Lat': (cfg.ref==1)?'Declination'     :'Altitude'}`)
+const r1FOVLabel = computed(() => `${r1Label.value} FOV`)
+const r2FOVLabel = computed(() => `${r2Label.value} FOV`)
+const r1StepLabel = computed(() => `${r1Label.value} Step`)
+const r2StepLabel = computed(() => `${r2Label.value} Step`)
+
+
+function defaultPanoPresetName() {
+  const size = `${local_cols.value} x ${local_rows.value}`
+  const sensor = sensor_size.value.replace(/\s*\([^)]*mm\)/i, '').trim()
+  const lens = focal_length.value
+  const overlap = `${panel_overlap.value} overlap`
+  return `${size} ${sensor}, ${lens}, ${overlap}`
+}
+
+
 const sensor_size_x = computed<number | null>(() => {
   return parseSensorXY(sensor_size.value).x
 })
@@ -88,6 +119,13 @@ const sensor_size_x = computed<number | null>(() => {
 const sensor_size_y = computed<number | null>(() => {
   return parseSensorXY(sensor_size.value).y
 })
+
+const sensor_size_options = computed(() => {
+  const landscape =  ['Full Frame (36 × 24 mm)', 'APS-C / IMX571 (23.5 × 15.7 mm)', 'Micro Four Thirds (17.3 × 13.0 mm)', 'IMX585 (11.2 × 6.3 mm)', 'IMX533 (11.3 × 11.3 mm)', 'IMX462 (5.6 × 3.2 mm)']  
+  const portrait =  ['Full Frame (24 × 36 mm)', 'APS-C / IMX571 (15.7 × 23.5 mm)', 'Micro Four Thirds (13.0 × 17.3 mm)', 'IMX585 (6.3 × 11.2 mm)', 'IMX533 (11.3 × 11.3 mm)', 'IMX462 (3.2 × 5.6 mm)']  
+  return ((sensor_size_x.value ?? 36) > (sensor_size_y.value ?? 24)) ? landscape : portrait
+})
+
 
 const focal_mm = computed<number | null>(() => {
   return parseFirstNumber(focal_length.value)
@@ -122,6 +160,16 @@ const calc_vstep = computed<number>(() => {
   return calc_vFOV.value * (1 - overlap_frac.value)
 })
 
+const calc_vGridFOV = computed<number>(() => {
+  if (!calc_vFOV.value || calc_vstep.value === null) return NaN
+  return calc_vFOV.value + calc_vstep.value * (local_rows.value - 1) 
+})
+
+const calc_hGridFOV = computed<number>(() => {
+  if (!calc_hFOV.value || calc_hstep.value === null) return NaN
+  return calc_hFOV.value + calc_hstep.value * (local_cols.value - 1) 
+})
+
 const calc_hFOV_display = computed(() =>
   isFinite(calc_hFOV.value) ? calc_hFOV.value.toFixed(2) : ''
 )
@@ -136,6 +184,14 @@ const calc_hstep_display = computed(() =>
 
 const calc_vstep_display = computed(() =>
   isFinite(calc_vstep.value) ? calc_vstep.value.toFixed(2) : ''
+)
+
+const calc_vGridFOV_display = computed(() =>
+  isFinite(calc_vGridFOV.value) ? calc_vGridFOV.value.toFixed(2) : ''
+)
+
+const calc_hGridFOV_display = computed(() =>
+  isFinite(calc_hGridFOV.value) ? calc_hGridFOV.value.toFixed(2) : ''
 )
 
 const show_result = computed<boolean>(() => {
@@ -155,8 +211,6 @@ const show_result = computed<boolean>(() => {
 // ----------------- Lifecycle Functions
 
 onMounted(async () => {
-  const shouldFetch =  dev.restAPIConnected && dev.restAPIConnectedAt &&cfg.fetchedAt < dev.restAPIConnectedAt
-  if (shouldFetch) await cfg.configFetch()
 })
 
 
@@ -164,11 +218,14 @@ async function onApply() {
   // simplest: reset inputs to defaults or close dialog
   // example reset:
   const payload = { 
+    rows: local_rows.value,
+    cols: local_cols.value,
     hstep: calc_hstep.value, 
     vstep: calc_vstep.value,
     sensor_size: sensor_size.value,
     panel_overlap: panel_overlap.value,
-    focal_length: parseFirstNumber(focal_length.value) || 35
+    focal_length: parseFirstNumber(focal_length.value) || 35,
+    pano_name: defaultPanoPresetName()
   }
   await cfg.configUpdate(payload)
 }

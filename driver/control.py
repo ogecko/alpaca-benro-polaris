@@ -3,460 +3,65 @@ import datetime
 import json, os, re
 import logging
 from pathlib import Path
-from pyquaternion import Quaternion
+from quaternion import Q as Quaternion
 from config import Config
 from scipy.interpolate import PchipInterpolator
-from scipy.optimize import minimize
 import time
 import asyncio
-from typing import Optional
 import ephem
 import math
 import copy
-from shr import rad2deg, deg2rad, rad2hms, deg2dms, format_timestamp
+from shr import rad2deg, deg2rad, deg2dms, format_timestamp, ratio_string
 from threading import Lock
-from orbitals import orbital_data, find_closest_orbital, create_tle_orbital_celestrak, create_xephem_orbital_jpl
-
+from orbitals import orbital_data, create_tle_orbital_celestrak, create_xephem_orbital_jpl, ensure_data_dir_exists
+from kinematics import wrap360, wrap180, calc_parallactic_angle, wrap_angle_residual, wrap_state_angles
+from kinematics_mac import fit_alignment, corrected_theta, boresights, correction_q as mac_correction, significantly_better
+from kinematics import azalt_to_vector, vector_to_az_alt, v_angular_distance, calculate_angular_velocity_vector 
+from kinematics import angular_difference, clamp_alpha, clamp_delta, clamp_theta, clamp_offset, clamp_error
+from kinematics import q_to_theta, q_to_azaltroll, quaternion_difference, reachable_azaltroll, THETA2_MAX, LOCK_SOLUTION_DEG
+from kinematics import azaltroll_to_q, theta_to_jacobian, LastPosition, delta_to_gamma, theta_to_q, theta_solutions, theta_rates
+from control_eq import wedge_alignQ_B2T, eq_theta1_with_room, EQ_MIN_TRACK_ROOM_DEG, THETA2_MIN
+from control_plan import GotoTrajectory, MotorMove, choose_end_solution, is_flip, wraps_cables, ramp_rates, move_time
+from kinematics import calc_equatorial_axes_B, calc_topocentric_axes_B, calc_galactic_axes_B, gamma_to_delta
+from control_pec import PecMixin, PecAxis, PecInhibit   # PecAxis/PecInhibit re-exported for notebooks
+from control_backlash import BacklashCompensator, HOLD_ARRIVED_ARCSEC
+from control_worm import WormMixin, PROFILE_TEST, TEST_SUMMARY, WORM_PROFILE_PATH, startup_row_fields
 
 DRIVER_DIR = Path(__file__).resolve().parent      # Get the path to the current script (control.py)
 DATA_DIR = DRIVER_DIR.parent / 'data'             # Default data directory: ../data 
 CALIBRATION_PATH = DATA_DIR / 'speed_calibration.json'
 TESTDATA_PATH = DATA_DIR / 'speed_testdata.json'
-CATALOG_PATH = DATA_DIR / 'catalog.json'
-
-# ************* Custom Catalog Items *************
-
-# Defaults for catalog fields
-DEFAULTS = {
-    "MainID": "", "Name": "", "Notes": "", "Class": "", "OtherIDs": "",
-    "Rt": 5, "Sz": 8, "Vz": 7, "C1": 10, "C2": 41, "Cn": 85
-}
-
-def loadCustomCatalogDataFromFile(path=CATALOG_PATH):
-    """
-    Loads the custom catalog JSON file, stripping // comments, trailing commas, and enforcing
-    required schema + default values.
-
-    Returns:
-        list of dicts (always)
-    """
-    if not os.path.exists(path):
-        return []
-
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            raw = f.read()
-
-        # Remove comment lines --- Example matched: "// comment", "   // comment"
-        clean = re.sub(r'^\s*//.*$', '', raw, flags=re.MULTILINE)
-        # Remove trailing commas BEFORE } --- Example:  "Name": "Galaxy", }
-        clean = re.sub(r',\s*}', '}', clean)
-        # --- Remove trailing commas BEFORE ] --- Example:  }, ]
-        clean = re.sub(r',\s*]', ']', clean)
-
-        items = json.loads(clean)
-
-        # Ensure JSON is an array
-        if not isinstance(items, list):
-            raise ValueError("Catalog: Top-level catalog.json must be an array")
-
-        output = []
-        for obj in items:
-            if not isinstance(obj, dict):
-                continue  # skip invalid items
-            cleaned = {}
-            # Ensure all required fields exist with correct types / defaults
-            for key, default in DEFAULTS.items():
-                value = obj.get(key, default)
-                if isinstance(default, int):
-                    try:
-                        value = int(value)
-                    except:
-                        value = default
-                else:
-                    value = str(value) if value is not None else ""
-                cleaned[key] = value
-
-            # Copy any extra fields (e.g., RA_hr, Dec_deg, etc.)
-            for key, value in obj.items():
-                if key not in cleaned:
-                    cleaned[key] = value
-
-            # Clamp numeric ranges 
-            cleaned["Rt"] = max(0, min(5, cleaned["Rt"]))
-            cleaned["Sz"] = max(0, min(8, cleaned["Sz"]))
-            cleaned["Vz"] = max(0, min(7, cleaned["Vz"]))
-            cleaned["C1"] = max(0, min(10, cleaned["C1"]))
-            cleaned["C2"] = max(0, min(41, cleaned["C2"]))
-            cleaned["Cn"] = max(0, min(85, cleaned["Cn"]))
-            output.append(cleaned)
-
-        return output
-
-    except Exception as e:
-        print(f"Catalog: Error loading custom catalog: {e}")
-        return []
-
-
-# ************* Quaternion Kinematics *************
-# This is a 3-axis motorised astronomical camera mount ("Polaris"). 
-# It has three motor angles (theta1, theta2, theta3) that describe how the mechanism is physically positioned,
-# and three sky angles (alpha: azimuth, altitude, roll) that describe where the camera is actually pointing. 
-# Theta1 and theta2 roughly correspond to azimuth and altitude, while theta3 pans the tilted camera around its own up axis. 
-# Because of theta3, the true sky pointing (alpha) cannot be read directly from theta1/theta2/theta3.
-# Instead a quaternion is used to compose all three motor angles into the final pointing direction.
-
-def is_angle_same(a, b, tolerance=1e-4):
-    """Returns True if angles a and b are equivalent within tolerance, accounting for wrapping."""
-    return abs((a - b + 180) % 360 - 180) < tolerance
-
-
-def is_same_quaternion_rotation(q1, q2, tolerance=1e-6):
-    """Check if two quaternions represent the same rotation"""
-    t1, t2, t3, a1, a2, a3 = quaternion_to_angles(q1)
-    s1, s2, s3, b1, b2, b3 = quaternion_to_angles(q2)
-    return (t1-s1)**2+(t2-s2)**2+(t3-s3)**2+(a1-b1)**2+(a2-b2)**2+(a3-b3)**2 < tolerance
-
-def wrap_to_360(angle):
-    """Wraps angle to [0, 360) degrees"""
-    wrapped = angle % 360.0
-    # --- Handle a weird rounding problem for tests, ensure 359.9999999994 is 0.0 and not 360
-    return 0.0 if abs(wrapped - 360) < 1e-10 else wrapped
-
-def wrap_to_180(angle):
-    """Wraps angle to [-180, +180) degrees"""
-    return (angle + 180.0) % 360.0 - 180.0
-
-def wrap_to_90(angle):
-    """Wraps angle to [-90, +90) degrees"""
-    return (angle + 90.0) % 180.0 - 90.0
-
-def wrap_angle_residual(measured_theta, predicted_theta):
-    return np.vectorize(wrap_to_180)(measured_theta - predicted_theta)
-
-def wrap_state_angles(x):
-    x_wrapped = x.copy()
-    x_wrapped[0, 0] = wrap_to_360(x[0, 0])    # theta1
-    x_wrapped[1, 0] = wrap_to_180(x[1, 0])    # theta2
-    x_wrapped[2, 0] = wrap_to_180(x[2, 0])    # theta3 
-    return x_wrapped
-
-def calc_parallactic_angle(az_deg, alt_deg, lat_deg):
-    if abs(alt_deg - 90.0) < 1e-6:
-        return 0.0  # Zenith has no parallactic angle
-
-    az = math.radians(az_deg)
-    alt = math.radians(alt_deg)
-    lat = math.radians(lat_deg)
-
-    numerator = math.sin(az)
-    denominator = math.tan(lat) * math.cos(alt) - math.sin(alt) * math.cos(az)
-    angle = math.degrees(math.atan2(numerator, denominator))
-    return wrap_to_180(-angle)
-
-
-def azalt_to_vector(az_deg, alt_deg):
-    az = math.radians(az_deg)
-    alt = math.radians(alt_deg)
-    x = math.cos(alt) * math.sin(az)
-    y = math.cos(alt) * math.cos(az)
-    z = math.sin(alt)
-    return np.array([x, y, z])
-
-def vector_to_az_alt(vec):
-    x, y, z = vec
-    az = math.degrees(math.atan2(x, y)) % 360
-    alt = math.degrees(math.asin(z / np.linalg.norm(vec)))
-    return az, alt
-
-def v_angular_distance(v1, v2):
-    """Compute angular separation between two unit vectors in radians."""
-    return np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0))
-
-def angular_difference(a, b):
-    """
-    Compute shortest angular difference from a to b, in degrees.
-    Wraps output to [-180°, +180°].
-    angular_difference(359, 1)   # → +2
-    angular_difference(1, 359)   # → -2
-    angular_difference(0, 180)   # → +180
-    angular_difference(180, 0)   # → -180
-
-    """
-    return ((b - a + 180) % 360) - 180
-
-def is_angle_between(angle: float, min_angle: float, max_angle: float) -> bool:
-    diff_to_min = angle - min_angle
-    diff_to_max = angle - max_angle
-    return diff_to_min >= 0 and diff_to_max <= 0
-
-def clamp_alpha(alpha):
-    """
-    Apply custom bounds to Topo-centric angles alpha[0], alpha[1], alpha[2]:
-    - Azimuth ∈ [0, 360)
-    - Altitude ∈ [-90, 90)
-    - Roll ∈ [-180, 180)
-    """
-    clamped = np.empty_like(alpha)
-    clamped[0] = alpha[0] % 360
-    clamped[1] = np.clip(alpha[1], -90, 90)
-    clamped[2] = ((alpha[2] + 180) % 360) - 180
-    return clamped
-
-def clamp_delta(delta):
-    """
-    Apply custom bounds to Equatorial angles delta[0], delta[1], delta[2]:
-    - Right Ascention ∈ [0, 360)
-    - Declination ∈ [-90, 90)
-    - Polar Angle ∈ [0, 360)
-    """
-    clamped = np.empty_like(delta)
-    clamped[0] = delta[0] % 360
-    clamped[1] = np.clip(delta[1], -90, 90)
-    clamped[2] = delta[2] % 360
-    return clamped
-
-def clamp_theta(theta):
-    """
-    Apply custom bounds to Motor Angles theta[0], theta[1], theta[2]:
-    - Theta1 ∈ [0, 360)
-    - Theta2 ∈ [-90, 90)
-    - Theta3 ∈ [-180, 180)
-    """
-    clamped = np.empty_like(theta)
-    clamped[0] = theta[0] % 360
-    clamped[1] = np.clip(theta[1], -90, 90)
-    clamped[2] = ((theta[2] + 180) % 360) - 180
-    return clamped
-
-def clamp_error(theta_ref, theta_meas):
-    """
-    Calculates angular error considering wrap-around using modular arithmetic.
-    Each error is normalized to [-180, 180) range.
-    """
-    return ((theta_ref - theta_meas + 180) % 360) - 180
-
-def fmt3(theta):
-    return ','.join([ f"{x:.4f}" for x in theta ])
-
-def fmt4(delta):
-    return f'{rad2hms(delta[0]/180*math.pi)[:8]}, {deg2dms(delta[1])[:8]}, {deg2dms(delta[2])[:8]}'
-
-
-def calculate_angular_velocity(history):
-    """
-    Computes angular velocity from the first and last entries in a history buffer.
-    Each entry must be a list or tuple: [timestamp, theta1, theta2, theta3]
-
-    Returns omega : ndarray
-        Angular velocity vector [ω₁, ω₂, ω₃] in degrees per second.
-        Returns [0.0, 0.0, 0.0] if input is insufficient or invalid.
-    """
-    try:
-        if history is None or len(history) < 2:
-            return np.zeros(3)
-
-        # Use first and last entries
-        t_start, *theta_start = history[0]
-        t_end,   *theta_end   = history[-1]
-
-        if not isinstance(t_start, datetime.datetime) or not isinstance(t_end, datetime.datetime):
-            return np.zeros(3)
-
-        dt = (t_end - t_start).total_seconds()
-        if dt <= 0:
-            return np.zeros(3)
-
-        # Wrap-safe angular velocity
-        omega = np.array([
-            angular_difference(start, end) / dt
-            for start, end in zip(theta_start, theta_end)
-        ])
-        return omega
-
-    except Exception:
-        return np.zeros(3)
-
-
-
-def angles_to_quaternion(az, alt, roll):
-    """
-    Convert altitude, azimuth, and roll angles to a quaternion using simple rotation composition.
-    
-    Args:
-        az: Azimuth angle in degrees (0-360)
-        alt: Altitude angle in degrees (-90 to +90)
-        roll: Roll angle around boresight (degrees),  (+ve=camera rotates ccw when view from rear, image rotates cw)
-    
-    Returns:
-        Quaternion: q1 that rotates from camera frame to topocentric frame
-    """
-    # Reconstructing q1 from az, alt, roll
-    qaz = Quaternion(axis=[0, 0, 1], degrees= -az + 90)
-    qalt = Quaternion(axis=[0, 1, 0], degrees= -alt - 90)
-    qroll = Quaternion(axis=[0, 0, 1], degrees= roll)
-    q1 = qaz * qalt * qroll  # Reconstructed q1 quaternion from roll, then alt, then az
-    
-    return -(q1.normalised) if roll < 0 else q1.normalised
-
-
-
-def motors_to_quaternion(theta1, theta2, theta3):
-    """
-    Convert theta1, theta2, theta3 angles to a quaternion using simple rotation composition.
-    
-    Args:
-        theta1: Polaris Axis 1 angle in degrees [0-360) +ve=cw (looking down towards mount, 0=North)
-        theta2: Polaris Axis 2 angle in degrees (-90 to +90) +ve=upwards (looking side on to mount, 0=Horizontal)
-        theta3: Polaris Axis 3 angle in degrees (-180 to +180) +ve=cw (looking down towards mount. 0=Level)
-    
-    Returns:
-        # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
-    """
-    # Reconstructing q1 from theta1, theta2, theta3
-    qtheta1 = Quaternion(axis=[0, 0, 1], degrees= -theta1 + 90)                      # Spin camera around vertical
-    qtheta2 = Quaternion(axis=[0, 1, 0], degrees= -theta2 - 90)                      # Tilt camera up/down
-    qtheta3 = Quaternion(axis=(qtheta1*qtheta2).rotate([1, 0, 0]), degrees= -theta3) # Pan camera left/right
-    q1 = qtheta3 * qtheta1 * qtheta2   # Reconstructed q1 quaternion from tilt then pan then spin
-    noflip = theta3 < 0
-    q1n = q1.normalised if noflip else -q1.normalised
-    return q1n
-
-def extract_theta_given_theta3(tUp, tBore, theta3):
-    """ Calc Theta1 and Theta2 based on removing Theta3 pan """
-    unTheta3Pan = Quaternion(axis=tUp, degrees= -theta3).inverse             # Undo Theta3 rotation to get cleaned bore vector 
-    mBore = unTheta3Pan.rotate(tBore)                                        # mBore is the Camera optical axis if we removed the Astro Module effect
-    theta1 = wrap_to_360(np.degrees(np.arctan2(mBore[0], mBore[1])))
-    theta2 = wrap_to_90(np.degrees(np.arcsin(np.clip(mBore[2], -1.0, 1.0))))
-    return theta1, theta2, wrap_to_180(theta3)
-
-class LastPosition:
-    def __init__(self, t1=180, t2=45, t3=0):
-        self.last_theta1 = t1
-        self.last_theta2 = t2
-        self.last_theta3 = t3
-        self.in_gimbal_lock = False
-    def update(self,t1,t2,t3):
-        self.last_theta1 = t1
-        self.last_theta2 = t2
-        self.last_theta3 = t3
-    def calcMechanicalAngularDiff(self,t1,t2,t3):
-        dt1 = angular_difference(t1, self.last_theta1)
-        dt2 = angular_difference(t2, self.last_theta2)
-        dt3 = angular_difference(t3, self.last_theta3)
-        return dt1*dt1 + dt2*dt2 + dt3*dt3
-    def check_for_gimbal_lock(self, theta2):
-        # check new theta2 for potential gimbal lock, with hysteresis to eliminate chatter at boundary
-        GIMBAL_ENTER = 0.01            # Enter gimbal lock when theta2 is less than 18 arcsec
-        GIMBAL_EXIT = 0.02              # Exit gimbal lock when theta2 is greater than 36 arcsec
-        if not self.in_gimbal_lock and abs(theta2) < GIMBAL_ENTER:
-            self.in_gimbal_lock = True
-        elif self.in_gimbal_lock and abs(theta2) > GIMBAL_EXIT:
-            self.in_gimbal_lock = False
-        return self.in_gimbal_lock
-
-
-_lp = LastPosition()
-
-def quaternion_to_motors(q1, lastPos=None):
-    """ Convert quaternion to Theta1, Theta2, Theta3 motor positions using quaternion decomposition """
-    global _lp
-    if lastPos is None:
-        lastPos = _lp
-
-    # --- Camera Up and Boresight vector in topo frame
-    tUp = q1.rotate(np.array([1, 0, 0]))
-    tBore = q1.rotate(np.array([0, 0, -1]))
-
-    # --- Theta3: rotation around Camera up axis in topocentric frame (Polaris Axis 3) ---
-    q4 = q1 * Quaternion(axis=np.array([1, 0, 0]), degrees=180) 
-    theta3 = -np.degrees(np.arctan2(2 * (q4[0]*q4[1] + q4[2]*q4[3]), q4[0]**2 - q4[1]**2 - q4[2]**2 + q4[3]**2))
-
-    # --- Find the two solutions based on theta3 being pointing one way or the opposite
-    theta1_A, theta2_A, theta3_A = extract_theta_given_theta3(tUp, tBore, theta3)
-    theta1_B, theta2_B, theta3_B = extract_theta_given_theta3(tUp, tBore, theta3 - 180)
-
-    # Choose the best mechanical solution
-    if theta2_A < -8:           # Rules out Solution A
-        [theta1, theta2, theta3] = [theta1_B, theta2_B, theta3_B]
-    elif theta2_B < -8:         # Rules out Solution B
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A]
-    else:                       # --- Choose the solution closest to the last mechanical position
-        diffA = lastPos.calcMechanicalAngularDiff(theta1_A, theta2_A, theta3_A,)
-        diffB = lastPos.calcMechanicalAngularDiff(theta1_B, theta2_B, theta3_B,)
-        [theta1, theta2, theta3] = [theta1_A, theta2_A, theta3_A] if diffA<diffB else [theta1_B, theta2_B, theta3_B]
-
-    # --- Handle the case where we have a gimbal lock at theta2 = 0, ie t1/t3 in gimbal lock
-    in_gimbal_lock = lastPos.check_for_gimbal_lock(theta2)
-    if in_gimbal_lock:
-        theta1 = wrap_to_360(theta1 + theta3)
-        theta3 = 0.0
-
-    lastPos.update(theta1, theta2, theta3)
-
-    return theta1, theta2, theta3
-
-
-def quaternion_to_angles(q1, lastPos = None):
-    """
-    Convert a quaternion to theta1, theta2, theta3, altitude, azimuth, and roll angles.
-    
-    Args:
-        q1: Quaternion that rotates from camera frame to topocentric frame
-            Camera frame: -z = boresight, +x = up, +y = left
-            Topocentric frame: +z = Zenith, +y = North, +x = East
-        lastPos: last mechanical position (LastPosition object)
-    
-    Returns:
-        tuple: (theta1, theta2, theta3, alt, az, roll)
-            - theta1: Rotation around Polaris Axis 1 (degrees, 0-360)
-            - theta2: Rotation around Polaris Axis 2 (degrees, -90 to +90)
-            - theta3: Rotation around Polaris Axis 3 (degrees)
-            - alt: Altitude angle (degrees, -90 to +90)
-            - az: Azimuth angle (degrees, 0-360)
-            - roll: Roll angle around boresight (degrees),  (+ve=camera rotates ccw when view from rear, image rotates cw)
-    """
-
-    # q1 rotates from camera frame (-z = boresight, +x = up, +y = left) to topocentric frame (+z = Zenith, +y = North, +x = East)
-
-    # calculate the motor angles from the quaternion
-    theta1, theta2, theta3 = quaternion_to_motors(q1, lastPos=lastPos)
-
-    # Rotate Camera Boresight Unit Vector to Topocentric Reference Frame
-    tBore = q1.rotate(np.array([0, 0,-1]))   
-
-    # --- Azimuth and Altitude: rotation around unadjusted bore vector ie Topocentric co-ordinates including effect of Axis 3
-    az = (np.degrees(np.arctan2(tBore[0], tBore[1])) + 360) % 360       # Azimuth = Boresight axis projected on N/E plane
-    alt = np.degrees(np.arcsin(np.clip(tBore[2], -1.0, 1.0)))           # Altitude = Angle from N/E plane, vertically to the Boresight axis
-
-    # --- Roll angle: rotation around boresight ---
-    if abs(abs(alt) - 90) < 1e-3:                                       # if altitude is +90 = pointing straight up or -90 = straight down
-        roll = 0.0  
-    else:
-        qalt = Quaternion(axis=np.array([0,-1, 0]), degrees= alt + 90)  # Rotate Alt around cRight
-        qaz = Quaternion(axis=np.array([0, 0,-1]), degrees= az - 90)    # Rotate Az around cBore
-        q3 = q1 * (qaz * qalt).inverse                                  # remove alt and az rotations, leaving only the residual roll about the boresight
-        roll = abs(q3.degrees)
-        aDiff = angular_difference(theta1, az)                          # anglular distance from theta1 to az (-ve diff is a positive ccw roll)
-        flip = (roll<90 and aDiff>0) or (roll>=90 and aDiff<=0)
-        roll = -roll if flip else roll
-
-    return theta1, theta2, theta3, az, alt, roll
+SYNC_POINTS_PATH = DATA_DIR / 'sync_points.json'
+
+KI_INHIBIT_GRACE_S = 3.0   # PID Ki anti-windup grace period appended after a setpoint change or guiding correction
+ARRIVED_MAX_RATE_DPS = 0.03   # a goto completes only once every motor runs within this of its feed-forward...
+ARRIVED_SETTLED_MEAS = 3      # ...for this many measurements in a row (0.6 s): see PID_Controller.errsignal()
 
 
 
 # ************* Kalman Filter *************
 
 
+KF_M3_REFRESH_DEG = 3 / 3600   # M3's 518 value is sample-and-hold (refreshed every ~0.6 s): a change of more than this
+                               # is a refresh, less a repeat of the held value
+KF_M3_HOLD_MAX_S = 1.0         # ... and no refresh for this long: M3 is nearly still, so its value is current again
+KF_M3_AWARE_MIN_DPS = 0.1      # ... only while M3 is commanded faster than this (deg/s): slower (tracking, small corrections)
+                               # a held value is at most ~0.06 deg stale and every 518 is a measurement, as before -- taking
+                               # M3 only on a refresh there (or once a second) made the legacy controller's tracking at
+                               # north alt 15 swing to 27" in one twin seed, and a below-horizon 5' correction time out
+
+
 class KalmanFilter:
     def __init__(self, logger, initial_state):
         self._logger = logger
+        self.log_untracked = False      # log_position: KFLOG also without a theta_ref (set by a motor speed test)
         self._time = time.monotonic()
+        self.measurement_lag_s = 0.0            # how late the most recent message's own receipt was -- see predict()
         self._need_first_measurement = True
 
-        # State: [theta1, theta2, theta3, omega1, omega2, omega3]
-        self.x = initial_state.reshape(6, 1)
-        self.set_state_transition_matrix_A()    # State transition matrix (A): position + dt * velocity 
+        self.z = np.zeros((6,1))
+        self.x = initial_state.reshape(6, 1)    # State: [theta1, theta2, theta3, omega1, omega2, omega3]
+        self.A = np.eye(6)                      # State transition matrix (A): position + dt * velocity -- rebuilt each predict()
         self.set_control_matrix_B()             # Control matrix (B): nudge state velocity by acceleration (omega_ref - omega_state)
         self.H = np.eye(6)                      # Measurement matrix (H): measures both position and velocity
         self.set_process_noise_model_Q()        # Process noise models matrix (Q) 
@@ -464,17 +69,8 @@ class KalmanFilter:
         self.P = np.eye(6)                      # Initial estimate covariance
         self.I = np.eye(6)
         self.K = np.zeros((6, 6))
-
-    def set_state_transition_matrix_A(self):
-        # recalc State transition matrix (A): position + dt * velocity
-        # use time interval since last call as dt
-        new_time = time.monotonic()
-        dt = new_time - self._time
-        self._time = new_time
-        self.A = np.block([
-            [np.eye(3), dt * np.eye(3)],
-            [np.zeros((3, 3)), np.eye(3)]
-        ])
+        self._m3_refresh = None                 # (monotonic time, value) of M3's last 518 refresh -- see observe()
+        self.m3_fresh = True                    # the last observe() took M3 as a new measurement
 
     def set_control_matrix_B(self, accel_nudge_vel=0.5):
         # Control matrix (B): acceleration nudging velocity
@@ -491,54 +87,161 @@ class KalmanFilter:
         self.R = np.diag([ pos, pos, pos*10, vel, vel, vel*10 ])
 
     def predict(self, control_input):
-        self.Q = np.diag(Config.kf_process_noise)
-        self.set_state_transition_matrix_A()
+        """
+        Called once per dispatched 518 message, no coalescing allowed as it effects KF performance.
+
+        dt for the state propagation is always the nominal hardware sample interval, not the
+        wall-clock gap since the last message -- the microcontroller samples on a fixed 0.2s
+        cadence, and how long a given message took to reach us says nothing about when it was
+        actually sampled, except in the case of a genuine outage (raw_dt beyond
+        measurement_catchup_max_dt), where messages really were missed and the observed gap is
+        the only honest estimate of elapsed time.
+        """
         control_input = np.array(control_input).reshape(3, 1)
-        omega_state = self.x[3:]                    # stateimated velocity
-        u = control_input - omega_state             # Acceleration signal
+
+        clock_now = time.monotonic()
+        raw_dt = clock_now - self._time
+        self._time = clock_now      # always advance, regardless of raw_dt
+        is_outage = raw_dt > Config.measurement_catchup_max_dt
+        dt = raw_dt if is_outage else Config.measurement_dt
+        # No measurable improvement by backdating theta_ref, unable to attribute lag from just msg delay
+        self.measurement_lag_s = 0   # always assume measurement_lag_s is zero and don't backdate
+
+        self.Q = np.diag(Config.kf_process_noise)
+
+        self.A = np.block([
+            [np.eye(3), dt * np.eye(3)],
+            [np.zeros((3, 3)), np.eye(3)]
+        ])
+        omega_state = self.x[3:]                    # current estimated velocity
+        u = control_input - omega_state              # Acceleration signal
         self.x = self.A @ self.x + self.B @ u
         self.P = self.A @ self.P @ self.A.T + self.Q
         self.x = wrap_state_angles(self.x)
 
+    def observe(self, theta, omega, omega_ref, theta_ref=None, goto=False):
+        """
+        omega: real, position-differenced velocity measurement (polaris.calculate_angular_velocity
+        over the recent theta history), not the commanded rate -- the filter needs an independent
+        measurement here to ever detect when achieved velocity differs from commanded (backlash,
+        friction, etc); echoing the command back would anchor the velocity state to it and leave
+        predict()'s position extrapolation systematically wrong whenever the two diverge.
 
-    def observe(self, theta, omega, omega_ref):
-        self.R = np.diag(Config.kf_measure_noise)
+        theta_ref: PID control target (same Base-frame theta space), passed only while
+        actively tracking. When given, θ_meas/θ_state are sent as deltas from it instead
+        of absolute position -- while tracking, the absolute values constantly drift with
+        sidereal motion, which buries any small deviation. Same telemetry keys either way,
+        so no frontend change is needed to see it. theta_ref itself is not fed into this
+        filter's own state (self.x/self.P) -- only used here to build the KFLOG display
+        payload below. self.measurement_lag_s, however, is also read back out by polaris.py
+        and handed to the PID controller's own errsignal() backdate, which *does* drive the
+        real control output -- so it isn't purely a display quantity overall, only within
+        this method.
+
+        theta_ref is backdated by measurement_lag_s worth of omega_ref before the delta is
+        taken: theta_ref reflects the target's position as of *now*, but theta/omega may
+        describe a measurement sampled some time before now -- diffing against theta_ref
+        as-is compares two different instants and shows a spurious deviation that's really
+        just the target's own motion during the lag, not a real tracking error.
+
+        goto: a goto (or rotate) is in progress, and the position measurements count for more (kf_goto_noise_scale).
+        With the noise tuned for tracking the estimate ends a fast deceleration 25-80' off and takes ~3 s to converge
+        (mount, 10-15), which the goto's settle then waits out; the raw positions vary only 0.35' sample to sample.
+        """
+        R = np.array(Config.kf_measure_noise, dtype=float)
+        if goto:
+            R[:3] *= Config.kf_goto_noise_scale
+        self.R = np.diag(R)
         if self._need_first_measurement:
             self._need_first_measurement = False
             self.set_state([*theta, *omega])
 
         theta_meas = np.array(theta).reshape(3, 1)
         omega_meas = np.array(omega).reshape(3, 1)
-        z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
+        rows = self._m3_rows(theta_meas, omega_meas, omega_ref)
+        self.z = np.vstack((theta_meas, omega_meas))               # Measurement: position + velocity
 
-        # Measurement residual
+        # Measurement residual, over the rows measured this time (M3's only when it refreshed)
         theta_residual = wrap_angle_residual(theta_meas, self.x[:3])
         omega_residual = omega_meas - self.x[3:]
-        y = np.vstack((theta_residual, omega_residual))
-        S = self.H @ self.P @ self.H.T + self.R
-        self.K = self.P @ self.H.T @ np.linalg.inv(S)
+        y = np.vstack((theta_residual, omega_residual))[rows]
+        H = self.H[rows]
+        S = H @ self.P @ H.T + self.R[np.ix_(rows, rows)]
+        K = self.P @ H.T @ np.linalg.inv(S)
+        self.K = np.zeros((6, 6))
+        self.K[:, rows] = K
 
-        self.x = self.x + self.K @ y
-        self.P = (self.I - self.K @ self.H) @ self.P
+        self.x = self.x + K @ y
+        self.P = (self.I - K @ H) @ self.P
         self.x = wrap_state_angles(self.x)
 
-        # Log meas, state and ref for websocket streaming
-        payload = { 
-            "θ_meas":  theta_meas.flatten().tolist(), 
-            "θ_state": self.x[:3].flatten().tolist(), 
-            "K_gain":  np.diag(self.K).tolist(),
-            "ω_meas":  omega_meas.flatten().tolist(), 
-            "ω_state": self.x[3:].flatten().tolist(), 
-            "ω_ref":   omega_ref.tolist(),  
-        }
-        kflogger = logging.getLogger('kf') 
-        kflogger.info(payload)
+        # Log meas, state and ref for websocket streaming. While tracking, report
+        # θ_meas/θ_state as deltas from theta_ref instead of absolute position --
+        # see docstring above.
+        measurement_lag_s = self.measurement_lag_s   # captured once -- reused below so the backdate
+                                                       # applied and the value logged always match
+        if theta_ref is not None:
+            # value - ref (PV - SP), flipped from the (SP - PV) convention originally tried
+            # here, to match the sign shown on the existing Alpaca Pilot PID/ΔM1 chart.
+            theta_ref_arr = np.asarray(theta_ref).reshape(3, 1)
+            theta_ref_backdated = theta_ref_arr - omega_ref.reshape(3, 1) * measurement_lag_s
+            theta_meas_out  = wrap_angle_residual(theta_meas, theta_ref_backdated).flatten().tolist()
+            theta_state_out = wrap_angle_residual(self.x[:3], theta_ref_backdated).flatten().tolist()
+            theta_ref_out = theta_ref_arr.flatten().tolist()
+        else:
+            theta_meas_out  = theta_meas.flatten().tolist()
+            theta_state_out = self.x[:3].flatten().tolist()
+            theta_ref_out = None
 
+        payload = {
+            "θ_meas":  theta_meas_out,                      # measurement relative to theta_ref_backdataed
+            "θ_state": theta_state_out,                     # state relative to theta_ref_backdataed
+            "K_gain":  np.diag(self.K).tolist(),
+            "ω_meas":  omega_meas.flatten().tolist(),
+            "ω_state": self.x[3:].flatten().tolist(),
+            "ω_ref":   omega_ref.tolist(),
+            "measurement_lag_s": measurement_lag_s,         # estimated time lag since measurement
+            "θ_meas_raw": theta_meas.flatten().tolist(),    # absolute, pre-backdate measure
+            "θ_ref_raw":  theta_ref_out,                    # absolute, pre-backdate reference
+        }
+        kflogger = logging.getLogger('kf')
+        kflogger.info(payload)
+        if Config.log_position and (theta_ref is not None or self.log_untracked):
+            self._logger.info(f"KFLOG {payload}")
+
+
+    def _m3_rows(self, theta_meas, omega_meas, omega_ref=None):
+        """The measurement rows observe() updates from (position 0-2, velocity 3-5). M3's 518 value is sample-and-hold,
+        refreshed every ~0.6 s: a repeat says nothing new, and taken as a measurement it pulls the estimate back to where
+        M3 was (during a 4 deg/s roll up to 2.4 deg, so the reported pointing swung ~100' while the camera moved ~20').
+        So M3's rows join only on a refresh, its velocity then taken across the refresh interval rather than the 0.2 s
+        step (omega_meas is changed in place); between refreshes predict() carries M3 on. With no refresh for
+        KF_M3_HOLD_MAX_S M3 is nearly still and its value current. Only while M3 is commanded faster than
+        KF_M3_AWARE_MIN_DPS (slower, every row every time). This replaced a fixed 0.18 s M3 delay in the coordinated
+        path's reference (M3_HOLD_DELAY_S): twin rolls at 4 deg/s, reported wander ~100' -> 17-25', true 19-23' ->
+        12-20'."""
+        now, m3 = time.monotonic(), float(theta_meas[2, 0])
+        last = self._m3_refresh
+        fast = omega_ref is not None and abs(float(np.ravel(omega_ref)[2])) > KF_M3_AWARE_MIN_DPS
+        if last is None or not fast:
+            if last is None or abs((m3 - last[1] + 180.0) % 360.0 - 180.0) > KF_M3_REFRESH_DEG:
+                self._m3_refresh = (now, m3)              # kept current, for when M3 speeds up
+            self.m3_fresh = True
+            return [0, 1, 2, 3, 4, 5]
+        moved = abs((m3 - last[1] + 180.0) % 360.0 - 180.0)
+        fresh = moved > KF_M3_REFRESH_DEG or now - last[0] >= KF_M3_HOLD_MAX_S
+        if fresh and moved > KF_M3_REFRESH_DEG and now - last[0] > 1e-3:
+            omega_meas[2, 0] = ((m3 - last[1] + 180.0) % 360.0 - 180.0) / (now - last[0])
+        if fresh:
+            self._m3_refresh = (now, m3)
+        self.m3_fresh = fresh
+        return [0, 1, 2, 3, 4, 5] if fresh else [0, 1, 3, 4]
 
     def get_state(self):
         state = self.x.flatten()
-        theta = state[0:3]
-        omega = state[3:]
+        meas = self.z.flatten()
+        theta = state[0:3] if Config.advanced_kf else meas[0:3]
+        omega = state[3:] if Config.advanced_kf else meas[3:]
         return theta, omega
 
     def set_state(self, x):
@@ -552,6 +255,10 @@ class KalmanFilter:
 
 
 # ************* Calibration Manager ************
+# Speed calibration (SpeedTest actions, Pilot calibration page). The coordinated speed controller (speed_controller.py)
+# uses only its FAST points, the baseline with approved FAST tests in place (fast_rate_units): the motors run 10-25%
+# faster than the baseline (project/study_goto_response.md), and the goto planner's speeds come from these. Its SLOW
+# levels always use the firmware table. The legacy controller uses the whole table.
 class CalibrationManager:
     def __init__(self, liveInstance=True):
         self.liveInstance = liveInstance        # False = used for unit testing purposes
@@ -577,13 +284,68 @@ class CalibrationManager:
         self.test_data = {}
         self.calibration_data = {}
         self.interpolator_data = {0:{}, 1:{}, 2:{}}
+        self.on_worm_profile_approval = None   # fn(approved) -> bool: add / take the last worm profile test to / out of the pool (Polaris)
+        self.on_calibration_update = None      # fn(): the calibration changed (Polaris: new FAST speed tables)
         if self.liveInstance:
             self.initialiseCalibrationData()
 
     def initialiseCalibrationData(self):
         if not self.loadTestDataFromFile():
             self.createTestDataFromBaseline()
+        self.ensureWormProfileRow()
+        self.refreshWormProfileRow()
         self.updateCalibrationAndInterpolators()
+
+    # ── the worm profile row: the worm profile test (control_worm), not a speed ──────────────────
+    @staticmethod
+    def isWormProfile(testName):
+        return testName == PROFILE_TEST
+
+    def ensureWormProfileRow(self):
+        """Add the worm profile row (on M1) if missing and put it first (top of the Speed Calibration table); drop the
+        per-motor M#-WORM-GEAR rows of earlier versions."""
+        row = self.test_data.get(PROFILE_TEST) or dict(
+            name=PROFILE_TEST, axis=0, raw=0, ascom=0.0, dps=0.0,
+            test_result='', test_change='', test_stdev='', test_status='UNTESTED')
+        row['raw'] = TEST_SUMMARY                  # shown under Raw Command: the test's length
+        rest = {k: v for k, v in self.test_data.items() if k != PROFILE_TEST and not str(k).endswith('-WORM-GEAR')}
+        self.test_data = {PROFILE_TEST: row, **rest}
+
+    def refreshWormProfileRow(self, path=None):
+        """At start, show the profile file's latest test, pooled profile and the profile in use in the worm profile row
+        (the saved row is the last attempt's, blank after a test with no data)."""
+        row = self.test_data[PROFILE_TEST]
+        try:
+            row.update(startup_row_fields(str(path or WORM_PROFILE_PATH), row.get('test_status', 'UNTESTED')))
+        except Exception as e:                    # an unreadable profile must not stop the driver starting
+            logging.getLogger(__name__).warning(f"Worm profile row: could not read {path or WORM_PROFILE_PATH}: {e}")
+
+    def pendingWormProfileTest(self, testNameList):
+        """True (and the row PENDING) if the worm profile row is among the selected tests -- never for 'all'."""
+        if not testNameList or PROFILE_TEST not in testNameList or PROFILE_TEST not in self.test_data:
+            return False
+        self.test_data[PROFILE_TEST].update(test_status='PENDING', test_result='', test_change='', test_stdev='')
+        if self.liveInstance:
+            self.publishTestData()
+        return True
+
+    def setWormProfileProgress(self, done, total):
+        self.test_data[PROFILE_TEST]['test_status'] = f'PENDING {done}/{total}'
+        if self.liveInstance:
+            self.publishTestData()
+
+    def addWormProfileResult(self, fields, status):
+        self.test_data[PROFILE_TEST].update(fields, test_status=status)
+        if self.liveInstance:
+            self.publishTestData()
+            self.saveTestDataToFile()
+
+    def _wormProfileApproval(self, approved):
+        """Add (approved) the last worm profile test to the pool or take it out, through on_worm_profile_approval. False:
+        leave the status."""
+        if self.on_worm_profile_approval is None:
+            return True
+        return bool(self.on_worm_profile_approval(approved))
 
     def createTestDataFromBaseline(self):
         self.test_data = {}
@@ -598,6 +360,7 @@ class CalibrationManager:
                     self.test_data[name] = dict(
                         name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
                         test_result= '', test_change= '', test_stdev= '', test_status= 'UNTESTED')
+        self.ensureWormProfileRow()
 
     def addTestResult(self, axis, raw, result, stdev, status):
         cmd = 'SLOW' if raw<=5 else 'FAST'
@@ -611,7 +374,7 @@ class CalibrationManager:
         dps = float(interpToBaseline.toDPS(raw))
         change = (result/dps - 1) * 100
         status = 'HIGH CHANGE' if abs(change)>25 and status in ['COMPLETED'] else status
-        bad_test = status in ['HIGH STDEV', 'HIGH CHANGE', 'NO DATA', 'STOPPED']
+        bad_test = status in ['HIGH STDEV', 'HIGH CHANGE', 'NO DATA', 'STOPPED', 'LIMIT']
         test_result = f'{result:.7f}' if not bad_test else ''
         test_change = f'{change:.2f}%'
         test_stdev = f'{stdev:.7f}'
@@ -620,20 +383,20 @@ class CalibrationManager:
             name=name, axis=axis, raw=raw, ascom=ascom, dps=dps, 
             test_result= test_result, test_change= test_change, test_stdev= test_stdev, test_status= test_status)
         if self.liveInstance:
-            self.logTestData([name])
+            self.publishTestData()
             self.saveTestDataToFile()
 
     def stopTests(self):
         testNameList = self.test_data.keys()
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
-            if testData and testData.get('test_status')=='PENDING':
+            if testData and str(testData.get('test_status','')).startswith('PENDING'):
                 self.test_data[testName]['test_status'] = 'STOPPED'
                 self.test_data[testName]['test_result'] = ''
                 self.test_data[testName]['test_change'] = ''
                 self.test_data[testName]['test_stdev'] = ''
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
 
 
     def pendingTests(self, axis, testNameList):
@@ -642,7 +405,7 @@ class CalibrationManager:
         tests=[]
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
-            if testData and testData.get('axis')==axis:
+            if testData and testData.get('axis')==axis and not self.isWormProfile(testName):
                 self.test_data[testName]['test_status'] = 'PENDING'
                 self.test_data[testName]['test_result'] = ''
                 self.test_data[testName]['test_change'] = ''
@@ -650,7 +413,7 @@ class CalibrationManager:
                 raw = testData.get('raw',0)
                 tests.append(raw)
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
         return tests
 
     def approveTests(self, testNameList):
@@ -659,10 +422,12 @@ class CalibrationManager:
         for testName in testNameList:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
-            if status in ['COMPLETED', 'REJECTED']:
+            if status in ['COMPLETED', 'REJECTED'] or (self.isWormProfile(testName) and status == 'POOR FIT'):
+                if self.isWormProfile(testName) and not self._wormProfileApproval(True):
+                    continue
                 self.test_data[testName]['test_status'] = 'APPROVED'
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
             self.updateCalibrationAndInterpolators()
 
     def rejectTests(self, testNameList):
@@ -672,9 +437,11 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             status = testData.get('test_status','')
             if status in ['COMPLETED', 'APPROVED']:
+                if self.isWormProfile(testName) and status == 'APPROVED' and not self._wormProfileApproval(False):
+                    continue
                 self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
             self.updateCalibrationAndInterpolators()
 
     def toggleApproval(self, axis, testNameList):
@@ -684,32 +451,41 @@ class CalibrationManager:
             testData = self.test_data.get(testName, {})
             if testData and testData.get('axis')==axis:
                 status = testData.get('test_status','')
-                if status in ['COMPLETED', 'REJECTED']:
+                # the worm profile row adds its last test to the pool even when it fit poorly on its own (it joins
+                # only with a clean fit); the button then takes it out again, as often as wanted
+                if status in ['COMPLETED', 'REJECTED'] or (self.isWormProfile(testName) and status == 'POOR FIT'):
+                    if self.isWormProfile(testName) and not self._wormProfileApproval(True):
+                        continue
                     self.test_data[testName]['test_status'] = 'APPROVED'
                 elif status in ['APPROVED']:
+                    if self.isWormProfile(testName) and not self._wormProfileApproval(False):
+                        continue
                     self.test_data[testName]['test_status'] = 'REJECTED'
         if self.liveInstance:
-            self.logTestData(testNameList)
+            self.publishTestData()
             self.updateCalibrationAndInterpolators()
 
-    def logTestData(self, testNameList):
+    def publishTestData(self):
+        """Send the whole Speed Calibration table to Pilot (the 'cm' socket topic), one message per row in table
+        order. Always the whole table, whichever rows changed: the topic keeps only the last 150 messages (driver
+        backlog and Pilot), and a running test updates its row many times (a worm gear test ~50), so sending only the
+        changed rows soon pushed the other rows out of what a page receives."""
         cm_logger = logging.getLogger('cm')
-        if not testNameList:
-            testNameList = self.test_data.keys()
-        for testName in testNameList:
-            testData = self.test_data.get(testName, {})
+        for testData in self.test_data.values():
             cm_logger.info(testData)
 
     def updateCalibrationAndInterpolators(self):
         self.generateCalibrationFromBaselineAndTestData()
         self.generateInterpolatorsFromCalibrationData()
+        if self.on_calibration_update:
+            self.on_calibration_update()
         self.saveCalibrationDataToFile()
         self.saveTestDataToFile()
 
     def generateCalibrationFromBaselineAndTestData(self):
         self.calibration_data = copy.deepcopy(self.baseline_data)
         for testName in self.test_data.keys():
-            if self.test_data[testName].get('test_status','')=='APPROVED':
+            if self.test_data[testName].get('test_status','')=='APPROVED' and not self.isWormProfile(testName):
                 axis = self.test_data[testName].get('axis',0)
                 raw = self.test_data[testName].get('raw',0)
                 dps = float(self.test_data[testName].get('test_result',0))
@@ -746,16 +522,14 @@ class CalibrationManager:
             output_lines.append("},")  # End of axis block with trailing comma
         return begin + '\n'.join(output_lines) + '\n}\n'
 
-    def ensure_data_dir_exists(self):
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     def saveCalibrationDataToFile(self, path = CALIBRATION_PATH):
-        self.ensure_data_dir_exists()
+        ensure_data_dir_exists()
         with open(path, 'w') as f:
             f.write(self.formatCalibrationData())
 
     def saveTestDataToFile(self, path = TESTDATA_PATH):
-        self.ensure_data_dir_exists()
+        ensure_data_dir_exists()
         with open(path, 'w') as f:
             json.dump(self.test_data, f, indent=2)
 
@@ -862,6 +636,12 @@ class MotorSpeedController:
             self.pending_update = (float(raw), ramp_duration, allow_PWM, tracking, now)
             self._condition.notify()
 
+    async def stop(self):
+        """Stop the motor, always sending the stop (Abort / Stop): a zero rate isn't resent once sent, but after a
+        driver restart the Polaris may still be running the last SLOW command from before it."""
+        self._messenger.last_slow_raw_rate = None
+        await self.set_motor_speed(0, "RAW")
+
     def _apply_pending_update(self, now):
         if not self.pending_update:
             return
@@ -889,7 +669,8 @@ class MotorSpeedController:
             self.ramp_target = new_raw
             self.ramp_duration = ramp_duration
             self.ramp_start_time = time.monotonic()
-            # work out command on the fly with FAST_RAMP
+            self.command = prior_raw        # the ramp's first value; the dispatch loop works it out on the fly
+                                            # (else get_cmdstr sees the prior mode's command, e.g. SLOW_PWM's tuple)
 
         elif interp > 5:
             self.mode = "FAST"
@@ -932,6 +713,7 @@ class MotorSpeedController:
                     try:
                         await asyncio.wait_for( self._condition.wait(), timeout=timeout )
                     except asyncio.TimeoutError:
+                        # Expected: timeout means it's time to wake and dispatch on schedule.
                         pass
                     continue
 
@@ -962,7 +744,7 @@ class MotorSpeedController:
                     pwm_rate = base if was_on else next_up
                     duration = 0.5 * (1 - self.duty_cycle if was_on else self.duty_cycle)
                     await self._messenger.send_slow_move_msg(pwm_rate)
-                    # self._logger.info(f"Motor {self.axis} PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
+                    # self._logger.info(f"Motor {self.axis+1} RateDPS: {self.rate_dps:.4f}, PWM phase: {self.pwm_phase}, rate: {pwm_rate}, duration: {duration:.2f}s")
                     self.pwm_phase = "OFF" if was_on else "ON"
                     self.last_switch_time = now
                     self.next_dispatch_time = now + duration
@@ -970,6 +752,19 @@ class MotorSpeedController:
                 else:
                     self.next_dispatch_time = now + 0.05
 
+    def get_cmdstr(self):
+        if self.mode=="IDLE":
+            return f" IDLE      "
+        elif self.mode=="FAST_RAMP":
+            return f" RAMP {self.command:+05.0f}"
+        elif self.mode=="FAST":
+            return f" FAST {self.command:+05.0f}"
+        elif self.mode=="SLOW":
+            return f" SLOW {self.command:+05.0f}"
+        elif self.mode=="SLOW_PWM":
+            return f"{self.command[0]:+2.0f} {ratio_string(self.duty_cycle)} {self.command[1]:+2.0f}"
+        else:
+            return f"       "
 
     async def stop_disspatch_loop_task(self):
         async with self._condition:
@@ -992,7 +787,7 @@ class MoveAxisMessenger:
     async def send_slow_move_msg(self, slow_raw_rate: int) -> str:
         clamped_raw_rate = int(np.clip(slow_raw_rate, -5, +5))
         if clamped_raw_rate == self.last_slow_raw_rate:
-            return
+            return ""
         self.last_slow_raw_rate = clamped_raw_rate
         key = 0 if clamped_raw_rate > 0 else 1
         state = 0 if clamped_raw_rate == 0 else 1
@@ -1009,12 +804,37 @@ class MoveAxisMessenger:
 ########################## 
 #  PID CONTROL STRATEGY  #
 ########################## 
+SIDEREAL_RATE_RAD_S = 7.292115855e-5  # rad/s
+
+AXIS_MAP = {
+    'az':   ('topocentric_axes_B', 0),
+    'alt':  ('topocentric_axes_B', 1),
+    'roll': ('topocentric_axes_B', 2),
+    'ra':   ('equatorial_axes_B',  0),
+    'dec':  ('equatorial_axes_B',  1),
+    'pa':   ('equatorial_axes_B',  2),
+    'l':    ('galactic_axes_B',    0),
+    'b':    ('galactic_axes_B',    1),
+    'gpa':  ('galactic_axes_B',    2),
+}
+
+FAMILY_AXES = {
+    'alpha': ['az', 'alt', 'roll'],
+    'delta': ['ra', 'dec', 'pa'],
+    'gamma': ['l', 'b', 'gpa'],
+}
+
+# Axes whose positive direction is OPPOSITE a positive rotation about the
+# vector returned by calc_pole_axes_B (proven in tests/test_pole_axes.py).
+AXIS_NEGATE = {'az', 'roll', 'pa', 'gpa'}
 
 
 class PID_Controller():
     def __init__(self, logger, polaris, dt=0.2, loop=None):
         self._stop_flag = asyncio.Event()                    # Used to flag control loop to stop
         self._lock = Lock()                                  # Used to ensure no threading issues
+        self._lp = LastPosition()                            # Used to remember last theta position for gimbal lock
+        self._lp_seeded = False                              # _lp set from the raw motor angles yet -- see seed_branch()
         self.logger = logger                                 # Logging utility
         self.polaris = polaris                               # Only used for guiding clacs and flaging
         self.controllers = polaris._motors                   # Motor speed controllers[0,1,2]
@@ -1025,35 +845,59 @@ class PID_Controller():
         self.control_loop_duration = loop                    # PID Control Loop duration in seconds
         self.mode = 'PRESETUP'                               # PID Controller mode: HOMING, PARKING, PARK, IDLE, AUTO, TRACK, PRESETUP, LIMIT
         self.ack_limit_timestamp = None                      # Timestamp of last ACK of PID LIMIT ALARM
+        self.limit_stopped = False                           # LIMIT: the motors have been stopped
         self.target_type = 'NONE'                            # target body we are tracking
         self.orbital_sp_name = None                    # name of pyephem body tracking for Lunar, Solar, Custom rates
         self.orbital_sp_fetchmsg  = None               # result msg from last http fetch of orbital parameters
         self.orbital_sp_status = [0, 0, 0]             # status of orbital tracking [is_orb_trackable (0=N/A, 1=toolow, 2=ok), orb_az, orb_alt]
-        self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, polar anglular positions
-        self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll angular positions
-        self.delta_meas = np.zeros(3, dtype=float)     # ra, dec, polar measured angular position
-        self.alpha_meas = np.zeros(3, dtype=float)     # az, alt, roll measured angular position
-        self.theta_meas = np.zeros(3, dtype=float)     # theta1-3 motor measured angular position
-        self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3 motor raw measured angular position (no alignment effect)
-        self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, polar angular reference position
-        self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll angular reference position
-        self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor reference angular position
-        self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3 motor reference angular position (used in PARKING, HOMING)
+        self.axis_v_sp = {k: 0.0 for k in AXIS_MAP}    # deg/sec jog rate per named axis in AXIS_MAP
+        self.axis_v_act = {k: 0.0 for k in AXIS_MAP}   # jog rate actually applied: ramped toward axis_v_sp (coordinated_speed_control)
+        self.omega_ff_shaped = np.zeros(3, dtype=float)  # jog/goto feed-forward already within motor limits, added after smoothing
+        self.omega_fb = np.zeros(3, dtype=float)       # feedback part of omega_op (coordinated_speed_control)
+        self.goto_traj = None                          # GotoTrajectory for the current AUTO goto (coordinated_speed_control)
+        self._jog_theta = None                         # a jog near gimbal lock: its reference, walked in motor angles
+        self._plan_logged = False                      # this goto's "GOTO plan:" line is written (once per goto)
+        self._pid_reason = None                        # why plan_goto left this goto to the PID (for that line)
+        self.backlash = BacklashCompensator(logger)    # Backlash Compensation (advanced_backlash): see control_backlash.py
+        self.omega_backlash = np.zeros(3, dtype=float)  # its take-up push, added after smoothing (coordinated_speed_control)
+        self.move_planned = None                       # per goto: planned, or left to the PID (large move while tracking, unwind/flip)
+        self.lock_checked = False                      # per goto: path checked for passing near gimbal lock (theta2 ~ 0)
+        self.room_checked = False                      # per goto: eq mode M1 placement checked for tracking room
+        self.gamma_sp = np.zeros(3, dtype=float)       # Setpoint for l,  b,   gpa  - user set target galactic co-ordinates
+        self.delta_sp = np.zeros(3, dtype=float)       # Setpoint for ra, dec, pa   - user set target equatorial co-ordinates
+        self.alpha_sp = np.zeros(3, dtype=float)       # Setpoint for az, alt, roll - user set target topocentric co-ordinates
+        self.gamma_pv = np.zeros(3, dtype=float)       # l,  b,   gpa  - measured galactic co-ordinates
+        self.delta_pv = np.zeros(3, dtype=float)       # ra, dec, pa   - measured equatorial co-ordinates
+        self.alpha_pv = np.zeros(3, dtype=float)       # az, alt, roll - measured topocentric co-ordinates
+        self.theta_pv = np.zeros(3, dtype=float)       # theta1-3      - measured motor angular position (kf and pec corrected)
+        self.zeta_meas = np.zeros(3, dtype=float)      # zeta1-3       - measured raw motor angular position (no alignment effect)
+        self.delta_ref = np.zeros(3, dtype=float)      # ra, dec, pa    - control target equatorial co-ordinates
+        self.alpha_ref = np.zeros(3, dtype=float)      # az, alt, roll  - control target topocentric co-ordinates
+        self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor - control target motor co-ordinates
+        self.theta_ref_cache = None                    # theta1-3       - cached when mount needs to do large slews
+        self.theta_ref_cache_cause = None              # theta1-3       - string cause of cached theta_ref either 'FLIP CW', 'FLIP CCW' or 'UNWIND'
+        self.zeta_ref = np.zeros(3, dtype=float)       # zeta1-3        - control target motor reference (used in PARKING, HOMING)
         self.error_signal = np.zeros(3, dtype=float)   # theta1-3 error btw theta_ref and theta_meas
         self.error_integral = np.zeros(3, dtype=float) # theta1-3 error btw theta_ref and theta_meas
+        self.cameraQ_ref = None
+        self.cameraQ_ref_last = None
         self.goto_complete_callback = None                   # callback function when no longer deviating
         self.rotate_complete_callback = None                 # callback function when no longer deviating
         self.slew_complete_callback = None                   # callback function when no longer slewing
         self.parking_complete_callback = None                # callback function when reached parking position
+        self.homing_complete_callback = None                 # callback function when reached homing position
         self.is_deviating = False                            # cost signal is > Kc Arc Minutes²
         self.is_slewing = False                              # a velicity_sp is non-zero
-        self.is_tracking = False                             # tracking target body
         self.is_moving = False                               # mount is deviating, slewing or tracking
         self.was_moving = False                              # previous control step movement flag
+        self.ff_inhibit_ticks = 0                            # number of ticks to supress FF after any SP change
+        self.ki_inhibit_until = 0.0                          # monotonic time until which Ki integration is suppressed -- the single
+                                                               # anti-windup gate; SP changes, sync guide, and pulse guide all extend it
         self.omega_kp = np.zeros(3, dtype=float)       # omega1-3 due to proportional error
         self.omega_ki = np.zeros(3, dtype=float)       # omega1-3 due to integrated error
         self.omega_kd = np.zeros(3, dtype=float)       # omega1-3 due to velocity damping (derivative of position)
         self.omega_ff = np.zeros(3, dtype=float)       # omega1-3 due to requested velocity feed forward (slew, tracking)
+        self.omega_pec = np.zeros(3, dtype=float)
         self.omega_min = np.zeros(3, dtype=float)      # omega1-3 min allowable angular velocity (0=axis at limit, no more -ve)
         self.omega_max = np.zeros(3, dtype=float)      # omega1-3 max allowable angular velocity (0=axis at limit, no more +ve)
         self.omega_tgt = np.zeros(3, dtype=float)      # omega1-3 motor angular velocity raw pid output
@@ -1062,9 +906,15 @@ class PID_Controller():
         self.reset_offsets()
         self.reset_theta()
         self.time_meas = None                # Time of measurement
+        self.measurement_lag_s = 0.0         # how stale theta_pv was when last measured -- see errsignal()
+        self.omega_pv = np.zeros(3, dtype=float)   # motor speeds measured from successive theta_pv (deg/s) -- see errsignal()
+        self.is_settled = True               # every motor runs at its feed-forward -- see errsignal()
+        self._pv_prev = None                 # (time, theta_pv) of the last measurement, for omega_pv
+        self._settled_meas = ARRIVED_SETTLED_MEAS   # measurements in a row with every motor at its feed-forward
         self.time_goto = None                # Time that goto callback was set
         self.time_step = time.monotonic()    # Time that control step was done
         self.dt = dt    # Time interval since last control step in seconds
+        self.check_latlon_configured()       # evaluate PRESETUP now from Config, don't wait for a control tick (see its docstring)
         if self.control_loop_duration:
             asyncio.create_task(self._control_loop())
 
@@ -1083,16 +933,37 @@ class PID_Controller():
         elif isinstance(Kv, float) and Kv>0 and Kv<10:
             self.Kv = np.array([Kv, Kv, Kv], dtype=float) 
         else:
-            self.Kv = np.array([ self.controllers[axis]._model.maxDPS for axis in range(3) ], dtype=float)
+            self.Kv = np.array([ self.controllers[axis].max_dps for axis in range(3) ], dtype=float)
 
     def reset_offsets(self, axes=None):
+        """Reset alpha/delta_v_sp, _offset, _ref_last for each axes. 
+           Where axes is a list from ['ra', 'dec', 'pa', 'alt', 'az', 'roll', 'l', 'b', 'gpa'], and defaults to all"""
+        self.reset_gamma_offsets(axes)
         self.reset_delta_offsets(axes)
         self.reset_alpha_offsets(axes)
+        self.clear_theta_ref_cache()
+        self.reset_axis_velocities(axes)
+
+    def reset_axis_velocities(self, axes=None):
+        if axes is None:
+            self.axis_v_sp = {k: 0.0 for k in AXIS_MAP}
+            return
+        for key in axes:
+            if key in self.axis_v_sp:
+                self.axis_v_sp[key] = 0.0
+
+    def reset_gamma_offsets(self, axes):
+        if axes is None:
+            self.gamma_offst = np.zeros(3, dtype=float)
+            return
+        GAMMA_MAP = {'l': 0, 'b': 1, 'gpa': 2}
+        for key, idx in GAMMA_MAP.items():
+            if key in axes:
+                self.gamma_offst[idx] = 0.0
 
     def reset_delta_offsets(self, axes):
         if axes is None:
             self.delta_v_sp = np.zeros(3, dtype=float)     # Setpoint for ra, dec, polar anglular velocities
-            self.delta_g_sp = np.zeros(3, dtype=float)     # Guiderate duration in +/- ms for ra, dec, polar anglular velocities
             self.delta_offst = np.zeros(3, dtype=float)    # ra, dec, polar anglular offsets
             self.delta_ref_last = np.zeros(3, dtype=float) # ra, dec, polar angular reference position of last control step
             return
@@ -1100,7 +971,6 @@ class PID_Controller():
         for key, idx in DELTA_MAP.items():
             if key in axes:
                 self.delta_v_sp[idx] = 0.0
-                self.delta_g_sp[idx] = 0.0
                 self.delta_offst[idx] = 0.0
                 self.delta_ref_last[idx] = 0.0
 
@@ -1115,20 +985,144 @@ class PID_Controller():
                 self.alpha_v_sp[idx] = 0.0
                 self.alpha_offst[idx] = 0.0
 
+    def seed_branch(self, zeta):
+        """Once, before the first measurement is resolved to motor angles: start LastPosition at the raw motor angles
+        (zeta + 180, 45, 0), so theta follows the motors' own IK branch. From its default (180, 45, 0) a mount at low M2
+        resolved to the other branch (M1 -180, M2 negated, M3 +180), and the planner's motor limits, worked out from
+        theta - zeta, were 180 deg off on M1/M3 (eq goto into M3's limit)."""
+        if self._lp_seeded or zeta is None:
+            return
+        self._lp.update(float(zeta[0]) + 180.0, float(zeta[1]) + 45.0, float(zeta[2]))
+        self._lp.update_zeta(zeta)
+        self._lp_seeded = True
+
     def reset_theta(self):
         self.theta_ref = np.zeros(3, dtype=float)      # theta1-3 motor angular reference position
         self.theta_ref_last = np.zeros(3, dtype=float) # theta1-3 motor angular reference position of last control step
 
-    def reset_sp(self):                                      # align all SP with alpha_meas current position
-        self.alpha2body(self.alpha_meas)
+    def reset_sp(self, alpha_pv=None):               # align all SP with alpha_meas (defaults to current pid measured position)
+        if alpha_pv is not None:
+            self.alpha_pv = alpha_pv
+        self.alpha2body(self.alpha_pv)
         self.delta_ref = self.body2delta()           
         self.delta_sp = self.delta_ref            
-        self.alpha_ref = self.alpha_meas
-        self.alpha_sp = self.alpha_meas                  
-        self.reset_offsets() 
+        self.alpha_ref = self.alpha_pv
+        self.alpha_sp = self.alpha_pv                  
+        self.reset_offsets()
+        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+        self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
+
+
+    def _jog_omega(self, rates):
+        """Motor rates (deg/s) for a set of jog rates: Base-frame angular velocity via the Jacobian,
+        as the legacy jog feed-forward computes it."""
+        omega_base = np.zeros(3, dtype=float)
+        for axis_name, rate_dps in rates.items():
+            if rate_dps == 0.0:
+                continue
+            contrib = self._axis_omega_B(axis_name, rate_dps)
+            if contrib is not None:
+                omega_base += contrib
+        if not np.any(omega_base):
+            return np.zeros(3, dtype=float)
+        if abs(float(self.theta_pv[1])) < self.JOG_LOCK_DEG and self.mode == 'AUTO':
+            return self._jog_omega_at(np.array(self.theta_pv, dtype=float), rates)   # as the reference walks there
+        return np.degrees(theta_rates(self.theta_pv, omega_base))   # without the roll it can't make at gimbal lock
+
+    def _jog_omega_at(self, theta, rates):
+        """Motor rates (deg/s) at motor angles theta for a set of jog rates near gimbal lock. An Az/Alt jog moves the
+        pointing: only the boresight's motion is solved for (minimum motor motion), and the roll follows. Holding the
+        roll as well needed M1/M3 counter-rotating ~6x the jog at M2 5 deg, M3 -30 (the M1 axis 30 deg off the Alt
+        axis). Other jogs: least squares (theta_rates)."""
+        omega_base = np.zeros(3, dtype=float)
+        for axis_name, rate_dps in rates.items():
+            if rate_dps != 0.0 and (contrib := self._axis_omega_B(axis_name, rate_dps)) is not None:
+                omega_base += contrib
+        if not np.any(omega_base):
+            return np.zeros(3, dtype=float)
+        if all(k in ('az', 'alt') for k, v in rates.items() if v != 0.0):
+            bore = np.asarray(theta_to_q(*theta).rotate([0.0, 0.0, -1.0]), dtype=float)
+            J = theta_to_jacobian(*theta)
+            M = np.column_stack([np.cross(J[:, j], bore) for j in range(3)])     # boresight velocity per motor
+            # rcond: with the boresight along M2's axis (M3 ~ +-90) no motor moves the pointing in Alt near the lock;
+            # solved anyway, M2 ran the wrong way into its limit. That part of the jog is dropped instead
+            return np.degrees(np.linalg.lstsq(M, np.cross(omega_base, bore), rcond=self.JOG_LOCK_RCOND)[0])
+        return np.degrees(theta_rates(theta, omega_base))
+
+    def _axis_omega_B(self, axis_name, rate_dps):
+        """rate_dps of angular velocity about axis_name, in Base-frame rad/sec,
+        with AXIS_NEGATE sign applied. Pure vector output for FF."""
+        triad_attr, idx = AXIS_MAP.get(axis_name, (None, None))
+        if triad_attr is None:
+            return None
+        triad = getattr(self.polaris._sm, triad_attr, None)
+        if triad is None or triad[idx] is None:
+            return None
+        sign = -1.0 if axis_name in AXIS_NEGATE else 1.0
+        return sign * np.radians(rate_dps) * np.array(triad[idx])
+
+    def _jog_rates(self):
+        """Jog rates that move the mount: with coordinated_speed_control, the rates ramped toward
+        axis_v_sp within the motor acceleration (see ramp_jog_rates); else axis_v_sp itself."""
+        return self.axis_v_act if Config.coordinated_speed_control else self.axis_v_sp
+
+    def ramp_jog_rates(self):
+        """Move the applied jog rates toward the requested ones by at most Ka*dt per control step (with
+        coordinated_speed_control; otherwise jogs use the requested rates directly, see _jog_rates)."""
+        if not Config.coordinated_speed_control:
+            return
+        self.set_Ka_array(Config.pid_Ka)          # constrain() sets these later in the step; needed now
+        max_step = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL) * self.dt if self.dt > 0 else 0.0
+        keys = list(AXIS_MAP)
+        target = dict(self.axis_v_sp)
+        if self.dt > 0 and any(target.values()):
+            # no faster than the motors can follow: a roll jog at 9 deg/s near roll 0 (Alt 27) needed M1 at ~20 deg/s,
+            # its reference ran 30 deg ahead and the FLIP check stopped the jog there (field 2026-10-17)
+            self.set_Kv_array(Config.pid_Kv)
+            need = np.abs(self._jog_omega(target))
+            cap = np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
+            scale = float(np.min(np.where(need > 1e-9, cap / np.maximum(need, 1e-9), np.inf)))
+            if scale < 1.0:
+                target = {k: v * scale for k, v in target.items()}
+        ramped = ramp_rates([self.axis_v_act[k] for k in keys], [target[k] for k in keys], max_step)
+        self.axis_v_act = {k: float(v) for k, v in zip(keys, ramped)}
+
+    def _native_alpha_v_sp(self):
+        """az/alt/roll jog rates -- straight passthrough. No AXIS_NEGATE here:
+        that sign only applies when converting into/out of the Base-frame VECTOR
+        representation (see _axis_omega_B). Here axis_v_sp and alpha_offst are
+        both already in native az/alt/roll value-space, so no conversion needed."""
+        jog = self._jog_rates()
+        return np.array([jog['az'], jog['alt'], jog['roll']])
+
+    def _native_delta_v_sp(self):
+        jog = self._jog_rates()
+        return np.array([jog['ra'], jog['dec'], jog['pa']])
+
+    def _native_gamma_v_sp(self):
+        jog = self._jog_rates()
+        return np.array([jog['l'], jog['b'], jog['gpa']])
+
+    def _has_active_jog(self):
+        return (any(v != 0.0 for v in self.axis_v_sp.values())
+                or any(v != 0.0 for v in self._jog_rates().values())
+                or np.any(self.alpha_v_sp)
+                or np.any(self.delta_v_sp))
+
+    def set_axis_velocities(self, rates: dict):
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
+            return
+        for k, v in rates.items():
+            if k in self.axis_v_sp:
+                self.axis_v_sp[k] = float(v)
+        is_sky_axis = any(self.axis_v_sp[k] != 0.0 for k in ('ra', 'dec', 'pa', 'l', 'b', 'gpa'))
+        if self.mode == 'IDLE':
+            self.set_pid_mode('TRACK' if is_sky_axis else 'AUTO')
+        elif self.mode == 'AUTO' and is_sky_axis:
+            self.set_pid_mode('TRACK')
 
     def body_pa(self):
-        return wrap_to_180(0.0 - rad2deg(self.body.parallactic_angle()))
+        return wrap180(0.0 - rad2deg(self.body.parallactic_angle()))
     
     def body2alpha(self):
         self.observer.date = ephem.Date(datetime.datetime.utcnow())
@@ -1157,7 +1151,7 @@ class PID_Controller():
         alt = rad2deg(self.body.alt)
         az = rad2deg(self.body.az)
         parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
-        pa_deg = self.body_pa_offset + parallactic_angle
+        pa_deg = wrap360(self.body_pa_offset + parallactic_angle)
         return np.array([ra_deg, dec_deg, pa_deg], dtype=float)
     
 
@@ -1169,8 +1163,9 @@ class PID_Controller():
         self.body.compute(self.observer)
         alt = rad2deg(self.body.alt)
         az = rad2deg(self.body.az)
-        parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
-        self.body_pa_offset = wrap_to_360(delta[2] - parallactic_angle)
+        if self.polaris._trackingrate == 0:   # only update roll when sidereal tracking
+            parallactic_angle = calc_parallactic_angle(az, alt, self.polaris._sitelatitude)
+            self.body_pa_offset = wrap360(delta[2] - parallactic_angle)
 
     def orbital2delta(self):
         orbital = None
@@ -1182,12 +1177,13 @@ class PID_Controller():
         elif self.polaris._trackingrate == 3: # 3=Custom
             if self.orbital_sp_name in orbital_data:
                 orbital = orbital_data[self.orbital_sp_name]["body"]
-            # else:
-            #     name, orbital = find_closest_orbital(self.polaris._observer, self.polaris.rightascension, self.polaris.declination)
-            #     self.orbital_sp_name = name
 
         if orbital and self.polaris._trackingrate in [1,2,3]:
-            self.observer.date = ephem.Date(datetime.datetime.utcnow()) + ephem.second * 2.5    # 2.5 seconds in the future
+            # the setpoint leads the body by orbital_lead_sec, the loop's dead time (0.2-0.4 s): the feed-forward follows
+            # the setpoint's own motion, so a fixed 2.5 s lead put a satellite's setpoint, and the mount, ahead of it
+            # (2026-10-20, NORAD 45417; at 1 deg/s each 0.1 s is 6')
+            lead_s = float(getattr(Config, 'orbital_lead_sec', 0.3) or 0.0)
+            self.observer.date = ephem.Date(datetime.datetime.utcnow()) + ephem.second * lead_s
             self.observer.epoch = ephem.now()
             orbital.compute(self.observer)
             # self.logger.info(f"Tracking - Alt: {rad2deg(orbital.alt):.2f} Az: {rad2deg(orbital.az):.2f}")    
@@ -1197,14 +1193,13 @@ class PID_Controller():
             orb_dec = rad2deg(orbital.dec)
             ra_change = abs(orb_ra - self.delta_sp[0])
             dec_change = abs(orb_dec - self.delta_sp[1])
-            is_keep_roll_angle = ra_change > 10/60 or dec_change > 10/60
+            is_keep_roll_angle = True
             is_orbital_trackable = 1 if orb_alt < 10 else 2
             if is_orbital_trackable == 2:
                 self.delta_sp[0] = orb_ra
                 self.delta_sp[1] = orb_dec
-                if is_keep_roll_angle:
-                    parallactic_angle = calc_parallactic_angle(orb_az, orb_alt, self.polaris._sitelatitude)
-                    self.delta_sp[2] = self.body_pa_offset + parallactic_angle  # keep roll angle stable
+                parallactic_angle = calc_parallactic_angle(orb_az, orb_alt, self.polaris._sitelatitude)
+                self.delta_sp[2] = self.body_pa_offset + parallactic_angle  # keep roll angle stable
             self.orbital_sp_status = [is_orbital_trackable, orb_az, orb_alt]
         else:
             # switch back to sidereal if no orbital found
@@ -1216,15 +1211,42 @@ class PID_Controller():
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         if self.mode=='AUTO':
-            track_target = self.alpha_ref.copy()
+            alpha_target = self.alpha_ref.copy()
         else:
-            track_target = self.alpha_meas.copy()
+            alpha_target = self.alpha_pv.copy()
         self.reset_offsets()
-        self.alpha_sp = track_target
-        self.alpha2body(track_target)
+        self.alpha_sp = alpha_target
+        self.alpha2body(alpha_target)
         self.delta_sp = self.body2delta()
         self.set_pid_mode('TRACK')
     
+    def worm_test_active(self):
+        """The worm profile test is running (control_worm): PEC paused, syncs recorded not applied."""
+        return self._worm_test() is not None
+
+    def _worm_test(self):
+        # Polaris builds the PID before its SyncManager, and the PID sets its mode while being built
+        return getattr(getattr(self.polaris, '_sm', None), 'worm_test', None)
+
+    def interrupt_worm_test(self, reason):
+        """Anything but the worm profile test's own steps moving the mount ends that test (control_worm)."""
+        test = self._worm_test()
+        if test is not None and not test.aborted:
+            test.abort(reason)
+            self.logger.warning(f"WORM PROFILE TEST: stopped by {reason}")
+
+    def step_motor_targets(self, step_deg):
+        """Move the tracked target so each motor turns by step_deg (deg, per motor) (the worm profile test): the
+        target's RA/Dec/PA is replaced by the pose of the current motor target with the motors stepped -- as orbital
+        tracking replaces delta_sp -- and sidereal tracking then holds it."""
+        theta = np.array(self.theta_ref, dtype=float) + np.asarray(step_deg, dtype=float)
+        alpha = np.array(q_to_azaltroll(self.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta))), dtype=float)
+        self.reset_offsets()                       # theta_ref already includes any offsets
+        self.alpha_sp = alpha
+        self.alpha2body(alpha)
+        self.delta_sp = self.body2delta()
+        self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)
+
     def set_tracking_off(self):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
@@ -1232,29 +1254,59 @@ class PID_Controller():
             self.set_pid_mode('AUTO')
 
     def set_pid_mode(self, newMode):
+        if newMode != 'TRACK':
+            self.interrupt_worm_test(f'PID mode {newMode}')
         if newMode in ['PRESETUP', 'HOMING', 'PARKING', 'PARK', 'IDLE', 'AUTO', 'TRACK', 'LIMIT', ]:
             self.mode = newMode
+            self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+            self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
+            self.clear_theta_ref_cache()
+
 
     def set_no_target(self):
         self.target_type = 'NONE'
         self.reset_offsets()
 
     def set_alpha_target(self, sp: dict[str, float]):
+        self.interrupt_worm_test('goto')
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()      # Only reset offsets on axes that are changed
+        self.reset_offsets()      
         self.target_type = 'ALPHA'
         # Safely update alpha_sp components if provided
+        default = self.body2alpha() if self.mode == 'TRACK' else self.alpha_sp
         alpha = [
-            sp.get("az",   self.alpha_sp[0]),
-            sp.get("alt",  self.alpha_sp[1]),
-            sp.get("roll", self.alpha_sp[2]),
+            sp.get("az",   default[0]),
+            sp.get("alt",  default[1]),
+            sp.get("roll", default[2]),
         ]
+        if Config.advanced_eq_mode and "roll" not in sp:
+            # eq mode keeps the Position Angle (as a delta target does), not the sky roll
+            alpha[2] = wrap180(self.delta_sp[2] - calc_parallactic_angle(alpha[0], alpha[1], self.polaris._sitelatitude))
+        self.alpha_sp[:] = alpha
         self.alpha2body(alpha)
         self.delta_sp[:] = self.body2delta()
-        self.alpha_sp[:] = alpha
+        self.ff_inhibit_ticks = 2  # suppress FF for 2 ticks after any SP change
+        self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
+        self._interrupt_home_or_park()
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
+
+    def set_theta_target(self, theta):
+        """Goto motor angles theta (the PID's Base frame) exactly: straight there in motor angles, so M1/M3 end the way
+        round the numbers say (an Az/Alt/Roll target takes the nearest IK branch), then held -- or tracked -- at the
+        pose they point at. Call after set_goto_complete_callback, which resets the goto's plan and timeout."""
+        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
+            return
+        theta = np.asarray(theta, dtype=float)
+        alpha = np.array(q_to_azaltroll(self.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta))), dtype=float)
+        self.set_alpha_target({'az': alpha[0], 'alt': alpha[1], 'roll': alpha[2]})
+        self._move_in_motor_angles('MOTOR', 'motor angle goto', theta)
+        self.room_checked = self.lock_checked = True      # the motor angles are the end solution: no EQ ROOM/LOCK/FLIP
+        if self.goto_traj is not None:
+            self.goto_traj.alpha_goal = alpha             # held there (plan_goto re-targets a move whose goal moves)
+            if self.time_goto:                            # the goto timeout allows for the planned move
+                self.time_goto += self.goto_traj.duration / (24 * 3600)
 
     def set_alpha_axis_velocity(self, axis, sp=0.0):
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
@@ -1263,31 +1315,37 @@ class PID_Controller():
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
-    def set_delta_target(self, delta):
+    def set_delta_target(self, sp: dict[str, float]):
+        """" Beware ra parameter is in hours, ra/dec changes keep pa constant """
+        self.interrupt_worm_test('goto')
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
-        self.reset_offsets()      # Only reset offsets on axes that are changed
-        self.target_type = "DELTA"
-        self.delta_sp = delta
+        self.reset_offsets()
+        self.target_type = 'DELTA'
+        default = self.delta_sp
+        delta = [
+            sp.get("ra",  default[0] / 15) * 15,   # accept ra in hours, store as deg
+            sp.get("dec", default[1]),
+            sp.get("pa",  default[2]),
+        ]
+        self.delta_sp[:] = delta
+        self.delta2body(delta)
+        self.alpha_sp[:] = self.body2alpha()
+        self.ff_inhibit_ticks = 2
+        self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)  # anti-windup: suppress Ki briefly after any SP change
+        self._interrupt_home_or_park()
         if self.mode == 'IDLE':
             self.set_pid_mode('AUTO')
 
-    def set_delta_axis_position(self, axis, sp=0.0):
-        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            return
-        self.delta_sp[axis] = sp
-        self.delta_v_sp[axis] = 0
-        self.delta_offst[axis] = 0
-        if self.mode == 'IDLE':
-            self.set_pid_mode('AUTO')
-        
-    def set_delta_axis_position_relative(self, axis, sp=0.0):
-        if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
-            return
-        self.delta_sp[axis] = self.delta_sp[axis] + sp
-        self.delta_v_sp[axis] = 0
-        self.delta_offst[axis] = 0
-        if self.mode == 'IDLE':
+    def _interrupt_home_or_park(self):
+        """A goto during a Home or Park abandons it for the goto, as a goto during a goto does. Left in HOMING/PARKING,
+        track_target's reset_sp wiped the new target each tick: the goto was dropped and the Home ran on (2026-11-15).
+        Only the PID's own state is changed here: Polaris' slewing/athome flags are set by the caller (a goto's
+        markGotoAsUnderway, or RotateToRollAngle cancelling the Home/Park)."""
+        if self.mode in ('HOMING', 'PARKING'):
+            self.logger.info(f'GOTO interrupts {self.mode}')
+            self.homing_complete_callback = None
+            self.parking_complete_callback = None
             self.set_pid_mode('AUTO')
 
     def set_delta_axis_velocity(self, axis, sp=0.0):
@@ -1298,6 +1356,7 @@ class PID_Controller():
             self.set_pid_mode('TRACK')
     
     def set_pano_offset(self, offsets):
+        self.interrupt_worm_test('pano offset')
         dictmap = {
             'ra': (self.delta_offst, 0),
             'dec': (self.delta_offst, 1),
@@ -1315,39 +1374,19 @@ class PID_Controller():
         if self.mode=="IDLE":
             self.set_pid_mode("AUTO")
 
-
-    def pulse_delta_axis(self, direction, duration):
-        if self.mode!="TRACK":
+    def set_zeta_ref(self, zeta):
+        """Target raw motor angles (zeta, as the 517 reports them): driven straight there in HOMING/PARKING mode."""
+        if self.mode in ['PRESETUP']:
             return
-        axis = None
-        sign = 0
-        if direction == 0: axis, sign = 1, +1    # North
-        elif direction == 1: axis, sign = 1, -1  # South
-        elif direction == 2: axis, sign = 0, +1  # East
-        elif direction == 3: axis, sign = 0, -1  # West
-        else:
-            self.logger.warning(f"Invalid pulse guide direction: {direction}")
-            return
-        # accumulate the pulse guide durations on the relevant axis
-        with self._lock:
-            current = self.delta_g_sp[axis]
-            proposed = current + sign * duration
-            clamped = max(-10_000, min(10_000, proposed))
-            self.delta_g_sp[axis] = clamped
+        self.reset_offsets()
+        self.target_type = "ZETA"
+        self.zeta_ref = np.array(zeta, dtype=float)
 
     def set_zeta_ref_to_home(self):
-        if self.mode in ['PRESETUP']:
-            return
-        self.reset_offsets()
-        self.target_type = "ZETA"
-        self.zeta_ref = np.zeros(3, dtype=float)
+        self.set_zeta_ref([0.0, 0.0, 0.0])
 
     def set_zeta_ref_to_park(self):
-        if self.mode in ['PRESETUP']:
-            return
-        self.reset_offsets()
-        self.target_type = "ZETA"
-        self.zeta_ref = np.array([Config.m1_park, Config.m2_park, Config.m3_park], dtype=float)
+        self.set_zeta_ref([Config.m1_park, Config.m2_park, Config.m3_park])
 
     async def set_tle_orbital_target(self, name):
         self.reset_offsets()
@@ -1374,6 +1413,7 @@ class PID_Controller():
             self.orbital_sp_fetchmsg = f'Cannot find orbital with name "{name}"'
 
     def rotator_move_relative(self, sp=0.0):
+        self.interrupt_worm_test('rotator move')
         if self.mode in ['PRESETUP', 'PARK', 'LIMIT']:
             return
         axis=2
@@ -1387,14 +1427,27 @@ class PID_Controller():
         return self.time_goto and (ephem.now() - self.time_goto) * 24 * 3600 > 45
     
     def set_goto_complete_callback(self, fn):
+        self.move_planned = None                     # plan_goto decides once per goto whether to plan it
+        self.lock_checked = False
+        self.room_checked = False
         self.is_deviating = True
         self.time_goto = ephem.now()
+        self.goto_started = time.monotonic()         # for the completion log line (time_goto moves with planned moves)
+        self._plan_logged, self._pid_reason = False, None
         self.goto_complete_callback = fn
               
     def set_rotate_complete_callback(self, fn):
+        self.move_planned = None
+        self._plan_logged, self._pid_reason = False, None
+        self.lock_checked = False
+        self.room_checked = False
         self.is_deviating = True
+        # the goto timeout (shared: a rotate often follows a goto closely, and replans it): without one a rotate that
+        # never arrived left the Pilot's Rotating indicator, and ASCOM IsMoving, on until the next move (2026-10-19)
+        self.time_goto = ephem.now()
+        self.rotate_started = time.monotonic()       # for the completion log line
         self.rotate_complete_callback = fn
-              
+
     def set_slew_complete_callback(self, fn):
         self.is_slewing = True
         self.slew_complete_callback = fn
@@ -1402,62 +1455,80 @@ class PID_Controller():
     def set_parking_complete_callback(self, fn):
         self.parking_complete_callback = fn
               
+    def set_homing_complete_callback(self, fn):
+        self.homing_complete_callback = fn
+              
     def ack_limit_alarm(self):
         self.ack_limit_timestamp = datetime.datetime.now()
         self.set_pid_mode('IDLE')
 
-    #------- Control step functions ---------
+    def set_theta_ref_cache(self, cause, theta, settle_all=False):
+        # an unwind/flip is driven by the PID to the end of this goto: the planner must not take over
+        # from it mid-move (it would plan from rest while the mount runs at full speed, and overshoot)
+        self.goto_traj = None
+        self.move_planned = False
+        self.omega_ff_shaped = np.zeros(3, dtype=float)
+        self.theta_ref = theta
+        self.theta_ref_cache = theta
+        self.theta_ref_cache_cause = cause
+        self.theta_ref_cache_settle_all = settle_all   # the cache is the goal itself: hold it until all axes are close
 
-    def quaternion_motor_error(self, theta_ref, theta_meas):
+    def clear_theta_ref_cache(self):
+        self.theta_ref_cache = None
+        self.theta_ref_cache_cause = None
+        
+    def check_latlon_configured(self):
+        """Enter/leave PRESETUP mode based on whether a real observing site has been configured,
+        i.e. whether lat/lon still match the factory-default (Sydney Observatory) coordinates.
         """
-        Compute motor-space error using two algorithms
-        1. For small errors just calculate error between theta_ref and theta_meas
-        2. For large errors (>5 deg) calculate error based on current motor angle plus a small quaternion error delta.
-
-        The second approach ensure smooth quaternion based transition across wide errors and minimises M1/M2 deviation.
-        Unforunately it is not stable for all potential problem space, so we resort to method 1 always.
-        """
-        # --- 1. Calc basic theta_error and return if less than 5 degrees.
-        theta_err = clamp_error(theta_ref, theta_meas)
-        return theta_err
-    
-        if np.all(np.abs(theta_err) < 5.0):
-            return theta_err
-
-        # --- 2. Build reference and measured quaternions ---
-        q_ref  = motors_to_quaternion(theta_ref[0],  theta_ref[1],  theta_ref[2])
-        q_meas = motors_to_quaternion(theta_meas[0],  theta_meas[1],  theta_meas[2])
-
-        # --- Compute quaternion error ---
-        q_err = q_meas.inverse * q_ref
-        if q_err[0] < 0:  # shortest rotation
-            q_err = -q_err
-        q_err = q_err.normalised
-
-        # --- Extract axis-angle from quaternion ---
-        w, x, y, z = q_err
-        theta_rad = 2 * np.arccos(np.clip(w, -1.0, 1.0)) 
-        sin_half_theta = np.sqrt(1 - w*w)
-        if sin_half_theta < 1e-8:
-            axis = np.array([1.0, 0.0, 0.0])  # arbitrary for near-zero rotation
+        lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
+        lon_unchanged = abs(rad2deg(float(self.observer.lon)) - 151.2021771) <= 0.00001
+        if lat_unchanged and lon_unchanged:
+            self.set_pid_mode('PRESETUP')
         else:
-            axis = np.array([x, y, z]) / sin_half_theta
+            if self.mode=='PRESETUP':
+                self.set_pid_mode('IDLE')
 
-        # --- Clamp rotation for linear approximation ---
-        max_rad_per_s = np.radians(15)       # max motor speed
-        if theta_rad > max_rad_per_s:
-            q_err = Quaternion(axis=axis, radians=max_rad_per_s)
 
-        # --- Apply small rotation to current motor angles ---
-        q_target = q_meas * q_err
+    #------- Control step functions ---------
+    def alpha_limit_step(self, alpha_pv, alpha_ref, max_step_deg=12, min_frac=0.01):
+        """
+        Step toward alpha_ref from alpha_pv.
+        Az/alt are stepped in SO(3) (geodesic, well-behaved near zenith).
+        Roll is stepped independently in angle space (preserves az/alt during roll-only moves).
+        Within one step of alpha_ref as a whole pose it is alpha_ref: near the zenith Az and roll are the same rotation,
+        and a pose a few arcmin away can read as 90 deg of Az and -90 of roll, whose partial roll step lands far from
+        both (M2 off by 5 deg tracking at the zenith in eq mode, then FLIPs into LIMIT).
+        """
+        if quaternion_difference(azaltroll_to_q(*alpha_pv), azaltroll_to_q(*alpha_ref))[0] <= max_step_deg:
+            return np.array(alpha_ref, dtype=float)
+        # ── Az/alt component: step in SO(3) using boresight vectors ──────────
+        # Build quaternions with roll=0 for both pv and ref
+        # This isolates the az/alt motion from roll
+        q_pv_noroll  = azaltroll_to_q(alpha_pv[0],  alpha_pv[1],  0.0)
+        q_ref_noroll = azaltroll_to_q(alpha_ref[0], alpha_ref[1], 0.0)
 
-        # --- Convert back to motor angles and calc error ---
-        theta_target = np.array(quaternion_to_motors(q_target))
-        theta_err = clamp_error(theta_target, theta_meas)
+        azalt_angle, _, _ = quaternion_difference(q_pv_noroll, q_ref_noroll)
+        roll_delta = wrap180(alpha_ref[2] - alpha_pv[2])
+        total_travel = max(azalt_angle, abs(roll_delta))
 
-        return theta_err
+        if total_travel < 1e-6:
+            return alpha_ref
 
+        frac = np.clip(max_step_deg / total_travel, min_frac, 1.0)
+
+        # Step az/alt via slerp (geodesic, singularity-safe)
+        q_step_noroll = Quaternion.slerp(q_pv_noroll, q_ref_noroll, frac)
+        az_step, alt_step, _ = q_to_azaltroll(q_step_noroll)
+
+        # Step roll linearly (independent axis, preserves az/alt)
+        roll_step = alpha_pv[2] + frac * roll_delta
+
+        return np.array([az_step, alt_step, roll_step])
+    
+    
     def track_target(self):
+        self.ramp_jog_rates()       # the jog rates this step integrates below
         # Update alpha_ref based on current mode
         if self.mode in ['PRESETUP', 'PARKING', 'HOMING', 'PARK', 'LIMIT']:
             self.reset_sp()
@@ -1465,120 +1536,883 @@ class PID_Controller():
         elif self.mode in ['IDLE']:
             if (self.alpha_ref[0]==0):                       # only reset sp in special case
                 self.reset_sp()
-            self.alpha_offst = np.zeros(3, dtype=float)      # in case we switch to AUTO
 
         elif self.mode == 'AUTO':
-            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
             self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
             self.delta2body(self.delta_ref)
-            # when in AUTO ignore body, and use the alpha_sp + alpha_offset
-            self.alpha_offst = clamp_alpha(self.alpha_offst + self.dt * self.alpha_v_sp)
+            # az/alt/roll jog -- native offset passthrough
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self._native_alpha_v_sp())
             self.alpha_ref = clamp_alpha(self.alpha_sp + self.alpha_offst)
-
+            
         elif self.mode == 'TRACK':
-            # update delta_sp based on any non-sidereal tracking (Lunar, Solar, Other)
+            if self._has_active_jog():
+                self.interrupt_worm_test('jog')
             self.orbital2delta()
-            # Apply relevant guiderate if delta_g_sp duration is non-zero
-            for axis in [0, 1]:  # RA, Dec
-                with self._lock:
-                    duration = self.delta_g_sp[axis]        # remaining pulse guide duration in ms
-                    if duration != 0:
-                        sign = np.sign(duration)
-                        remaining_ms = abs(duration)
-                        step_ms = min(remaining_ms, self.dt * 1000)  # apply only up to what's left
-                        step_sec = step_ms / 1000.0
-                        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
-                        self.delta_offst[axis] += step_sec * velocity
-                        self.delta_g_sp[axis] -= sign * step_ms
-                        self.delta_g_sp[axis] = int(self.delta_g_sp[axis])  # ensure it's cleanly integral
-            if np.all(self.delta_g_sp[:2] == 0):
-                with self.polaris._lock:
-                    self.polaris._ispulseguiding = False
-            # Apply relevant delta slew velocities
-            self.delta_offst = clamp_delta(self.delta_offst + self.dt * self.delta_v_sp)
+
+            # Glat/Glon/GPA jog
+            delta_sp_clamped = clamp_delta(self.delta_sp)
+            self.gamma_offst = clamp_offset(self.gamma_offst + self.dt * self._native_gamma_v_sp())
+            if np.any(self.gamma_offst):
+                gamma_base_sp = delta_to_gamma(delta_sp_clamped)
+                delta_from_gamma = gamma_to_delta(gamma_base_sp + self.gamma_offst)
+                delta_with_gamma_jog = delta_from_gamma if delta_from_gamma is not None else delta_sp_clamped
+            else:
+                delta_with_gamma_jog = delta_sp_clamped
+            # RA/Dec/PA jog
+            self.delta_offst = clamp_offset(self.delta_offst + self.dt * (self.delta_v_sp + self._native_delta_v_sp()))
             self.delta_ref_last = self.delta_ref
-            self.delta_ref = clamp_delta(self.delta_sp + self.delta_offst)
+            self.delta_ref = clamp_delta(delta_with_gamma_jog + self.delta_offst)
             self.delta2body(self.delta_ref)
-            self.alpha_ref = clamp_alpha(self.body2alpha())
-            self.alpha_sp = self.alpha_meas             # in case we switch to AUTO
+            # Az/Alt/Roll jog 
+            tracked_alpha = self.body2alpha()
+            self.alpha_offst = clamp_offset(self.alpha_offst + self.dt * self._native_alpha_v_sp())
+            self.alpha_ref = clamp_alpha(tracked_alpha + self.alpha_offst)
+            self.alpha_sp = self.alpha_pv
 
-        # Convert alpha_ref to theta_ref
-        a_az, a_alt, a_roll = self.alpha_ref
-        if Config.advanced_rotator and Config.advanced_control:
-            a_roll = self.polaris._sm.roll_ascom2polaris(a_roll)
+        # Remember cameraQ_ref and last cameraQ_ref for calculating FF
+        self.alpha_ref = self._reachable_alpha(self.alpha_ref)
+        self.gamma_sp = delta_to_gamma(self.delta_ref)
+        cameraQ_ref = azaltroll_to_q(*self.alpha_ref)
+        if self.cameraQ_ref is None:
+            # first run — no previous reference
+            self.cameraQ_ref = cameraQ_ref
+            self.cameraQ_ref_last = cameraQ_ref
+        else:
+            self.cameraQ_ref_last = self.cameraQ_ref
+            self.cameraQ_ref = cameraQ_ref
 
-        q1 = angles_to_quaternion(a_az, a_alt, a_roll)
+        # With coordinated_speed_control an AUTO goto follows a planned trajectory instead
+        if self.plan_goto():
+            return
+        self._log_pid_plan()
 
-        if Config.advanced_alignment and Config.advanced_control:
-            q1 = self.polaris._sm.q1_adj.inverse * q1
+        # Step in alpha space with az/alt locked during roll changes
+        alpha_step = self.alpha_limit_step(self.alpha_pv, self.alpha_ref)
+        cameraQ_step = azaltroll_to_q(*alpha_step)  
+        
+        # IK from the stepped alpha
+        motorQ_ref   = self.polaris._sm.topoQ_to_baseQ(cameraQ_step)
 
-        theta1,theta2,theta3,_,_,_ = quaternion_to_angles(q1)
-        self.theta_ref_last = self.theta_ref
-        self.theta_ref = np.array([theta1,theta2,theta3])
-    
-    def measure(self, delta_meas, alpha_meas, theta_meas, zeta_meas):
+        # Near gimbal lock an Az/Alt jog is walked in motor angles: it holds Az and Roll, and through Alt 0 with any
+        # roll that pose needs M3 to swing 90 deg and M1 against it. At 9 deg/s the reference stepped over the lock
+        # zone and swung M1/M3 30-70 deg, which the FLIP check then drove to (field 2026-10-17, M2 at -3).
+        # theta_rates drops the roll the motors can't make there; the setpoint follows, so the jog ends where it is
+        jogging = self.dt > 0 and any(v != 0.0 for v in self._jog_rates().values())
+        if (jogging and self.mode == 'AUTO' and abs(float(self.theta_pv[1])) < self.JOG_LOCK_DEG
+                and self.zeta_meas is not None):
+            base = self._jog_theta if self._jog_theta is not None else np.array(self.theta_ref, dtype=float)
+            self.theta_ref = base + self._jog_omega_at(base, self._jog_rates()) * self.dt
+            # M2 within the references' range: past it the IK path (below) takes over and flips, as it always has
+            self.theta_ref[1] = float(np.clip(self.theta_ref[1], THETA2_MIN, THETA2_MAX))
+            self._jog_theta = self.theta_ref.copy()
+            sm = self.polaris._sm
+            self.alpha_sp[:] = q_to_azaltroll(sm.pvQ_to_topoQ(theta_to_q(*self.theta_ref)))
+            self.alpha_offst[:] = 0.0
+            self.alpha_ref = np.array(self.alpha_sp, dtype=float)
+            return
+        self._jog_theta = None
+
+        # Apply any jog contributions (in Base frame) to the motorQ_ref
+        if self.dt > 0 and any(v != 0.0 for v in self._jog_rates().values()):
+            q_jog = Quaternion(1, 0, 0, 0)
+            for axis_name, rate_dps in self._jog_rates().items():
+                if rate_dps == 0.0:
+                    continue
+                triad_attr, idx = AXIS_MAP[axis_name]
+                triad = getattr(self.polaris._sm, triad_attr, None)
+                if triad is None or triad[idx] is None:
+                    continue
+                sign = -1.0 if axis_name in AXIS_NEGATE else 1.0
+                # composed onto motorQ_ref -- Base frame axis onto Base frame
+                # quaternion, matching the pattern verified in feed_forward
+                q_jog = Quaternion(axis=triad[idx], degrees=sign * rate_dps * self.dt) * q_jog
+            motorQ_ref = (q_jog * motorQ_ref).normalised
+
+        self.theta_ref = np.array(q_to_theta(motorQ_ref, self._lp))
+        if self._has_active_jog() and is_flip(self.theta_pv, self.theta_ref):
+            self._stop_jog_at_edge()
+
+    def _stop_jog_at_edge(self):
+        """A jog whose reference went onto the other IK branch -- past the M2 overlap below the horizon, or over the
+        top -- would swing M1/M3 ~180 deg (a FLIP, which UNWIND then turned into a 540 deg M1 turn: field 2026-10-29,
+        an Alt jog to -8). Stop the jog where the mount is instead; a goto still flips when asked for the other side."""
+        self.logger.warning(f'JOG stopped: going on needs M1/M3 to swing round to the other side '
+                            f'(M2 {float(self.theta_pv[1]):+.1f})')
+        self.reset_offsets()                              # clears the jog
+        self.axis_v_act = {k: 0.0 for k in AXIS_MAP}
+        self.alpha_v_sp = np.zeros(3, dtype=float)
+        self.delta_v_sp = np.zeros(3, dtype=float)
+        # hold (or track from) where the mount is, with M2 a little inside its range: on the edge itself the held
+        # pose resolved onto the other branch the next tick and flipped anyway
+        theta_hold = np.array(self.theta_pv, dtype=float)
+        theta_hold[1] = float(np.clip(theta_hold[1], THETA2_MIN + self.JOG_EDGE_MARGIN_DEG, THETA2_MAX - self.JOG_EDGE_MARGIN_DEG))
+        alpha_hold = np.array(q_to_azaltroll(self.polaris._sm.pvQ_to_topoQ(theta_to_q(*theta_hold))), dtype=float)
+        self.alpha2body(alpha_hold)
+        self.delta_ref = self.body2delta()
+        self.delta_sp = self.delta_ref
+        self.alpha_ref = alpha_hold.copy()
+        self.alpha_sp = alpha_hold.copy()
+        self.theta_ref = theta_hold
+        self.ff_inhibit_ticks = 2
+        self.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)
+
+    JOG_EDGE_MARGIN_DEG = 0.5                        # a jog stopped at the M2 edge holds this far inside it
+
+    JOG_LOCK_DEG = 6.0                               # |theta2| below this: Az/Alt/Roll jogs walk in motor angles
+    JOG_LOCK_RCOND = 0.1                             # ... dropping pointing motion the motors can hardly make there
+    GOTO_RETARGET_DEG = 0.5 / 60                     # re-plan when the goto target moves more than this
+    GOTO_RATE_SHARE = 0.8                            # planner speed as a share of Kv (headroom for feedback). 0.9 (tried
+                                                     # 2026-10-19): gotos 23.4 -> 21.4 s median on the twin, but a short goto
+                                                     # into gimbal lock reversed M1 3 times and a 3 deg/s Az jog overshot
+                                                     # 101' (58' at 0.8) on the mount
+    GOTO_MAX_ACCEL = 5.0                             # planner/jog acceleration, deg/s^2 (FAST motion follows the MCU's own slow ramp)
+
+    GOTO_CONTROLLED_PATH_DEG = 15.0                  # idle gotos moving the pointing further go straight in motor angles
+
+    SMALL_MOVE_DEG = 0.25                            # moves shorter than this (motor travel) stay at SLOW speeds...
+    SMALL_MOVE_RATE = 0.21                           # ...where the motors run accurately in position mode (deg/s)
+
+    def plan_goto(self):
+        """coordinated_speed_control: drive theta_ref along a GotoTrajectory with its velocity as shaped
+        feed-forward - for a goto when not tracking (planned in Az/Alt/Roll, holding Az/Alt through roll
+        changes), and for a goto/rotate while tracking (planned in RA/Dec/PA, holding RA/Dec through PA
+        changes, converted to motor angles at the current time). Returns True when it set theta_ref."""
+        if self.goto_traj is not None and self.goto_traj.space == 'THETA':
+            # a straight move in motor angles (an idle goto past GOTO_CONTROLLED_PATH_DEG, or set by prevent_windup,
+            # e.g. a flip past gimbal lock)
+            if (self.theta_ref_cache is None and self.mode in ('AUTO', 'TRACK') and not self._has_active_jog()
+                    and not self.goto_traj.done and self.dt > 0):
+                # against the target it was asked for, not delta_goal: where the PA isn't reachable (M2 at its limit),
+                # delta_goal's PA is the reachable one, 25 deg off, and the move was re-planned every tick, never
+                # ending (a 3 deg goto at Alt 82 timed out)
+                delta_goal = getattr(self.goto_traj, 'delta_requested', getattr(self.goto_traj, 'delta_goal', None))
+                if (delta_goal is not None and self.mode == 'TRACK'
+                        and self._alpha_distance(delta_goal, self.delta_ref) > self.GOTO_RETARGET_DEG):
+                    self.goto_traj, self.move_planned = None, None    # a new target while tracking: plan again
+                    return self.plan_goto()
+                if (self.goto_traj.alpha_goal is not None and self.mode == 'AUTO'
+                        and self._alpha_distance(self.goto_traj.alpha_goal, self.alpha_ref) > self.GOTO_RETARGET_DEG):
+                    theta_goal = self._straight_goal(np.array(self.alpha_ref, dtype=float))   # redirected mid-move
+                    if theta_goal is not None:
+                        self.goto_traj.retarget(theta_goal)
+                        self.goto_traj.alpha_goal = np.array(self.alpha_ref, dtype=float)
+                self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                return True
+            if getattr(self.goto_traj, 'delta_goal', None) is not None and self.goto_traj.done:
+                self.move_planned = False                 # a goto while tracking: tracking and the PID close the rest
+                                                          # (a sampled GotoTrajectory replan cost ~1,800 calls a tick, R4)
+            self.goto_traj = None                         # finished (or interrupted): the PID finishes the goto
+            return False
+        tracking_move = self.mode == 'TRACK' and self.move_pending()
+        active = (Config.coordinated_speed_control and (self.mode == 'AUTO' or tracking_move)
+                  and self.theta_ref_cache is None and not self._has_active_jog() and self.dt > 0)
+        if self.goto_traj is not None and (not active or self.goto_traj.space != self.mode):
+            self.goto_traj = None
+        if not active:
+            self._pid_reason = ('coordinated speed control off' if not Config.coordinated_speed_control
+                                else 'finishing a FLIP/UNWIND' if self.theta_ref_cache is not None else None)
+            return False
+        if self.mode == 'TRACK':
+            goal, start, to_theta = self._reachable_delta(self.delta_ref), np.array(self.delta_pv, dtype=float), self._delta_to_theta
+        else:
+            goal, start, to_theta = np.array(self.alpha_ref, dtype=float), np.array(self.alpha_pv, dtype=float), self._alpha_to_theta
+        self.set_Ka_array(Config.pid_Ka)
+        self.set_Kv_array(Config.pid_Kv)
+        if self.goto_traj is None:
+            if self.move_planned is False:
+                return False                              # decided for this goto: not planned
+            if self._alpha_distance(start, goal) <= self.GOTO_RETARGET_DEG:
+                return False                              # already there: hold/track as before
+            theta_pv = np.array(self.theta_pv, dtype=float)
+            theta_end = to_theta(goal, theta_pv) if self.mode == 'AUTO' else None
+            # a move (not a settling correction after one: those were each planned straight again, 0.1-0.8 s apiece)
+            lock_goal = (theta_end is not None and abs(float(theta_end[1])) < LOCK_SOLUTION_DEG
+                         and float(np.max(np.abs(theta_end - theta_pv))) > self.SMALL_MOVE_DEG)
+            if self.mode == 'AUTO' and (self._pointing_distance(start, goal) > self.GOTO_CONTROLLED_PATH_DEG or lock_goal):
+                # a slew: fast and straight in motor angles to the end solution chosen now (study design item 2). Also
+                # any goto ending in gimbal lock: holding the pointing on the way in needs M1/M3 counter-rotating, and
+                # a sampled path from Alt 12 into Alt 0 drove them back and forth at up to 2 deg/s (field: a stutter)
+                theta_goal = self._straight_goal(goal)
+                if theta_goal is not None:
+                    self.goto_traj = self._motor_move(theta_goal)
+                    self.goto_traj.alpha_goal = goal.copy()
+                    self.room_checked = self.lock_checked = True    # the plan chose the end solution (with room)
+                    why = ('ending in gimbal lock' if lock_goal and self._pointing_distance(start, goal) <= self.GOTO_CONTROLLED_PATH_DEG
+                           else f'pointing change {self._pointing_distance(start, goal):.0f} deg')
+                    self._log_plan(f'fast in motor angles ({why})', theta_goal, self.goto_traj.duration,
+                                   getattr(self.goto_traj, 'cause', None))
+                    if self.time_goto:                    # the goto timeout allows for the planned move
+                        self.time_goto += self.goto_traj.duration / (24 * 3600)
+                    if wraps_cables(theta_pv, theta_goal):
+                        self.logger.warning(f'FLIP turns M1 and M3 in the same direction: no opposite turn fits the '
+                                            f'motor limits (z1 {self.zeta_meas[0]:+.0f}, z3 {self.zeta_meas[2]:+.0f})')
+                    self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                    return True
+            travel = float(np.max(np.abs(to_theta(goal, theta_pv) - theta_pv)))
+            if self.mode == 'TRACK' and not self._is_roll_move(start, goal):
+                move = self._tracking_move(goal, small=travel <= self.SMALL_MOVE_DEG)
+                if move is not None:
+                    self.goto_traj = move
+                    self.room_checked = self.lock_checked = True    # the plan chose the end solution: no EQ ROOM
+                                                                    # turn on top (a 0.02 deg dither turned M1 360)
+                    how = ('slow while tracking (small move)' if travel <= self.SMALL_MOVE_DEG
+                           else f'fast while tracking (aimed {move.duration:.0f} s ahead)')
+                    self._log_plan(how, move.goal, move.duration, getattr(move, 'cause', None))
+                    if self.time_goto:                    # the goto timeout allows for the planned move
+                        self.time_goto += move.duration / (24 * 3600)
+                    self.theta_ref, self.omega_ff_shaped = move.step(self.dt)
+                    return True
+            if self.mode == 'TRACK':
+                # decide once per goto: plan small corrections and roll/PA changes; a large move while
+                # tracking is closed directly by the PID (planning it would end in FAST-lag overshoot)
+                self.move_planned = bool(travel <= self.SMALL_MOVE_DEG or self._is_roll_move(start, goal))
+                if not self.move_planned:
+                    self._pid_reason = 'no straight move to it while tracking'
+                    return False
+            rate = self.SMALL_MOVE_RATE if travel <= self.SMALL_MOVE_DEG else np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
+            # a roll/PA change runs at full speed: how far the pointing leaves the path scales with the speed (the
+            # motors' timing mismatch), but in the twin it stays 47-94' uncalibrated (7-20' with M1/M3 FAST
+            # calibrated) against 180-530' with the previous controller, and a +45 roll takes 18-23 s (56 s at 1 deg/s)
+            slow = travel <= self.SMALL_MOVE_DEG                 # SLOW speeds: no FAST lag (see _motor_move)
+            self.goto_traj = GotoTrajectory(to_theta, rate, min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL),
+                                            np.full(3, float(Config.pid_Kt)),     # M3 read current: KalmanFilter._m3_rows
+                                            0.0 if slow else float(Config.pid_Kl))
+            self.goto_traj.space = self.mode
+            self.goto_traj.start(start, theta_pv, goal)
+            if self.mode == 'AUTO' and not self.goto_traj.branch_change and self.zeta_meas is not None:
+                lo, hi = self._theta_limits()
+                path = self.goto_traj.path_thetas
+                if np.any(path < lo - 1e-6) or np.any(path > hi + 1e-6):
+                    # the controlled path leaves the motor limits (near the zenith a few deg of pointing can swing
+                    # M1 past its stop): straight in motor angles to the chosen end solution instead (design item 2)
+                    theta_goal = self._straight_goal(goal)
+                    if theta_goal is not None:
+                        self.goto_traj = self._motor_move(theta_goal)
+                        self.goto_traj.alpha_goal = goal.copy()
+                        self.room_checked = self.lock_checked = True
+                        self._log_plan('fast in motor angles (a steady path would pass a motor limit)', theta_goal,
+                                       self.goto_traj.duration, getattr(self.goto_traj, 'cause', None))
+                        if self.time_goto:                    # the goto timeout allows for the planned move
+                            self.time_goto += self.goto_traj.duration / (24 * 3600)
+                        self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                        return True
+            if self.time_goto and not self.goto_traj.branch_change:
+                # the goto timeout allows for the planned path: a 30 deg roll change at 1 deg/s, asked for 11 s into
+                # a goto, timed out still settling
+                self.time_goto += self.goto_traj.duration / (24 * 3600)
+            if not self.goto_traj.branch_change:
+                if self._is_roll_move(start, goal):
+                    why = f'{"PA" if self.mode == "TRACK" else "roll"} change {abs(wrap180(goal[2] - start[2])):.0f} deg'
+                else:
+                    why = f'pointing change {self._pointing_distance(start, goal):.1f} deg'
+                at = (f'at RA {goal[0] / 15:.4f}h Dec {goal[1]:+.4f}' if self.mode == 'TRACK'
+                      else f'at Az {goal[0]:.3f} Alt {goal[1]:+.3f}')
+                self._log_plan(f'steady pointing path ({why}), {at}', duration=self.goto_traj.duration)
+        elif self._alpha_distance(self.goto_traj.goal, goal) > self.GOTO_RETARGET_DEG:
+            if self.mode == 'AUTO' and self.goto_traj._speed > self.SMALL_MOVE_RATE:
+                # redirected at speed: the new path heads elsewhere in motor space, and carrying the path speed onto
+                # it stepped each motor's speed (4.9 -> 0.6 deg/s in a tick). Straight in motor angles from the
+                # motors' speeds now instead (R2), as a slew is
+                theta_goal = self._straight_goal(goal)
+                if theta_goal is not None:
+                    self.goto_traj = self._motor_move(theta_goal)
+                    self.goto_traj.alpha_goal = goal.copy()
+                    self.room_checked = self.lock_checked = True
+                    self._log_plan('fast in motor angles (redirected at speed)', theta_goal, self.goto_traj.duration,
+                                   getattr(self.goto_traj, 'cause', None))
+                    if self.time_goto:                    # the goto timeout allows for the planned move
+                        self.time_goto += self.goto_traj.duration / (24 * 3600)
+                    self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+                    return True
+            if self._alpha_distance(self.goto_traj.goal, goal) > self.SMALL_MOVE_DEG:
+                # a new goto, not a nudge: planned afresh. Retargeted, a goto sent while the last one's final
+                # correction (a small move, capped at SMALL_MOVE_RATE) ran crept 80 deg at 0.21 deg/s and timed out
+                # (field 2026-10-17, pano panel 14 -> 12), and skipped the straight move a slew gets
+                self.goto_traj, self.move_planned = None, None
+                return self.plan_goto()
+            self.goto_traj.retarget(goal)
+        if self.goto_traj.branch_change:
+            self.goto_traj = None                         # needs an IK branch change: the PID and its FLIP
+            self.move_planned = False                     # handling take this goto (not walkable by the planner)
+            self._pid_reason = 'the path needs an IK branch change'
+            return False
+        self.lock_checked = True                          # the planned path was sampled and stays on its branch: no
+                                                          # gimbal-lock path check on top (~360 kinematics calls)
+        if self.mode == 'TRACK' and self.goto_traj.done:
+            self.goto_traj = None                         # arrived: normal tracking takes over from here,
+            self.move_planned = False                     # and the PID finishes this goto (no re-planning)
+            return False
+        self.theta_ref, self.omega_ff_shaped = self.goto_traj.step(self.dt)
+        return True
+
+    def _log_plan(self, how, end=None, duration=None, cause=None):
+        """The goto's one "GOTO plan:" line: how it is managed (the settling corrections after a move add none)."""
+        if self._plan_logged:
+            return
+        self._plan_logged = True
+        msg = f'GOTO plan: {how}'
+        if end is not None:
+            msg += f' to M1 {end[0]:+.1f} M2 {end[1]:+.1f} M3 {end[2]:+.1f}'
+        if duration is not None:
+            msg += f', est duration {duration:.1f} s'
+        if cause:
+            msg += f', {cause}'
+        self.logger.info(msg)
+
+    def _log_pid_plan(self):
+        """A pending goto plan_goto left to the PID: its "GOTO plan:" line, with the target and why."""
+        if self._plan_logged or not self.move_pending() or self.mode not in ('AUTO', 'TRACK') or self._has_active_jog():
+            return
+        why = f' ({self._pid_reason})' if self._pid_reason else ''
+        if self.mode == 'TRACK':
+            d = self.delta_ref
+            self._log_plan(f'PID controlled{why} to tracked target at RA {d[0] / 15:.4f}h Dec {d[1]:+.4f} PA {d[2]:.2f}')
+        else:
+            a = self.alpha_ref
+            self._log_plan(f'PID controlled{why} to fixed target at Az {a[0]:.3f} Alt {a[1]:+.3f} Roll {a[2]:+.2f}')
+
+    def _pointing_distance(self, a, b):
+        """Great circle distance (deg) between the pointings of two Az/Alt/Roll poses."""
+        return float(quaternion_difference(azaltroll_to_q(a[0], a[1], 0.0), azaltroll_to_q(b[0], b[1], 0.0))[0])
+
+    def _theta_limits(self):
+        """Motor-angle limits (lo, hi) for an end solution: the raw zeta limits less the safety margin on M1/M3,
+        M2 within the reference range."""
+        offset = np.array(self.theta_pv, dtype=float) - np.array(self.zeta_meas, dtype=float)
+        safety = Config.zeta_safety_margin
+        lo = np.array([Config.z1_min_limit + safety, Config.z2_min_limit, Config.z3_min_limit + safety]) + offset
+        hi = np.array([Config.z1_max_limit - safety, Config.z2_max_limit, Config.z3_max_limit - safety]) + offset
+        lo[1], hi[1] = max(lo[1], THETA2_MIN), min(hi[1], THETA2_MAX)
+        return lo, hi
+
+    def _straight_goal(self, alpha_goal):
+        """The end solution of a straight goto to alpha_goal: within the motor limits, in eq mode leaving M1 a night's
+        tracking room where any does, then the fastest from the current state. None if none is in reach (or the
+        motor angles aren't known yet)."""
+        if self.zeta_meas is None:
+            return None
+        lo, hi = self._theta_limits()
+        sm = self.polaris._sm
+        solutions = theta_solutions(sm.topoQ_to_baseQ(azaltroll_to_q(*alpha_goal)), lo, hi)
+        has_room = None
+        if Config.advanced_eq_mode:
+            lat = math.radians(self.polaris._sitelatitude)
+            direction = np.dot(sm.alignQ_B2T.rotate([0.0, 0.0, 1.0]), [0.0, math.cos(lat), math.sin(lat)])
+            has_room = lambda t: (t[0] - lo[0] if direction < 0 else hi[0] - t[0]) >= EQ_MIN_TRACK_ROOM_DEG
+        self.set_Ka_array(Config.pid_Ka)
+        self.set_Kv_array(Config.pid_Kv)
+        theta_now, rate = np.array(self.theta_pv, dtype=float), np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE
+        accel = min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL)
+        offset = theta_now - np.array(self.zeta_meas, dtype=float)
+        twist = lambda t: (t[0] - offset[0]) + (t[2] - offset[2])    # net cable twist: raw M1 + M3
+        i = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel, has_room, twist)
+        untwisted = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel, has_room)
+        if i is not None and untwisted != i:
+            slower = (move_time(theta_now, solutions[i], self.omega_ff_shaped, rate, accel)
+                      - move_time(theta_now, solutions[untwisted], self.omega_ff_shaped, rate, accel))
+            self.logger.info(f'GOTO end solution M1 {solutions[i][0]:+.1f} M3 {solutions[i][2]:+.1f} for the cables (twist '
+                             f'{twist(solutions[i]):+.0f}, not {twist(solutions[untwisted]):+.0f}; {slower:.0f} s slower)')
+        if i is not None and has_room is not None:
+            fastest = choose_end_solution(solutions, theta_now, self.omega_ff_shaped, rate, accel)
+            if fastest != i:
+                slower = (move_time(theta_now, solutions[i], self.omega_ff_shaped, rate, accel)
+                          - move_time(theta_now, solutions[fastest], self.omega_ff_shaped, rate, accel))
+                self.logger.info(f'GOTO end solution M1 {solutions[i][0]:+.1f} for tracking room (not {solutions[fastest][0]:+.1f}, '
+                                 f'{slower:.0f} s slower)')
+        return None if i is None else solutions[i]
+
+    def _tracking_move(self, delta_goal, small=False):
+        """A straight MotorMove for a goto while tracking: to the end solution for where the target will be when the
+        move ends (planned once to know how long it takes, then aimed that far ahead). None if no end solution is in
+        reach (the PID then takes the goto as before). small (a dither, a re-centre): on the current IK branch at
+        SLOW speeds, where straight in motor angles is straight on the sky; the sampled GotoTrajectory it replaces
+        cost ~1,400 kinematics calls in a tick (R4)."""
+        rate = self.SMALL_MOVE_RATE if small else None
+        theta_pv = np.array(self.theta_pv, dtype=float)
+        theta_goal = (self._delta_to_theta(delta_goal, theta_pv) if small
+                      else self._straight_goal(np.array(self.alpha_ref, dtype=float)))
+        if theta_goal is None:
+            return None
+        # the target's motion in motor angles at the goal (its tracking rates there): the move is planned moving with it
+        drift = self._alpha_to_theta(self._delta_to_alpha(delta_goal, 1.0), theta_goal) - theta_goal
+        if np.max(np.abs(drift)) > 1.0:
+            drift = np.zeros(3)                           # onto another branch within a second (gimbal lock): none
+        move = self._motor_move(theta_goal, rate, drift)
+        move.delta_goal = np.array(delta_goal, dtype=float)
+        move.delta_requested = np.array(self.delta_ref, dtype=float)    # the target asked for (delta_goal: its reachable PA)
+        return move
+
+    def _motor_move(self, theta_goal, rate=None, drift=None):
+        """A MotorMove to theta_goal from the measured angles and the speeds commanded now, at rate (deg/s; default the
+        planner's share of Kv), moving with drift (deg/s; a goto while tracking). At SLOW speeds (SMALL_MOVE_RATE) the
+        motors take a new speed on the MCU's next tick, without the FAST lag pid_Kl: only the dead time is modelled
+        (twin: 0.1 deg tracking moves 7.1 -> 5.8 s)."""
+        self.set_Ka_array(Config.pid_Ka)
+        self.set_Kv_array(Config.pid_Kv)
+        move = MotorMove(np.array(self.Kv, dtype=float) * self.GOTO_RATE_SHARE if rate is None else rate,
+                         min(float(np.min(self.Ka)), self.GOTO_MAX_ACCEL), float(Config.pid_Kt),
+                         float(Config.pid_Kl) if rate is None or rate > self.SMALL_MOVE_RATE else 0.0, drift)
+        theta_now = np.array(self.theta_pv, dtype=float)
+        move.start(theta_now, theta_goal, self.omega_ff_shaped)
+        # what Pilot's status shows while it runs (as the old theta_ref_cache moves did)
+        d = np.asarray(theta_goal, dtype=float) - theta_now
+        move.cause = (('FLIP CW' if d[0] > 0 else 'FLIP CCW') if is_flip(theta_now, theta_goal)
+                      else 'UNWIND' if max(abs(d[0]), abs(d[2])) > 180.0 else None)
+        return move
+
+    def _is_roll_move(self, start, goal):
+        """The move is mainly a roll/PA change: the pointing moves less than GOTO_RETARGET_DEG, or less than
+        SMALL_MOVE_DEG and much less than the roll. A rotator move straight after a goto (the mount still settling,
+        Backlash Compensation taking up slack) had the pointing a little off and went straight in motor angles:
+        17 deg off the target mid-roll."""
+        q_a, q_b = azaltroll_to_q(start[0], start[1], 0.0), azaltroll_to_q(goal[0], goal[1], 0.0)
+        pointing = quaternion_difference(q_a, q_b)[0]
+        roll = abs(wrap180(goal[2] - start[2]))
+        return bool(pointing <= self.GOTO_RETARGET_DEG or (pointing <= self.SMALL_MOVE_DEG and roll > 4 * pointing))
+
+    def _delta_to_theta(self, delta, theta_near):
+        """RA(deg)/Dec/PA -> motor angles at the current time, on the branch nearest theta_near."""
+        return self._alpha_to_theta(self._delta_to_alpha(delta), theta_near)
+
+    def _delta_to_alpha(self, delta, ahead_s=0.0):
+        """RA(deg)/Dec/PA -> Az/Alt/Roll now (or ahead_s from now), as delta2body/body2alpha do, without touching
+        self.body."""
+        self.observer.date = ephem.Date(datetime.datetime.utcnow() + datetime.timedelta(seconds=ahead_s))
+        self.observer.epoch = ephem.now()
+        body = ephem.FixedBody()
+        body._epoch = self.body._epoch
+        body._ra, body._dec = deg2rad(delta[0]), deg2rad(delta[1])
+        body.compute(self.observer)
+        az, alt = rad2deg(body.az), rad2deg(body.alt)
+        roll = wrap180(delta[2] - calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
+        return self._reachable_alpha((az, alt, roll))
+
+    def _reachable_delta(self, delta):
+        """RA(deg)/Dec/PA with the PA the motors can reach now: a path in PA towards an unreachable one switched to the
+        frame nearer level once its samples passed the reach (roll -95 -> +81: a 175 deg jump, so a +90 roll at Alt 15
+        went to the PID, which drove M2 past its limit)."""
+        az, alt, roll = self._delta_to_alpha(delta)
+        pa = wrap360(roll + calc_parallactic_angle(az, alt, self.polaris._sitelatitude))
+        return np.array([delta[0], delta[1], delta[2] + wrap180(pa - delta[2])], dtype=float)
+
+    def _reachable_alpha(self, alpha):
+        """Az/Alt/Roll -> the nearest pose the motors can reach. The limits are the motors' own, expressed for a
+        level base; in eq mode (base on a wedge) they apply in the base frame, so the pose goes there and back."""
+        sm = self.polaris._sm
+        if not Config.advanced_eq_mode:
+            return np.array(reachable_azaltroll(*alpha, roll_adj=sm.roll_adj), dtype=float)
+        alpha_B = q_to_azaltroll(sm.alignQ_B2T_inv * azaltroll_to_q(*alpha))
+        reach_B = reachable_azaltroll(*alpha_B, roll_adj=sm.roll_adj)
+        return np.array(q_to_azaltroll(sm.alignQ_B2T * azaltroll_to_q(*reach_B)), dtype=float)
+
+    def move_pending(self):
+        """A goto or rotate has been requested and has not yet completed."""
+        return (self.goto_complete_callback is not None or self.rotate_complete_callback is not None
+                or self.goto_in_progress())
+
+    def goto_in_progress(self):
+        return self.goto_traj is not None and not self.goto_traj.done
+
+    def _alpha_to_theta(self, alpha, theta_near):
+        """Az/Alt/Roll -> motor angles (Base frame) on the branch nearest theta_near, without touching
+        the live LastPosition."""
+        lp = LastPosition(*theta_near, z3=self._lp.last_zeta3)
+        lp.flipCW = self._lp.flipCW
+        motorQ = self.polaris._sm.topoQ_to_baseQ(azaltroll_to_q(*alpha))
+        return np.array(q_to_theta(motorQ, lp), dtype=float)
+
+    @staticmethod
+    def _alpha_distance(a, b):
+        """Largest of the pointing (great circle) and roll differences between two Az/Alt/Roll poses, deg."""
+        q_a, q_b = azaltroll_to_q(a[0], a[1], 0.0), azaltroll_to_q(b[0], b[1], 0.0)
+        return max(quaternion_difference(q_a, q_b)[0], abs(wrap180(b[2] - a[2])))
+
+
+    def measure(self, delta_pv, alpha_pv, theta_pv, zeta_meas, measurement_lag_s=0.0):
         now = ephem.now()
         # if not self.time_meas:
         #     self.alpha_sp = alpha_meas     # initialise alpha_sp with first measurement
-        self.delta_meas = delta_meas
-        self.alpha_meas = alpha_meas
-        self.theta_meas = theta_meas
+        self.delta_pv = delta_pv
+        self.alpha_pv = alpha_pv
+        self.theta_pv = theta_pv
         self.zeta_meas = zeta_meas
         self.time_meas = now
+        self.measurement_lag_s = measurement_lag_s   # how stale theta_pv is -- see errsignal()
+        t = time.monotonic()
+        theta = np.array(theta_pv, dtype=float)
+        if self._pv_prev is not None and t - self._pv_prev[0] > 0.05:
+            d = (theta - self._pv_prev[1] + 180.0) % 360.0 - 180.0      # M1 wraps at 360
+            self.omega_pv = d / (t - self._pv_prev[0])      # unsmoothed: an average reads ~0 as it crosses zero
+            near = np.all(np.abs(self.omega_pv - self.omega_ff) < ARRIVED_MAX_RATE_DPS)
+            self._settled_meas = self._settled_meas + 1 if near else 0
+        if self._pv_prev is None or t - self._pv_prev[0] > 0.05:
+            self._pv_prev = (t, theta)
+        self._lp.update(*theta_pv)
+        self._lp.update_zeta(zeta_meas)
+        self._lp.check_for_gimbal_lock()
+        self.gamma_pv = delta_to_gamma(delta_pv)
 
     def predict(self):          # This is not used in the PID Control Loop
-        self.theta_meas = clamp_theta(self.theta_meas + self.dt * self.omega_op)
+        self.theta_pv = clamp_theta(self.theta_pv + self.dt * self.omega_op)
         self.time_meas = self.time_meas + self.dt
 
     def feed_forward(self):
-        # Feed forward tracking velocities (when in track mode and no delta_ref change)
+        if Config.coordinated_speed_control:
+            # jog feed-forward from the ramped jog rates, added after smoothing (see constrain);
+            # a goto's shaped feed-forward was already set by plan_goto
+            if not self.goto_in_progress():
+                self.omega_ff_shaped = self._jog_omega(self._jog_rates())
+            legacy_jog = {}
+        else:
+            self.omega_ff_shaped = np.zeros(3, dtype=float)
+            legacy_jog = self.axis_v_sp
+        if self.ff_inhibit_ticks > 0:
+            self.ff_inhibit_ticks -= 1
+            return
         self.omega_ff = np.zeros(3, dtype=float)
-        if self.mode == "TRACK":
-            delta_ref_change = self.delta_ref - self.delta_ref_last
-            delta_ref_nochange = np.sum(delta_ref_change ** 2) < 1e-3
-            if delta_ref_nochange and self.dt > 0:
-                tracking_vel = clamp_error(self.theta_ref, self.theta_ref_last) / self.dt
-                self.omega_ff = tracking_vel
-        # Feed forward slew velocities when in auto mode
+        have_jog = any(v != 0.0 for v in legacy_jog.values())
+
+        if self.mode == "TRACK" and self.dt > 0 and not (self.goto_in_progress() and self.goto_traj.space == 'THETA'):
+            # Sidereal or orbital tracking (not during a straight move in motor angles: it aims ahead of the target)
+            omega_base = np.zeros(3, dtype=float)
+            if self.polaris._tracking:
+                motorQ_now = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref)
+                if self.polaris._trackingrate == 0:
+                    # Sidereal: entirely Base frame -- q_delta applied directly to
+                    # motorQ_now, NEVER to cameraQ_ref (that mixing was the bug:
+                    # invisible at identity alignment, catastrophic otherwise --
+                    # see tests/test_sidereal_ff_regression.py).
+                    ra_axis_B = self.polaris._sm.equatorial_axes_B[0]
+                    if ra_axis_B is not None:
+                        q_delta = Quaternion(axis=ra_axis_B, radians=-SIDEREAL_RATE_RAD_S * self.dt)
+                        motorQ_next = q_delta * motorQ_now
+                        omega_base += calculate_angular_velocity_vector(motorQ_now, motorQ_next, self.dt)
+                else:
+                    motorQ_last = self.polaris._sm.topoQ_to_baseQ(self.cameraQ_ref_last)
+                    omega_base += calculate_angular_velocity_vector(motorQ_last, motorQ_now, self.dt)
+
+            # Add any jog contributions (in Base frame) to the feedforward
+            for axis_name, rate_dps in legacy_jog.items():
+                if rate_dps == 0.0:
+                    continue
+                contrib = self._axis_omega_B(axis_name, rate_dps)
+                if contrib is not None:
+                    omega_base += contrib
+
+            # If any Base-frame angular velocity is non-zero, convert to theta_dot via the Jacobian
+            if np.any(omega_base):
+                theta_dot = theta_rates(self.theta_pv, omega_base)   # without the roll it can't make at gimbal lock
+                self.omega_ff = np.degrees(theta_dot)
+                if self.polaris._trackingrate != 0:
+                    self.omega_ff[2] = 0
+
         elif self.mode == "AUTO":
-            self.omega_ff = self.alpha_v_sp
+            if have_jog:
+                omega_base = np.zeros(3, dtype=float)
+                for axis_name, rate_dps in legacy_jog.items():
+                    if rate_dps == 0.0:
+                        continue
+                    contrib = self._axis_omega_B(axis_name, rate_dps)
+                    if contrib is not None:
+                        omega_base += contrib
+                if np.any(omega_base):
+                    J = theta_to_jacobian(*self.theta_pv)
+                    theta_dot = np.linalg.solve(J, omega_base)
+                    self.omega_ff = np.degrees(theta_dot)
+            else:
+                self.omega_ff = self.alpha_v_sp   # unchanged legacy path
+
+        # PEC contribution — independent of ff_inhibit gating (that's for setpoint-
+        # change transients, unrelated to PEC), added as its own velocity term.
+        # step_pec_drift() publishes omega_pec_B only while it applies (tracking, PEC Drift Correction on, no worm test)
+        self.omega_pec = np.zeros(3, dtype=float)
+        if self.mode == "TRACK":
+            omega_pec_B = getattr(self.polaris._sm, 'omega_pec_B', None)
+            if omega_pec_B is not None and np.any(omega_pec_B):
+                theta_dot_pec = theta_rates(self.theta_pv, np.radians(omega_pec_B))
+                self.omega_pec = np.degrees(theta_dot_pec)
+                if self.polaris._trackingrate != 0:
+                    self.omega_pec[2] = 0            
+
+    def prevent_windup(self):
+        if self.theta_ref_cache is not None or self.zeta_meas is None or self.mode == 'LIMIT':
+            return
+        if self.goto_traj is not None and self.goto_traj.space == 'THETA':
+            return                                        # a straight motor-angle move is already under way
+        zeta = np.array(self.zeta_meas)
+        safety = Config.zeta_safety_margin
+        # UNWIND only for a goto or while tracking a target: not on its own while holding, after an abort or during a
+        # jog, where it turned M1 a whole turn unasked (field 2026-10-28 20:42-20:43, 2026-10-29 13:58)
+        may_unwind = self.move_pending() or (self.mode == 'TRACK' and not self._has_active_jog())
+        # Where the target leaves M1/M3: its motor angles on the branch nearest the mount, as the change they really
+        # are -- not a +-180 wrapped one, whose sign is a coin toss for a flip (~180 deg): a +179 deg flip read as
+        # -181, past z1's limit, and UNWIND sent M1 to +637 (zeta +457, past the other limit) instead
+        theta_goal = self._alpha_to_theta(self.alpha_ref, self.theta_pv) if may_unwind else None
+        if theta_goal is not None:
+            z_implied = zeta + (theta_goal - np.array(self.theta_pv, dtype=float))
+            lo = np.array([Config.z1_min_limit, Config.z3_min_limit]) + safety
+            hi = np.array([Config.z1_max_limit, Config.z3_max_limit]) - safety
+            past_limit = bool(np.any(z_implied[[0, 2]] < lo) or np.any(z_implied[[0, 2]] > hi))
+        else:
+            past_limit = False
+        if past_limit:
+            # UNWIND: the same pointing a turn round on M1/M3, the one within both limits with the least travel
+            theta_final = self._flip_motor_angles(theta_goal, zeta, safety)
+            z_final = zeta + (theta_final - np.array(self.theta_pv, dtype=float))
+            if np.allclose(theta_final, theta_goal) or np.any(z_final[[0, 2]] < lo) or np.any(z_final[[0, 2]] > hi):
+                if not getattr(self, '_unwind_warned', False):
+                    self.logger.warning(f'UNWIND: no turn of M1/M3 reaches the target within the motor limits '
+                                        f'(implied z1 {z_implied[0]:+.1f} z3 {z_implied[2]:+.1f}): left to LIMIT')
+                    self._unwind_warned = True
+                return
+            self._unwind_warned = False
+            self.logger.info(f'UNWIND Transition | Implied z1 {z_implied[0]:+.1f} z3 {z_implied[2]:+.1f} | to motor angles '
+                             f'{theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f} '
+                             f'(z1 {z_final[0]:+.1f} z3 {z_final[2]:+.1f})')
+            self.set_theta_ref_cache('UNWIND', theta_final)
+        elif Config.advanced_eq_mode and self.move_pending() and not self.room_checked \
+                and (theta_room := self._eq_theta_with_room(zeta, safety)) is not None:
+            # eq mode, at the start of the goto: M1 turned a whole turn so tracking has room before its limit, rather
+            # than a 360 deg unwind mid-session
+            self._move_in_motor_angles('EQ ROOM', 'M1 travel left for tracking', theta_room)
+            if self.time_goto:                            # the goto timeout allows for the extra turn
+                turn_s = abs(theta_room[0] - self.theta_pv[0]) / max(1e-3, float(np.max(self.Kv)) * self.GOTO_RATE_SHARE)
+                self.time_goto += turn_s / (24 * 3600)
+        elif self.move_pending() and not self.lock_checked and self._path_passes_gimbal_lock(self.alpha_pv, self.alpha_ref):
+            # At the start of the goto: the pointing path passes near theta2 ~ 0 (M1/M3 aligned), where M1/M3 must
+            # swing ~180 deg. Stepping along it flipped late (M2 already running into the lock), cached a point
+            # near the lock (M1/M3 counter-rotating there with the pointing stuck) and flipped again. Instead go
+            # straight to the target's motor angles: the IK picks the valid solution nearest the mount, so a target
+            # within the |theta2| <= 8 overlap stays on this side (M2 just passes 0), one beyond it flips.
+            theta_final = self._flip_motor_angles(self._alpha_to_theta(self.alpha_ref, self.theta_pv), zeta, safety)
+            d1 = theta_final[0] - self.theta_pv[0]
+            cause = ('FLIP CW' if d1 > 0 else 'FLIP CCW') if abs(d1) > 90 else 'LOCK'
+            self._move_in_motor_angles(cause, 'gimbal lock on path', theta_final)
+        elif is_flip(self.theta_pv, self.theta_ref):
+            # FLIP: the reference changed IK branch (M1 and M3 both ~180 deg away: tracking or a jog past the
+            # -8..+8 M2 overlap, a goto left to the PID). Judged by the branch, not by a 30 deg gap: a jog whose
+            # reference ran ahead of the motors (a roll jog near roll 0) was taken for a flip and paused
+            cause = 'FLIP CW' if self._lp.flipCW else 'FLIP CCW'
+            if self._has_active_jog() or not Config.coordinated_speed_control:
+                # a jog's planned move would be dropped at once (plan_goto plans no jog): the PID takes it, as before
+                self.logger.info(f'{cause} Transition | theta_ref_cache: {self.theta_ref[0]:+.1f},{self.theta_ref[1]:+.1f},{self.theta_ref[2]:+.1f}')
+                self.set_theta_ref_cache(cause, self.theta_ref.copy())
+            else:
+                self._move_in_motor_angles(cause, 'reference on the other branch', self.theta_ref.copy())
+            self._lp.flipCW = not self._lp.flipCW
+
+    def _move_in_motor_angles(self, cause, why, theta_final):
+        """Go straight to theta_final in motor angles: planned with the planner's speed profile (coordinated speed
+        control), else held as theta_ref_cache for the PID until all axes arrive."""
+        if Config.coordinated_speed_control and self.dt > 0:
+            self.goto_traj, self.move_planned = self._motor_move(np.asarray(theta_final, dtype=float)), False
+            self.logger.info(f'{cause} Transition ({why}) | planned in motor angles to: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
+        else:
+            self.logger.info(f'{cause} Transition ({why}) | theta_ref_cache: {theta_final[0]:+.1f},{theta_final[1]:+.1f},{theta_final[2]:+.1f}')
+            self.set_theta_ref_cache(cause, theta_final, settle_all=True)
+
+    def _eq_theta_with_room(self, zeta, safety):
+        """Eq mode, once per goto: the target's motor angles with M1 turned +-360 when that leaves EQ_MIN_TRACK_ROOM_DEG
+        of M1 travel for tracking and the nearest turn does not; None to leave the goto as it is. M1 tracks one way
+        (theta1 falls when M1 points at the south pole), and its travel is the z1 limits less the safety margin."""
+        self.room_checked = True
+        theta_goal = self._alpha_to_theta(self.alpha_ref, self.theta_pv)
+        offset = self.theta_pv[0] - zeta[0]
+        lo, hi = Config.z1_min_limit + safety + offset, Config.z1_max_limit - safety + offset
+        sm, lat = self.polaris._sm, math.radians(self.polaris._sitelatitude)
+        direction = np.dot(sm.alignQ_B2T.rotate([0.0, 0.0, 1.0]), [0.0, math.cos(lat), math.sin(lat)])
+        theta1 = eq_theta1_with_room(theta_goal[0], self.theta_pv[0], lo, hi, direction)
+        if abs(theta1 - theta_goal[0]) < 1.0:
+            return None
+        return np.array([theta1, theta_goal[1], theta_goal[2]], dtype=float)
+
+    def _flip_motor_angles(self, theta_goal, zeta, safety):
+        """Pick the M1/M3 turns (theta_goal +-360 on each) for a move straight to the goal's motor angles: within
+        the zeta limits, and for a flip (M1 turning > 90 deg) with M1 and M3 turning in opposite directions (else
+        the cables wrap) - the least travel. If no opposite pair fits the limits (z1, z3 both ~+-180), the least
+        travel within them, with a warning (an unwind first would take ~1.5 min)."""
+        lo = np.array([Config.z1_min_limit, Config.z3_min_limit]) + safety
+        hi = np.array([Config.z1_max_limit, Config.z3_max_limit]) - safety
+        pv = np.array(self.theta_pv, dtype=float)
+        zeta = np.array(zeta, dtype=float)
+
+        def fits(z):
+            return bool(np.all(z >= lo) and np.all(z <= hi))
+
+        def options(start, z_start):
+            out = []
+            for k1 in (-1, 0, 1):
+                for k3 in (-1, 0, 1):
+                    cand = np.array(theta_goal, dtype=float) + np.array([360.0 * k1, 0.0, 360.0 * k3])
+                    d = cand - start
+                    if fits(np.array([z_start[0] + d[0], z_start[2] + d[2]])):
+                        out.append((abs(d[0]) + abs(d[2]), d[0] * d[2] < 0, cand))
+            return out
+
+        direct = options(pv, zeta)
+        if not direct:
+            return np.array(theta_goal, dtype=float)
+        best = min(direct, key=lambda o: o[0])
+        if abs(best[2][0] - pv[0]) <= 90:
+            return best[2]                                # not a flip: least travel
+        opposite = [o for o in direct if o[1]]
+        if opposite:
+            return min(opposite, key=lambda o: o[0])[2]
+        self.logger.warning(f'FLIP turns M1 and M3 in the same direction: no opposite turn fits the motor limits '
+                            f'(z1 {zeta[0]:+.0f}, z3 {zeta[2]:+.0f})')
+        return best[2]
+
+    GIMBAL_LOCK_ERROR_DEG = 1.0                          # |theta2| below this: M1/M3 errors combined (errsignal)
+    GIMBAL_LOCK_NEAR_DEG = 8.0                           # |theta2| below this: M1/M3 near aligned (overlap of the two sides)
+
+    def _path_passes_gimbal_lock(self, start, goal, samples=24):
+        """Once per goto: the pointing path from start to goal (as alpha_limit_step steps it) comes within
+        GIMBAL_LOCK_NEAR_DEG of theta2 = 0 (the goal may be in there too), starting clear of it. |theta2| is the
+        tilt of the M3 axis from vertical, so unambiguous."""
+        self.lock_checked = True
+        ends_q, sm = GotoTrajectory._ends_q(start, goal), self.polaris._sm
+
+        def tilt(f):
+            up = sm.topoQ_to_baseQ(azaltroll_to_q(*GotoTrajectory._interp(start, goal, f, ends_q))).rotate(np.array([1.0, 0.0, 0.0]))
+            return float(np.degrees(np.arctan2(math.hypot(up[0], up[1]), up[2])))
+
+        # coarse, then refined around the closest approach: 90 samples took ~16 ms in one tick (R4)
+        fracs = np.linspace(0.0, 1.0, samples + 1)
+        tilts = [tilt(f) for f in fracs]
+        if tilts[0] < self.GIMBAL_LOCK_NEAR_DEG:
+            return False
+        i = int(np.argmin(tilts[1:])) + 1
+        lo, hi = fracs[max(i - 1, 0)], fracs[min(i + 1, samples)]
+        best = tilts[i]
+        for _ in range(8):                                # golden-section search for the minimum near sample i
+            m1, m2 = lo + 0.382 * (hi - lo), lo + 0.618 * (hi - lo)
+            t1, t2 = tilt(m1), tilt(m2)
+            best = min(best, t1, t2)
+            lo, hi = (lo, m2) if t1 < t2 else (m1, hi)
+        return bool(best < self.GIMBAL_LOCK_NEAR_DEG)
+
+    def _theta_pv_held(self):
+        """theta_pv for the error against a held motor-angle target (theta_ref_cache, or a motor-angle
+        trajectory): near theta2 ~ 0 (gimbal lock) only theta1+theta3 is defined, and the measured M1/M3 can
+        re-express by +-360 between ticks - the held target isn't, so such jumps are unwrapped while it's held."""
+        pv = np.array(self.theta_pv, dtype=float)
+        last = getattr(self, '_theta_pv_last', None)
+        held = self.theta_ref_cache is not None or (self.goto_traj is not None and self.goto_traj.space == 'THETA')
+        if not held or last is None:
+            self._theta_pv_unwrap = np.zeros(3)
+        else:
+            jump = pv - last
+            jump[1] = 0.0
+            self._theta_pv_unwrap = self._theta_pv_unwrap - 360.0 * np.round(jump / 360.0)
+        self._theta_pv_last = pv
+        return pv + self._theta_pv_unwrap
+
+    def _theta_motor(self):
+        """The MCU's own motor angles (518), before the KF and the alignment/PEC corrections: what the gears turn. (The
+        KF state smooths over M3's sample-and-hold and misses a quick reversal's overshoot by more.)"""
+        raw = getattr(self.polaris, '_theta_raw', None)
+        return np.asarray(raw if raw is not None else self.theta_pv, dtype=float)
+
+    def backlash_adjust(self):
+        """Backlash Compensation: refresh the adjustment (deg, motor angle - output shaft) from the MCU's motor angles,
+        nonzero only while a goto completes (control_backlash.py; not through a planned tracking reversal). The forward
+        kinematics applies it as its first correction ([BLC], SyncManager.baseQ_to_topoQ), so theta_pv, the sky
+        positions, ASCOM and syncs describe the output shafts while it acts."""
+        tracking = self.mode == 'TRACK' and bool(getattr(self.polaris, '_tracking', False))
+        # paused through the worm profile test, as PEC and the worm correction are: the test approaches each position
+        # the tracking way and fits each motor's backlash itself, and a shift in theta_pv mid-test would spoil its samples
+        if not BacklashCompensator.enabled() or not tracking or self.worm_test_active():
+            return self.backlash.update(self._theta_motor(), self.omega_ff, False, False)
+        now = time.monotonic()
+        sm = getattr(self.polaris, '_sm', None)
+        turns = sm.motor_turns(now) if sm is not None and hasattr(sm, 'motor_turns') else []
+        return self.backlash.update(self._theta_motor(), self.omega_ff, True, self.move_pending(), turns, now)
 
     def errsignal(self):
-        # calc the error signal off theta (1 star aligned motor angles) or zeta (raw motor angles)
+        # calc the error signal off theta (aligned motor angles) or zeta (raw motor angles)
         if self.mode in ['HOMING', 'PARKING']:
             self.error_signal = self.zeta_ref - self.zeta_meas
-        else:            
-            # self.error_signal = clamp_error(self.theta_ref, self.theta_meas)
-            self.error_signal = self.quaternion_motor_error(self.theta_ref, self.theta_meas)
-
+        else:
+            # theta_pv may describe a measurement sampled measurement_lag_s before now, while
+            # theta_ref (and theta_ref_cache) reflect the target's position as of now -- diff
+            # against a backdated copy so a stale measurement isn't compared against a target
+            # that's since moved on, without touching theta_ref itself (used elsewhere as-is).
+            theta_pv = self._theta_pv_held()
+            if self.theta_ref_cache is None:
+                self.prevent_windup()
+                theta_ref_backdated = self.theta_ref - self.omega_ff * self.measurement_lag_s
+                self.error_signal = theta_ref_backdated - theta_pv
+            else:
+                self.theta_ref = self.theta_ref_cache
+                theta_ref_backdated = self.theta_ref_cache - self.omega_ff * self.measurement_lag_s
+                self.error_signal = theta_ref_backdated - theta_pv
+                # if close to cached target then reset the cache
+                settle_all = getattr(self, 'theta_ref_cache_settle_all', False)
+                if (np.max(np.abs(self.error_signal)) < 1.0 and np.max(np.abs(self.omega_op)) < 0.5) if settle_all else (abs(self.error_signal[0])<10 and abs(self.error_signal[2])<10):
+                    self.clear_theta_ref_cache()
+        test = self._worm_test()
+        if test is not None:                               # worm profile test: has the step settled (every motor)?
+            approach = test.track_settle(float(np.max(np.abs(self.error_signal))) * 3600.0)
+            if approach is not None:                       # after an overshoot: onto the position with tracking
+                self.step_motor_targets(approach)
+        # At gimbal lock (M1 and M3 on one axis) only theta1 + theta3 is defined: how the reference and the measurement
+        # split it between the two can differ by a lot (+1932" M1, -1802" M3 at alt 0), which the PID fought for ever.
+        # Inside GIMBAL_LOCK_ERROR_DEG both motors get half the combined error
+        if self.mode not in ['HOMING', 'PARKING'] and abs(float(self.theta_pv[1])) < self.GIMBAL_LOCK_ERROR_DEG:
+            both = (self.error_signal[0] + self.error_signal[2]) / 2
+            self.error_signal = np.array([both, self.error_signal[1], both], dtype=float)
         # Per-axis deviation flags
-        self.is_axis_preloading = np.abs(self.error_signal) > 10 / 60                    # preload error_integration outside 10 arcmin
-        self.is_axis_deviating = np.abs(self.error_signal) > Config.pid_Kc / 60
-
+        tollerance = Config.pid_Kc / 60 / 20  if self.mode=="TRACK" else Config.pid_Kc / 60
+        # Backlash Compensation: an engaged motor a little ahead of its target holds while the sky catches up: arrived
+        self.backlash.update_hold(self.error_signal)
+        held = self.backlash.holding(self.error_signal, HOLD_ARRIVED_ARCSEC)
+        self.is_axis_deviating = (np.abs(self.error_signal) > tollerance) & ~held
         # calc cost signal and flags
         self.is_deviating = np.any(self.is_axis_deviating)
         self.cost_signal = np.sum(self.error_signal ** 2)
-        self.is_slewing = np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
+        self.is_slewing = (np.any(self.alpha_v_sp != 0) or np.any(self.delta_v_sp != 0)
+                           or any(v != 0.0 for v in self.axis_v_sp.values())
+                           or any(v != 0.0 for v in self._jog_rates().values())
+                           or self.goto_in_progress())
         self.was_moving = self.is_moving
-        self.is_moving = self.is_deviating or self.is_slewing or self.mode=="TRACK"
+        # settled: every motor has run at its feed-forward (stopped, or tracking) for ARRIVED_SETTLED_MEAS measurements.
+        # A goto isn't over while a motor still creeps on at a SLOW speed (13' short at 0.4 deg/s), or while the KF's
+        # estimate still converges on a motor it overshot braking (22' at the stop, 6.5' when it read on target)
+        self.is_settled = self._settled_meas >= ARRIVED_SETTLED_MEAS
+        self.is_moving = (self.is_deviating or self.is_slewing or self.mode=="TRACK"
+                          or (self.mode == 'AUTO' and not self.is_settled))
 
-        # calc the integral error if tracking or slewing
-        Ki = np.array(Config.pid_Ki, dtype=float)
-        Kd = np.array(Config.pid_Kd, dtype=float)
-        i_limit = np.where(Ki != 0, 3 * 15/3600 / Ki, 0)    # limit integral to 3 x sidereal rate / Ki
+    def set_ki_inhibit_until(self, duration):
+        """Extend the Ki anti-windup gate by `duration` seconds (floored at 0.1s so even a
+        near-zero-duration disturbance still gets one control tick of protection), without
+        shortening an existing longer inhibit already in effect."""
+        self.ki_inhibit_until = max(self.ki_inhibit_until, time.monotonic() + max(duration, 0.1))
 
-        if self.mode=='TRACK' or self.is_slewing:
-            # Preload to cancel derivative term: omega_kd = -Kd * omega_op, or use last integral value
-            preload = np.where(Ki != 0, (Kd * self.omega_ff) / Ki, 0)
-            preload_masked = np.where(self.is_axis_preloading, preload, self.error_integral)
-            # Conditional integration mask
-            can_integrate = (
-                ((self.omega_tgt >= self.omega_min) & (self.omega_tgt <= self.omega_max)) |
-                (np.sign(self.error_signal) != np.sign(self.omega_tgt))
-            )
+    def errintegral(self):
+        # setup some constants for calcs below
+        Ki = np.array(Config.pid_Ki, dtype=float) 
+        integration_rate_limit = 1/60                                                         # max deg per sec for the integration component
+        self.is_axis_preloading = np.abs(self.error_signal) > integration_rate_limit * 1      # preload when greater than integration limit over 1 sec
+        i_limit = np.where(Ki != 0, integration_rate_limit / Ki, 0)                           # limit integral rate / Ki
+
+        # calc the integral error if tracking 
+        if self.mode=='TRACK':
+            now = time.monotonic()
+            no_recent_disturbance = now > self.ki_inhibit_until   # set/extended by SP changes, sync guide, pulse guide
+            if Config.coordinated_speed_control and self.move_pending():
+                no_recent_disturbance = False                     # freeze (don't reset) the integral during a goto/rotate
+            not_jogging = not self._has_active_jog()
+            # Conditional integration mask ie not pulse guiding and not exceeding omega speed limits
+            can_integrate = np.logical_or(
+                np.logical_and(self.omega_tgt >= self.omega_min, self.omega_tgt <= self.omega_max),
+                np.sign(self.error_signal) != np.sign(self.omega_tgt)
+            )  & no_recent_disturbance & not_jogging
             delta_integral = np.where(~self.is_axis_preloading & can_integrate, self.error_signal, 0)
-            updated_integral = preload_masked + delta_integral
+            updated_integral = self.error_integral + delta_integral * self.dt
             self.error_integral = np.clip(updated_integral, -i_limit, +i_limit)
+            if self.polaris._trackingrate != 0: 
+                self.error_integral[2] = 0                                 # for non sidereal tracking,  ensure M3 integral is zero
         else:
             self.error_integral = np.zeros(3, dtype=float)
 
@@ -1586,21 +2420,33 @@ class PID_Controller():
     def pid(self):
         self.omega_kp = np.array(Config.pid_Kp, dtype=float) * self.error_signal    # increase control proportional to error
         self.omega_ki = np.array(Config.pid_Ki, dtype=float) * self.error_integral  # increase control when integral error is high
-        self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * self.omega_op      # dampen control when velocity high
-        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff
+        # damping acts on the output less its feed-forward; with coordinated_speed_control the smoothed
+        # state is the feedback part only (omega_fb) and the shaped feed-forward is added in constrain()
+        smoothed = self.omega_fb if Config.coordinated_speed_control else self.omega_op
+        self.omega_kd = - np.array(Config.pid_Kd, dtype=float) * (smoothed - self.omega_ff)      # dampen control when velocity error is high
+        self.omega_tgt = self.omega_kp + self.omega_ki + self.omega_kd + self.omega_ff - self.omega_pec
 
     def constrain(self):
         self.set_Ka_array(Config.pid_Ka) 
         self.set_Kv_array(Config.pid_Kv) 
         # Compute constrained acceleration
+        smoothed = self.omega_fb if Config.coordinated_speed_control else self.omega_op
         accel_clipped = np.array([0, 0, 0], dtype=float)
         if self.dt > 0:
-            delta_omega = self.omega_tgt - self.omega_op
+            delta_omega = self.omega_tgt - smoothed
             accel = delta_omega / self.dt
             accel_clipped = np.clip(accel, -self.Ka, self.Ka)
         # Apply clipped acceleration, expotential smoothing, and clip velocity
-        self.omega_ctl = self.omega_op + accel_clipped * self.dt
-        self.omega_ctl = self.omega_ctl * (1.0 - Config.pid_Ke) + Config.pid_Ke * self.omega_op
+        self.omega_ctl = smoothed + accel_clipped * self.dt
+        self.omega_ctl = self.omega_ctl * (1.0 - Config.pid_Ke) + Config.pid_Ke * smoothed
+        if Config.coordinated_speed_control:
+            # jog/goto feed-forward is already shaped within the motor limits: add it after the
+            # smoothing and acceleration clamp so it isn't delayed (see GotoTrajectory)
+            self.omega_fb = self.omega_ctl.copy()
+            self.omega_ctl = self.omega_ctl + self.omega_ff_shaped
+            # Backlash Compensation's take-up push, like the feed-forward outside the smoothing
+            self.omega_backlash = self.backlash.push(self.error_signal, self._theta_motor(), self.dt)
+            self.omega_ctl = self.backlash.clutch(self.omega_ctl + self.omega_backlash)
         # Check zeta motor limits and constrain omega further if past limits
         if self.polaris._zeta_meas is None:
             self.omega_min = -self.Kv
@@ -1613,24 +2459,34 @@ class PID_Controller():
             self.omega_max = np.where(zeta > zeta_max, np.array([0,0,0]), +self.Kv) 
             isLimited = np.any(self.omega_min == 0) or np.any(self.omega_max == 0)
             isUnAcked = self.ack_limit_timestamp is None or (datetime.datetime.now() - self.ack_limit_timestamp).total_seconds() > 60
-            isnotPARKorPRESETUP = not self.set_pid_mode in ['PRESETUP', 'PARK']
-            if isLimited and isUnAcked and isnotPARKorPRESETUP:
+            isnotPARKorHOMEorPRESETUP = self.mode not in ['PRESETUP', 'PARK', 'HOME']
+            if isLimited and isUnAcked and isnotPARKorHOMEorPRESETUP:
                 self.set_pid_mode('LIMIT')
                 self.parking_complete_callback = None  # Cancel any parking underway
+                self.homing_complete_callback = None  # Cancel any homeing underway
+                self.clear_theta_ref_cache()
 
-        # Check that lat/lon has been set
-        lat_unchanged = abs(rad2deg(float(self.observer.lat)) - -33.8598874) <= 0.00001
-        lon_unchanged = abs(rad2deg(float(self.observer.lon)) - 151.2021771) <= 0.00001
-        if lat_unchanged and lon_unchanged:
-            self.set_pid_mode('PRESETUP')
-        else:
-            if self.mode=='PRESETUP':
-                self.set_pid_mode('IDLE')
 
         self.omega_ctl = np.clip(self.omega_ctl, self.omega_min, self.omega_max)
+        if Config.coordinated_speed_control:
+            # the smoothed feedback state is the feedback part of what is actually sent (after the speed
+            # clip): taken before it, it wound up far past Kv on long moves (-39 deg/s against -8.9) and
+            # held the motor at full speed for seconds after the error reversed (large overshoots)
+            self.omega_fb = self.omega_ctl - self.omega_ff_shaped - self.omega_backlash
 
     async def control(self):
         self.omega_op = np.zeros(3, dtype=float)
+        if self.mode == 'LIMIT':
+            # a motor passed its limit: stop every motor once, and leave them stopped until the alarm is acknowledged
+            # (ack_limit_alarm -> IDLE). Sending nothing would leave each one running at its last speed.
+            if not self.limit_stopped:
+                self.logger.warning(f'LIMIT: motor limit passed (zeta {np.round(self.zeta_meas, 1).tolist()}): '
+                                    f'all motors stopped')
+                for axis in range(3):
+                    await self.controllers[axis].set_motor_speed(0)
+                self.limit_stopped = True
+            return
+        self.limit_stopped = False
         # [0.0, 0.0059018, 0.0175906, 0.0478282, 0.0892742, 0.2079884]
         for axis in range(3):
             self.omega_op[axis] = self.omega_ctl[axis]
@@ -1638,72 +2494,145 @@ class PID_Controller():
         if self.is_moving and self.mode in ['AUTO', 'TRACK', 'HOMING', 'PARKING']:
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(self.omega_op[axis], rate_unit='DPS', ramp_duration=self.dt, allow_PWM=True, tracking=(self.mode=="TRACK"))
+        else:
+            # nothing sent, so no feedback is running: left to integrate against an idle error, omega_fb wound up
+            # to -5 deg/s and kicked the next goto that much faster than its plan (1.6 deg overshoot at its end)
+            self.omega_fb = np.zeros(3, dtype=float)
         # If we have goto timeout or stopped moving; while  in AUTO, HOMING or PARKING, go to IDLE
-        if (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']:
+        is_goto_finished = (self.goto_timeout() or not self.is_moving) and self.mode in ['AUTO', 'HOMING', 'PARKING']
+        # If in PID TRACK mode but polaris is not tracking (ie promoted by jog), demote to IDLE when jog stops
+        is_jog_finished = (self.mode == 'TRACK' and not self.polaris._tracking and not self._has_active_jog()
+                           and not self.worm_test_active())
+        if is_jog_finished:
+            # a RA/Dec/PA jog while not tracking (TRACK only for the jog): finish it where its reference got to, held
+            # in Az/Alt as an Az/Alt jog does. Going IDLE at once stopped the motors wherever they were, up to 2.5 deg
+            # short (field 2026-10-17: an RA jog barely moved), and left the setpoint behind them
+            alpha = np.array(self.alpha_ref, dtype=float)
+            self.set_pid_mode('AUTO')
+            self.set_alpha_target({'az': alpha[0], 'alt': alpha[1], 'roll': alpha[2]})
+            return
+        if is_goto_finished:
             self.set_pid_mode('IDLE')
             self.was_moving = True
             self.is_moving = False
-            self.time_goto = None
+            self.time_goto = None            
         # Stop motors when transitioning from moving to stopped
         if self.was_moving and not self.is_moving:
             for axis in range(3):
                 await self.controllers[axis].set_motor_speed(0)
 
+    def control_step_calculate(self):
+        now = time.monotonic()
+        if self.control_loop_duration:
+            self.dt = now - self.time_step
+            if self.dt < 0.05:
+                return
+        self.time_step = now
+        if not self.time_meas:  # Only process once we have a measurement
+            return
+        self.polaris._sm.step_pec_drift()   # PEC drift: this tick's step into the PV and omega_pec_B (feed_forward)
+        if self.mode == 'TRACK' and not self.move_pending() and not self._has_active_jog():
+            self.polaris._sm.announce_motor_reversals(time.monotonic())   # log a motor about to reverse (backlash)
+        self.track_target()     # Update theta_ref with target's new position (ramping jog rates first)
+        self.feed_forward()     # Feed forward tracking velocities when in TRACK mode
+        self.errsignal()        # Update error_signal with deviation from theta_ref
+        self.errintegral()      # Update error_integral with accumulation of err_signal
+        self.pid()              # Update omega_tgt, calculate raw PID control target
+        self.constrain()        # Update omega_ctl, constrain velocity and acceleration
+        self.notify()           # Notify any callback of no longer deviating
+        self.telemetry()        # send to Alpaca Pilot
+
+    async def control_step_execute(self):
+        """Async part - motor commands only."""
+        if self.time_meas:
+            await self.control()      # Update omega_op, constrain with valid op control values
+
+    async def control_step(self):
+        self.control_step_calculate()
+        await self.control_step_execute()
+
+    async def _control_loop(self):
+        while not self._stop_flag.is_set():
+            # Only run if 518 messages have stopped flowing
+            # ie device disconnected or not sending position updates
+            if self.polaris._age_518_seconds > 0.5:
+                self.control_step_calculate()      
+                await self.control_step_execute()      
+            delay = self.control_loop_duration if self.polaris._connected else 2.0
+            await asyncio.sleep(delay)
+
     def notify(self):
-        if ((not self.is_deviating) or self.goto_timeout()) and self.goto_complete_callback:
+        # a planned move (coordinated_speed_control) completes only once its trajectory has finished too, and with
+        # Backlash Compensation once every compensated motor is engaged (no take-up pushes during the next exposure)
+        # and only once the motors have settled (errsignal): measurements lag a moving motor
+        arrived = (not self.is_deviating and self.is_settled and not self.goto_in_progress()
+                   and not self.backlash.taking_up())
+        timed_out = bool(self.goto_timeout())        # once for both: the goto's completion clears the timer
+        err = np.abs(np.array(self.error_signal, dtype=float)) * 3600
+        how = 'STOPPED AT A MOTOR LIMIT' if self.mode == 'LIMIT' else 'on target' if arrived else 'TIMED OUT'
+        if (arrived or timed_out) and self.goto_complete_callback:
+            self.logger.info(f'GOTO complete {how} in {self.mode} after '
+                             f'{time.monotonic() - getattr(self, "goto_started", time.monotonic()):.1f} s, error '
+                             f'{err[0]:.1f}" {err[1]:.1f}" {err[2]:.1f}"')
             self.goto_complete_callback()
             self.goto_complete_callback = None
             self.time_goto = None
-        if not self.is_deviating and self.rotate_complete_callback:
+        if (arrived or timed_out) and self.rotate_complete_callback:
+            self.logger.info(f'ROTATE complete {how} in {self.mode} after '
+                             f'{time.monotonic() - getattr(self, "rotate_started", time.monotonic()):.1f} s, error '
+                             f'{err[0]:.1f}" {err[1]:.1f}" {err[2]:.1f}"')
             self.rotate_complete_callback()
             self.rotate_complete_callback = None
+            self.time_goto = None
         if not self.is_deviating and self.parking_complete_callback:
             self.parking_complete_callback()
             self.parking_complete_callback = None
+        if not self.is_deviating and self.homing_complete_callback:
+            self.homing_complete_callback()
+            self.homing_complete_callback = None
         if not self.is_slewing and self.slew_complete_callback:
             self.slew_complete_callback()
             self.slew_complete_callback = None
 
     def telemetry(self):
         # Log meas, state and ref for websocket streaming
-        payload = { 
+        payload = {
             "Δ_sp": self.delta_ref.tolist(),
-            "Δ_pv": self.delta_meas.tolist(),
+            "Δ_pv": self.delta_pv.tolist(),
             "α_sp": self.alpha_ref.tolist(),
-            "α_pv": self.alpha_meas.tolist(),
-            "θ_sp": self.theta_ref.tolist(), 
-            "θ_pv": self.theta_meas.tolist(), 
-            "ω_kp": self.omega_kp.tolist(), 
-            "ω_ki": self.omega_ki.tolist(),  
-            "ω_kd": self.omega_kd.tolist(), 
-            "ω_ff": self.omega_ff.tolist(), 
-            "ω_op": self.omega_op.tolist(), 
+            "α_pv": self.alpha_pv.tolist(),
+            "θ_sp": self.theta_ref.tolist(),
+            "θ_pv": self.theta_pv.tolist(),
+            "ω_kp": self.omega_kp.tolist(),
+            "ω_ki": self.omega_ki.tolist(),
+            "ω_kd": self.omega_kd.tolist(),
+            "ω_ff": (self.omega_ff + self.omega_ff_shaped - self.omega_pec).tolist(),
+            "ω_pec": self.omega_pec.tolist(),  # PEC's own per-tick contribution, recomputed every tick in feed_forward() --
+                                                # currently only visible indirectly via ω_ff above (which has it subtracted out);
+                                                # this is the continuously-evolving signal, unlike PECLOG's fit_rate/applied_rate,
+                                                # which only sample once per (much sparser) guide-sync
+            "ω_op": self.omega_op.tolist(),
+            # mode/age_518/connected let analysis tell a genuinely stale tick (control loop still
+            # ticking on its own timer while 518 telemetry has stopped -- theta_pv frozen, see
+            # docs/ref-control.md) from a fresh one, and a non-TRACK tick (slew/park/idle) from real
+            # tracking -- both of which otherwise silently distort any std/variance-based metric
+            # computed over a whole session.
+            "mode": self.mode,
+            "age_518": float(self.polaris._age_518_seconds),
+            "connected": self.polaris._connected,
+            "measurement_lag_s": self.measurement_lag_s,
         }
-        pidlogger = logging.getLogger('pid') 
+        if self.backlash.output is not None:            # Backlash Compensation acting or tracking its slack state
+            b = self.backlash
+            payload["blc"] = {"adj": (b.adjust * 3600).round(1).tolist(), "active": b.active.astype(int).tolist(),
+                              "flank": b.flank.astype(int).tolist(),
+                              "hold": b.hold.astype(int).tolist(),
+                              "push": (self.omega_backlash * 3600).round(1).tolist(),
+                              "given_up": b.given_up.astype(int).tolist()}
+        pidlogger = logging.getLogger('pid')
         pidlogger.info(payload)
-
-
-    async def control_step(self):
-        now = time.monotonic()
-        if self.control_loop_duration:
-            self.dt = now - self.time_step
-        self.time_step = now
-        if self.time_meas:      # Only process if we have a measurement
-            self.track_target() # Update theta_ref with target's new position
-            self.feed_forward() # Feed forward tracking velocities when in TRACK mode
-            self.errsignal()    # Update error_signal/integral with deviation from theta_ref
-            self.pid()          # Update omega_tgt, calculate raw PID control target
-            self.constrain()    # Update omega_ctl, constrain velocity and acceleration
-            await self.control()      # Update omega_op, constrain with valid op control values
-            self.notify()       # Notify any callback of no longer deviating
-            self.telemetry()    # send to Alpaca Pilot
-
-    async def _control_loop(self):
-        while not self._stop_flag.is_set():
-            # self.measure() is done at processing 518 message
-            await self.control_step()
-            delay = self.control_loop_duration if self.polaris._connected else 2.0
-            await asyncio.sleep(delay)
+        if Config.log_position and self.mode in ("TRACK", "AUTO"):     # AUTO: gotos with tracking off
+            self.logger.info(f"PIDLOG {payload}")
 
     async def stop_control_loop_task(self):
         with self._lock:
@@ -1715,73 +2644,358 @@ class PID_Controller():
 #  SYNC MANAGER          #
 ########################## 
 
-class SyncManager:
+class SyncManager(PecMixin, WormMixin):
     def __init__(self, logger, polaris):
         self.logger = logger
         self.polaris = polaris
+        self.set_alignQ_to_identity()
+
+    def seedQ_B2T(self):
+        """Base->topocentric rotation before any sync: identity for a level base, the ideal wedge in eq mode."""
+        if Config.advanced_eq_mode:
+            return wedge_alignQ_B2T(self.polaris._sitelatitude)
+        return Quaternion(1,0,0,0)
+
+    def set_alignQ_to_identity(self):
         self.sync_history = []                  # list of sync events, both AzAlt and Roll
+        self.last_sync_time = None              # timestamp used to fade LGA to zero as time passes
+        self.corrQ_LGA = Quaternion(1,0,0,0)    # cache of LGA stored in forward Kinematics path, used in forward and inverse paths (None if no adj remaining)
+        self.corrQ_MAC = Quaternion(1,0,0,0)  # MAC correction at the current pose (M2/M3 offsets, M2 scale), forward path only
+        self.mac_d2 = 0.0                     # MAC: M2 zero offset (deg), fitted with QUEST's rotation (kinematics_mac.py)
+        self.mac_d3 = 0.0                     # MAC: M3 zero offset (deg)
+        self.mac_s2 = None                    # MAC: M2 scale (fraction) taken from a significantly better fit; None: the
+                                              # default (config align_m2_scale) -- reset by Single-Point Alignment
+        self.mac_s2_accepted = None           # ... when it was taken (ISO time)
+        self.mac_offsets_status = 'default'   # Pilot: 'fitted' or 'default' (the M2/M3 offsets)
+        self.mac_s2_status = 'default'        # Pilot: 'fitted' (taken at the last refit), 'held' (an earlier fit), 'default'
+        self.align_guidance = ''              # Pilot: how to improve the alignment ('' when nothing to add)
+        self._mac_theta_w = None              # current pose's motor angles + worm error: recomputes corrQ_MAC on a refit
+        self.scc_error = 0                      # cache of Slew & Center Correction error magnitude, either LGA or ZRC (for Kinematics page)
+        self.mac_error = 0                    # MAC correction magnitude at the current pose (deg, Kinematics page)
+        self.mpa_error = 0                      # cache of Multi Point Alignment RMS Residual error, (for Alignment page)
         self.aligned_count = 0                  # number of AzAlt syncs used in last optimisation
-        self.q1_adj = Quaternion(1,0,0,0)       # optimised adjustment quaternion for azalt syncing, initially identity
-        self.q1_adj_message = ""                # message from last optimisation
-        self.tilt_adj_az = 0                    # q1_adj Tilt azimuth (°): direction of steepest upward inclination (info only)     
-        self.tilt_adj_mag = 0                   # q1_adj Tilt magnitude (°): angle of inclination from horizontal plane (info only)
-        self.az_adj = 0                         # q1_adj Azimuth correction (°): azimuth axis correction to apply (info only)
+        self.alignQ_B2T = self.seedQ_B2T()          # cached adjustment quaternion for azalt syncing, initially identity (eq mode: the wedge)
+        self.alignQ_B2T_inv = self.alignQ_B2T.inverse   # cached inverse adjustment quaternion for azalt syncing
+        self.alignQ_B2T_message = ""                # message from last optimisation
+        self.q_pulseguide_B = Quaternion(1,0,0,0)   # accumulation of pulse guide corrections
+        self.q_syncguide_B = Quaternion(1,0,0,0)    # accumulation of sync guide corrections
+        self.valid_sync_guide = False               # flag to indicate pure sidereal tracking since last sync
+        self.delta_guide_accum = np.zeros(3, dtype=float)
+        self.delta_guide_pulse = np.zeros(3, dtype=float) 
+        self.equatorial_axes_B = (None, None, None)
+        self.topocentric_axes_B= (None, None, None)
+        self.galactic_axes_B   = (None, None, None)
+        self.tilt_adj_az = 0                    # alignQ_B2T Tilt azimuth (°): direction of steepest upward inclination (info only)    
+        self.tilt_adj_mag = 0                   # alignQ_B2T Tilt magnitude (°): angle of inclination from horizontal plane (info only)
+        self.az_adj = 0                         # alignQ_B2T Azimuth correction (°): azimuth axis correction to apply (info only)
         self.roll_adj = 0                       # Roll axis correction (°): optimised adjustment offset from roll syncing 
+        self._pec_guide_last_time = None        # Monotomic time of last pec guide application for dashboard status badges
+        self._pulse_guide_last_time = None      # Monotomic time of last pulse guide application for dashboard status badges
+        self._sync_guide_last_time = None       # Monotomic time of last sync guide application for dashboard status badges
+        self._sync_guide_interval = None        # EMA interval between sync guides in seconds
+        self.corrQ_BLC = Quaternion()           # Backlash Compensation [BLC]: motor -> output shaft pose (identity when idle)
+        self.backlash_deg = np.zeros(3)         # ... its adjustment per motor (deg, motor - output shaft)
+        self._pulse_guide_last_step_sec = 0     # last pulse guide request's duration in seconds
+        self.refresh_pid_setpoints_from_q1()
+        self.streamSyncDataReset()
+        self.init_worm()
+        self.init_pec()
 
     def standard_entry(self):
+        theta = getattr(self.polaris, '_theta_state', None)
+        offset = getattr(self.polaris, '_zeta_raw_offset', None)
+        theta = [float(x) for x in theta] if theta is not None else None
+        zeta = [t - float(o) for t, o in zip(theta, offset)] if theta is not None and offset is not None \
+            and all(o is not None for o in offset) else None
         entry = {
             "timestamp": format_timestamp(),
             "deleted": False,
-            "p_az": self.polaris._p_azimuth,
-            "p_alt": self.polaris._p_altitude,
-            "p_roll": self.polaris._p_roll,
+            "p_az": self.polaris._p_azimuth,    # store raw motorQ_state Az
+            "p_alt": self.polaris._p_altitude,  # store raw motorQ_state Alt
+            "p_roll": self.polaris._p_roll,     # store raw motorQ_state Roll
+            "theta": theta,                     # raw motor angles of that pose (KF state, 518 space)
+            "zeta": zeta,                       # the MCU's motor angles (517): the worm gear correction's reference
+            "backlash": [float(x) for x in self.backlash_deg] if np.any(self.backlash_deg) else None,
+                                                # Backlash Compensation's adjustment then (deg, motor - output shaft)
+            "wdir": [int(x) for x in getattr(self, 'worm_direction', np.zeros(3))],
+                                                # each motor's direction of travel then: its forward or reverse worm
             "a_ra": None,
             "a_dec": None,
             "a_az": None,
             "a_alt": None,
             "a_roll": None,
+            "p_roll_pv": None,                  # store MAC + QUEST Roll
         }
         return entry
 
-    def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
-        new_vec = azalt_to_vector(a_az, a_alt)
-        threshold_rad = math.radians(2.5)   # 2.5 degrees
+    def entry_to_pred_vector(self, entry):
+        """
+        Convert a sync history entry's raw stored pose into a predicted unit vector, rebuilt with the static
+        corrections in use now, in the runtime order: [WFF] (from the entry's raw motor angles) then the alignment
+        model [MAC] (M2/M3 offsets, M2 scale, on those angles). Do not apply [SGC], [PGC] or [LGA].
+        """
+        if Config.advanced_align_mac:
+            v = boresights(corrected_theta(self.entry_mac_theta(entry), *self.mac_terms()))[0]
+            eff_az, eff_alt = vector_to_az_alt(v)
+            return v, eff_az, eff_alt
+        wormQ, blcQ = self.entry_worm_q(entry), self.entry_backlash_q(entry)
+        if wormQ.degrees == 0 and blcQ.degrees == 0:
+            return azalt_to_vector(entry["p_az"], entry["p_alt"]), entry["p_az"], entry["p_alt"]
+        motorQ_entry = azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])
+        eff_az, eff_alt, _ = q_to_azaltroll((wormQ * blcQ * motorQ_entry).normalised)
+        return azalt_to_vector(eff_az, eff_alt), eff_az, eff_alt
 
-        # Remove nearby sync points
+    # ── Mechanical Alignment Correction (MAC): M2/M3 zero offsets and M2 scale on the motor angles (kinematics_mac.py) ──────────
+    def mac_terms(self):
+        """(d2, d3, s2) in use: the fitted offsets (deg) and the M2 scale (fraction, config align_m2_scale %); zero
+        while the model (advanced_align_mac) is off, or Multi-Point Alignment is not in use (Single-Point Alignment:
+        the Polaris' own model points, and the M2 scale would still bend it)."""
+        if not (Config.advanced_align_mac and Config.advanced_alignment and Config.advanced_control):
+            return 0.0, 0.0, 0.0
+        return self.mac_d2, self.mac_d3, self.m2_scale()
+
+    def m2_scale(self):
+        """The M2 scale (fraction) the model uses: the last significantly better fit, else config's default."""
+        return self.mac_s2 if self.mac_s2 is not None else float(getattr(Config, 'align_m2_scale', 0.0)) / 100.0
+
+    def entry_theta(self, entry):
+        """A sync point's raw motor angles (deg): stored with it, or rebuilt from its pose (points saved before v2.2)."""
+        if entry.get("theta") is not None:
+            return np.asarray(entry["theta"], float)
+        return np.asarray(q_to_theta(azaltroll_to_q(entry["p_az"], entry["p_alt"], entry["p_roll"])), float)
+
+    def entry_mac_theta(self, entry):
+        """A sync point's motor angles as the model sees them: raw, less Backlash Compensation's adjustment when it was
+        acting, plus the worm gear error when it is corrected."""
+        return self.entry_theta(entry) - self.entry_backlash_deg(entry) + self.entry_worm_error_deg(entry)
+
+    @staticmethod
+    def entry_backlash_deg(entry):
+        """(3,) deg: Backlash Compensation's adjustment when the sync point was taken (motor - output shaft), factored
+        in only while Backlash Compensation is on -- as the worm term only while its correction is in use, so a point's
+        prediction follows the runtime chain. Unlike the worm error it can't be rebuilt from the raw motor angles (it
+        depends on which side of its slack each gear was), so the point keeps it next to them. Zeros when it wasn't
+        acting, or is off now."""
+        b = entry.get("backlash")
+        if b is None or not BacklashCompensator.enabled():
+            return np.zeros(3)
+        return np.asarray(b, float)
+
+    def entry_backlash_q(self, entry):
+        """The [BLC] rotation at a sync point (identity when Backlash Compensation wasn't acting)."""
+        b = self.entry_backlash_deg(entry)
+        if not np.any(b):
+            return Quaternion()
+        theta = self.entry_theta(entry)
+        return (theta_to_q(*(theta - b)) * theta_to_q(*theta).inverse).normalised
+
+    def entry_roll_pv(self, entry):
+        """A roll sync's predicted sky roll, rebuilt from its raw motor angles with the worm, MAC and QUEST rotation
+        in use now (as entry_to_pred_vector rebuilds an alignment point): a later refit changes the MAC offsets and
+        the rotation, so the roll stored at the sync goes stale."""
+        th = corrected_theta(self.entry_mac_theta(entry), *self.mac_terms())
+        return q_to_azaltroll(self.alignQ_B2T * theta_to_q(*th))[2]
+
+    def mac_correction_q(self, theta_w):
+        """Base-frame rotation from the pose at motor angles theta_w (raw + worm) to the model-corrected pose."""
+        d2, d3, s2 = self.mac_terms()
+        if d2 == 0 and d3 == 0 and s2 == 0:
+            return Quaternion(1, 0, 0, 0)
+        return mac_correction(theta_w, d2, d3, s2)
+
+    def update_mac_correction(self, theta_w=None):
+        """Refresh corrQ_MAC at the current pose (theta_w: its motor angles + worm error; None: the last ones), e.g.
+        after a refit changed the model, so callers without motor angles get the new model."""
+        if theta_w is not None:
+            self._mac_theta_w = np.asarray(theta_w, float)
+        if self._mac_theta_w is None:
+            self.corrQ_MAC, self.mac_error = Quaternion(1, 0, 0, 0), 0
+            return
+        self.corrQ_MAC = self.mac_correction_q(self._mac_theta_w)
+        self.mac_error = self.corrQ_MAC.degrees
+
+
+
+    def baseQ_to_topoQ(self, motorQ_C2B_state, theta=None):
+        """
+        Forward kinematics: Base frame → Topocentric frame.
+        motorQ → [BLC] → [WFF] → [MAC] → [SGC] → [PGC] → [QUEST] → [LGA] → [roll_adj] → cameraQ
+        theta: the motor angles (deg) motorQ_C2B_state was built from -- the control tick passes them to refresh the
+        backlash compensation, worm feed-forward and MAC at the current pose; other callers reuse the last ones.
+        """
+        # Apply Backlash Compensation (BLC): while it acts, the output shafts lag the motors by the slack not yet taken
+        # up (control_backlash.py); identity otherwise
+        if theta is not None:
+            self.update_backlash_correction(theta)
+        corrQ_BLC = getattr(self, 'corrQ_BLC', None)
+        motorQ_C2B_state = corrQ_BLC * motorQ_C2B_state if corrQ_BLC is not None else motorQ_C2B_state
+
+        # Apply Worm Feed-Forward (WFF): the gear error after each motor, which the MCU can't see (control_pec)
+        if theta is not None:
+            self.update_worm_ff(theta)
+        corrQ_WFF = getattr(self, 'corrQ_WFF', None)      # not yet set while __init__ refreshes the setpoints
+        motorQ_C2B_pv = corrQ_WFF * motorQ_C2B_state if corrQ_WFF is not None else motorQ_C2B_state
+
+        # Apply Mechanical Alignment Correction (MAC): M2/M3 offsets and M2 scale on the motor angles (after the worm)
+        if theta is not None:
+            self.update_mac_correction(np.asarray(theta, float) - self.backlash_deg
+                                       + getattr(self, 'worm_error_deg', 0.0))
+        if Config.advanced_align_mac and self.corrQ_MAC.degrees != 0:
+            motorQ_C2B_pv = self.corrQ_MAC * motorQ_C2B_pv
+
+        # Apply Sync Guide Corrections (SGC)
+        motorQ_C2B_pv = self.q_syncguide_B * motorQ_C2B_pv
+
+        # Apply Pulse Guide Corrections (PGC)
+        motorQ_C2B_pv = self.q_pulseguide_B * motorQ_C2B_pv
+
+        return self.pvQ_to_topoQ(motorQ_C2B_pv), motorQ_C2B_pv
+
+    def update_backlash_correction(self, theta):
+        """Refresh the Backlash Compensation rotation [BLC] for the motor angles theta (deg): the PID's compensator
+        (control_backlash.py) gives each motor's adjustment (motor - output shaft), and the rotation takes the pose at
+        the motor angles to the pose at the output shafts, q(theta - adj) q(theta)^-1."""
+        pid = getattr(self.polaris, '_pid', None)
+        adj = pid.backlash_adjust() if pid is not None and hasattr(pid, 'backlash_adjust') else np.zeros(3)
+        self.backlash_deg = np.asarray(adj, float).copy()
+        if not np.any(self.backlash_deg):
+            self.corrQ_BLC = Quaternion()
+            return
+        theta = np.asarray(theta, float)
+        self.corrQ_BLC = (theta_to_q(*(theta - self.backlash_deg)) * theta_to_q(*theta).inverse).normalised
+
+    def pvQ_to_topoQ(self, motorQ_C2B_pv):
+        """
+        Forward kinematics from the corrected motor pose (theta_pv / theta_ref space, after WFF/MAC/SGC/PGC):
+        motorQ_pv → QUEST → [LGA] → [roll_adj] → cameraQ. The inverse of topoQ_to_baseQ.
+        """
+        # Apply alignQ_B2T model (QUEST)
+        cameraQ_C2T_pv = self.alignQ_B2T * motorQ_C2B_pv
+
+        # Apply Local Gaussian Adjustment (LGA)
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==1:
+            self.corrQ_LGA, self.scc_error = self.get_local_guassian_adjustment_q(cameraQ_C2T_pv)
+            cameraQ_C2T_pv = self.corrQ_LGA * cameraQ_C2T_pv
+
+        # Apply roll sync adj (roll_adj)
+        if self.roll_adj != 0:
+            boresight_T = cameraQ_C2T_pv.rotate([0, 0, -1])
+            corrQ_roll = Quaternion(axis=boresight_T, degrees=-self.roll_adj)
+            cameraQ_C2T_pv = corrQ_roll * cameraQ_C2T_pv
+
+        return cameraQ_C2T_pv
+
+
+
+    def topoQ_to_baseQ(self, cameraQ_C2T):
+        """
+        Inverse kinematics: Topocentric frame → Base frame.
+        cameraQ → undo[roll_adj] → undo[LGA] → undo[QUEST] → motorQ (in corrected theta space)
+        """
+        # Undo roll sync adj (roll_adj)
+        if self.roll_adj != 0:
+            boresight_T = cameraQ_C2T.rotate([0, 0, -1])
+            corrQ_roll_undo = Quaternion(axis=boresight_T, degrees=self.roll_adj)
+            cameraQ_C2T = corrQ_roll_undo * cameraQ_C2T
+
+        # Undo Local Guassian Adjustment (LGA) 
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==1:
+            if self.corrQ_LGA is not None:
+                cameraQ_C2T = self.corrQ_LGA.inverse * cameraQ_C2T
+
+        # Undo alignQ_B2T model (QUEST)
+        motorQ_C2B = self.alignQ_B2T_inv * cameraQ_C2T
+
+        # Do not undo the following as PID theta works in corrected theta space
+        # no undo Mechanical Corrections (MAC)
+        # no undo Pulse Guiding Corrections (PGC)
+        # no undo Sync Guiding Corrections (SGC)
+
+        return motorQ_C2B
+
+    def refresh_pid_setpoints_from_q1(self):
+        """
+        Called after any sync reset, delete, or alignment model update.
+        Re-derives all PID setpoints from current motor quaternion + new alignment model,
+        """   
+        if self.polaris._q1 is None:
+            return
+        if not hasattr(self.polaris, '_pid') or self.polaris._pid is None:
+            return
+        cameraQ, _ = self.baseQ_to_topoQ(self.polaris._q1)     
+        az, alt, roll = q_to_azaltroll(cameraQ)
+        self.polaris._pid.reset_sp(np.array([az,alt,roll], dtype=float))
+                                   
+    def sync_az_alt(self, a_ra, a_dec, a_az, a_alt):
+        if not Config.advanced_alignment:
+            return
+    
+        if Config.advanced_sync_guiding:
+            # return if a valid sync guide update occurs
+            if self.process_guide_sync(a_ra, a_dec, a_az, a_alt):
+                return   
+
+        # otherwise process it as a quest update
+        self.process_quest_sync(a_ra, a_dec, a_az, a_alt)
+
+
+    def process_quest_sync(self, a_ra, a_dec, a_az, a_alt):
+        # Remove old nearby sync points
+        new_pred_vec = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
+        new_obs_vec  = azalt_to_vector(a_az, a_alt)
+        threshold_rad = math.radians(1.5)   # 1.5 degrees
         for entry in self.sync_history:
             if entry.get("deleted", False):
                 continue
             if entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            existing_vec = azalt_to_vector(entry["a_az"], entry["a_alt"])
-            if v_angular_distance(new_vec, existing_vec) < threshold_rad:
+            existing_pred_vec = azalt_to_vector(entry["p_az"], entry["p_alt"])
+            existing_obs_vec  = azalt_to_vector(entry["a_az"], entry["a_alt"])
+            if (v_angular_distance(new_pred_vec, existing_pred_vec) < threshold_rad or
+                v_angular_distance(new_obs_vec,  existing_obs_vec)  < threshold_rad):
                 self.sync_remove(entry["timestamp"], optimise=False)
 
+        # If limit reached, remove one: QUEST the lowest weighted; MAC (one global fit, which needs the spread) the
+        # oldest, never the highest or the lowest in M2
         active_entries = [e for e in self.sync_history if not e.get("deleted", False)]
-        # If limit reached, remove the lowest-weighted entry
-        if len(active_entries) >= 10:
-            # Find entry with lowest weight
-            lowest_entry = min(active_entries, key=lambda e: e["w_total"])
+        mac = Config.advanced_align_mac
+        if len(active_entries) >= (self.ALIGN_MAX_POINTS_MAC if mac else self.ALIGN_MAX_POINTS):
+            if mac:
+                m2 = [float(self.entry_theta(e)[1]) for e in active_entries]
+                keep = {int(np.argmin(m2)), int(np.argmax(m2))}
+                lowest_entry = next(e for i, e in enumerate(active_entries) if i not in keep)
+            else:
+                lowest_entry = min(active_entries, key=lambda e: e.get("w_total", 0.0))
             timestamp_to_remove = lowest_entry.get("timestamp")
             self.sync_remove(timestamp_to_remove, optimise=False)
+
+        # Create and add the new entry
         entry = self.standard_entry()
         entry["a_ra"] = a_ra
         entry["a_dec"] = a_dec
         entry["a_az"] = a_az
         entry["a_alt"] = a_alt
         self.sync_history.append(entry)
-        self.optimize_q1_adj()
-        self.logSyncData()
+        self.last_sync_time = time.monotonic()
+
+        # Recalculate QUEST based on the new data
+        self.optimize_alignQ_B2T()
+        self.refresh_pid_setpoints_from_q1()
+        self.streamSyncData()
+        self.enable_sync_guiding()
 
     def sync_roll(self, a_roll):
+        if not Config.advanced_alignment:
+            return
         entry = self.standard_entry()
         entry["a_roll"] = a_roll
-        if (Config.advanced_alignment and Config.advanced_control):
-            _,_,_,_,_,p_roll = quaternion_to_angles(self.q1_adj * self.polaris._q1)
-            entry["p_roll"] = p_roll         # The polaris roll needs to be adjusted for tilt using q1_adj
+        if Config.advanced_alignment and Config.advanced_control:
+            _, _, p_roll_pv = q_to_azaltroll(self.alignQ_B2T * self.corrQ_MAC * self.polaris._motorQ_state)
+            entry["p_roll_pv"] = p_roll_pv   # MAC+QUEST corrected roll in T Frame for roll_adj computation
         self.sync_history.append(entry)
         self.optimize_roll_adj()
-        self.logSyncData()
+        self.refresh_pid_setpoints_from_q1()
+        self.streamSyncData()
 
     def sync_remove(self, timestamp, optimise=True):
         found = False
@@ -1794,30 +3008,100 @@ class SyncManager:
             if Config.log_quest_model:
                 self.logger.info(f"Cleared sync data for timestamp: {timestamp}")
             if optimise:
-                self.optimize_q1_adj()
+                self.optimize_alignQ_B2T()
                 self.optimize_roll_adj()
-            self.logSyncData()
+                self.refresh_pid_setpoints_from_q1()
+            self.streamSyncData()
         else:
             self.logger.warning(f"No sync entry found with timestamp: {timestamp}")
 
 
     def azalt_polaris2ascom(self, p_az, p_alt):
-        if self.q1_adj is None:
+        if self.alignQ_B2T is None:
             return p_az, p_alt
         v_pred = azalt_to_vector(p_az, p_alt)
-        v_obs = self.q1_adj.rotate(v_pred)
+        v_obs = self.alignQ_B2T.rotate(v_pred)
         c_az, c_alt = vector_to_az_alt(v_obs) 
         return c_az, c_alt
 
     def azalt_ascom2polaris(self, a_az, a_alt):
-        if self.q1_adj is None:
+        if self.alignQ_B2T is None:
             return a_az, a_alt
         v_obs = azalt_to_vector(a_az, a_alt)
-        v_pred = self.q1_adj.inverse.rotate(v_obs)
+        v_pred = self.alignQ_B2T.inverse.rotate(v_obs)
         p_az, p_alt = vector_to_az_alt(v_pred)
         return p_az, p_alt
 
-    def optimize_q1_adj(self):
+    # ── MAC: the M2 scale refitted at each sync, taken only when significantly better (no AutoTune) ──────────────
+    M2_SCALE_MIN_POINTS = 6           # sync points before the M2 scale is refitted ...
+    M2_SCALE_MIN_SPAN_DEG = 20.0      # ... spread at least this far in M2 (about altitude at Roll 0)
+    M2_SCALE_RANGE = (-0.02, 0.04)    # a fit outside this is not taken (every Polaris in the logs: +0.3 to +2.2%)
+    M2_SCALE_P = 0.05                 # F-test significance: the free scale must cut the misfit by more than chance
+    ALIGN_MAX_POINTS = 10             # sync points kept (QUEST: the lowest weighted is replaced) ...
+    ALIGN_MAX_POINTS_MAC = 20         # ... with MAC: the oldest, never the highest or lowest in M2
+
+    def refit_m2_scale(self, theta, obs, fit):
+        """With the offsets fitted (fit, at the current M2 scale): refit with the M2 scale free and take it when the
+        points determine it and it fits significantly better (F-test); otherwise keep the current scale. Returns the
+        fit to use. Replay of the archived alignments (utility/alignment_scale_replay.py): never more than 3' worse
+        than Pilot's AutoTune carried between sessions, up to 14' better, without AutoTune."""
+        n, s2_now = len(theta), self.m2_scale()
+        self.mac_s2_status = 'held' if self.mac_s2 is not None else 'default'
+        if n < self.M2_SCALE_MIN_POINTS or float(np.ptp(theta[:, 1])) < self.M2_SCALE_MIN_SPAN_DEG:
+            return fit
+        free = fit_alignment(theta, obs, s2=s2_now, d_init=(fit.d2, fit.d3), fit_s2=True)
+        lo, hi = self.M2_SCALE_RANGE
+        if (not free.s2_fitted or not lo <= free.s2 <= hi
+                or not significantly_better(fit, free, n, extra_params=1, n_params=6, p_accept=self.M2_SCALE_P)):
+            return fit
+        if self.logger:
+            self.logger.info(f"->> Polaris: MAC M2 scale {s2_now * 100:+.2f}% -> {free.s2 * 100:+.2f}% "
+                             f"(significantly better fit of {n} points over {np.ptp(theta[:, 1]):.0f} deg of M2; "
+                             f"RMS {fit.rms_arcmin:.1f}' -> {free.rms_arcmin:.1f}')")
+        self.mac_s2 = float(free.s2)
+        self.mac_s2_accepted = datetime.datetime.now().isoformat(timespec='seconds')
+        self.mac_s2_status = 'fitted'
+        return free
+
+    def alignment_guidance(self, theta, fit):
+        """One line for Pilot on improving the alignment model ('' when nothing to add): the first that applies.
+        theta: the sync points' motor angles (MAC's points), fit: the last joint fit."""
+        n = 0 if theta is None else len(theta)
+        if not Config.advanced_alignment or n < 3:
+            return "Add 3 or more plate-solve syncs spread across the sky."
+        if not Config.advanced_align_mac:
+            return ''
+        if n < self.M2_SCALE_MIN_POINTS:
+            return "Add additional sync points to improve mechanical alignment."
+        t2 = theta[:, 1]
+        if float(np.ptp(t2)) < self.M2_SCALE_MIN_SPAN_DEG:
+            return self._altitude_guidance(theta)
+        if fit is None or not fit.offsets_fitted:
+            return "Add sync points further apart in azimuth and altitude."
+        if n < self.ALIGN_MAX_POINTS_MAC:
+            return f"Good alignment. Add more sync points to refine it further (up to {self.ALIGN_MAX_POINTS_MAC})."
+        return "Good alignment. New sync points replace the oldest."
+
+    def _altitude_guidance(self, theta):
+        """Where to add sync points to spread them M2_SCALE_MIN_SPAN_DEG in M2, as an altitude at the sync points'
+        typical roll (cos M2 = cos alt cos roll): above when there is room, else below."""
+        t2 = np.abs(theta[:, 1])
+        roll = float(np.median([q_to_azaltroll(theta_to_q(*t))[2] for t in theta]))
+        cr = max(math.cos(math.radians(roll)), 1e-6)
+
+        def alt_for(m2):
+            c = math.cos(math.radians(m2)) / cr
+            return math.degrees(math.acos(min(1.0, c))) if c <= 1.0 else None
+
+        above = alt_for(float(t2.min()) + self.M2_SCALE_MIN_SPAN_DEG)
+        if above is not None and float(t2.min()) + self.M2_SCALE_MIN_SPAN_DEG <= THETA2_MAX - 5 and above <= 80:
+            return f"Add sync points above {math.ceil(above)}\N{DEGREE SIGN} altitude."
+        below = alt_for(float(t2.max()) - self.M2_SCALE_MIN_SPAN_DEG)
+        if below is not None and below >= 15:
+            return f"Add sync points below {math.floor(below)}\N{DEGREE SIGN} altitude."
+        return "Add sync points further apart in azimuth and altitude."
+
+    def optimize_alignQ_B2T(self, persist=True):
         """
         Implement the QUEST algorithm to find the optimal rotation quaternion
         that minimizes the misalignment between predicted (Polaris) and observed (Plate Solved/ASCOM) vectors.
@@ -1825,18 +3109,27 @@ class SyncManager:
         Markley, F. L. (2000). "Quaternion Attitude Estimation Using Vector Observations." https://tinyurl.com/ymk5xd7z
         Markley, F. L. (2003). "Attitude Estimation or Quaternion Estimation?" https://ntrs.nasa.gov/citations/20030093641
         """
+        if Config.advanced_alignment == False:
+            self.set_alignQ_to_identity()        # (Single-Point Alignment: also resets the M2 scale to its default)
+            self.align_guidance = self.alignment_guidance(None, None)
+            return
+
         pairs = []
         weights = []
-
+        mac_points = []                          # (motor angles + worm error, observed vector) for the model fit
+        self.clear_guide_pulses(persist=persist)
+        if not Config.advanced_align_mac:
+            self.mac_d2 = self.mac_d3 = 0.0
 
         v_current = azalt_to_vector(self.polaris._p_azimuth, self.polaris._p_altitude)
 
         for i, entry in enumerate(self.sync_history):
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
+
             v_obs = azalt_to_vector(entry["a_az"], entry["a_alt"])            # Observed vector from sync
-            v_pred = azalt_to_vector(entry["p_az"], entry["p_alt"])           # Predicted vector from Polaris
-            proximity_angle = v_angular_distance(v_pred, v_current)                 # in Polaris space
+            v_pred, _, _ = self.entry_to_pred_vector(entry)                   # Predicted vector from q1/alpha_state
+            proximity_angle = v_angular_distance(v_pred, v_current)           # in Polaris space
 
             w_recency = 0.5 * np.exp(-0.1 * (len(self.sync_history) - i))                 # Recent syncs weighted more heavily: ~0.6–1.0
             w_proximity = 1.0 * np.exp(-(proximity_angle**2) / (2 * np.radians(10)**2))   # Higher weight for syncs near current pointing orientation: #  guassian σ=10°
@@ -1851,12 +3144,34 @@ class SyncManager:
 
             pairs.append((v_pred, v_obs))
             weights.append(w_total)
+            if Config.advanced_align_mac:
+                mac_points.append((self.entry_mac_theta(entry), v_obs))
 
 
         self.aligned_count = len(pairs)
-        if len(pairs) < 2:
-            self.q1_adj = self.optimise_q1_adj_fallback_single_sync(pairs)
-            self.q1_adj_message = "Fallback rotation from single sync"
+        if not pairs:
+            self.mac_d2 = self.mac_d3 = 0.0       # no points left to hold them for (deleted one by one)
+        fit = None
+        if Config.advanced_align_mac and len(mac_points) >= 2:
+            # MAC: QUEST's rotation fitted together with the M2/M3 offsets, unweighted (kinematics_mac.py).
+            # When the points can't separate the offsets, keep them and use the weighted QUEST below (it fits best
+            # locally, by proximity), on predictions that already carry the held offsets.
+            th = np.array([t for t, _ in mac_points]); obs = np.array([v for _, v in mac_points])
+            d2, d3, s2 = self.mac_terms()
+            fit = fit_alignment(th, obs, s2=s2, d_init=(d2, d3))
+        if fit is not None and fit.offsets_fitted:
+            fit = self.refit_m2_scale(th, obs, fit)
+            self.mac_d2, self.mac_d3 = float(fit.d2), float(fit.d3)
+            self.alignQ_B2T = fit.q
+            self.alignQ_B2T_inv = self.alignQ_B2T.inverse
+            if Config.advanced_scc_enabled and Config.advanced_scc_choice==0:
+                self.clear_sync_guiding()
+                self.apply_zero_last_residual_to_model()
+            self.alignQ_B2T_message = "QUEST + MAC solution applied"
+        elif len(pairs) < 2:
+            self.alignQ_B2T = self.optimise_alignQ_B2T_fallback_single_sync(pairs)
+            self.alignQ_B2T_inv = self.alignQ_B2T.inverse
+            self.alignQ_B2T_message = "Fallback rotation from single sync"
         else:
             # Normalize weights
             weights = np.array(weights)
@@ -1892,58 +3207,148 @@ class SyncManager:
             eigvals, eigvecs = np.linalg.eigh(K)
             q_opt = eigvecs[:, np.argmax(eigvals)]  # [w, x, y, z]
 
-            self.q1_adj = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
-            if Config.advanced_alignment_zero:
-                self.apply_final_sync_alignment()
+            self.alignQ_B2T = Quaternion(q_opt[0], q_opt[1], q_opt[2], q_opt[3])
+            self.alignQ_B2T_inv = self.alignQ_B2T.inverse
+
+            # If not optimal sidereal tracking then tweak QUEST model to zero our residual on final syncpoint
+            if Config.advanced_scc_enabled and Config.advanced_scc_choice==0:
+                self.clear_sync_guiding()
+                self.apply_zero_last_residual_to_model()
                 
-            self.q1_adj_message = "QUEST solution applied"
+            self.alignQ_B2T_message = "QUEST solution applied" + (" (MAC offsets held)" if fit is not None else "")
 
 
+        self.update_mac_correction()   # the current pose with the refitted model
+        if fit is None or not fit.offsets_fitted:
+            self.mac_s2_status = 'held' if self.mac_s2 is not None else 'default'
+        self.mac_offsets_status = 'fitted' if (self.mac_d2 or self.mac_d3) else 'default'
+        self.align_guidance = self.alignment_guidance(np.array([t for t, _ in mac_points]) if mac_points else None,
+                                                      fit)
         # Now compute the residuals and tilt correction
         self.compute_azalt_residuals()   # Compute and store residuals
         self.compute_tilt()              # Compute tilt correction
+        self.optimize_roll_adj()         # roll syncs against the refitted rotation and MAC
+        self.logSyncDataToConsole()
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:
+            self.seed_sync_guide_from_quest_residual()
 
-        if Config.log_quest_model:
-            for i, entry in enumerate(self.sync_history):
-                if entry["deleted"]:
-                    continue
-                msg = f"Sync[{i}] | Timestamp: {entry['timestamp']} | Pred AzAlt: ({entry['p_az']:.2f}, {entry['p_alt']:.2f}) "
-                msg += f"| Obs AzAlt: ({entry['a_az']:.2f}, {entry['a_alt']:.2f}) | Obs RADec: ({entry['a_ra']:.2f}, {entry['a_dec']:.2f}) "
-                msg += f"| ProximityW: {entry['w_proximity']:.4f} | RecencyW: {entry['w_recency']:.4f} | PolarW: {entry['w_polar']:.4f} "
-                msg += f"| TotalW: {entry['w_total']:.4f} | Residual: { deg2dms(entry['residual_magnitude'])}"
-                self.logger.info(msg)
         return
 
-    def apply_final_sync_alignment(self):
+
+    def get_last_syncpoint_residual(self):
         """
-        Apply a minimal correction quaternion to self.q1_adj so that the last valid sync point
-        has zero residual. This ensures the most recent sync is perfectly honored.
+        Returns the residual of the most recent valid AzAlt sync point as
+        (az_err_deg, alt_err_deg, v_pred_rot, v_obs), or (0, 0, None, None)
+        if no valid sync exists.
+
+        Residual is defined as: observed - model_predicted.
+        v_pred_rot is the model-rotated predicted vector (used for quaternion correction).
+        v_obs is the observed vector (used for quaternion correction).
         """
-        last_valid = next((entry for entry in reversed(self.sync_history)
-                        if not entry["deleted"] and entry["a_az"] is not None and entry["a_alt"] is not None), None)
-        if not last_valid:
-            self.q1_adj_message += " | No valid sync for final alignment"
-            return
-        v_obs = azalt_to_vector(last_valid["a_az"], last_valid["a_alt"])
-        v_pred = azalt_to_vector(last_valid["p_az"], last_valid["p_alt"])
-        v_pred_rot = self.q1_adj.rotate(v_pred)
+        last_valid = next(
+            (e for e in reversed(self.sync_history)
+            if not e.get('deleted', False)
+            and e.get('a_az') is not None
+            and e.get('a_alt') is not None),
+            None
+        )
+        if last_valid is None:
+            return 0.0, 0.0, None, None
+
+        v_pred, _, _ = self.entry_to_pred_vector(last_valid)
+        v_obs  = azalt_to_vector(last_valid['a_az'], last_valid['a_alt'])
+        v_pred_rot = self.alignQ_B2T.rotate(v_pred)
+
+        az_corr, alt_corr = vector_to_az_alt(v_pred_rot)
+        az_err  = angular_difference(az_corr, last_valid['a_az'])
+        alt_err = angular_difference(alt_corr, last_valid['a_alt'])
+
+        return az_err, alt_err, v_pred_rot, v_obs
+    
+
+    def get_local_guassian_adjustment_q(self, cameraQ_C2T, sigma_deg=10.0, sigma_sec=60*60):
+        """
+        Returns a spatially and temporally weighted correction quaternion based on the
+        last sync point residual.
+        Spatial:  Gaussian over angular distance from last sync point (sigma_deg).
+        Temporal: Gaussian over time since last sync (sigma_sec).
+                LGA fades to identity after a slew-and-centre completes so that
+                sidereal tracking is not continuously nudged by a stale correction.
+
+        Returns (QIdentity, 0) if no valid sync, weight too small, or correction negligible.
+        """
+        identity = (Quaternion(1,0,0,0), 0)
+
+        # ---- Temporal fade --------------------------------------------------
+        if self.last_sync_time is None:
+            return identity
+        
+        # Disable Temporal weight
+        temporal_weight = 1
+        # dt = time.monotonic() - self.last_sync_time
+        # temporal_weight = math.exp(-(dt ** 2) / (2 * sigma_sec ** 2))
+        # if temporal_weight < 1e-3:                   # effectively zero after ~3 sigma
+        #     return identity
+        
+        # ---- Spatial Gaussian -----------------------------------------------
+        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
+        if v_pred_rot is None:
+            return identity
+
+        # Angular distance from current boresight to last sync point (in observed space)
+        boresight_T = cameraQ_C2T.rotate([0, 0, -1])
+        angular_dist_rad = v_angular_distance(boresight_T, v_obs)
+
+        # Gaussian weight: 1.0 at sync point, fades toward 0 beyond sigma_deg
+        sigma_rad = math.radians(sigma_deg)
+        spatial_weight = math.exp(-(angular_dist_rad ** 2) / (2 * sigma_rad ** 2))
+        if spatial_weight < 1e-4:
+            return identity
+
+        # Build the full residual correction quaternion (v_pred_rot → v_obs)
         axis = np.cross(v_pred_rot, v_obs)
         norm_axis = np.linalg.norm(axis)
         if norm_axis < 1e-8:
-            self.q1_adj_message += " | Final sync already aligned"
-            return
+            return identity
         axis /= norm_axis
         angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
-        q_correction = Quaternion(axis=axis, angle=angle)
-        self.q1_adj = q_correction * self.q1_adj
+        q_full = Quaternion(axis=axis, radians=angle)
+
+        # Slerp between identity and full correction by weight
+        weight = spatial_weight * temporal_weight
+        q_weighted = Quaternion.slerp(Quaternion(1, 0, 0, 0), q_full, amount=weight)
+        scc_error = np.degrees(-angle*weight)
+        return (q_weighted, scc_error)
+
+    def apply_zero_last_residual_to_model(self):
+        self.scc_error = 0
+        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
+        if v_pred_rot is None:
+            self.alignQ_B2T_message += " | No valid sync for final alignment"
+            return
+
+        axis = np.cross(v_pred_rot, v_obs)
+        norm_axis = np.linalg.norm(axis)
+        if norm_axis < 1e-8:
+            self.alignQ_B2T_message += " | Final sync already aligned"
+            return
+
+        axis /= norm_axis
+        angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
+        q_correction = Quaternion(axis=axis, radians=angle)
+        self.alignQ_B2T = q_correction * self.alignQ_B2T
+        self.alignQ_B2T_inv = self.alignQ_B2T.inverse
+        self.scc_error = np.degrees(-angle)
 
 
-    def optimise_q1_adj_fallback_single_sync(self, pairs):
+    def optimise_alignQ_B2T_fallback_single_sync(self, pairs):
+        # Azimuth then tilt correction on top of the seed (identity, or the ideal wedge in eq mode)
+        seedQ = self.seedQ_B2T()
         if len(pairs) == 0:
-            return Quaternion(1,0,0,0)  # identity quaternion
+            return seedQ
         
         v_pred, v_obs = pairs[0]
-        v_pred /= np.linalg.norm(v_pred)
+        v_pred = seedQ.rotate(v_pred / np.linalg.norm(v_pred))
         v_obs /= np.linalg.norm(v_obs)
 
         # Horizontal projection
@@ -1966,20 +3371,25 @@ class SyncManager:
         axis = np.array([axis[0], axis[1], 0])  # project to horizontal
 
         if np.linalg.norm(axis) < 1e-6:
-            return q_az  # only azimuth correction needed
+            return q_az * seedQ  # only azimuth correction needed
 
         axis /= np.linalg.norm(axis)
         q_tilt = Quaternion(axis=axis, radians=angle)
-        return q_tilt * q_az
+        return q_tilt * q_az * seedQ
 
     def compute_azalt_residuals(self):
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_az"] is None or entry["a_alt"] is None:
                 continue
-            az_corr, alt_corr = self.azalt_polaris2ascom(entry["p_az"], entry["p_alt"])
+            _, eff_az, eff_alt = self.entry_to_pred_vector(entry)
+            az_corr, alt_corr  = self.azalt_polaris2ascom(eff_az, eff_alt)            
             az_err = angular_difference(az_corr, entry["a_az"])
             alt_err = angular_difference(alt_corr, entry["a_alt"])
-            magnitude = math.sqrt(az_err**2 + alt_err**2)
+            # Project az error onto the sky before combining with alt error.
+            # Raw az degrees overstate separation at high altitudes.
+            ref_alt = math.radians((alt_corr + entry["a_alt"]) / 2.0)
+            az_err_projected = az_err * math.cos(ref_alt)
+            magnitude = math.sqrt(az_err_projected**2 + alt_err**2)
             entry["residual_vector"] = (az_err, alt_err)
             entry["residual_magnitude"] = magnitude
 
@@ -2024,27 +3434,27 @@ class SyncManager:
 
         self.tilt_adj_az = tilt_az_observed
         self.tilt_adj_mag = tilt_magnitude_deg
-        self.az_adj = wrap_to_180(north_az)
+        self.az_adj = wrap180(north_az)
 
 
     def roll2pa(self, az_deg, alt_deg, roll_deg):
         """Convert camera-frame roll to sky-frame position angle and parallactic angle at ascom azalt."""
         parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
-        position_angle = wrap_to_360(roll_deg + parallactic_angle)
+        position_angle = wrap360(roll_deg + parallactic_angle)
         return position_angle, parallactic_angle
 
     def pa2roll(self, az_deg, alt_deg, position_angle_deg):
         """Convert sky-frame position angle to camera-fram roll using parallactic angle at ascom azalt."""
         parallactic_angle = calc_parallactic_angle(az_deg, alt_deg, self.polaris._sitelatitude)
-        return wrap_to_360(position_angle_deg - parallactic_angle)
+        return wrap360(position_angle_deg - parallactic_angle)
 
     def roll_polaris2ascom(self, polaris_roll_deg):
         """Convert Polaris roll angle to ASCOM roll angle (mechanical angle), applying roll sync adjustment correction."""
-        return wrap_to_360(polaris_roll_deg + self.roll_adj)
+        return wrap360(polaris_roll_deg + self.roll_adj)
 
     def roll_ascom2polaris(self, ascom_roll_deg):
         """Convert ASCOM roll angle (mechanical angle) to Polaris roll angle, applying roll sync adjustment."""
-        return wrap_to_360(ascom_roll_deg - self.roll_adj)
+        return wrap360(ascom_roll_deg - self.roll_adj)
 
     def optimize_roll_adj(self):
         deltas = []
@@ -2052,17 +3462,443 @@ class SyncManager:
         for entry in self.sync_history:
             if entry["deleted"] or entry["a_roll"] is None:
                 continue
-
+            # The MAC + QUEST corrected roll, rebuilt with the current model (as at the sync: advanced control)
+            p_roll = self.entry_roll_pv(entry) if Config.advanced_control else entry["p_roll"]
             # Compute delta: how much Polaris roll differs from expected PA
-            delta = angular_difference(entry["p_roll"], entry["a_roll"])
+            delta = angular_difference(p_roll, entry["a_roll"])
             deltas.append(delta)
 
-        self.roll_adj = sum(deltas) / len(deltas) if deltas else 0
+        if deltas:
+            # circular mean to handle wrap-around near ±180°
+            sin_sum = sum(math.sin(math.radians(d)) for d in deltas)
+            cos_sum = sum(math.cos(math.radians(d)) for d in deltas)
+            self.roll_adj = math.degrees(math.atan2(sin_sum, cos_sum))
+        else:
+            self.roll_adj = 0
         self.compute_roll_residuals()
 
-    def logSyncData(self):
+
+    def logSyncDataToConsole(self):
+        if Config.log_quest_model:
+            # --- Model summary line ---
+            active = [e for e in self.sync_history if not e.get("deleted") and e.get("a_az") is not None]
+            residuals = [e["residual_magnitude"] for e in active if "residual_magnitude" in e]
+            rms = math.sqrt(sum(r**2 for r in residuals) / len(residuals)) if residuals else 0
+            max_res = max(residuals) if residuals else 0
+            max_entry = active[residuals.index(max_res)] if residuals else None
+            self.mpa_error = rms
+
+            self.logger.info(
+                f"QUEST Model  | Points: {len(active)} | "
+                f"w: {self.alignQ_B2T[0]:+9.7f} | " 
+                f"x: {self.alignQ_B2T[1]:+9.7f} | " 
+                f"y: {self.alignQ_B2T[2]:+9.7f} | " 
+                f"z: {self.alignQ_B2T[3]:+9.7f} " 
+            )
+            en = Config.advanced_scc_enabled
+            ch = Config.advanced_scc_choice
+            self.logger.info(
+                f"  MAC: {'ON ' if Config.advanced_align_mac else 'OFF'}   | " 
+                f"{'d2 ' + deg2dms(self.mac_d2) + ' d3 ' + deg2dms(self.mac_d3) + f' M2 scale {self.mac_terms()[2] * 100:+.2f}% ({self.mac_s2_status}) | ' if Config.advanced_align_mac else ''}" 
+                f"{'SCC: OFF  | ' if not en else 'ZLR: ON   | ' if ch==0 else 'LGA: ON   | ' if ch==1 else 'SGA: ON   | ' }"
+                f"RMS Residual: {deg2dms(rms)}  | "
+                f"Az Correction: {deg2dms(self.az_adj)} | "
+                f"Tilt: {deg2dms(self.tilt_adj_mag)} @ {deg2dms(self.tilt_adj_az)} | "
+                f"Roll Adj: {deg2dms(self.roll_adj)}"
+            )
+
+            # --- Per-point table, compact format ---
+            # Header
+            self.logger.info(
+                f"  {'No':>2} {'Timestamp':>10} {'Age h':>5} "
+                f"{'Obs RA':>8} {'Obs Dec':>8} {'Obs Az':>8} {'Obs Alt':>8} "
+                f"{'p_az':>8} {'p_alt':>8} {'p_roll':>8} "
+                f"{'Weight':>7} {'ResAz':>8} {'ResAlt':>8} {'ResMag':>8} "
+            )
+            for i, entry in enumerate(self.sync_history):
+                if entry.get("deleted") or entry.get("a_az") is None:
+                    continue
+                az_err, alt_err = entry.get("residual_vector", (0, 0))
+                mag = entry.get("residual_magnitude", 0)
+                w = entry.get("w_total", 0)
+                # Timestamp short form eg 12:24:04
+                ts_utc = datetime.datetime.fromisoformat(entry['timestamp'].replace('Z', '+00:00'))
+                ts_local = ts_utc.astimezone()
+                ts = ts_local.strftime('%H:%M:%S')
+                age_h = (datetime.datetime.now(datetime.timezone.utc) - ts_utc).total_seconds() / 3600
+                self.logger.info(
+                    f" #{i:02d} {ts:>10} {age_h:>5.1f} "
+                    f"{entry['a_ra']:>8.2f} {entry['a_dec']:>8.2f} {entry['a_az']:>8.2f} {entry['a_alt']:>8.2f} "
+                    f"{entry['p_az']:>8.2f} {entry['p_alt']:>8.2f} {entry['p_roll']:>8.2f} "
+                    f"{w:>7.4f} {az_err*60:>+8.2f}' {alt_err*60:>+8.2f}' {deg2dms(mag):>8}"
+                )
+            # --- Point pair separation ---
+            if len(active) >= 2:
+                self.logger.info("Point separations (degrees):")
+                for i in range(len(active)):
+                    parts = []
+                    for j in range(i+1, len(active)):
+                        v1 = azalt_to_vector(active[i]['a_az'], active[i]['a_alt'])
+                        v2 = azalt_to_vector(active[j]['a_az'], active[j]['a_alt'])
+                        sep = math.degrees(v_angular_distance(v1, v2))
+                        parts.append(f"#{j:02d}: {sep:5.2f}")
+                    if parts:
+                        self.logger.info(f" #{i:02d}   <->  {';  '.join(parts)}")
+
+    def streamSyncData(self, persist=True):
+        self.streamSyncDataReset()
         sm_logger = logging.getLogger('sm')
         for entry in self.sync_history:
             sm_logger.info(entry)
+        if persist:
+            self.saveSyncDataToFile()
+
+    def streamSyncDataReset(self):
+        sm_logger = logging.getLogger('sm')
+        first_entry = self.standard_entry()
+        first_entry["timestamp"] = 'reset'    # flag clients to clear alignment history
+        first_entry["a_alt"] = 0
+        first_entry["a_az"] = 0 
+        first_entry["a_roll"] = 0 
+        sm_logger.info(first_entry)
+
+    def saveSyncDataToFile(self, path=None):
+        path = SYNC_POINTS_PATH if path is None else path   # looked up now, not at import (tests redirect it)
+        ensure_data_dir_exists()
+        entries_to_save = [
+            {k: v for k, v in entry.items() if k not in ('w_recency', 'w_proximity', 'w_polar', 'w_total', 'residual_vector', 'residual_magnitude')}
+            for entry in self.sync_history
+            if not entry.get('deleted', False)
+        ]
+        guide_state = {
+            "q_pulseguide_B":     list(self.q_pulseguide_B.q),
+            "q_syncguide_B":      list(self.q_syncguide_B.q),
+            "valid_sync_guide":   bool(self.valid_sync_guide),
+        }
+        data = {"sync_points": entries_to_save, "guide_state": guide_state,
+                "alignment_model": {"m2_scale": self.mac_s2, "m2_scale_accepted": self.mac_s2_accepted}}
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=2)
+
+    def loadSyncDataFromFile(self, path=None):
+        path = SYNC_POINTS_PATH if path is None else path
+        if not os.path.exists(path):
+            return False
+        try:
+            with open(path, 'r') as f:
+                loaded = json.load(f)
+
+            # Backward compatibility: old files are a bare list (sync points only, no guide state). New files are a dict with both.
+            if isinstance(loaded, list):
+                entries, guide_state = loaded, None
+            elif isinstance(loaded, dict):
+                entries = loaded.get('sync_points', [])
+                guide_state = loaded.get('guide_state')
+            else:
+                self.logger.warning("sync_points.json: unexpected format, ignoring.")
+                return False
+
+            if not isinstance(entries, list):
+                self.logger.warning("sync_points.json: expected a list of sync points, ignoring.")
+                return False
+
+            self.sync_history = []
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                if entry.get('timestamp') == 'reset':
+                    continue
+                clean = {
+                    'timestamp':  entry.get('timestamp', format_timestamp()),
+                    'deleted':    False,
+                    'p_az':       float(entry['p_az']),
+                    'p_alt':      float(entry['p_alt']),
+                    'p_roll':     float(entry['p_roll']),
+                    'p_roll_pv':  float(entry['p_roll_pv']) if entry.get('p_roll_pv') is not None else None,
+                    'theta':      [float(x) for x in entry['theta']] if entry.get('theta') is not None else None,
+                    'zeta':       [float(x) for x in entry['zeta']] if entry.get('zeta') is not None else None,
+                    'backlash':   [float(x) for x in entry['backlash']] if entry.get('backlash') is not None else None,
+                    'wdir':       [int(x) for x in entry['wdir']] if entry.get('wdir') is not None else None,
+                    'a_ra':       float(entry['a_ra'])   if entry.get('a_ra')   is not None else None,
+                    'a_dec':      float(entry['a_dec'])  if entry.get('a_dec')  is not None else None,
+                    'a_az':       float(entry['a_az'])   if entry.get('a_az')   is not None else None,
+                    'a_alt':      float(entry['a_alt'])  if entry.get('a_alt')  is not None else None,
+                    'a_roll':     float(entry['a_roll']) if entry.get('a_roll') is not None else None,
+                }
+                self.sync_history.append(clean)
+
+            payload = {'advanced_alignment': True if len(self.sync_history) > 0 else False}
+            Config.apply_changes(payload)
+            self.logger.info(f"==STARTUP== Loading Alignment Model ({len(self.sync_history)} sync points{', and guide state' if guide_state else ''}).")
+            self.optimize_alignQ_B2T(persist=False)
+            self.optimize_roll_adj()
+            self.refresh_pid_setpoints_from_q1()
+            self.last_sync_time = time.monotonic()
+
+            # Restore guide correction state, if present (older files won't have it —
+            # q_pulseguide_B/q_syncguide_B simply stay at identity, same as before this change).
+            model = loaded.get('alignment_model') if isinstance(loaded, dict) else None
+            if model and model.get('m2_scale') is not None:
+                self.mac_s2 = float(model['m2_scale'])          # the M2 scale last taken from a significant fit
+                self.mac_s2_accepted = model.get('m2_scale_accepted')
+                self.mac_s2_status = 'held'
+            if guide_state:
+                try:
+                    self.q_pulseguide_B    = Quaternion(*guide_state['q_pulseguide_B']).normalised
+                    self.q_syncguide_B     = Quaternion(*guide_state['q_syncguide_B']).normalised
+                    self.valid_sync_guide  = guide_state.get('valid_sync_guide', False)
+                except Exception as e:
+                    self.logger.warning(f"Failed to restore guide state, continuing at identity: {e}")
+
+            self.streamSyncData(persist=False)
+            return True
+        except Exception as e:
+            self.logger.warning(f"Failed to load sync_points.json: {e}")
+            return False
+
+    def _request_persist_guide_state(self, throttle_sec=60):
+        """
+        Throttled save of guide correction state (q_pulseguide_B, q_syncguide_B).
+        Called from every guide/PEC accumulation point, which can fire many times
+        per second (PEC ticks every ~200ms) — so this must not write to disk on
+        every call. Saves immediately if throttle_sec has elapsed since the last
+        save; otherwise defers a single trailing save so the final state is never
+        more than throttle_sec stale, without hammering the filesystem.
+        """
+        now = time.monotonic()
+        last = getattr(self, '_last_persist_time', None)
+        # if last persist was a long time ago then save state
+        if last is None or (now - last) >= throttle_sec:
+            self._last_persist_time = now
+            self._persist_pending = False
+            self.saveSyncDataToFile()
+            return
+        # if we already have a save state pending then return
+        if getattr(self, '_persist_pending', False):
+            return
+        # if none pending, then setup a deferred call to save guide state
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # No event loop running (e.g. synchronous test), fall back to an immediate save rather than losing the write entirely.
+            self._last_persist_time = now
+            self.saveSyncDataToFile()
+            return
+        self._persist_pending = True
+        remaining = throttle_sec - (now - last)
+        asyncio.create_task(self._deferred_persist_guide_state(remaining))
+
+    async def _deferred_persist_guide_state(self, delay):
+        await asyncio.sleep(delay)
+        if getattr(self, '_persist_pending', False):
+            self._last_persist_time = time.monotonic()
+            self._persist_pending = False
+            self.saveSyncDataToFile()
+
+# ── Pulse Guiding ──────────────────────────────────────────────────────────
+
+    def process_pulse_guide_axis(self, direction, duration):
+        axis = None
+        sign = 0
+        if direction == 0: axis, sign = 1, +1    # North DEC +ve
+        elif direction == 1: axis, sign = 1, -1  # South DEC -ve
+        elif direction == 2: axis, sign = 0, +1  # East RA +ve
+        elif direction == 3: axis, sign = 0, -1  # West RA -ve
+        else:
+            self.logger.warning(f"Invalid pulse guide direction: {direction}")
+            return
+
+        now = time.monotonic()
+        step_sec = abs(duration)/1000
+        self._pulse_guide_last_time = now
+        # anti-windup: suppress Ki for the pulse's own duration (or existing duration/min floor)
+        self.polaris._pid.set_ki_inhibit_until(step_sec)
+
+        # accumulate the pulse guide durations into q_pulseguide_B for baseQ_to_topoQ to apply as a correction
+        velocity = sign * (self.polaris._guideraterightascension if axis == 0 else self.polaris._guideratedeclination)
+        self.accumulate_guide_pulses(axis, step_sec, velocity)
+        
+        # update the drift and PEC model
+        if Config.advanced_pulse_pec_tuning:
+            self.ingest_pulse_for_pec(axis, sign, abs(duration), velocity * step_sec)
+
+        # make immediate update to ra and dec for conformU tests
+        cameraQ_pv, _ = self.polaris._sm.baseQ_to_topoQ(self.polaris._motorQ_state)
+        az, alt, _ = q_to_azaltroll(cameraQ_pv)
+        ra, dec = self.polaris.altaz2radec(alt, az)
+        self.polaris._rightascension = float(ra)
+        self.polaris._declination = float(dec)
+        self.polaris._ispulseguiding = True
+
+    def cache_axes_B(self, cameraQ_pv):
+        """ cache equatorial/topocentric/galactic axes in B Frame, whenever PV changes, ie called from 518 handler """
+        lat = self.polaris._sitelatitude
+        lon = self.polaris._sitelongitude
+        alignQ_B2T_inv = self.alignQ_B2T_inv
+        self.equatorial_axes_B  = calc_equatorial_axes_B(cameraQ_pv, alignQ_B2T_inv, lat)
+        self.topocentric_axes_B = calc_topocentric_axes_B(cameraQ_pv, alignQ_B2T_inv)
+        self.galactic_axes_B    = calc_galactic_axes_B(cameraQ_pv, alignQ_B2T_inv, lat, lon, ephem.now())
+
+    def accumulate_guide_pulses(self, axis, step_sec, velocity):
+        axis_base = self.equatorial_axes_B[axis]
+        if axis_base is None:
+            return Quaternion()
+        angle_deg = velocity * step_sec
+        if abs(angle_deg) < 1e-9:
+            return Quaternion()
+        q_pulse = Quaternion(axis=axis_base, degrees=angle_deg)
+        self.q_pulseguide_B = (q_pulse * self.q_pulseguide_B).normalised
+        self.delta_guide_accum[axis] += angle_deg
+        self.delta_guide_pulse[axis] = angle_deg
+        self._request_persist_guide_state()
+    
+    def clear_guide_pulses(self, persist=True):
+        self.delta_guide_accum = np.zeros(3, dtype=float)
+        self.q_pulseguide_B = Quaternion(1,0,0,0)
+        self.delta_guide_pulse = np.zeros(3, dtype=float)
+        if persist:
+            self._request_persist_guide_state()
 
 
+# ── Sync Guiding ──────────────────────────────────────────────────────────
+
+    def process_guide_sync(self, a_ra, a_dec, a_az, a_alt):
+        if not self.valid_sync_guide:
+            return False
+        
+        MAX_SYNC_GUIDE_DEG = 3.0
+        ra_resid = clamp_error(a_ra*15, self.polaris.rightascension*15)
+        dec_resid = clamp_error(a_dec, self.polaris.declination)
+        if (abs(ra_resid) > MAX_SYNC_GUIDE_DEG or abs(dec_resid) > MAX_SYNC_GUIDE_DEG):
+            self.logger.info(f"->> Polaris: SYNC GUIDING Residual too large   Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
+            return False
+
+        now = time.monotonic()
+        if self._sync_guide_last_time is not None:
+            dt = now - self._sync_guide_last_time
+            if 1.0 < dt < 3600:   # sanity bounds, same pattern as PEC's interval EMA
+                alpha = 0.3
+                self._sync_guide_interval = (alpha * dt + (1 - alpha) * self._sync_guide_interval
+                                            if self._sync_guide_interval is not None else dt)
+        self._sync_guide_last_time = now
+        # anti-windup: suppress Ki until the sync correction's smoothed application has settled
+        self.polaris._pid.set_ki_inhibit_until(KI_INHIBIT_GRACE_S)
+
+        self.logger.info(f"->> Polaris: SYNC GUIDING    Ra {deg2dms(ra_resid)}, Dec {deg2dms(dec_resid)} Residuals")
+
+        self.accumulate_sync_guiding_residuals(ra_resid, dec_resid)
+
+        # SGLOG: structured record of this correction -- logged unconditionally (like the text
+        # line above), independent of Config.log_pec/log_position, so a session run with PEC
+        # (and hence PECLOG) off, and log_position off to avoid flooding the logs at KFLOG/
+        # PIDLOG's control-tick rate, still has enough to reconstruct per-motor drift: the
+        # resid itself, a running cumulative total, and the raw motor position at this exact
+        # moment (theta_raw) -- avoiding the nearest-KFLOG-sample matching a notebook would
+        # otherwise need to reconstruct position from az/alt/roll.
+        #
+        # total_accum reuses delta_guide_accum (already maintained by
+        # accumulate_sync_guiding_residuals above) rather than a separate counter -- it resets
+        # in clear_sync_guiding() same as a dedicated counter would, but *also* in
+        # clear_guide_pulses() whenever optimize_alignQ_B2T() recomputes alignQ_B2T, which is
+        # exactly when a stale cumulative total would otherwise silently mean something
+        # different against the new alignment model.
+        theta_raw = self.polaris._theta_raw
+        pv_deg = self.polaris._pid.alpha_pv
+        sg_payload = {
+            # arcmin, this sync's raw guide error -- same convention as PECLOG's resid
+            "resid": [round(float(ra_resid * 60), 4), round(float(dec_resid * 60), 4)],
+            # arcmin, cumsum(resid) since the last reset -- does NOT include any PEC
+            # correction; if PEC is also active this session, PECLOG's own total_accum already
+            # covers the combined (resid + pec_accum) case, and will differ from this by
+            # however much PEC has applied so far
+            "total_accum": [round(float(self.delta_guide_accum[0] * 60), 4), round(float(self.delta_guide_accum[1] * 60), 4)],
+            # degrees, raw motor encoder position [M1, M2, M3] as of the last 518 message
+            "theta_raw": [round(float(v), 5) for v in theta_raw] if theta_raw is not None else [None, None, None],
+            # degrees, current topocentric PV -- same convention as PECLOG's az/alt/roll
+            "az": round(float(pv_deg[0]), 3), "alt": round(float(pv_deg[1]), 3), "roll": round(float(pv_deg[2]), 3),
+            # seconds, smoothed EMA interval between successful syncs (None until the 2nd one)
+            "interval_sec": round(float(self._sync_guide_interval), 3) if self._sync_guide_interval is not None else None,
+            # seconds since the last real 518 telemetry -- same staleness diagnostic PECLOG carries
+            "age_518": round(float(self.polaris._age_518_seconds), 3),
+        }
+        self.logger.info(f"SGLOG {sg_payload}")
+
+        # update the drift and PEC model
+        self.update_pec_model(ra_resid,dec_resid)
+
+        return True
+
+    def invalidate_sync_guiding(self):
+        """ Next sync is not to be used for sync guiding, but keep q_syncguide_B """
+        self.reset_pec_model()
+        self.valid_sync_guide = False
+        self._sync_guide_interval = None
+        self._sync_guide_last_time = None
+
+
+    def clear_sync_guiding(self):
+        """ Cleared whenever Tracking disabled or settings changed. 
+            Gotos, Panning, Rolling only invalidate, as the q_syncguide_B is used for scc """
+        self.reset_pec_model()
+        self.valid_sync_guide = False
+        self._sync_guide_interval = None
+        self._sync_guide_last_time = None
+        self.q_syncguide_B = Quaternion(1,0,0,0)
+        self.delta_guide_accum = np.zeros(3, dtype=float)
+        if Config.advanced_scc_enabled and Config.advanced_scc_choice==2:
+            self.scc_error = 0
+        self._request_persist_guide_state()
+
+    def enable_sync_guiding(self):
+        """ Enabled from a valid QUEST sync and sidereal tracking enabled """
+        self.valid_sync_guide = True
+
+    def accumulate_sync_guiding_residuals(self, ra_resid, dec_resid):
+        """ Accumulate residuals in decimal degrees, as well as a corresponding corection quaternion """
+        ra_axis_B, dec_axis_B, _ = self.equatorial_axes_B
+        q_ra_corr  = Quaternion(axis=ra_axis_B,  degrees= ra_resid)
+        q_dec_corr = Quaternion(axis=dec_axis_B, degrees= dec_resid)
+        q_adj = (q_ra_corr * q_dec_corr).normalised
+        self.q_syncguide_B = (q_adj * self.q_syncguide_B).normalised
+
+        self.delta_guide_accum[0] += ra_resid
+        self.delta_guide_accum[1] += dec_resid
+        self.delta_guide_pulse[0] = ra_resid
+        self.delta_guide_pulse[1] = dec_resid
+        self._request_persist_guide_state()
+        
+    def seed_sync_guide_from_quest_residual(self):
+        if self.last_sync_time is None:
+            return
+        if self.polaris._motorQ_state is None:
+            return
+        
+        # Update cameraQ_pv based on recalculated QUEST model
+        cameraQ_pv, _ = self.baseQ_to_topoQ(self.polaris._motorQ_state)
+        self.cache_axes_B(cameraQ_pv)
+
+        az_err, alt_err, v_pred_rot, v_obs = self.get_last_syncpoint_residual()
+        if v_pred_rot is None:
+            return
+
+        axis = np.cross(v_pred_rot, v_obs)
+        norm_axis = np.linalg.norm(axis)
+        if norm_axis < 1e-8:
+            return
+        axis /= norm_axis
+        angle = np.arccos(np.clip(np.dot(v_pred_rot, v_obs), -1.0, 1.0))
+        self.scc_error = np.degrees(-angle)
+
+        # Build exact residual correction in Topocentric frame, rotate to Base frame
+        q_corr_topo = Quaternion(axis=axis, radians=angle)
+        q_corr_B = self.alignQ_B2T_inv * q_corr_topo * self.alignQ_B2T
+
+        self.logger.info(
+            f"Sync Guide seeded from QUEST residual: "
+            f"Az {deg2dms(az_err)}, Alt {deg2dms(alt_err)}, angle {deg2dms(np.degrees(angle))}"
+        )
+
+        self.q_syncguide_B = q_corr_B.normalised
+        self.delta_guide_accum[0] = 0
+        self.delta_guide_accum[1] = 0
+        self._request_persist_guide_state()

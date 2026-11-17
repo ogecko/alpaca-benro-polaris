@@ -1,9 +1,36 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
-import { defineConfig } from '#q-app/wrappers';
+import { defineConfig } from '#q-app';
 
-export default defineConfig((/* ctx */) => {
+// Per-machine proxy override:
+// Quasar dev server proxies /proxy, /version and /alpaca_pilot_ca.crt to nina01:80 by default.
+// /proxy    - generic passthrough to the driver's Alpaca Device API (api/v1/...), Management API (management/v1/...), and WebSocket (/proxy/ws).
+//             (Alpaca Discovery is a separate UDP service on port 32227 - not proxied here.)
+// /version  - version-check polling (useVersionWatch.ts)
+// /alpaca_pilot_ca.crt - HTTPS CA cert download
+// To override this, create a file quasar.env.local (gitignored) with
+//   PILOT_API_HOST=localhost
+//   PILOT_API_PORT=8180
+// e.g. on Linux/WSL2 the driver can't bind port 80 without root
+// so its pilot override (data/config.pilot.json) moves alpaca_pilot_http_port to 8180
+// A driver with enable_https = true serves the Pilot on 443 and only redirects port 80 to it (which the
+// proxy can't follow), so point at 443 instead -- https is then used, accepting the driver's self-signed cert:
+//   PILOT_API_HOST=localhost
+//   PILOT_API_PORT=443
+// (PILOT_API_PROTO=https|http overrides the choice of protocol.)
+try {
+  process.loadEnvFile('quasar.env.local');
+} catch {
+  // no quasar.env.local present - fall back to the defaults below
+}
+
+const apiHost = process.env.PILOT_API_HOST ?? 'nina01';
+const apiPort = process.env.PILOT_API_PORT ?? '80';
+const apiProto = process.env.PILOT_API_PROTO ?? (apiPort === '443' ? 'https' : 'http');
+const apiTarget = `${apiProto}://${apiHost}:${apiPort}`;
+
+export default defineConfig((ctx) => {
   return {
     // https://v2.quasar.dev/quasar-cli-vite/prefetch-feature
     // preFetch: true,
@@ -37,6 +64,18 @@ export default defineConfig((/* ctx */) => {
       target: {
         browser: ['es2022', 'firefox115', 'chrome115', 'safari14'],
         node: 'node20',
+      },
+
+      // @quasar/app-vite v3 dropped the old bare-word aliases (src/, stores/, components/, etc.)
+      // in favor of a single '@' alias. Restore the ones this codebase actually uses so the
+      // existing import style (e.g. `from 'stores/device'`) keeps resolving.
+      // https://quasar.dev/quasar-cli-vite/upgrade-guide#global-search-and-replace
+      alias: {
+        src: ctx.appPaths.srcDir,
+        stores: ctx.appPaths.resolve.src('stores'),
+        components: ctx.appPaths.resolve.src('components'),
+        layouts: ctx.appPaths.resolve.src('layouts'),
+        pages: ctx.appPaths.resolve.src('pages'),
       },
 
       typescript: {
@@ -83,7 +122,26 @@ export default defineConfig((/* ctx */) => {
     devServer: {
       // https: true,
       historyApiFallback: true,
-      open: true, // opens browser window automatically
+      open: false, // opens browser window automatically
+      allowedHosts: ['nina01', '.local', '.ts.net'],  // Vite 6+ blocks other host names (403): IP addresses and localhost always pass
+      proxy: {
+        '/proxy': {
+          target: apiTarget,                         // Let Falcon web server proxy it to REST API port
+          changeOrigin: true,
+          secure: false,                             // the driver's HTTPS cert is self-signed
+          ws: true,                                  // Let Falcon web server proxy ws to app_socket.py
+        },
+        '/version': {
+          target: apiTarget,                         // Falcon web server port
+          changeOrigin: true,
+          secure: false,
+        },
+        '/alpaca_pilot_ca.crt': {
+          target: apiTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+      }
     },
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework

@@ -1,0 +1,6 @@
+# Hand-written replay test file -- safe smoke test, no motor movement.
+# Exercises the real request-line + SLEEP path against a live driver: a read-only property
+# GET, a read-only Polaris:ConfigFetch action, and an explicit pause.
+127.0.0.1 -> GET /api/v1/telescope/0/connected?ClientID=8644&ClientTransactionID=1
+127.0.0.1 -> PUT /api/v1/telescope/0/action {'Action': 'Polaris:ConfigFetch', 'Parameters': '{"configNames": ["pec_T_sec", "advanced_pec"]}', 'ClientID': '8644', 'ClientTransactionID': '2'}
+REPLAY SLEEP {"seconds": 0.2}

@@ -1,0 +1,1 @@
+import{M as e,P as t,S as n}from"./create-BM3TdoAj.js";import{i as r}from"./vm-BtgylQAj.js";function i(){let i=null,a=n();function o(){i!==null&&(clearTimeout(i),i=null)}return t(o),e(o),{removeTimeout:o,registerTimeout(e,t){o(),r(a)||(i=setTimeout(()=>{i=null,e()},t))}}}export{i as t};

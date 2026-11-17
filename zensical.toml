@@ -1,0 +1,152 @@
+# Documentation site for https://ogecko.github.io/alpaca-benro-polaris/<docs_version>/
+# Built straight from docs/ (home page: docs/index.md). Check list layout with utility/docs/check_docs.py.
+
+[project]
+site_name = "Alpaca Benro Polaris Driver"
+site_description = "Open-source ASCOM Alpaca driver and Pilot app that turns the Benro Polaris into a telescope mount"
+site_author = "David Morrison"
+site_url = "https://ogecko.github.io/alpaca-benro-polaris/"
+copyright = "Copyright &copy; 2024-2026 David Morrison"
+repo_url = "https://github.com/ogecko/alpaca-benro-polaris"
+repo_name = "ogecko/alpaca-benro-polaris"
+docs_dir = "docs"
+site_dir = "pilot/dist/docs"
+# Files in docs/site-root/ are published at the site root by utility/docs/publish_version.py,
+# and docs/README.md explains how the site is built and published
+exclude_docs = """
+site-root/
+README.md
+"""
+extra_css = ["stylesheets/extra.css"]
+
+nav = [
+  { "Home" = "index.md" },
+  { "Getting Started" = [
+    { "Start Here" = "getting-started.md" },
+    { "Preparing the MiniPC" = "install-minipc.md" },
+    { "Windows Installation" = "install-win.md" },
+    { "macOS Installation" = "install-macos.md" },
+    { "Raspberry Pi Installation" = "install-pi.md" },
+    { "Docker Installation" = "install-docker.md" },
+  ] },
+  { "Using the Driver" = [
+    { "Alpaca Pilot App" = "use-pilot.md" },
+    { "Initial Setup" = "initial-setup.md" },
+    { "Creating Panoramas" = "img-panoramas.md" },
+    { "Deep-Sky Imaging" = "img-dso.md" },
+    { "Planetary Imaging" = "img-planetary.md" },
+    { "Satellite Imaging" = "img-satellite.md" },
+    { "Using Stellarium" = "use-stellarium.md" },
+    { "Using Nina" = "use-nina.md" },
+    { "Using CCDciel" = "use-ccdciel.md" },
+    { "Sync Guiding" = "use-sync-guiding.md" },
+    { "Pulse Guiding" = "use-pulse-guiding.md" },
+  ] },
+  { "Release Notes" = [
+    { "v2.2.0" = "release-notes-v2.2.0.md" },
+    { "v2.1.0" = "release-notes-v2.1.0.md" },
+    { "v2.0.0" = "release-notes-v2.0.0.md" },
+    { "v1.0.1" = "release-notes-v1.0.1.md" },
+    { "v1.0.0" = "release-notes-v1.0.0.md" },
+  ] },
+  { "Reference" = [
+    "ref-architecture.md",
+    "ref-control.md",
+    "ref-kinematics.md",
+    "ref-config.md",
+    "ref-catalog.md",
+    "api-alpaca.md",
+    "api-telescope.md",
+    "api-rotator.md",
+    "api-pilot.md",
+  ] },
+  { "Help" = [
+    "help-troubleshooting.md",
+    { "Installation" = "help-install.md" },
+    { "Benro Polaris" = "help-polaris.md" },
+    { "Network" = "help-network.md" },
+    { "NINA" = "help-nina.md" },
+    { "Stellarium" = "help-stellarium.md" },
+    "help-faq.md",
+  ] },
+]
+
+[project.theme]
+language = "en"
+logo = "images/abp-logo.png"
+favicon = "images/abp-icon.png"
+features = [
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.tabs",
+  "navigation.tabs.sticky",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+  "toc.follow",
+]
+
+# Dark by default (astronomers at night), with a toggle to light
+[[project.theme.palette]]
+scheme = "slate"
+primary = "indigo"
+accent = "amber"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "indigo"
+accent = "amber"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to dark mode"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+toc.slugify = { object = "pymdownx.slugs.slugify", kwds = { case = "lower" } }
+pymdownx.arithmatex.generic = true
+pymdownx.betterem = {}
+pymdownx.caret = {}
+pymdownx.details = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.magiclink = {}
+pymdownx.mark = {}
+pymdownx.smartsymbols = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+pymdownx.tasklist.custom_checkbox = true
+pymdownx.tilde = {}
+
+# Each release's docs are published under their own folder, e.g. .../alpaca-benro-polaris/v2.2/
+# (see utility/docs/publish_version.py). Bump docs_version on a new release branch, along with
+# the docs links in the Pilot app (pilot/src), which point at this version of the site.
+[project.extra]
+docs_version = "v2.2"
+
+[project.extra.version]
+provider = "mike"

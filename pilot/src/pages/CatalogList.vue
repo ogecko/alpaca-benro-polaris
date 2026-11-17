@@ -88,6 +88,7 @@
                   <q-btn color="positive" rounded  icon="mdi-cookie" label="Search" class="position-right" @click="onClickSearchOrbital(8)"/>
               </q-item-section>
             </q-item>
+            <template v-if="cat.page === 1" >
               <q-item v-for="(link, index) in filteredLinks" :key="index" class="q-pt-lg q-pb-lg" >
                 <q-item-section avatar><q-icon :name="link.icon" /></q-item-section>
                 <q-item-section>
@@ -98,6 +99,7 @@
                     <q-btn flat dense icon="mdi-open-in-new" label="Open Site" class="position-right" :href="link.href"  target="_blank" rel="noopener" />
                 </q-item-section>
               </q-item>
+            </template>
             <q-item v-if="isNoResults" class="q-pt-lg q-pb-lg">
               <q-item-section avatar><q-icon name="mdi-help" /></q-item-section>
               <q-item-section>
@@ -117,7 +119,7 @@
                   <span class="text-weight-bolder">{{dso.MainID}}</span>
                   <span v-if="dso.OtherIDs" class="text-grey-7"> &nbsp;&nbsp;|&nbsp;&nbsp; {{ dso.OtherIDs }}</span>
                 </q-item-label>
-                <q-item-label overline>{{ dso.Name }} </q-item-label>
+                <q-item-label overline v-if="dso.Name && dso.Name !== dso.MainID">{{ dso.Name }} </q-item-label>
                 <q-item-label caption class="text-grey-6"> 
                   {{dso.Subtype}} in {{ dso.Constellation }}. {{ dso.Notes }} 
                 </q-item-label>
@@ -126,6 +128,8 @@
                   RA: {{ deg2fulldms(dso.RA_hr,1,'hr') }} <VBar /> Dec: {{ deg2fulldms(dso.Dec_deg) }}
                   <span v-if="dso.Az_deg"> <VBar /> Az: {{ formatAngle(dso.Az_deg,'deg',0) }}</span>
                   <span v-if="dso.Alt_deg"> <VBar /> Altitude: {{ formatAngle(dso.Alt_deg,'deg',0) }}</span>
+                  <span v-if="dso.Roll_deg !== undefined"> <VBar /> Roll: {{ formatAngle(dso.Roll_deg,'deg',0) }}</span>
+                  <span v-if="isMotorPosition(dso)"> <VBar /> M1: {{ formatAngle(dso.M1_deg??0,'deg',1) }} M2: {{ formatAngle(dso.M2_deg??0,'deg',1) }} M3: {{ formatAngle(dso.M3_deg??0,'deg',1) }}</span>
                   <span v-if="isProxSort"> <VBar /> Proximity: {{ formatAngle(dso.Proximity??0,'deg',1) }}</span>
                 </q-item-label>
               </q-item-section>
@@ -141,9 +145,13 @@
                   <q-btn class="gt-xs" flat dense icon="mdi-move-resize-variant" @click.stop="onClickGoto(dso)">
                     <q-tooltip>Goto</q-tooltip>
                   </q-btn>
-                  <q-btn class="gt-xs" flat dense icon="mdi-sync" @click.stop="onClickSync(dso)">
+                  <q-btn v-if="!isDeletableItem(dso)" class="gt-xs" flat dense icon="mdi-sync" @click.stop="onClickSync(dso)">
                     <q-tooltip>Sync</q-tooltip>
                   </q-btn>
+                  <q-btn v-if="isDeletableItem(dso)" class="gt-xs" flat dense color="negative" icon="mdi-delete-outline" @click.stop="onClickRemoveOrbital(dso)">
+                    <q-tooltip>Remove from orbital cache</q-tooltip>
+                  </q-btn>
+
                 </div>
               </q-item-section>
 
@@ -168,10 +176,11 @@ import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router'
 import type { DsoType, DsoSubtype, CatalogItem, DsoAltitude, DsoConstellation, DsoRating, DsoSize, DsoBrightness } from 'src/stores/catalog' // adjust path as needed
 import { useDeviceStore } from 'src/stores/device'
 import { useStatusStore } from 'src/stores/status'
-import { useCatalogStore, typeLookupIcon, typeLookup } from 'src/stores/catalog'
+import { useCatalogStore, typeLookupIcon, typeLookup, isMotorPosition } from 'src/stores/catalog'
+import { useConfigStore } from 'src/stores/config'
+import { useUIStore } from 'src/stores/ui'
 import VBar from 'src/components/VBar.vue'
 import MultiSelect from 'src/components/MultiSelect.vue'
-import { useConfigStore } from 'src/stores/config'
 
 const $q = useQuasar()
 const route = useRoute()
@@ -180,6 +189,7 @@ const dev = useDeviceStore()
 const cat = useCatalogStore()
 const cfg = useConfigStore()
 const p = useStatusStore()
+const ui = useUIStore()
 const showFilters = ref<boolean>(false)
 
 
@@ -210,7 +220,9 @@ function check(query: string, criteria: RegExp[]): boolean {
   return criteria.some(regex => regex.test(query.trim()))
 }
 
-
+function nowISOString(): string {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
+}
 
 
 // ---------- Computed
@@ -222,6 +234,7 @@ const isNoResults = computed(() => cat.paginated.length == 0 && !cat.filter.C1?.
 const isNoradSearch = computed(() => check(cat.searchFor, [noradRegex]) || cat.filter.C1?.includes(6))
 const isCometSearch = computed(() => check(cat.searchFor, [cometRegex]) || cat.filter.C1?.includes(7))
 const isAsteroidSearch = computed(() => check(cat.searchFor, [namedRegex, numberedRegex, provisionalRegex]) || cat.filter.C1?.includes(8))
+const isDeletableItem = (dso:CatalogItem) => (dso.Cn === 84 && dso.C1 >= 6)
 const filteredLinks = computed(() => allLinks.value.filter(link => cat.filter.C1?.includes(link.C1)))
 const allLinks = computed(() => [
   {
@@ -328,6 +341,11 @@ const allLinks = computed(() => [
     C1: 11 as DsoType, icon: "mdi-lightbulb-on-outline", title: 'Light Polution',
     caption: 'Find the best dark sky locations for Astrophotography (external site).',
     href: `https://lightpollutionmap.app/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&zoom=10`,
+  },  
+  {
+    C1: 11 as DsoType, icon: "mdi-image-filter-hdr", title: 'Peak Finder',
+    caption: 'Identify a mountain peak that Polaris is pointing toward and determine its elevation (external site).',
+    href: `https://www.peakfinder.com/fr/?lat=${cfg.site_latitude}&lng=${cfg.site_longitude}&ele=${cfg.site_elevation}&azi=${p.azimuth}&alt=-15&teleazi=${p.azimuth}&telealt=${p.altitude}&fov=110&date=${nowISOString()}&cfg=es&name=${cfg.location}`,
   },
   {
     C1: 11 as DsoType, icon: "mdi-aurora", title: 'Space Weather Prediction Center',
@@ -345,7 +363,17 @@ watch(() => route.query.q, (newQ) => {
   { immediate: true }
 )
 
+watch(() => cat.filter, (f) => {
+  ui.setCatalogFilter(f)
+}, { deep: true })
 
+watch(isProxSort, (isProx) => {
+  ui.setCatalogSort(isProx ? 'Proximity' : '')
+})
+
+watch(() => [cat.filter, cat.sorting], () => {
+  cat.page = 1
+}, { deep: true })
 
 // ---------- Helpers
 const altLookupColor: Record<DsoAltitude, string>  = {
@@ -368,36 +396,70 @@ function parseNumberArray(param: unknown): number[] {
   return []
 }
 
-function syncFiltersFromRoute(query = route.query) {
-  cat.filter.C1 = parseNumberArray(query.C1) as DsoType[]
-  cat.filter.C2 = parseNumberArray(query.C2) as DsoSubtype[]
-  cat.filter.Cn = parseNumberArray(query.Cn) as DsoConstellation[]
-  cat.filter.Rt = parseNumberArray(query.Rt) as DsoRating[]
-  cat.filter.Sz = parseNumberArray(query.Sz) as DsoSize[]
-  cat.filter.Vz = parseNumberArray(query.Vz) as DsoBrightness[]
-  cat.filter.Az = parseNumberArray(query.Az) as DsoAltitude[]
-  cat.filter.Alt = parseNumberArray(query.Alt) as DsoAltitude[]
+const FILTER_KEYS = ['C1', 'C2', 'Cn', 'Rt', 'Sz', 'Vz', 'Az', 'Alt'] as const
 
-  if (query.sort === 'Proximity') {
-    cat.updateDsoProximity(p.rightascension, p.declination);
-    cat.sorting = [{ field: 'Proximity', direction: 'asc' }];
+function syncFiltersFromRoute(query = route.query) {
+  const hasExplicitFilter = FILTER_KEYS.some(k => k in query) || 'sort' in query
+  const source = hasExplicitFilter
+    ? {
+        C1: parseNumberArray(query.C1),
+        C2: parseNumberArray(query.C2),
+        Cn: parseNumberArray(query.Cn),
+        Rt: parseNumberArray(query.Rt),
+        Sz: parseNumberArray(query.Sz),
+        Vz: parseNumberArray(query.Vz),
+        Az: parseNumberArray(query.Az),
+        Alt: parseNumberArray(query.Alt),
+      }
+    : {
+        C1: ui.catalogFilter.C1 ?? [],
+        C2: ui.catalogFilter.C2 ?? [],
+        Cn: ui.catalogFilter.Cn ?? [],
+        Rt: ui.catalogFilter.Rt ?? [],
+        Sz: ui.catalogFilter.Sz ?? [],
+        Vz: ui.catalogFilter.Vz ?? [],
+        Az: ui.catalogFilter.Az ?? [],
+        Alt: ui.catalogFilter.Alt ?? [],
+      }
+  cat.filter.C1 = source.C1 as DsoType[]
+  cat.filter.C2 = source.C2 as DsoSubtype[]
+  cat.filter.Cn = source.Cn as DsoConstellation[]
+  cat.filter.Rt = source.Rt as DsoRating[]
+  cat.filter.Sz = source.Sz as DsoSize[]
+  cat.filter.Vz = source.Vz as DsoBrightness[]
+  cat.filter.Az = source.Az as DsoAltitude[]
+  cat.filter.Alt = source.Alt as DsoAltitude[]
+
+  const sortProximityWanted = hasExplicitFilter ? query.sort === 'Proximity' : ui.catalogSort === 'Proximity'
+  if (sortProximityWanted) {
+    cat.updateDsoProximity(p.rightascension, p.declination)
+    cat.sorting = [{ field: 'Proximity', direction: 'asc' }]
   } else {
-    cat.sorting = [];
+    cat.sorting = []
   }
+
+  // Show filter bar when there are filters, but not on precanned link 
+  const otherKeysPresent = FILTER_KEYS.some(k => k !== 'C1' && k in query)
+  const c1Count = parseNumberArray(query.C1).length
+  const isPrecannedLink = hasExplicitFilter && !otherKeysPresent && c1Count <= 1
+
+  showFilters.value = !isPrecannedLink && cat.isFiltered
 }
 
-
 function onClickDSO(dso: CatalogItem) {
-    $q.notify({
-    message: `Ready to sync or goto ${dso.MainID} ${dso.Name ? dso.Name : ''}?`,
+  const actions = [
+    { label: 'Sync', icon: 'mdi-sync', color: 'yellow', handler: () => { void onClickSync(dso) } },
+    { label: 'Goto', icon: 'mdi-move-resize-variant', color: 'yellow', handler: () => { void onClickGoto(dso) } },
+    { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => {} },
+  ]
+  if (isDeletableItem(dso)) {
+    actions.splice(-1, 0, { label: 'Remove', icon: 'mdi-delete-outline', color: 'yellow', handler: () => { void onClickRemoveOrbital(dso) }  })
+  }
+  $q.notify({
+    message: `Ready to sync or goto ${dso.MainID}?`,
     color: 'warning', position: 'top', timeout: 5000,
-    actions: [
-      { label: 'Sync', icon: 'mdi-sync', color: 'yellow', handler: () => { void onClickSync(dso)} },
-      { label: 'Goto', icon: 'mdi-move-resize-variant', color: 'yellow', handler: () => {void onClickGoto(dso)} },
-      { label: 'Cancel', icon: 'mdi-close', color: 'white', handler: () => { /* ... */ } }
-    ]
+    actions
   })
-
 }
 
 async function onClickSync(dso: CatalogItem) {
@@ -406,7 +468,7 @@ async function onClickSync(dso: CatalogItem) {
   $q.notify({ message:`Sync issued for ${dso.MainID} ${name}.`, icon:typeLookupIcon[dso.C1],
   type: 'positive', position: 'top', timeout: 5000, actions: [{ icon: 'mdi-close', color: 'white' }] })
   cat.dsoGotoed = dso
-  await router.push({ path: '/sync', query: { ...route.query, q: cat.searchFor } }) 
+  await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 
 }
 
@@ -415,8 +477,14 @@ async function onClickGoto(dso: CatalogItem) {
   if (dso.Cn==84) {
     await dev.alpacaTrackOrbital(dso.MainID, dso.C1)
   }
+  else if (isMotorPosition(dso)) {
+    await dev.alpacaSlewAbsolute({ m1: dso.M1_deg ?? 0, m2: dso.M2_deg ?? 0, m3: dso.M3_deg ?? 0 })
+  }
+  else if (dso.C1==9 && dso.Roll_deg !== undefined) {
+    await dev.alpacaSlewAbsolute({ az: dso.Az_deg ?? 180, alt: dso.Alt_deg ?? 45, roll: dso.Roll_deg })
+  }
   else if (dso.C1==9) {
-    await dev.alpacaSlewToAltAz(dso.Alt_deg ?? 180, dso.Az_deg ?? 45)
+    await dev.alpacaSlewToAltAz(dso.Alt_deg ?? 45, dso.Az_deg ?? 180)
   }
   else {
     await dev.alpacaJ2000Goto(dso.MainID, dso.RA_hr, dso.Dec_deg)
@@ -427,6 +495,17 @@ async function onClickGoto(dso: CatalogItem) {
   cat.dsoGotoed = dso
   await router.push({ path: '/dashboard', query: { ...route.query, q: cat.searchFor } }) 
 }
+
+
+async function onClickRemoveOrbital(dso: CatalogItem) {
+  await dev.alpacaRemoveOrbital(dso.MainID)
+  // Remove from local dsos immediately so UI updates without refresh
+  cat.dsos = cat.dsos.filter(d => d.MainID !== dso.MainID)
+  $q.notify({ message: `Removed ${dso.MainID} from orbital cache.`, 
+    icon: 'mdi-delete-outline', type: 'negative', position: 'top', timeout: 3000,
+    actions: [{ icon: 'mdi-close', color: 'white' }] })
+}
+
 
 async function onClickSearchOrbital(c1:DsoType=6) {
   const name = cat.searchFor
@@ -450,22 +529,12 @@ async function onClickSearchOrbital(c1:DsoType=6) {
 
 onMounted(async () => {
     await cat.catalogFetch()
-    const shouldFetch =
-      dev.restAPIConnected &&
-      dev.restAPIConnectedAt &&
-      cfg.fetchedAt < dev.restAPIConnectedAt
-
-    if (shouldFetch) {
-      await cfg.configFetch()
-    }
-
     syncFiltersFromRoute()
     cat.startPositionUpdater();
 })
 
-onBeforeRouteUpdate((to, from, next) => {
+onBeforeRouteUpdate((to) => {
   syncFiltersFromRoute(to.query)
-  next()
 })
 
 
