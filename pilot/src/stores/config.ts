@@ -16,6 +16,7 @@ export const useConfigStore = defineStore('config', {
     // Network
     polaris_auto_retry: true,
     enable_remote_shutdown: true,
+    enable_analytics: true,
     polaris_ip_address: '',
     polaris_port: 9090,
     enable_restapi: true,

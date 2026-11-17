@@ -17,6 +17,7 @@ These settings are in the `[network]` section of `config.toml`.
 |---|---|---|---|
 | `polaris_auto_retry` | `true` | Yes | If the connection to the Polaris fails: true = keep retrying, false = wait for Alpaca Pilot to reconnect. |
 | `enable_remote_shutdown` | `true` |  | Allow Alpaca Pilot to shut down the computer the driver runs on (Polaris:ShutdownOS). |
+| `enable_analytics` | `true` |  | Let Alpaca Pilot send anonymous page-view analytics (Google Analytics) when online, to help plan improvements. |
 | `polaris_ip_address` | `'192.168.0.1'` |  | IP address of the Benro Polaris on its Wi-Fi hotspot. |
 | `polaris_port` | `9090` |  | Port the Benro Polaris listens on. |
 | `polaris_wifi_password` | `''` |  | WPA2 password for the Polaris hotspot, used when the driver joins it (Windows only). Leave blank: the hotspot is open. |
